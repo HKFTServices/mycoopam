@@ -58,6 +58,8 @@ import {
   SendHorizontal,
   History,
   ShieldPlus,
+  Banknote,
+  ClipboardList,
 } from "lucide-react";
 
 const mainNavItems = [
