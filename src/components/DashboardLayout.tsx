@@ -107,6 +107,8 @@ const tenantSetupNavItems = [
   { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
   { label: "Message Templates", icon: Mail, path: "/dashboard/setup/communications" },
   { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
+  { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings" },
+  { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
   { label: "Data Import", icon: Package, path: "/dashboard/setup/data-import" },
   { label: "Legacy Income/Expense", icon: Archive, path: "/dashboard/income-expense-items" },
 ];
