@@ -1239,7 +1239,84 @@ const AccountApprovals = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* Loans Tab */}
+        <TabsContent value="loans">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead className="text-right">Requested</TableHead>
+                    <TableHead className="text-right">Term</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingLoans.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No pending loan applications
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingLoans.map((loan: any) => (
+                      <TableRow key={loan.id}>
+                        <TableCell className="font-medium">
+                          {[loan.entities?.name, loan.entities?.last_name].filter(Boolean).join(" ") || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {loan.entity_accounts?.account_number || "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(Number(loan.amount_requested))}
+                        </TableCell>
+                        <TableCell className="text-right">{loan.term_months_requested} mo</TableCell>
+                        <TableCell>
+                          <Badge variant={loan.status === "pending" ? "secondary" : "default"}>
+                            {loan.status === "approved" ? "Awaiting Acceptance" : "Pending Review"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(loan.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {loan.status === "pending" ? (
+                            <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Review
+                            </Button>
+                          ) : loan.status === "approved" ? (
+                            <Button size="sm" variant="outline" onClick={() => setAcceptLoanApp(loan)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> View
+                            </Button>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Loan Review Dialog */}
+      <LoanReviewDialog
+        open={!!reviewLoanApp}
+        onOpenChange={(open) => { if (!open) setReviewLoanApp(null); }}
+        application={reviewLoanApp}
+      />
+
+      {/* Loan Accept Dialog (for member view of approved loans) */}
+      <MemberLoanAcceptDialog
+        open={!!acceptLoanApp}
+        onOpenChange={(open) => { if (!open) setAcceptLoanApp(null); }}
+        application={acceptLoanApp}
+      />
 
       {/* Document Review Dialog */}
       {reviewAccount && currentTenant && (
