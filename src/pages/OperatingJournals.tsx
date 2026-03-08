@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatLocalDate } from "@/lib/formatDate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +28,7 @@ type ControlAccount = { id: string; name: string; account_type: string };
 type TaxType = { id: string; name: string; percentage: number };
 
 const defaultBankForm = {
-  transaction_date: new Date().toISOString().split("T")[0],
+  transaction_date: formatLocalDate(),
   gl_account_id: "",
   control_account_id: "",
   entry_type: "debit" as "debit" | "credit",
@@ -38,7 +39,7 @@ const defaultBankForm = {
 };
 
 const defaultJournalForm = {
-  transaction_date: new Date().toISOString().split("T")[0],
+  transaction_date: formatLocalDate(),
   use_gl_account: true,
   gl_account_id: "",
   description: "",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatLocalDate } from "@/lib/formatDate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
@@ -55,7 +56,7 @@ const TermsConditions = () => {
   const [form, setForm] = useState({
     content: "",
     condition_type: "registration" as ConditionType,
-    effective_from: new Date().toISOString().split("T")[0],
+    effective_from: formatLocalDate(),
     is_active: true,
     language_code: "en",
   });
@@ -108,7 +109,7 @@ const TermsConditions = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ content: "", condition_type: "registration", effective_from: new Date().toISOString().split("T")[0], is_active: true, language_code: "en" });
+    setForm({ content: "", condition_type: "registration", effective_from: formatLocalDate(), is_active: true, language_code: "en" });
     setDialogOpen(true);
   };
 

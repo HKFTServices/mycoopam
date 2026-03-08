@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatLocalDate } from "@/lib/formatDate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,7 +41,7 @@ type Commission = {
 };
 
 const defaultBankForm = {
-  transaction_date: new Date().toISOString().split("T")[0],
+  transaction_date: formatLocalDate(),
   gl_account_id: "",
   control_account_id: "",
   entry_type: "debit" as "debit" | "credit",
@@ -51,7 +52,7 @@ const defaultBankForm = {
 };
 
 const defaultJournalForm = {
-  transaction_date: new Date().toISOString().split("T")[0],
+  transaction_date: formatLocalDate(),
   gl_account_id: "",
   debit_control_account_id: "",
   credit_control_account_id: "",
@@ -505,7 +506,7 @@ const LedgerEntries = () => {
       // Post CFT for commission payment (full incl-VAT amount)
       const { data: cft, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
-        transaction_date: new Date().toISOString().split("T")[0],
+        transaction_date: formatLocalDate(),
         entry_type: "commission_payment",
         is_bank: true,
         control_account_id: cashAccount?.id || null,
@@ -524,7 +525,7 @@ const LedgerEntries = () => {
       if (commVat > 0 && vatGlAccountId) {
         await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
-          transaction_date: new Date().toISOString().split("T")[0],
+          transaction_date: formatLocalDate(),
           entry_type: "vat",
           parent_id: cft.id,
           control_account_id: null,
@@ -545,7 +546,7 @@ const LedgerEntries = () => {
           status: "paid",
           paid_at: new Date().toISOString(),
           paid_by: user.id,
-          payment_date: new Date().toISOString().split("T")[0],
+          payment_date: formatLocalDate(),
           payment_reference: reference || null,
           cashflow_transaction_id: cft.id,
         })
