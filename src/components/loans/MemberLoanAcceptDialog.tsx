@@ -11,8 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Loader2, Check, X, Download, FileSignature } from "lucide-react";
+import { Loader2, X, Download, FileSignature } from "lucide-react";
 import { generateAodHtml } from "@/lib/generateAod";
+import SignaturePad from "@/components/ui/signature-pad";
+import LoanAodContent from "@/components/loans/LoanAodContent";
+import LoanRepaymentSchedule from "@/components/loans/LoanRepaymentSchedule";
 
 interface Props {
   open: boolean;
@@ -24,9 +27,10 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
   const entityName = app?.entities
-    ? [app.entities.name, app.entities.last_name].filter(Boolean).join(" ")
+    ? [app?.entities?.name, app?.entities?.last_name].filter(Boolean).join(" ")
     : "—";
 
   const capital = Number(app?.amount_approved ?? app?.amount_requested ?? 0);
@@ -38,17 +42,17 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   const monthlyInstalment = Number(app?.monthly_instalment ?? (term > 0 ? totalLoan / term : 0));
 
   const isApproved = app?.status === "approved";
-  const isAccepted = app?.status === "accepted";
-  const isDisbursed = app?.status === "disbursed";
 
   const acceptMutation = useMutation({
     mutationFn: async () => {
+      if (!memberSignature) throw new Error("Please sign the document first");
       const { error } = await (supabase as any)
         .from("loan_applications")
         .update({
           status: "accepted",
           member_accepted_at: new Date().toISOString(),
           member_signature_path: `esign_${user!.id}_${Date.now()}`,
+          member_signature_data: memberSignature,
         })
         .eq("id", app.id);
       if (error) throw error;
@@ -142,119 +146,87 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6 space-y-4">
-          {/* AOD Document Preview */}
-          <Card className="border-primary/30">
-            <CardContent className="py-4">
-              <h3 className="text-center font-bold text-lg mb-4">ACKNOWLEDGMENT OF DEBT</h3>
+          <LoanAodContent
+            entityName={entityName}
+            app={app}
+            capital={capital}
+            interestRate={interestRate}
+            term={term}
+            loanFee={loanFee}
+            totalInterest={totalInterest}
+            totalLoan={totalLoan}
+            monthlyInstalment={monthlyInstalment}
+          />
 
-              <div className="space-y-3 text-sm">
-                <p>
-                  I, <strong>{entityName}</strong>, hereby acknowledge that I am indebted to the Cooperative
-                  in the amount and on the terms set out below:
-                </p>
+          {schedule.length > 0 && <LoanRepaymentSchedule schedule={schedule} />}
 
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                    <span className="text-muted-foreground">Loan Date:</span>
-                    <span className="font-mono">{app.loan_date}</span>
-                    <span className="text-muted-foreground">Capital Amount:</span>
-                    <span className="font-mono font-semibold">{formatCurrency(capital)}</span>
-                    <span className="text-muted-foreground">Interest Rate:</span>
-                    <span className="font-mono">{interestRate}% per annum (simple)</span>
-                    <span className="text-muted-foreground">Term:</span>
-                    <span className="font-mono">{term} months</span>
-                    <span className="text-muted-foreground">Interest Loading:</span>
-                    <span className="font-mono">{formatCurrency(totalInterest)}</span>
-                    <span className="text-muted-foreground">Loan Issue Fee:</span>
-                    <span className="font-mono">{formatCurrency(loanFee)}</span>
-                    <span className="font-semibold border-t pt-2 mt-1">Total Amount Due:</span>
-                    <span className="font-mono font-bold border-t pt-2 mt-1">{formatCurrency(totalLoan)}</span>
-                    <span className="text-muted-foreground">Monthly Instalment:</span>
-                    <span className="font-mono font-semibold text-primary">{formatCurrency(monthlyInstalment)}</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Formula: Total = Capital × (1 + term × rate/12) + Fee
-                </p>
-
-                {/* Repayment Schedule */}
-                {schedule.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-semibold mb-2">Repayment Schedule</h4>
-                    <div className="max-h-48 overflow-y-auto border rounded">
-                      <table className="w-full text-xs">
-                        <thead className="bg-muted sticky top-0">
-                          <tr>
-                            <th className="text-left p-1.5">#</th>
-                            <th className="text-left p-1.5">Date</th>
-                            <th className="text-right p-1.5">Capital</th>
-                            <th className="text-right p-1.5">Interest</th>
-                            <th className="text-right p-1.5">Instalment</th>
-                            <th className="text-right p-1.5">Balance</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {schedule.map((row) => (
-                            <tr key={row.month} className="border-t">
-                              <td className="p-1.5">{row.month}</td>
-                              <td className="p-1.5">{row.date}</td>
-                              <td className="p-1.5 text-right font-mono">{formatCurrency(row.capital)}</td>
-                              <td className="p-1.5 text-right font-mono">{formatCurrency(row.interest)}</td>
-                              <td className="p-1.5 text-right font-mono font-semibold">{formatCurrency(row.instalment)}</td>
-                              <td className="p-1.5 text-right font-mono">{formatCurrency(row.balance)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+          {/* Signatures Section */}
+          <Card>
+            <CardContent className="py-4 space-y-4">
+              <h4 className="text-sm font-semibold">Signatures</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  {app.member_accepted_at && app.member_signature_data ? (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Member Signature</span>
+                      <div className="border rounded-md bg-white p-1">
+                        <img src={app.member_signature_data} alt="Member signature" className="w-full h-auto" />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Signed: {new Date(app.member_accepted_at).toLocaleString("en-ZA")}
+                      </p>
                     </div>
-                  </div>
-                )}
-
-                <div className="mt-4 pt-4 border-t space-y-2">
-                  <p className="text-xs">
-                    <strong>Terms:</strong> I agree to repay the total amount in equal monthly instalments 
-                    as set out in the schedule above. Failure to maintain payments may result in the 
-                    outstanding balance being deducted from my pool holdings.
-                  </p>
+                  ) : isApproved ? (
+                    <SignaturePad
+                      label="Member Signature"
+                      value={memberSignature ?? undefined}
+                      onChange={setMemberSignature}
+                    />
+                  ) : (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Member Signature</span>
+                      <div className="border-b border-dashed h-8 mt-1" />
+                    </div>
+                  )}
                 </div>
-
-                {/* Signatures */}
-                <div className="grid grid-cols-2 gap-8 mt-6 pt-4 border-t">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Member Signature</p>
-                    {app.member_accepted_at ? (
-                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded p-2">
-                        <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                          ✓ Electronically signed
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {new Date(app.member_accepted_at).toLocaleString("en-ZA")}
-                        </p>
+                <div>
+                  {app.admin_signed_at && app.admin_signature_data ? (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Admin Signature</span>
+                      <div className="border rounded-md bg-white p-1">
+                        <img src={app.admin_signature_data} alt="Admin signature" className="w-full h-auto" />
                       </div>
-                    ) : (
-                      <div className="border-b border-dashed h-8" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Admin Signature</p>
-                    {app.admin_signed_at ? (
-                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded p-2">
-                        <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                          ✓ Signed & Released
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {new Date(app.admin_signed_at).toLocaleString("en-ZA")}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="border-b border-dashed h-8" />
-                    )}
-                  </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Signed: {new Date(app.admin_signed_at).toLocaleString("en-ZA")}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Admin Signature</span>
+                      <div className="border-b border-dashed h-8 mt-1" />
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Disbursement Info */}
+          {app.status === "disbursed" && (
+            <Card className="border-emerald-300">
+              <CardContent className="py-3">
+                <h4 className="text-sm font-semibold text-emerald-700 mb-2">💸 Disbursement Details</h4>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">Reference:</span>
+                  <span className="font-mono">{app.disbursement_reference ?? "—"}</span>
+                  <span className="text-muted-foreground">Date:</span>
+                  <span>{app.disbursement_date ?? "—"}</span>
+                  <span className="text-muted-foreground">Amount Paid:</span>
+                  <span className="font-mono font-semibold">{formatCurrency(Number(app.disbursement_amount ?? 0))}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {app.review_notes && (
             <Card>
@@ -298,7 +270,7 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
                 <Button
                   size="sm"
                   onClick={() => acceptMutation.mutate()}
-                  disabled={!agreedToTerms || acceptMutation.isPending}
+                  disabled={!agreedToTerms || !memberSignature || acceptMutation.isPending}
                 >
                   {acceptMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <FileSignature className="h-4 w-4 mr-1" />}
                   Accept & Sign
