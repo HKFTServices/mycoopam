@@ -103,7 +103,7 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
 
   // Build repayment schedule
   const schedule: { month: number; date: string; capital: number; interest: number; fee: number; instalment: number; balance: number }[] = [];
-  if (term > 0 && capital > 0) {
+  if (app && term > 0 && capital > 0) {
     const monthlyCapital = capital / term;
     const monthlyInterestPortion = totalInterest / term;
     const monthlyFeePortion = loanFee / term;
