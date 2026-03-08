@@ -289,7 +289,7 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
           <Card className="border-primary/30">
             <CardContent className="py-4 space-y-4">
               <h4 className="text-sm font-semibold">Manager's Assessment</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Risk Level</Label>
                   <Select value={riskLevel} onValueChange={setRiskLevel} disabled={isReadOnly}>
@@ -298,6 +298,17 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                       <SelectItem value="low">Low Risk</SelectItem>
                       <SelectItem value="medium">Medium Risk</SelectItem>
                       <SelectItem value="high">High Risk</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Pool</Label>
+                  <Select value={selectedPoolId} onValueChange={setSelectedPoolId} disabled={isReadOnly}>
+                    <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
+                    <SelectContent>
+                      {pools.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
