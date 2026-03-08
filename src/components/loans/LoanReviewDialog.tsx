@@ -59,6 +59,22 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     enabled: !!currentTenant?.id && open && !!app,
   });
 
+  // Fetch pools
+  const { data: pools = [] } = useQuery({
+    queryKey: ["pools_for_loan", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pools")
+        .select("id, name")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant?.id && open,
+  });
+
   const [riskLevel, setRiskLevel] = useState(app?.risk_level ?? "medium");
   const [amountApproved, setAmountApproved] = useState(app?.amount_approved ?? app?.amount_requested ?? 0);
   const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
