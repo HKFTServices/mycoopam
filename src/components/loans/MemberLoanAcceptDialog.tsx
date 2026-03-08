@@ -126,6 +126,8 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
     }
   }
 
+  if (!app) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
