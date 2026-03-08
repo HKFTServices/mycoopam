@@ -57,6 +57,7 @@ import {
   MessageSquare,
   SendHorizontal,
   History,
+  ShieldPlus,
 } from "lucide-react";
 
 const mainNavItems = [
