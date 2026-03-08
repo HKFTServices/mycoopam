@@ -525,7 +525,7 @@ const LedgerEntries = () => {
       if (commVat > 0 && vatGlAccountId) {
         await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
-          transaction_date: new Date().toISOString().split("T")[0],
+          transaction_date: formatLocalDate(),
           entry_type: "vat",
           parent_id: cft.id,
           control_account_id: null,
