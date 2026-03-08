@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import DocumentReviewDialog from "@/components/approvals/DocumentReviewDialog";
 import TransactionReviewDialog, { type DateOverride, type StockApprovalMeta } from "@/components/approvals/TransactionReviewDialog";
@@ -27,6 +27,8 @@ import { postAdminStockApproval } from "@/lib/postAdminStockApproval";
 import AdminStockReviewDialog from "@/components/approvals/AdminStockReviewDialog";
 import StockDocumentActions from "@/components/stock/StockDocumentActions";
 import { formatCurrency } from "@/lib/formatCurrency";
+import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
+import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
 
 const AUTO_NUMBER_ACCOUNT_TYPES = [2, 3, 5]; // Customer, Supplier, Referral House
 
@@ -48,6 +50,8 @@ const AccountApprovals = () => {
   const [reviewSwitchGroup, setReviewSwitchGroup] = useState<{ primary: any; siblings: any[] } | null>(null);
   const [reviewTransferTxnId, setReviewTransferTxnId] = useState<string | null>(null);
   const [reviewAdminStock, setReviewAdminStock] = useState<any | null>(null);
+  const [reviewLoanApp, setReviewLoanApp] = useState<any>(null);
+  const [acceptLoanApp, setAcceptLoanApp] = useState<any>(null);
 
   // Check user roles for approval workflow
   const { data: userRoles = [] } = useQuery({
@@ -688,6 +692,26 @@ const AccountApprovals = () => {
     return groups;
   })();
 
+  // ─── Loan Applications ───
+  const { data: pendingLoans = [] } = useQuery({
+    queryKey: ["pending_loan_approvals", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("loan_applications")
+        .select("*, entities(name, last_name), entity_accounts(account_number)")
+        .eq("tenant_id", currentTenant.id)
+        .in("status", ["pending", "approved"])
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const pendingLoanCount = pendingLoans.filter((l: any) => l.status === "pending").length;
+  const awaitingAcceptance = pendingLoans.filter((l: any) => l.status === "approved").length;
+
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
@@ -739,6 +763,13 @@ const AccountApprovals = () => {
             Stock Docs
             {approvedAdminStock.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{approvedAdminStock.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="loans" className="gap-1.5">
+            <Banknote className="h-3.5 w-3.5" />
+            Loans
+            {(pendingLoanCount + awaitingAcceptance) > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLoanCount + awaitingAcceptance}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -1208,7 +1239,84 @@ const AccountApprovals = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* Loans Tab */}
+        <TabsContent value="loans">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead className="text-right">Requested</TableHead>
+                    <TableHead className="text-right">Term</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingLoans.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No pending loan applications
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingLoans.map((loan: any) => (
+                      <TableRow key={loan.id}>
+                        <TableCell className="font-medium">
+                          {[loan.entities?.name, loan.entities?.last_name].filter(Boolean).join(" ") || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {loan.entity_accounts?.account_number || "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(Number(loan.amount_requested))}
+                        </TableCell>
+                        <TableCell className="text-right">{loan.term_months_requested} mo</TableCell>
+                        <TableCell>
+                          <Badge variant={loan.status === "pending" ? "secondary" : "default"}>
+                            {loan.status === "approved" ? "Awaiting Acceptance" : "Pending Review"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(loan.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {loan.status === "pending" ? (
+                            <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Review
+                            </Button>
+                          ) : loan.status === "approved" ? (
+                            <Button size="sm" variant="outline" onClick={() => setAcceptLoanApp(loan)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> View
+                            </Button>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Loan Review Dialog */}
+      <LoanReviewDialog
+        open={!!reviewLoanApp}
+        onOpenChange={(open) => { if (!open) setReviewLoanApp(null); }}
+        application={reviewLoanApp}
+      />
+
+      {/* Loan Accept Dialog (for member view of approved loans) */}
+      <MemberLoanAcceptDialog
+        open={!!acceptLoanApp}
+        onOpenChange={(open) => { if (!open) setAcceptLoanApp(null); }}
+        application={acceptLoanApp}
+      />
 
       {/* Document Review Dialog */}
       {reviewAccount && currentTenant && (
