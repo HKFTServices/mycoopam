@@ -50,6 +50,8 @@ const AccountApprovals = () => {
   const [reviewSwitchGroup, setReviewSwitchGroup] = useState<{ primary: any; siblings: any[] } | null>(null);
   const [reviewTransferTxnId, setReviewTransferTxnId] = useState<string | null>(null);
   const [reviewAdminStock, setReviewAdminStock] = useState<any | null>(null);
+  const [reviewLoanApp, setReviewLoanApp] = useState<any>(null);
+  const [acceptLoanApp, setAcceptLoanApp] = useState<any>(null);
 
   // Check user roles for approval workflow
   const { data: userRoles = [] } = useQuery({
