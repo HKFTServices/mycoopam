@@ -2982,6 +2982,1093 @@ export type Database = {
           },
         ]
       }
+      si_brand: {
+        Row: {
+          brand_id: string
+          brand_name: string
+          created_at: string
+          is_active: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand_id?: string
+          brand_name: string
+          created_at?: string
+          is_active?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string
+          brand_name?: string
+          created_at?: string
+          is_active?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_brand_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_category_attribute: {
+        Row: {
+          attribute_code: string
+          attribute_name: string
+          category_attribute_id: string
+          category_id: string
+          created_at: string
+          data_type: string
+          is_active: boolean
+          is_required: boolean
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attribute_code: string
+          attribute_name: string
+          category_attribute_id?: string
+          category_id: string
+          created_at?: string
+          data_type?: string
+          is_active?: boolean
+          is_required?: boolean
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attribute_code?: string
+          attribute_name?: string
+          category_attribute_id?: string
+          category_id?: string
+          created_at?: string
+          data_type?: string
+          is_active?: boolean
+          is_required?: boolean
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_category_attribute_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_category"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "si_category_attribute_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_category_group: {
+        Row: {
+          category_group_id: string
+          created_at: string
+          description: string | null
+          group_code: string
+          group_name: string
+          is_active: boolean
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_group_id?: string
+          created_at?: string
+          description?: string | null
+          group_code: string
+          group_name: string
+          is_active?: boolean
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_group_id?: string
+          created_at?: string
+          description?: string | null
+          group_code?: string
+          group_name?: string
+          is_active?: boolean
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_category_group_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_contribution_plan: {
+        Row: {
+          assistance_multiplier: number
+          category_id: string | null
+          contribution_method: string
+          contribution_plan_id: string
+          contribution_rate: number | null
+          created_at: string
+          currency_code: string
+          effective_from: string
+          effective_to: string | null
+          fixed_monthly_contribution: number | null
+          is_active: boolean
+          max_assistance_cap: number | null
+          max_contribution: number | null
+          plan_code: string
+          plan_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assistance_multiplier?: number
+          category_id?: string | null
+          contribution_method: string
+          contribution_plan_id?: string
+          contribution_rate?: number | null
+          created_at?: string
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          fixed_monthly_contribution?: number | null
+          is_active?: boolean
+          max_assistance_cap?: number | null
+          max_contribution?: number | null
+          plan_code: string
+          plan_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assistance_multiplier?: number
+          category_id?: string | null
+          contribution_method?: string
+          contribution_plan_id?: string
+          contribution_rate?: number | null
+          created_at?: string
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          fixed_monthly_contribution?: number | null
+          is_active?: boolean
+          max_assistance_cap?: number | null
+          max_contribution?: number | null
+          plan_code?: string
+          plan_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_contribution_plan_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_category"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "si_contribution_plan_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_coop_structure: {
+        Row: {
+          admin_fee_percent: number
+          coop_structure_id: string
+          created_at: string
+          is_active: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_fee_percent?: number
+          coop_structure_id?: string
+          created_at?: string
+          is_active?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_fee_percent?: number
+          coop_structure_id?: string
+          created_at?: string
+          is_active?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_coop_structure_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_dashboard_note: {
+        Row: {
+          created_at: string
+          dashboard_note_id: string
+          is_active: boolean
+          note_text: string
+          section_key: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dashboard_note_id?: string
+          is_active?: boolean
+          note_text: string
+          section_key: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dashboard_note_id?: string
+          is_active?: boolean
+          note_text?: string
+          section_key?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_dashboard_note_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_item_category: {
+        Row: {
+          category_code: string
+          category_group: string | null
+          category_id: string
+          category_name: string
+          created_at: string
+          description: string | null
+          is_active: boolean
+          section_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_code: string
+          category_group?: string | null
+          category_id?: string
+          category_name: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          section_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_code?: string
+          category_group?: string | null
+          category_id?: string
+          category_name?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          section_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_item_category_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "si_section"
+            referencedColumns: ["section_id"]
+          },
+          {
+            foreignKeyName: "si_item_category_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_item_model: {
+        Row: {
+          brand_id: string | null
+          category_id: string
+          created_at: string
+          is_active: boolean
+          item_model_id: string
+          model_name: string
+          model_number: string | null
+          tenant_id: string
+          typical_new_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          brand_id?: string | null
+          category_id: string
+          created_at?: string
+          is_active?: boolean
+          item_model_id?: string
+          model_name: string
+          model_number?: string | null
+          tenant_id: string
+          typical_new_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string | null
+          category_id?: string
+          created_at?: string
+          is_active?: boolean
+          item_model_id?: string
+          model_name?: string
+          model_number?: string | null
+          tenant_id?: string
+          typical_new_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_item_model_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "si_brand"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "si_item_model_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_category"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "si_item_model_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_member_account_balance: {
+        Row: {
+          coop_total_account_balance: number
+          coop_total_health_reserve: number
+          coop_total_reserve_fund: number
+          coop_total_solidarity_pool: number
+          created_at: string
+          currency_code: string
+          entity_id: string
+          grants_paid_coop_total: number
+          grants_received_health: number
+          grants_received_member: number
+          grants_received_reserve: number
+          grants_received_solidarity: number
+          health_reserve_balance: number
+          is_active: boolean
+          member_account_balance: number
+          member_account_balance_id: string
+          notes: string | null
+          reserve_fund_balance: number
+          solidarity_pool_balance: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          coop_total_account_balance?: number
+          coop_total_health_reserve?: number
+          coop_total_reserve_fund?: number
+          coop_total_solidarity_pool?: number
+          created_at?: string
+          currency_code?: string
+          entity_id: string
+          grants_paid_coop_total?: number
+          grants_received_health?: number
+          grants_received_member?: number
+          grants_received_reserve?: number
+          grants_received_solidarity?: number
+          health_reserve_balance?: number
+          is_active?: boolean
+          member_account_balance?: number
+          member_account_balance_id?: string
+          notes?: string | null
+          reserve_fund_balance?: number
+          solidarity_pool_balance?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          coop_total_account_balance?: number
+          coop_total_health_reserve?: number
+          coop_total_reserve_fund?: number
+          coop_total_solidarity_pool?: number
+          created_at?: string
+          currency_code?: string
+          entity_id?: string
+          grants_paid_coop_total?: number
+          grants_received_health?: number
+          grants_received_member?: number
+          grants_received_reserve?: number
+          grants_received_solidarity?: number
+          health_reserve_balance?: number
+          is_active?: boolean
+          member_account_balance?: number
+          member_account_balance_id?: string
+          notes?: string | null
+          reserve_fund_balance?: number
+          solidarity_pool_balance?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_member_account_balance_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "si_member_account_balance_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_member_asset: {
+        Row: {
+          asset_display_name: string
+          brand_id: string | null
+          category_group_id: string | null
+          category_id: string
+          created_at: string
+          currency_code: string
+          declared_value: number
+          entity_id: string
+          is_active: boolean
+          item_model_id: string | null
+          member_asset_id: string
+          notes: string | null
+          quantity: number
+          tenant_id: string
+          updated_at: string
+          year_model: number | null
+        }
+        Insert: {
+          asset_display_name: string
+          brand_id?: string | null
+          category_group_id?: string | null
+          category_id: string
+          created_at?: string
+          currency_code?: string
+          declared_value?: number
+          entity_id: string
+          is_active?: boolean
+          item_model_id?: string | null
+          member_asset_id?: string
+          notes?: string | null
+          quantity?: number
+          tenant_id: string
+          updated_at?: string
+          year_model?: number | null
+        }
+        Update: {
+          asset_display_name?: string
+          brand_id?: string | null
+          category_group_id?: string | null
+          category_id?: string
+          created_at?: string
+          currency_code?: string
+          declared_value?: number
+          entity_id?: string
+          is_active?: boolean
+          item_model_id?: string | null
+          member_asset_id?: string
+          notes?: string | null
+          quantity?: number
+          tenant_id?: string
+          updated_at?: string
+          year_model?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_member_asset_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "si_brand"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_category_group_id_fkey"
+            columns: ["category_group_id"]
+            isOneToOne: false
+            referencedRelation: "si_category_group"
+            referencedColumns: ["category_group_id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_category"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_item_model_id_fkey"
+            columns: ["item_model_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_model"
+            referencedColumns: ["item_model_id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_member_asset_attribute_value: {
+        Row: {
+          category_attribute_id: string
+          created_at: string
+          member_asset_attribute_value_id: string
+          member_asset_id: string
+          tenant_id: string
+          updated_at: string
+          value_bit: boolean | null
+          value_date: string | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          category_attribute_id: string
+          created_at?: string
+          member_asset_attribute_value_id?: string
+          member_asset_id: string
+          tenant_id: string
+          updated_at?: string
+          value_bit?: boolean | null
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          category_attribute_id?: string
+          created_at?: string
+          member_asset_attribute_value_id?: string
+          member_asset_id?: string
+          tenant_id?: string
+          updated_at?: string
+          value_bit?: boolean | null
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_member_asset_attribute_value_category_attribute_id_fkey"
+            columns: ["category_attribute_id"]
+            isOneToOne: false
+            referencedRelation: "si_category_attribute"
+            referencedColumns: ["category_attribute_id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_attribute_value_member_asset_id_fkey"
+            columns: ["member_asset_id"]
+            isOneToOne: false
+            referencedRelation: "si_member_asset"
+            referencedColumns: ["member_asset_id"]
+          },
+          {
+            foreignKeyName: "si_member_asset_attribute_value_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_pool: {
+        Row: {
+          assistance_cap_perc: number
+          cap_multiplier_member: number
+          cont_split_perc: number
+          created_at: string
+          is_active: boolean
+          pool_code: string
+          pool_id: string | null
+          pool_name: string
+          si_pool_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assistance_cap_perc?: number
+          cap_multiplier_member?: number
+          cont_split_perc?: number
+          created_at?: string
+          is_active?: boolean
+          pool_code: string
+          pool_id?: string | null
+          pool_name: string
+          si_pool_id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assistance_cap_perc?: number
+          cap_multiplier_member?: number
+          cont_split_perc?: number
+          created_at?: string
+          is_active?: boolean
+          pool_code?: string
+          pool_id?: string | null
+          pool_name?: string
+          si_pool_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_pool_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "si_pool_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_pool_category: {
+        Row: {
+          allocation_perc: number
+          category_id: string
+          created_at: string
+          is_active: boolean
+          pool_category_id: string
+          pool_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_perc?: number
+          category_id: string
+          created_at?: string
+          is_active?: boolean
+          pool_category_id?: string
+          pool_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_perc?: number
+          category_id?: string
+          created_at?: string
+          is_active?: boolean
+          pool_category_id?: string
+          pool_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_pool_category_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_category"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "si_pool_category_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "si_pool"
+            referencedColumns: ["si_pool_id"]
+          },
+          {
+            foreignKeyName: "si_pool_category_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_projection_assumption: {
+        Row: {
+          contribution_esc_perc: number
+          created_at: string
+          interval_months: number
+          is_active: boolean
+          projection_assumption_id: string
+          tenant_id: string
+          total_period_months: number
+          updated_at: string
+          yield_pa: number
+        }
+        Insert: {
+          contribution_esc_perc?: number
+          created_at?: string
+          interval_months?: number
+          is_active?: boolean
+          projection_assumption_id?: string
+          tenant_id: string
+          total_period_months?: number
+          updated_at?: string
+          yield_pa?: number
+        }
+        Update: {
+          contribution_esc_perc?: number
+          created_at?: string
+          interval_months?: number
+          is_active?: boolean
+          projection_assumption_id?: string
+          tenant_id?: string
+          total_period_months?: number
+          updated_at?: string
+          yield_pa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_projection_assumption_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_quote: {
+        Row: {
+          accepted_at_utc: string | null
+          created_at_utc: string
+          currency_code: string
+          entity_id: string
+          expires_at_utc: string | null
+          notes: string | null
+          quote_id: string
+          quote_number: string
+          quote_status: string
+          submitted_at_utc: string | null
+          tenant_id: string
+        }
+        Insert: {
+          accepted_at_utc?: string | null
+          created_at_utc?: string
+          currency_code?: string
+          entity_id: string
+          expires_at_utc?: string | null
+          notes?: string | null
+          quote_id?: string
+          quote_number: string
+          quote_status?: string
+          submitted_at_utc?: string | null
+          tenant_id: string
+        }
+        Update: {
+          accepted_at_utc?: string | null
+          created_at_utc?: string
+          currency_code?: string
+          entity_id?: string
+          expires_at_utc?: string | null
+          notes?: string | null
+          quote_id?: string
+          quote_number?: string
+          quote_status?: string
+          submitted_at_utc?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_quote_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "si_quote_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_quote_item: {
+        Row: {
+          accepted_at_utc: string | null
+          asset_display_name: string | null
+          assistance_cap_applied: boolean
+          assistance_limit: number
+          brand_id: string | null
+          category_id: string | null
+          contribution_plan_id: string | null
+          created_at_utc: string
+          declared_value: number
+          is_accepted: boolean
+          item_model_id: string | null
+          license_plate: string | null
+          member_asset_id: string | null
+          monthly_contribution: number
+          notes: string | null
+          quote_id: string
+          quote_item_id: string
+          tenant_id: string
+          year_model: number | null
+        }
+        Insert: {
+          accepted_at_utc?: string | null
+          asset_display_name?: string | null
+          assistance_cap_applied?: boolean
+          assistance_limit?: number
+          brand_id?: string | null
+          category_id?: string | null
+          contribution_plan_id?: string | null
+          created_at_utc?: string
+          declared_value?: number
+          is_accepted?: boolean
+          item_model_id?: string | null
+          license_plate?: string | null
+          member_asset_id?: string | null
+          monthly_contribution?: number
+          notes?: string | null
+          quote_id: string
+          quote_item_id?: string
+          tenant_id: string
+          year_model?: number | null
+        }
+        Update: {
+          accepted_at_utc?: string | null
+          asset_display_name?: string | null
+          assistance_cap_applied?: boolean
+          assistance_limit?: number
+          brand_id?: string | null
+          category_id?: string | null
+          contribution_plan_id?: string | null
+          created_at_utc?: string
+          declared_value?: number
+          is_accepted?: boolean
+          item_model_id?: string | null
+          license_plate?: string | null
+          member_asset_id?: string | null
+          monthly_contribution?: number
+          notes?: string | null
+          quote_id?: string
+          quote_item_id?: string
+          tenant_id?: string
+          year_model?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_quote_item_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "si_brand"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_category"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_contribution_plan_id_fkey"
+            columns: ["contribution_plan_id"]
+            isOneToOne: false
+            referencedRelation: "si_contribution_plan"
+            referencedColumns: ["contribution_plan_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_item_model_id_fkey"
+            columns: ["item_model_id"]
+            isOneToOne: false
+            referencedRelation: "si_item_model"
+            referencedColumns: ["item_model_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_member_asset_id_fkey"
+            columns: ["member_asset_id"]
+            isOneToOne: false
+            referencedRelation: "si_member_asset"
+            referencedColumns: ["member_asset_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "si_quote"
+            referencedColumns: ["quote_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_quote_item_attribute_value: {
+        Row: {
+          category_attribute_id: string
+          created_at: string
+          quote_item_attribute_value_id: string
+          quote_item_id: string
+          tenant_id: string
+          updated_at: string
+          value_bit: boolean | null
+          value_date: string | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          category_attribute_id: string
+          created_at?: string
+          quote_item_attribute_value_id?: string
+          quote_item_id: string
+          tenant_id: string
+          updated_at?: string
+          value_bit?: boolean | null
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          category_attribute_id?: string
+          created_at?: string
+          quote_item_attribute_value_id?: string
+          quote_item_id?: string
+          tenant_id?: string
+          updated_at?: string
+          value_bit?: boolean | null
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_quote_item_attribute_value_category_attribute_id_fkey"
+            columns: ["category_attribute_id"]
+            isOneToOne: false
+            referencedRelation: "si_category_attribute"
+            referencedColumns: ["category_attribute_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_attribute_value_quote_item_id_fkey"
+            columns: ["quote_item_id"]
+            isOneToOne: false
+            referencedRelation: "si_quote_item"
+            referencedColumns: ["quote_item_id"]
+          },
+          {
+            foreignKeyName: "si_quote_item_attribute_value_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      si_section: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_active: boolean
+          notes: string | null
+          section_code: string
+          section_id: string
+          section_name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          notes?: string | null
+          section_code: string
+          section_id?: string
+          section_name: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          notes?: string | null
+          section_code?: string
+          section_id?: string
+          section_name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "si_section_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_transactions: {
         Row: {
           cost_price: number
