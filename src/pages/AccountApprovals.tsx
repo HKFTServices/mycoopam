@@ -765,6 +765,13 @@ const AccountApprovals = () => {
               <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{approvedAdminStock.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="loans" className="gap-1.5">
+            <Banknote className="h-3.5 w-3.5" />
+            Loans
+            {(pendingLoanCount + awaitingAcceptance) > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLoanCount + awaitingAcceptance}</Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* Registration Approvals Tab */}
