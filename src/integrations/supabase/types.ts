@@ -1866,6 +1866,7 @@ export type Database = {
           member_signature_path: string | null
           monthly_available_repayment: number
           monthly_instalment: number | null
+          pool_id: string | null
           reason: string | null
           review_notes: string | null
           reviewed_at: string | null
@@ -1903,6 +1904,7 @@ export type Database = {
           member_signature_path?: string | null
           monthly_available_repayment: number
           monthly_instalment?: number | null
+          pool_id?: string | null
           reason?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -1940,6 +1942,7 @@ export type Database = {
           member_signature_path?: string | null
           monthly_available_repayment?: number
           monthly_instalment?: number | null
+          pool_id?: string | null
           reason?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -1966,6 +1969,13 @@ export type Database = {
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
             referencedColumns: ["id"]
           },
           {

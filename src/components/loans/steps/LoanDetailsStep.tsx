@@ -3,6 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 interface LoanForm {
   loan_date: string;
@@ -11,6 +14,7 @@ interface LoanForm {
   monthly_available_repayment: number;
   reason: string;
   security_assets: string;
+  pool_id: string;
 }
 
 interface Props {
@@ -19,23 +23,21 @@ interface Props {
   loanSettings: any;
   existingOutstanding: number;
   maxTermMonths: number;
+  pools?: { id: string; name: string }[];
 }
 
-const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, maxTermMonths }: Props) => {
+const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, maxTermMonths, pools = [] }: Props) => {
   const update = (partial: Partial<LoanForm>) => onChange({ ...form, ...partial });
 
-  // Use medium rate as default display (manager assigns risk later)
   const interestRate = loanSettings?.interest_rate_medium ?? 8;
   const loanFee = loanSettings?.loan_fee_medium ?? 150;
   const termMonths = form.term_months_requested || 12;
   const capital = form.amount_requested || 0;
 
-  // Simple interest: Total = Capital × (1 + t × i/12) + Fee
   const totalInterest = capital * termMonths * (interestRate / 100) / 12;
   const totalLoan = capital + totalInterest + loanFee;
   const monthlyInstalment = termMonths > 0 ? totalLoan / termMonths : 0;
 
-  // Total monthly repayment including existing
   const totalMonthlyRepayment = monthlyInstalment + (existingOutstanding > 0 ? existingOutstanding / termMonths : 0);
 
   return (
@@ -48,6 +50,19 @@ const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, ma
             value={form.loan_date}
             onChange={(e) => update({ loan_date: e.target.value })}
           />
+        </div>
+        <div className="space-y-2">
+          <Label>Pool (Source of Loan)</Label>
+          <Select value={form.pool_id} onValueChange={(v) => update({ pool_id: v })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select pool..." />
+            </SelectTrigger>
+            <SelectContent>
+              {pools.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label>Loan Amount Requested (R)</Label>
@@ -85,7 +100,6 @@ const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, ma
         </div>
       </div>
 
-      {/* Loan Calculation Preview */}
       {capital > 0 && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="py-4">
