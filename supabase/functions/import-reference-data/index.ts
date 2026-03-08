@@ -1102,7 +1102,26 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Resolve pool_id via legacy mappings (items, control_accounts)
+        // Infer account_type for control_accounts if missing
+        if (table_name === "control_accounts" && !row.account_type) {
+          const n = String(row.name || "").toLowerCase();
+          if (n.includes("cash")) row.account_type = "cash";
+          else if (n.includes("vat")) row.account_type = "vat";
+          else if (n.includes("loan")) row.account_type = "loan";
+          else if (n.includes("stock")) row.account_type = "stock";
+          else if (n.includes("unit")) row.account_type = "unit";
+          else if (n.includes("interest")) row.account_type = "interest";
+          else if (n.includes("commission")) row.account_type = "commission";
+          else row.account_type = "cash"; // safe default
+        }
+        // Normalize numeric account_type values for control_accounts
+        if (table_name === "control_accounts" && row.account_type !== undefined) {
+          const at = String(row.account_type).trim().toLowerCase();
+          if (at === "0") row.account_type = "cash";
+          else if (at === "1") row.account_type = "vat";
+          else if (at === "2") row.account_type = "loan";
+        }
+
         if (table_name === "items" || table_name === "control_accounts") {
           const legacyPoolId = record.legacy_pool_id || record.PoolId || record.poolId || record.PoolID;
           if (legacyPoolId) {
