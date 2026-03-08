@@ -79,6 +79,7 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
   const [amountApproved, setAmountApproved] = useState(app?.amount_approved ?? app?.amount_requested ?? 0);
   const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
   const [reviewNotes, setReviewNotes] = useState(app?.review_notes ?? "");
+  const [selectedPoolId, setSelectedPoolId] = useState(app?.pool_id ?? "");
 
   // Disbursement fields
   const [disbursementRef, setDisbursementRef] = useState("");
