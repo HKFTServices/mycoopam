@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
 import ApplyReferrerDialog from "@/components/membership/ApplyReferrerDialog";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
+import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -70,6 +71,7 @@ const Memberships = () => {
   const [loanEntityId, setLoanEntityId] = useState<string | null>(null);
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [referrerDialogEntity, setReferrerDialogEntity] = useState<{ id: string; name: string } | null>(null);
+  const [loanApplyEntity, setLoanApplyEntity] = useState<{ entityAccountId: string; entityId: string; entityName: string } | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch entity account types (for mapping account_type int to id)
@@ -683,10 +685,21 @@ const Memberships = () => {
                                   </DropdownMenuItem>
                                 )}
                                 {g.accounts.some(a => a.status === "active" || a.status === "approved") && (
-                                  <DropdownMenuItem onClick={() => setTxnDialogOpen(true)}>
-                                    <ArrowLeftRight className="h-4 w-4 mr-2" />
-                                    New Transaction
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuItem onClick={() => setTxnDialogOpen(true)}>
+                                      <ArrowLeftRight className="h-4 w-4 mr-2" />
+                                      New Transaction
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      const activeAcct = g.accounts.find(a => a.status === "active" || a.status === "approved");
+                                      if (activeAcct) {
+                                        setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
+                                      }
+                                    }}>
+                                      <Banknote className="h-4 w-4 mr-2" />
+                                      Apply for Loan
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -792,6 +805,16 @@ const Memberships = () => {
         entityId={referrerDialogEntity?.id ?? ""}
         entityName={referrerDialogEntity?.name ?? ""}
       />
+
+      {loanApplyEntity && (
+        <LoanApplicationDialog
+          open={!!loanApplyEntity}
+          onOpenChange={(open) => { if (!open) setLoanApplyEntity(null); }}
+          entityAccountId={loanApplyEntity.entityAccountId}
+          entityId={loanApplyEntity.entityId}
+          entityName={loanApplyEntity.entityName}
+        />
+      )}
     </div>
   );
 };
