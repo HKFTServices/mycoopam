@@ -156,6 +156,13 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
       if (!loanForm.reason.trim()) throw new Error("Reason is required");
       if (!loanForm.pool_id) throw new Error("Please select a pool");
 
+      // Validate against pool value limit
+      const selectedPoolValue = getPoolValue(loanForm.pool_id);
+      const maxAllowed = selectedPoolValue * poolValueMultiple;
+      if (maxAllowed > 0 && loanForm.amount_requested > maxAllowed) {
+        throw new Error(`Loan amount exceeds maximum allowed (${formatCurrency(maxAllowed)}) based on your pool value of ${formatCurrency(selectedPoolValue)} × ${poolValueMultiple}`);
+      }
+
       const { error } = await (supabase as any)
         .from("loan_applications")
         .insert({
