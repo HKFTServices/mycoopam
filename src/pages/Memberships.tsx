@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
 import ApplyReferrerDialog from "@/components/membership/ApplyReferrerDialog";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
+import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
