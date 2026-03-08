@@ -676,13 +676,22 @@ const TenantConfiguration = () => {
     if (!file || !currentTenant) return;
     setUploading(true);
     try {
+      // Delete any existing logos (old extensions like .jpg, .jpeg, .png, .webp)
+      const { data: existingFiles } = await supabase.storage.from("tenant-logos").list(currentTenant.id);
+      if (existingFiles && existingFiles.length > 0) {
+        const filesToDelete = existingFiles.map((f) => `${currentTenant.id}/${f.name}`);
+        await supabase.storage.from("tenant-logos").remove(filesToDelete);
+      }
+
       const resized = await resizeImage(file, 100, 100);
       const path = `${currentTenant.id}/logo.png`;
       const { error: uploadError } = await supabase.storage.from("tenant-logos").upload(path, resized, { upsert: true, contentType: "image/png" });
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("tenant-logos").getPublicUrl(path);
-      setForm((f) => ({ ...f, logo_url: urlData.publicUrl }));
-      toast.success("Logo uploaded & resized to 200×200 max — remember to save.");
+      // Add cache-buster so browsers fetch the new image
+      const freshUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+      setForm((f) => ({ ...f, logo_url: freshUrl }));
+      toast.success("Logo uploaded & resized — remember to save.");
     } catch (err: any) { toast.error(err.message); } finally { setUploading(false); }
   };
 
