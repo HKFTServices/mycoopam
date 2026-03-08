@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Check, X, Send } from "lucide-react";
+import SignaturePad from "@/components/ui/signature-pad";
 
 interface Props {
   open: boolean;
@@ -30,7 +31,6 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
 
-  // Fetch loan settings for rate/fee lookup
   const { data: loanSettings } = useQuery({
     queryKey: ["loan_settings", currentTenant?.id],
     queryFn: async () => {
@@ -45,7 +45,6 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     enabled: !!currentTenant?.id && open,
   });
 
-  // Fetch budget entries
   const { data: budgetEntries = [] } = useQuery({
     queryKey: ["loan_budget_review", app?.entity_account_id],
     queryFn: async () => {
@@ -65,22 +64,27 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
   const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
   const [reviewNotes, setReviewNotes] = useState(app?.review_notes ?? "");
 
+  // Disbursement fields
+  const [disbursementRef, setDisbursementRef] = useState("");
+  const [disbursementDate, setDisbursementDate] = useState(new Date().toISOString().slice(0, 10));
+  const [disbursementAmount, setDisbursementAmount] = useState(0);
+  const [adminSignature, setAdminSignature] = useState<string | null>(null);
+
   useEffect(() => {
     if (!app) return;
     setRiskLevel(app.risk_level ?? "medium");
     setAmountApproved(app.amount_approved ?? app.amount_requested);
     setTermApproved(app.term_months_approved ?? app.term_months_requested);
     setReviewNotes(app.review_notes ?? "");
+    setDisbursementAmount(Number(app.amount_approved ?? app.amount_requested ?? 0));
   }, [app]);
 
-  // Calculate based on risk level
   const interestRate = loanSettings ? Number(loanSettings[`interest_rate_${riskLevel}`] ?? 8) : 8;
   const loanFee = loanSettings ? Number(loanSettings[`loan_fee_${riskLevel}`] ?? 150) : 150;
   const totalInterest = amountApproved * termApproved * (interestRate / 100) / 12;
   const totalLoan = amountApproved + totalInterest + loanFee;
   const monthlyInstalment = termApproved > 0 ? totalLoan / termApproved : 0;
 
-  // Budget summary
   const incomeEntries = budgetEntries.filter((b: any) => b.budget_categories?.category_type === "income");
   const expenseEntries = budgetEntries.filter((b: any) => b.budget_categories?.category_type === "expense");
   const totalIncome = incomeEntries.reduce((s: number, b: any) => s + Number(b.amount), 0);
@@ -139,18 +143,36 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
 
   const disburseMutation = useMutation({
     mutationFn: async () => {
+      if (!adminSignature) throw new Error("Please sign the document first");
+      if (!disbursementRef.trim()) throw new Error("Please enter a payment reference");
+      if (!disbursementDate) throw new Error("Please enter the payment date");
+      if (disbursementAmount <= 0) throw new Error("Please enter the amount paid");
+
       const { error } = await (supabase as any)
         .from("loan_applications")
         .update({
           status: "disbursed",
           admin_signed_at: new Date().toISOString(),
           admin_signature_path: `signed_by_${user!.id}`,
+          admin_signature_data: adminSignature,
+          disbursement_reference: disbursementRef.trim(),
+          disbursement_date: disbursementDate,
+          disbursement_amount: disbursementAmount,
         })
         .eq("id", app.id);
       if (error) throw error;
+
+      // Fire edge function to generate PDF and email (fire-and-forget)
+      try {
+        await supabase.functions.invoke("generate-loan-pdf", {
+          body: { loan_application_id: app.id },
+        });
+      } catch (err) {
+        console.warn("PDF generation/email non-fatal:", err);
+      }
     },
     onSuccess: () => {
-      toast.success("Loan disbursed — funds released");
+      toast.success("Loan disbursed — signed AOD will be emailed to member and admin");
       queryClient.invalidateQueries({ queryKey: ["loan_applications"] });
       onOpenChange(false);
     },
@@ -168,7 +190,7 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
       <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            {isPending ? "Review Loan Application" : isAccepted ? "Release Funds" : "Loan Application Details"}
+            {isPending ? "Review Loan Application" : isAccepted ? "Confirm Payment & Sign" : "Loan Application Details"}
           </DialogTitle>
           <DialogDescription>
             {app.entities ? [app.entities.name, app.entities.last_name].filter(Boolean).join(" ") : "—"}
@@ -221,20 +243,20 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-red-600 mb-1">Expenses</p>
+                    <p className="text-xs font-medium text-destructive mb-1">Expenses</p>
                     {expenseEntries.map((b: any) => (
                       <div key={b.id} className="flex justify-between text-xs">
                         <span className="text-muted-foreground">{b.budget_categories?.name}</span>
                         <span className="font-mono">{formatCurrency(Number(b.amount))}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-xs font-semibold border-t pt-1 mt-1 text-red-600">
+                    <div className="flex justify-between text-xs font-semibold border-t pt-1 mt-1 text-destructive">
                       <span>Total</span>
                       <span>{formatCurrency(totalExpenses)}</span>
                     </div>
                   </div>
                 </div>
-                <div className={`flex justify-between text-sm font-bold mt-3 pt-2 border-t ${surplus >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                <div className={`flex justify-between text-sm font-bold mt-3 pt-2 border-t ${surplus >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                   <span>Monthly Surplus / (Deficit)</span>
                   <span>{formatCurrency(surplus)}</span>
                 </div>
@@ -260,28 +282,14 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Amount (R)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={amountApproved}
-                    onChange={(e) => setAmountApproved(parseFloat(e.target.value) || 0)}
-                    disabled={isReadOnly}
-                  />
+                  <Input type="number" min={0} value={amountApproved} onChange={(e) => setAmountApproved(parseFloat(e.target.value) || 0)} disabled={isReadOnly} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Term (Months)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={loanSettings?.max_term_months ?? 120}
-                    value={termApproved}
-                    onChange={(e) => setTermApproved(parseInt(e.target.value) || 12)}
-                    disabled={isReadOnly}
-                  />
+                  <Input type="number" min={1} max={loanSettings?.max_term_months ?? 120} value={termApproved} onChange={(e) => setTermApproved(parseInt(e.target.value) || 12)} disabled={isReadOnly} />
                 </div>
               </div>
 
-              {/* Calculated figures */}
               <div className="bg-muted/50 rounded-lg p-3">
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                   <span className="text-muted-foreground">Interest Rate ({riskLevel}):</span>
@@ -304,27 +312,98 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
 
               <div className="space-y-2">
                 <Label className="text-xs">Review Notes</Label>
-                <Textarea
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="Add notes about this application..."
-                  rows={3}
-                  disabled={isReadOnly && !isAccepted}
-                />
+                <Textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} placeholder="Add notes about this application..." rows={3} disabled={isReadOnly && !isAccepted} />
               </div>
             </CardContent>
           </Card>
+
+          {/* Disbursement & Signing — only for accepted loans */}
+          {isAccepted && (
+            <Card className="border-primary/30">
+              <CardContent className="py-4 space-y-4">
+                <h4 className="text-sm font-semibold">💸 Confirm Payment & Sign</h4>
+                <p className="text-xs text-muted-foreground">
+                  Member has accepted the loan terms. Enter payment details and sign to complete disbursement.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Payment Reference</Label>
+                    <Input value={disbursementRef} onChange={(e) => setDisbursementRef(e.target.value)} placeholder="e.g. EFT-12345" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Payment Date</Label>
+                    <Input type="date" value={disbursementDate} onChange={(e) => setDisbursementDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Amount Paid (R)</Label>
+                    <Input type="number" min={0} value={disbursementAmount} onChange={(e) => setDisbursementAmount(parseFloat(e.target.value) || 0)} />
+                  </div>
+                </div>
+
+                {/* Member signature display */}
+                {app.member_signature_data && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Member Signature</span>
+                    <div className="border rounded-md bg-white p-1 max-w-xs">
+                      <img src={app.member_signature_data} alt="Member signature" className="w-full h-auto" />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Signed: {app.member_accepted_at ? new Date(app.member_accepted_at).toLocaleString("en-ZA") : "—"}
+                    </p>
+                  </div>
+                )}
+
+                <SignaturePad
+                  label="Admin Signature"
+                  value={adminSignature ?? undefined}
+                  onChange={setAdminSignature}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show signatures for disbursed/completed */}
+          {app.status === "disbursed" && (
+            <Card className="border-emerald-300">
+              <CardContent className="py-4 space-y-3">
+                <h4 className="text-sm font-semibold text-emerald-700">💸 Disbursement Details</h4>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">Reference:</span>
+                  <span className="font-mono">{app.disbursement_reference ?? "—"}</span>
+                  <span className="text-muted-foreground">Date:</span>
+                  <span>{app.disbursement_date ?? "—"}</span>
+                  <span className="text-muted-foreground">Amount Paid:</span>
+                  <span className="font-mono font-semibold">{formatCurrency(Number(app.disbursement_amount ?? 0))}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  {app.member_signature_data && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Member Signature</span>
+                      <div className="border rounded-md bg-white p-1">
+                        <img src={app.member_signature_data} alt="Member signature" className="w-full h-auto" />
+                      </div>
+                    </div>
+                  )}
+                  {app.admin_signature_data && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Admin Signature</span>
+                      <div className="border rounded-md bg-white p-1">
+                        <img src={app.admin_signature_data} alt="Admin signature" className="w-full h-auto" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Footer Actions */}
         <div className="flex justify-between pt-4 border-t">
           <div>
             {isPending && (
-              <Button
-                variant="destructive"
-                onClick={() => declineMutation.mutate()}
-                disabled={declineMutation.isPending}
-              >
+              <Button variant="destructive" onClick={() => declineMutation.mutate()} disabled={declineMutation.isPending}>
                 {declineMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
                 Decline
               </Button>
@@ -339,9 +418,12 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
               </Button>
             )}
             {isAccepted && (
-              <Button onClick={() => disburseMutation.mutate()} disabled={disburseMutation.isPending}>
+              <Button
+                onClick={() => disburseMutation.mutate()}
+                disabled={disburseMutation.isPending || !adminSignature || !disbursementRef.trim()}
+              >
                 {disburseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-                Sign & Release Funds
+                Confirm Payment & Sign
               </Button>
             )}
           </div>
