@@ -621,6 +621,7 @@ const TenantConfiguration = () => {
       const { logo_url, legal_entity_id, administrator_entity_id, share_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id, commission_income_gl_account_id, commission_paid_gl_account_id, pool_allocation_gl_account_id, vat_gl_account_id, stock_control_gl_account_id, ...rest } = form;
       const cleanPayload = {
         ...rest,
+        registration_date: rest.registration_date || null,
         legal_entity_id: legal_entity_id || null,
         administrator_entity_id: administrator_entity_id || null,
         share_gl_account_id: share_gl_account_id || null,
