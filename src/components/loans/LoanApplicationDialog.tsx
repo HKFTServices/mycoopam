@@ -231,6 +231,8 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
               existingOutstanding={existingOutstanding}
               maxTermMonths={loanSettings?.max_term_months ?? 12}
               pools={pools}
+              getPoolValue={getPoolValue}
+              poolValueMultiple={poolValueMultiple}
             />
           )}
         </div>

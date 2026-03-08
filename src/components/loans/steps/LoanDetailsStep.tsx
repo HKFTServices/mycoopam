@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { AlertTriangle } from "lucide-react";
 
 interface LoanForm {
   loan_date: string;
@@ -24,9 +25,14 @@ interface Props {
   existingOutstanding: number;
   maxTermMonths: number;
   pools?: { id: string; name: string }[];
+  getPoolValue?: (poolId: string) => number;
+  poolValueMultiple?: number;
 }
 
-const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, maxTermMonths, pools = [] }: Props) => {
+const LoanDetailsStep = ({
+  form, onChange, loanSettings, existingOutstanding, maxTermMonths,
+  pools = [], getPoolValue, poolValueMultiple = 1,
+}: Props) => {
   const update = (partial: Partial<LoanForm>) => onChange({ ...form, ...partial });
 
   const interestRate = loanSettings?.interest_rate_medium ?? 8;
@@ -38,7 +44,10 @@ const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, ma
   const totalLoan = capital + totalInterest + loanFee;
   const monthlyInstalment = termMonths > 0 ? totalLoan / termMonths : 0;
 
-  const totalMonthlyRepayment = monthlyInstalment + (existingOutstanding > 0 ? existingOutstanding / termMonths : 0);
+  // Pool value limit
+  const selectedPoolValue = form.pool_id && getPoolValue ? getPoolValue(form.pool_id) : 0;
+  const maxAllowedLoan = selectedPoolValue * poolValueMultiple;
+  const exceedsLimit = form.pool_id && maxAllowedLoan > 0 && capital > maxAllowedLoan;
 
   return (
     <div className="space-y-4 pb-4">
@@ -63,6 +72,16 @@ const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, ma
               ))}
             </SelectContent>
           </Select>
+          {form.pool_id && selectedPoolValue > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Your pool value: {formatCurrency(selectedPoolValue)} — Max loan: {formatCurrency(maxAllowedLoan)} ({poolValueMultiple}×)
+            </p>
+          )}
+          {form.pool_id && selectedPoolValue === 0 && getPoolValue && (
+            <p className="text-xs text-orange-600">
+              No holdings found in this pool
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>Loan Amount Requested (R)</Label>
@@ -73,7 +92,14 @@ const LoanDetailsStep = ({ form, onChange, loanSettings, existingOutstanding, ma
             value={form.amount_requested || ""}
             placeholder="0"
             onChange={(e) => update({ amount_requested: parseFloat(e.target.value) || 0 })}
+            className={exceedsLimit ? "border-destructive" : ""}
           />
+          {exceedsLimit && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Exceeds max allowed ({formatCurrency(maxAllowedLoan)})
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>Repayment Term (Months)</Label>
