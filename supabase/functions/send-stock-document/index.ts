@@ -161,7 +161,7 @@ serve(async (req) => {
       : "";
 
     const logoHtml = tenantCfg?.logo_url
-      ? `<img src="${tenantCfg.logo_url}" alt="${legalEntityName}" style="max-height:60px;max-width:180px;object-fit:contain;" />`
+      ? `<img src="${tenantCfg.logo_url}" alt="${legalEntityName}" style="height:48px;max-width:160px;width:auto;object-fit:contain;" />`
       : `<span style="font-size:24px;font-weight:800;color:#1a1a2e;">${legalEntityName}</span>`;
 
     const docTitles: Record<string, string> = {
