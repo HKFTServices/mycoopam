@@ -692,6 +692,26 @@ const AccountApprovals = () => {
     return groups;
   })();
 
+  // ─── Loan Applications ───
+  const { data: pendingLoans = [] } = useQuery({
+    queryKey: ["pending_loan_approvals", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("loan_applications")
+        .select("*, entities(name, last_name), entity_accounts(account_number)")
+        .eq("tenant_id", currentTenant.id)
+        .in("status", ["pending", "approved"])
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const pendingLoanCount = pendingLoans.filter((l: any) => l.status === "pending").length;
+  const awaitingAcceptance = pendingLoans.filter((l: any) => l.status === "approved").length;
+
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
