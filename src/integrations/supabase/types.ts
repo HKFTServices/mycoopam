@@ -5273,6 +5273,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_tenant_admin: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: undefined
+      }
       get_account_pool_units: {
         Args: { p_tenant_id: string }
         Returns: {
