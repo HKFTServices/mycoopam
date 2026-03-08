@@ -124,7 +124,8 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
           monthly_instalment: monthlyInstalment,
           reviewed_by: user!.id,
           reviewed_at: new Date().toISOString(),
-          review_notes: reviewNotes,
+           review_notes: reviewNotes,
+          pool_id: selectedPoolId || null,
         })
         .eq("id", app.id);
       if (error) throw error;
