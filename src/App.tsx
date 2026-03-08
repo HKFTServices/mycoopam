@@ -105,6 +105,11 @@ const App = () => (
               <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
               <Route path="/dashboard/send-message" element={<DashboardRoute><SendMessage /></DashboardRoute>} />
               <Route path="/dashboard/message-history" element={<DashboardRoute><MessageHistory /></DashboardRoute>} />
+              <Route path="/dashboard/mam" element={<DashboardRoute><MamDashboard /></DashboardRoute>} />
+              <Route path="/dashboard/mam/assets" element={<DashboardRoute><MamAssets /></DashboardRoute>} />
+              <Route path="/dashboard/mam/contribution-plans" element={<DashboardRoute><MamContributionPlans /></DashboardRoute>} />
+              <Route path="/dashboard/mam/quotes" element={<DashboardRoute><MamQuotes /></DashboardRoute>} />
+              <Route path="/dashboard/mam/admin" element={<DashboardRoute><MamAdmin /></DashboardRoute>} />
               <Route path="/dashboard/setup/transaction-types" element={<DashboardRoute><TransactionTypes /></DashboardRoute>} />
               <Route path="/dashboard/settings" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
               <Route path="/dashboard/setup/entity-categories" element={<DashboardRoute><EntityCategories /></DashboardRoute>} />
