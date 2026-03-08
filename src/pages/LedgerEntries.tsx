@@ -506,7 +506,7 @@ const LedgerEntries = () => {
       // Post CFT for commission payment (full incl-VAT amount)
       const { data: cft, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
-        transaction_date: new Date().toISOString().split("T")[0],
+        transaction_date: formatLocalDate(),
         entry_type: "commission_payment",
         is_bank: true,
         control_account_id: cashAccount?.id || null,
