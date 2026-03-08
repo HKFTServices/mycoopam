@@ -55,7 +55,7 @@ const TermsConditions = () => {
   const [form, setForm] = useState({
     content: "",
     condition_type: "registration" as ConditionType,
-    effective_from: new Date().toISOString().split("T")[0],
+    effective_from: formatLocalDate(),
     is_active: true,
     language_code: "en",
   });

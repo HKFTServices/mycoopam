@@ -546,7 +546,7 @@ const LedgerEntries = () => {
           status: "paid",
           paid_at: new Date().toISOString(),
           paid_by: user.id,
-          payment_date: new Date().toISOString().split("T")[0],
+          payment_date: formatLocalDate(),
           payment_reference: reference || null,
           cashflow_transaction_id: cft.id,
         })
