@@ -191,6 +191,63 @@ Deno.serve(async (req) => {
                 insertRow.entity_type = (et === "natural_person" || et === "1" || et === "naturalperson") ? "natural_person" : "legal_entity";
               }
             }
+            // relationship_types requires entity_category_id — resolve from record
+            if (globalConfig.targetTable === "relationship_types") {
+              const legacyCatId = record.entity_category_id || record.EntityCategoryId || record.EntityCategoryID;
+              if (legacyCatId) {
+                // Resolve from legacy_id_mappings
+                const { data: catMapping } = await adminClient.from("legacy_id_mappings")
+                  .select("new_id")
+                  .eq("tenant_id", tenant_id)
+                  .eq("table_name", "entity_categories")
+                  .eq("legacy_id", String(legacyCatId))
+                  .maybeSingle();
+                if (catMapping) {
+                  insertRow.entity_category_id = catMapping.new_id;
+                } else {
+                  results.errors.push(`${table_name} ${legacyId}: cannot resolve entity_category_id "${legacyCatId}"`);
+                  results.not_found++;
+                  continue;
+                }
+              } else {
+                // Try to infer from name
+                const nameLower = String(nameValue).trim().toLowerCase();
+                const personKeywords = ["myself", "spouse", "child", "minor", "individual"];
+                const inferredType = personKeywords.some(k => nameLower.includes(k)) ? "natural_person" : "legal_entity";
+                // Find matching entity_category by entity_type
+                const categoryName = nameLower.includes("company") ? "Company"
+                  : nameLower.includes("closed corporation") || nameLower.includes("close corporation") ? "Close Corporation"
+                  : nameLower.includes("co-operative") || nameLower.includes("cooperative") ? "Co-operative"
+                  : nameLower.includes("corporation") ? "Corporation"
+                  : nameLower.includes("trust") ? "Trust"
+                  : nameLower.includes("joint") ? "Joint Account"
+                  : nameLower.includes("partnership") ? "Partnership"
+                  : nameLower.includes("sole") ? "Sole Proprietory"
+                  : nameLower.includes("political") ? "Political Party"
+                  : inferredType === "natural_person" ? "Natural Person"
+                  : null;
+
+                if (categoryName) {
+                  const { data: cat } = await adminClient.from("entity_categories")
+                    .select("id").ilike("name", categoryName).maybeSingle();
+                  if (cat) {
+                    insertRow.entity_category_id = cat.id;
+                  }
+                }
+
+                if (!insertRow.entity_category_id) {
+                  // Fallback: use first category of matching type
+                  const { data: fallbackCat } = await adminClient.from("entity_categories")
+                    .select("id").eq("entity_type", inferredType).limit(1).maybeSingle();
+                  if (fallbackCat) {
+                    insertRow.entity_category_id = fallbackCat.id;
+                  } else {
+                    results.errors.push(`${table_name} ${legacyId}: no entity_category found for "${nameValue}"`);
+                    results.not_found++;
+                    continue;
+                  }
+                }
+              }
 
             if (isDryRun) {
               results.simulation.push({ legacy_id: legacyId, action: "will_create", name: nameValue, table: globalConfig.targetTable });
