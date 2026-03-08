@@ -41,7 +41,7 @@ type Commission = {
 };
 
 const defaultBankForm = {
-  transaction_date: new Date().toISOString().split("T")[0],
+  transaction_date: formatLocalDate(),
   gl_account_id: "",
   control_account_id: "",
   entry_type: "debit" as "debit" | "credit",
