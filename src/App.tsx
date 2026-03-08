@@ -55,6 +55,11 @@ import NotFound from "./pages/NotFound";
 import TenantLanding from "./pages/TenantLanding";
 import SendMessage from "./pages/SendMessage";
 import MessageHistory from "./pages/MessageHistory";
+import MamDashboard from "./pages/mam/MamDashboard";
+import MamAssets from "./pages/mam/MamAssets";
+import MamContributionPlans from "./pages/mam/MamContributionPlans";
+import MamQuotes from "./pages/mam/MamQuotes";
+import MamAdmin from "./pages/mam/MamAdmin";
 
 const queryClient = new QueryClient();
 
