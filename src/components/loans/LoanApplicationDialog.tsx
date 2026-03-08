@@ -111,6 +111,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
       if (!currentTenant || !user) throw new Error("Missing context");
       if (loanForm.amount_requested <= 0) throw new Error("Loan amount must be greater than zero");
       if (!loanForm.reason.trim()) throw new Error("Reason is required");
+      if (!loanForm.pool_id) throw new Error("Please select a pool");
 
       const { error } = await (supabase as any)
         .from("loan_applications")
@@ -126,6 +127,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
           existing_outstanding: existingOutstanding,
           reason: loanForm.reason,
           security_assets: loanForm.security_assets,
+          pool_id: loanForm.pool_id,
           status: "pending",
         });
       if (error) throw error;
