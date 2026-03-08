@@ -93,6 +93,7 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     setAmountApproved(app.amount_approved ?? app.amount_requested);
     setTermApproved(app.term_months_approved ?? app.term_months_requested);
     setReviewNotes(app.review_notes ?? "");
+    setSelectedPoolId(app.pool_id ?? "");
     setDisbursementAmount(Number(app.amount_approved ?? app.amount_requested ?? 0));
   }, [app]);
 
