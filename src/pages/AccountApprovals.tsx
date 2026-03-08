@@ -27,6 +27,8 @@ import { postAdminStockApproval } from "@/lib/postAdminStockApproval";
 import AdminStockReviewDialog from "@/components/approvals/AdminStockReviewDialog";
 import StockDocumentActions from "@/components/stock/StockDocumentActions";
 import { formatCurrency } from "@/lib/formatCurrency";
+import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
+import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
 
 const AUTO_NUMBER_ACCOUNT_TYPES = [2, 3, 5]; // Customer, Supplier, Referral House
 
