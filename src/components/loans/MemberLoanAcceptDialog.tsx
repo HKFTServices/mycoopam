@@ -25,21 +25,21 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   const queryClient = useQueryClient();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const entityName = app.entities
+  const entityName = app?.entities
     ? [app.entities.name, app.entities.last_name].filter(Boolean).join(" ")
     : "—";
 
-  const capital = Number(app.amount_approved ?? app.amount_requested);
-  const term = Number(app.term_months_approved ?? app.term_months_requested);
-  const interestRate = Number(app.interest_rate ?? 0);
-  const loanFee = Number(app.loan_fee ?? 0);
+  const capital = Number(app?.amount_approved ?? app?.amount_requested ?? 0);
+  const term = Number(app?.term_months_approved ?? app?.term_months_requested ?? 0);
+  const interestRate = Number(app?.interest_rate ?? 0);
+  const loanFee = Number(app?.loan_fee ?? 0);
   const totalInterest = capital * term * (interestRate / 100) / 12;
-  const totalLoan = Number(app.total_loan ?? capital + totalInterest + loanFee);
-  const monthlyInstalment = Number(app.monthly_instalment ?? (term > 0 ? totalLoan / term : 0));
+  const totalLoan = Number(app?.total_loan ?? capital + totalInterest + loanFee);
+  const monthlyInstalment = Number(app?.monthly_instalment ?? (term > 0 ? totalLoan / term : 0));
 
-  const isApproved = app.status === "approved";
-  const isAccepted = app.status === "accepted";
-  const isDisbursed = app.status === "disbursed";
+  const isApproved = app?.status === "approved";
+  const isAccepted = app?.status === "accepted";
+  const isDisbursed = app?.status === "disbursed";
 
   const acceptMutation = useMutation({
     mutationFn: async () => {

@@ -47,25 +47,26 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
 
   // Fetch budget entries
   const { data: budgetEntries = [] } = useQuery({
-    queryKey: ["loan_budget_review", app.entity_account_id],
+    queryKey: ["loan_budget_review", app?.entity_account_id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("loan_budget_entries")
         .select("*, budget_categories(name, category_type)")
-        .eq("entity_account_id", app.entity_account_id)
+        .eq("entity_account_id", app!.entity_account_id)
         .eq("tenant_id", currentTenant!.id);
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!currentTenant?.id && open,
+    enabled: !!currentTenant?.id && open && !!app,
   });
 
-  const [riskLevel, setRiskLevel] = useState(app.risk_level ?? "medium");
-  const [amountApproved, setAmountApproved] = useState(app.amount_approved ?? app.amount_requested);
-  const [termApproved, setTermApproved] = useState(app.term_months_approved ?? app.term_months_requested);
-  const [reviewNotes, setReviewNotes] = useState(app.review_notes ?? "");
+  const [riskLevel, setRiskLevel] = useState(app?.risk_level ?? "medium");
+  const [amountApproved, setAmountApproved] = useState(app?.amount_approved ?? app?.amount_requested ?? 0);
+  const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
+  const [reviewNotes, setReviewNotes] = useState(app?.review_notes ?? "");
 
   useEffect(() => {
+    if (!app) return;
     setRiskLevel(app.risk_level ?? "medium");
     setAmountApproved(app.amount_approved ?? app.amount_requested);
     setTermApproved(app.term_months_approved ?? app.term_months_requested);
