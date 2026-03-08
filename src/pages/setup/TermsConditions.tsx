@@ -109,7 +109,7 @@ const TermsConditions = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ content: "", condition_type: "registration", effective_from: new Date().toISOString().split("T")[0], is_active: true, language_code: "en" });
+    setForm({ content: "", condition_type: "registration", effective_from: formatLocalDate(), is_active: true, language_code: "en" });
     setDialogOpen(true);
   };
 
