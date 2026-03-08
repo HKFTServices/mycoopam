@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
+import { useMamEntity } from "@/contexts/MamEntityContext";
+import MamEntitySelector from "@/components/mam/MamEntitySelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +27,9 @@ import { Loader2, Search, Plus, Pencil, Trash2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const MamAssets = () => {
-  const { user } = useAuth();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
+  const { selectedEntityId, selectedEntity } = useMamEntity();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -40,7 +41,6 @@ const MamAssets = () => {
   const [deleting, setDeleting] = useState(false);
 
   // Form state
-  const [formEntityId, setFormEntityId] = useState("");
   const [formCategoryId, setFormCategoryId] = useState("");
   const [formBrandId, setFormBrandId] = useState("");
   const [formModelId, setFormModelId] = useState("");
@@ -50,51 +50,26 @@ const MamAssets = () => {
   const [formYear, setFormYear] = useState("");
   const [formNotes, setFormNotes] = useState("");
 
-  // Get entities the user is linked to
-  const { data: userEntities = [] } = useQuery({
-    queryKey: ["user_entities_for_assets", user?.id, tenantId],
-    queryFn: async () => {
-      if (!user || !tenantId) return [];
-      const { data, error } = await (supabase as any)
-        .from("user_entity_relationships")
-        .select("entity_id, entities (id, name, last_name)")
-        .eq("user_id", user.id)
-        .eq("tenant_id", tenantId)
-        .eq("is_active", true);
-      if (error) throw error;
-      // Deduplicate entities
-      const map = new Map<string, any>();
-      (data ?? []).forEach((r: any) => {
-        if (r.entities) map.set(r.entities.id, r.entities);
-      });
-      return Array.from(map.values());
-    },
-    enabled: !!user && !!tenantId,
-  });
-
-  const entityIds = userEntities.map((e: any) => e.id);
-
-  // Assets for user's entities
+  // Assets for selected entity
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ["member_assets", tenantId, entityIds],
+    queryKey: ["member_assets", tenantId, selectedEntityId],
     queryFn: async () => {
-      if (!tenantId || entityIds.length === 0) return [];
+      if (!tenantId || !selectedEntityId) return [];
       const { data, error } = await (supabase as any)
         .from("si_member_asset")
         .select(`
           *, 
           si_item_category (category_id, category_code, category_name),
           si_brand (brand_id, brand_name),
-          si_item_model (item_model_id, model_name),
-          entities (id, name, last_name)
+          si_item_model (item_model_id, model_name)
         `)
         .eq("tenant_id", tenantId)
-        .in("entity_id", entityIds)
+        .eq("entity_id", selectedEntityId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!tenantId && entityIds.length > 0,
+    enabled: !!tenantId && !!selectedEntityId,
   });
 
   // Reference data
@@ -142,11 +117,8 @@ const MamAssets = () => {
     enabled: !!tenantId,
   });
 
-  const entityLabel = (e: any) => [e.name, e.last_name].filter(Boolean).join(" ");
-
   const resetForm = () => {
     setEditId(null);
-    setFormEntityId(userEntities.length === 1 ? userEntities[0].id : "");
     setFormCategoryId("");
     setFormBrandId("");
     setFormModelId("");
@@ -161,7 +133,6 @@ const MamAssets = () => {
 
   const openEdit = (a: any) => {
     setEditId(a.member_asset_id);
-    setFormEntityId(a.entity_id);
     setFormCategoryId(a.category_id);
     setFormBrandId(a.brand_id ?? "");
     setFormModelId(a.item_model_id ?? "");
@@ -174,12 +145,12 @@ const MamAssets = () => {
   };
 
   const handleSave = async () => {
-    if (!tenantId || !formEntityId || !formCategoryId || !formName) return;
+    if (!tenantId || !selectedEntityId || !formCategoryId || !formName) return;
     setSaving(true);
     try {
       const payload: any = {
         tenant_id: tenantId,
-        entity_id: formEntityId,
+        entity_id: selectedEntityId,
         category_id: formCategoryId,
         brand_id: formBrandId || null,
         item_model_id: formModelId || null,
@@ -253,10 +224,12 @@ const MamAssets = () => {
           <h1 className="text-2xl font-bold tracking-tight">My Assets</h1>
           <p className="text-muted-foreground text-sm mt-1">Register and manage your declared assets</p>
         </div>
-        <Button onClick={openAdd} disabled={userEntities.length === 0}>
+        <Button onClick={openAdd} disabled={!selectedEntityId}>
           <Plus className="h-4 w-4 mr-1.5" /> Add Asset
         </Button>
       </div>
+
+      <MamEntitySelector />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -274,20 +247,19 @@ const MamAssets = () => {
                 <TableHead className="text-right">Value</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead>Year</TableHead>
-                {userEntities.length > 1 && <TableHead>Entity</TableHead>}
                 <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     {search ? "No matching assets." : "No assets registered yet."}
                   </TableCell>
@@ -305,9 +277,6 @@ const MamAssets = () => {
                     <TableCell className="text-right text-sm">{formatCurrency(a.declared_value)}</TableCell>
                     <TableCell className="text-right text-sm">{a.quantity}</TableCell>
                     <TableCell className="text-sm">{a.year_model ?? "—"}</TableCell>
-                    {userEntities.length > 1 && (
-                      <TableCell className="text-sm">{entityLabel(a.entities ?? {})}</TableCell>
-                    )}
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(a)}>
@@ -333,20 +302,6 @@ const MamAssets = () => {
             <DialogTitle>{editId ? "Edit Asset" : "Register New Asset"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {userEntities.length > 1 && (
-              <div className="space-y-2">
-                <Label>Entity</Label>
-                <Select value={formEntityId} onValueChange={setFormEntityId}>
-                  <SelectTrigger><SelectValue placeholder="Select entity" /></SelectTrigger>
-                  <SelectContent>
-                    {userEntities.map((e: any) => (
-                      <SelectItem key={e.id} value={e.id}>{entityLabel(e)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label>Category *</Label>
               <Select value={formCategoryId} onValueChange={(v) => { setFormCategoryId(v); setFormModelId(""); }}>
@@ -411,7 +366,7 @@ const MamAssets = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !formCategoryId || !formName || !formEntityId}>
+            <Button onClick={handleSave} disabled={saving || !formCategoryId || !formName || !selectedEntityId}>
               {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
               {editId ? "Save Changes" : "Register Asset"}
             </Button>
