@@ -157,9 +157,11 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const isPending = app.status === "pending";
-  const isAccepted = app.status === "accepted";
+  const isPending = app?.status === "pending";
+  const isAccepted = app?.status === "accepted";
   const isReadOnly = !isPending && !isAccepted;
+
+  if (!app) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
