@@ -1072,6 +1072,8 @@ Deno.serve(async (req) => {
           vat: ["VAT"],
           bankflow: ["Bankflow"],
           extra1: ["Extra1"],
+        } : table_name === "control_accounts" ? {
+          account_type: ["Type", "type", "AccountType", "ControlAccountType", "controlAccountType"],
         } : {};
 
         // Map fields - handle legacy field name variations
