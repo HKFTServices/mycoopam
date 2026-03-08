@@ -238,6 +238,8 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                 <span>{app.reason || "—"}</span>
                 <span className="text-muted-foreground">Security Assets:</span>
                 <span>{app.security_assets || "—"}</span>
+                <span className="text-muted-foreground">Pool Requested:</span>
+                <span>{pools.find((p: any) => p.id === app.pool_id)?.name ?? "—"}</span>
               </div>
             </CardContent>
           </Card>
