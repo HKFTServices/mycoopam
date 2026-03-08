@@ -683,7 +683,7 @@ const TenantConfiguration = () => {
         await supabase.storage.from("tenant-logos").remove(filesToDelete);
       }
 
-      const resized = await resizeImage(file, 100, 100);
+      const resized = await resizeImage(file, 200, 200);
       const path = `${currentTenant.id}/logo.png`;
       const { error: uploadError } = await supabase.storage.from("tenant-logos").upload(path, resized, { upsert: true, contentType: "image/png" });
       if (uploadError) throw uploadError;
