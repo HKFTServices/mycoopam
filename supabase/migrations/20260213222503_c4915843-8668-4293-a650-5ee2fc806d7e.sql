@@ -1,0 +1,1 @@
+ALTER TABLE public.transaction_fee_types ADD COLUMN payment_method text NOT NULL DEFAULT 'bank';

@@ -1,0 +1,1 @@
+ALTER TABLE public.pools ADD COLUMN open_unit_price numeric NOT NULL DEFAULT 1.00;

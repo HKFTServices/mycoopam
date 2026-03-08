@@ -1,0 +1,1 @@
+ALTER TABLE public.transaction_fee_types ADD COLUMN based_on text NOT NULL DEFAULT 'transactions' CHECK (based_on IN ('transactions', 'pool_values'));

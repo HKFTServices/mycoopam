@@ -1,0 +1,1 @@
+ALTER TABLE public.tenant_configuration ADD COLUMN IF NOT EXISTS pool_allocation_gl_account_id UUID REFERENCES public.gl_accounts(id);

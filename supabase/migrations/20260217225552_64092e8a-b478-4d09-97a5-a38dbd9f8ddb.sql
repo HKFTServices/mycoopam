@@ -1,0 +1,2 @@
+ALTER TABLE public.operating_journals DROP CONSTRAINT operating_journals_transaction_type_check;
+ALTER TABLE public.operating_journals ADD CONSTRAINT operating_journals_transaction_type_check CHECK (transaction_type = ANY (ARRAY['journal'::text, 'bank'::text, 'fee'::text]));

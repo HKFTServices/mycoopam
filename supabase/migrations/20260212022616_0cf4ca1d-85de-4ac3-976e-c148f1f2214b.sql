@@ -1,0 +1,1 @@
+ALTER TABLE public.tax_types ADD COLUMN description text DEFAULT NULL;

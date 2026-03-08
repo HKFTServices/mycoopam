@@ -1,0 +1,1 @@
+ALTER TABLE public.transaction_fee_rules ADD COLUMN admin_share_percentage numeric NOT NULL DEFAULT 0;

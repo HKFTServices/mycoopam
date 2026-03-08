@@ -1,0 +1,1 @@
+ALTER TABLE public.items ADD COLUMN api_key text DEFAULT NULL;

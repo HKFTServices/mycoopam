@@ -1,0 +1,1 @@
+ALTER TABLE public.entity_accounts ADD COLUMN IF NOT EXISTS legacy_client_account_id text;

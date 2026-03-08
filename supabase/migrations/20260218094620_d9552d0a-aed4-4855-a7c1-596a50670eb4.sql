@@ -1,0 +1,1 @@
+ALTER TABLE public.share_classes ADD COLUMN IF NOT EXISTS gl_account_id uuid REFERENCES public.gl_accounts(id);

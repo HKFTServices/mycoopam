@@ -1,0 +1,1 @@
+ALTER TABLE public.legacy_id_mappings ADD COLUMN description text;

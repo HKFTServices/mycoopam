@@ -1,0 +1,1 @@
+ALTER TABLE public.tenant_configuration ADD COLUMN IF NOT EXISTS vat_gl_account_id uuid REFERENCES public.gl_accounts(id);

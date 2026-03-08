@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 216 25% 96%;
+    --foreground: 220 40% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 13%;
+
+    --primary: 160 55% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 216 20% 90%;
+    --secondary-foreground: 220 40% 13%;
+
+    --muted: 216 18% 94%;
+    --muted-foreground: 218 14% 46%;
+
+    --accent: 160 40% 92%;
+    --accent-foreground: 160 55% 26%;
+
+    --destructive: 0 78% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 216 18% 86%;
+    --input: 216 18% 86%;
+    --ring: 160 55% 40%;
+
+    --radius: 0.875rem;
+
+    --sidebar-background: 220 45% 15%;
+    --sidebar-foreground: 216 18% 78%;
+    --sidebar-primary: 160 55% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 38% 22%;
+    --sidebar-accent-foreground: 160 50% 62%;
+    --sidebar-border: 220 35% 22%;
+    --sidebar-ring: 160 55% 48%;
+
+    --warning: 38 95% 48%;
+    --warning-foreground: 0 0% 100%;
+    --success: 160 55% 40%;
+    --success-foreground: 0 0% 100%;
+    --info: 215 100% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-up: 160 55% 40%;
+    --chart-down: 0 78% 48%;
+    --chart-neutral: 218 14% 46%;
+  }
+
+  .dark {
+    --background: 220 42% 8%;
+    --foreground: 216 22% 94%;
+
+    --card: 220 38% 11%;
+    --card-foreground: 216 22% 94%;
+
+    --popover: 220 38% 11%;
+    --popover-foreground: 216 22% 94%;
+
+    --primary: 160 50% 44%;
+    --primary-foreground: 220 42% 8%;
+
+    --secondary: 220 28% 16%;
+    --secondary-foreground: 216 22% 88%;
+
+    --muted: 220 28% 14%;
+    --muted-foreground: 218 16% 54%;
+
+    --accent: 160 30% 14%;
+    --accent-foreground: 160 50% 60%;
+
+    --destructive: 0 65% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 25% 18%;
+    --input: 220 25% 18%;
+    --ring: 160 50% 44%;
+
+    --sidebar-background: 220 48% 6%;
+    --sidebar-foreground: 216 16% 64%;
+    --sidebar-primary: 160 50% 44%;
+    --sidebar-primary-foreground: 220 42% 8%;
+    --sidebar-accent: 220 35% 13%;
+    --sidebar-accent-foreground: 160 50% 60%;
+    --sidebar-border: 220 30% 15%;
+    --sidebar-ring: 160 50% 44%;
+
+    --warning: 38 95% 48%;
+    --warning-foreground: 0 0% 100%;
+    --success: 160 50% 44%;
+    --success-foreground: 220 42% 8%;
+    --info: 215 100% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-up: 160 50% 44%;
+    --chart-down: 0 65% 42%;
+    --chart-neutral: 218 16% 54%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-md border border-border/50 shadow-md rounded-2xl;
+  }
+
+  .gradient-brand {
+    @apply bg-gradient-to-br from-primary to-primary/80;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Quill Rich Text Editor Theme Overrides */
+.rich-text-editor-wrapper .ql-toolbar.ql-snow {
+  border-color: hsl(var(--border));
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: hsl(var(--muted));
+}
+.rich-text-editor-wrapper .ql-container.ql-snow {
+  border-color: hsl(var(--border));
+  border-radius: 0 0 var(--radius) var(--radius);
+  min-height: 200px;
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+.rich-text-editor-wrapper .ql-editor {
+  min-height: 180px;
+  color: hsl(var(--foreground));
+}
+.rich-text-editor-wrapper .ql-editor.ql-blank::before {
+  color: hsl(var(--muted-foreground));
+  font-style: normal;
+}
+.rich-text-editor-wrapper .ql-snow .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+.rich-text-editor-wrapper .ql-snow .ql-fill {
+  fill: hsl(var(--foreground));
+}
+.rich-text-editor-wrapper .ql-snow .ql-picker {
+  color: hsl(var(--foreground));
+}
+.rich-text-editor-wrapper .ql-snow .ql-picker-options {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+}

@@ -1,0 +1,1 @@
+ALTER TABLE public.operating_journals ALTER COLUMN debit_control_account_id DROP NOT NULL;
