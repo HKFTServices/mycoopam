@@ -95,6 +95,49 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
     enabled: !!currentTenant?.id && open,
   });
 
+  // Fetch member's pool units for this entity account
+  const { data: accountPoolUnits = [] } = useQuery({
+    queryKey: ["account_pool_units_loan", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .rpc("get_account_pool_units", { p_tenant_id: currentTenant!.id });
+      if (error) throw error;
+      return (data ?? []).filter((d: any) => d.entity_account_id === entityAccountId);
+    },
+    enabled: !!currentTenant?.id && !!entityAccountId && open,
+  });
+
+  // Fetch latest pool prices
+  const { data: poolPrices = [] } = useQuery({
+    queryKey: ["pool_prices_loan", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("daily_pool_prices")
+        .select("pool_id, unit_price_sell")
+        .eq("tenant_id", currentTenant!.id)
+        .order("totals_date", { ascending: false });
+      if (error) throw error;
+      // Get latest price per pool
+      const seen = new Set<string>();
+      return (data ?? []).filter((d: any) => {
+        if (seen.has(d.pool_id)) return false;
+        seen.add(d.pool_id);
+        return true;
+      });
+    },
+    enabled: !!currentTenant?.id && open,
+  });
+
+  // Calculate pool value for the selected pool
+  const getPoolValue = (poolId: string) => {
+    const units = accountPoolUnits.find((u: any) => u.pool_id === poolId);
+    const price = poolPrices.find((p: any) => p.pool_id === poolId);
+    if (!units || !price) return 0;
+    return Number(units.total_units) * Number(price.unit_price_sell);
+  };
+
+  const poolValueMultiple = Number(loanSettings?.pool_value_multiple ?? 1);
+
   // Loan details form state
   const [loanForm, setLoanForm] = useState({
     loan_date: new Date().toISOString().split("T")[0],
@@ -112,6 +155,13 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
       if (loanForm.amount_requested <= 0) throw new Error("Loan amount must be greater than zero");
       if (!loanForm.reason.trim()) throw new Error("Reason is required");
       if (!loanForm.pool_id) throw new Error("Please select a pool");
+
+      // Validate against pool value limit
+      const selectedPoolValue = getPoolValue(loanForm.pool_id);
+      const maxAllowed = selectedPoolValue * poolValueMultiple;
+      if (maxAllowed > 0 && loanForm.amount_requested > maxAllowed) {
+        throw new Error(`Loan amount exceeds maximum allowed (${formatCurrency(maxAllowed)}) based on your pool value of ${formatCurrency(selectedPoolValue)} × ${poolValueMultiple}`);
+      }
 
       const { error } = await (supabase as any)
         .from("loan_applications")
@@ -181,6 +231,8 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
               existingOutstanding={existingOutstanding}
               maxTermMonths={loanSettings?.max_term_months ?? 12}
               pools={pools}
+              getPoolValue={getPoolValue}
+              poolValueMultiple={poolValueMultiple}
             />
           )}
         </div>

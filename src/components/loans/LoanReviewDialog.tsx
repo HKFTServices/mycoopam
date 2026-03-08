@@ -75,6 +75,46 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     enabled: !!currentTenant?.id && open,
   });
 
+  // Fetch member's pool units for the applicant's entity account
+  const { data: accountPoolUnits = [] } = useQuery({
+    queryKey: ["account_pool_units_loan_review", currentTenant?.id, app?.entity_account_id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .rpc("get_account_pool_units", { p_tenant_id: currentTenant!.id });
+      if (error) throw error;
+      return (data ?? []).filter((d: any) => d.entity_account_id === app?.entity_account_id);
+    },
+    enabled: !!currentTenant?.id && !!app?.entity_account_id && open,
+  });
+
+  const { data: poolPrices = [] } = useQuery({
+    queryKey: ["pool_prices_loan_review", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("daily_pool_prices")
+        .select("pool_id, unit_price_sell")
+        .eq("tenant_id", currentTenant!.id)
+        .order("totals_date", { ascending: false });
+      if (error) throw error;
+      const seen = new Set<string>();
+      return (data ?? []).filter((d: any) => {
+        if (seen.has(d.pool_id)) return false;
+        seen.add(d.pool_id);
+        return true;
+      });
+    },
+    enabled: !!currentTenant?.id && open,
+  });
+
+  const getPoolValue = (poolId: string) => {
+    const units = accountPoolUnits.find((u: any) => u.pool_id === poolId);
+    const price = poolPrices.find((p: any) => p.pool_id === poolId);
+    if (!units || !price) return 0;
+    return Number(units.total_units) * Number(price.unit_price_sell);
+  };
+
+  const poolValueMultiple = Number(loanSettings?.pool_value_multiple ?? 1);
+
   const [riskLevel, setRiskLevel] = useState(app?.risk_level ?? "medium");
   const [amountApproved, setAmountApproved] = useState(app?.amount_approved ?? app?.amount_requested ?? 0);
   const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
@@ -311,10 +351,18 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {selectedPoolId && (
+                    <p className="text-xs text-muted-foreground">
+                      Pool value: {formatCurrency(getPoolValue(selectedPoolId))} — Max loan: {formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)} ({poolValueMultiple}×)
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Amount (R)</Label>
                   <Input type="number" min={0} value={amountApproved} onChange={(e) => setAmountApproved(parseFloat(e.target.value) || 0)} disabled={isReadOnly} />
+                  {selectedPoolId && getPoolValue(selectedPoolId) > 0 && amountApproved > getPoolValue(selectedPoolId) * poolValueMultiple && (
+                    <p className="text-xs text-destructive">⚠ Exceeds pool value limit ({formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)})</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Term (Months)</Label>
