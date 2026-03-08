@@ -805,6 +805,16 @@ const Memberships = () => {
         entityId={referrerDialogEntity?.id ?? ""}
         entityName={referrerDialogEntity?.name ?? ""}
       />
+
+      {loanApplyEntity && (
+        <LoanApplicationDialog
+          open={!!loanApplyEntity}
+          onOpenChange={(open) => { if (!open) setLoanApplyEntity(null); }}
+          entityAccountId={loanApplyEntity.entityAccountId}
+          entityId={loanApplyEntity.entityId}
+          entityName={loanApplyEntity.entityName}
+        />
+      )}
     </div>
   );
 };
