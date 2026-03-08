@@ -242,6 +242,21 @@ Deno.serve(async (req) => {
                 }
               }
             }
+            // entity_account_types requires prefix — resolve from record or infer
+            if (globalConfig.targetTable === "entity_account_types") {
+              const prefix = record.prefix || record.Prefix;
+              if (prefix) {
+                insertRow.prefix = String(prefix).trim();
+              } else {
+                const n = String(nameValue).trim().toLowerCase();
+                insertRow.prefix = n.includes("supplier") ? "SUP"
+                  : n.includes("referral") ? "REF"
+                  : n.includes("customer") ? "CUS"
+                  : n.includes("membership") ? "MEM"
+                  : n.includes("agent") ? "AGT"
+                  : String(nameValue).trim().substring(0, 3).toUpperCase();
+              }
+            }
             if (isDryRun) {
               results.simulation.push({ legacy_id: legacyId, action: "will_create", name: nameValue, table: globalConfig.targetTable });
               results.mapped++;
