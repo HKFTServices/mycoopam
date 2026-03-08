@@ -116,6 +116,14 @@ const messagesNavItems = [
   { label: "Message History", icon: History, path: "/dashboard/message-history" },
 ];
 
+const mamNavItems = [
+  { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
+  { label: "Assets", icon: Package, path: "/dashboard/mam/assets" },
+  { label: "Contribution Plans", icon: DollarSign, path: "/dashboard/mam/contribution-plans" },
+  { label: "Quotes", icon: FileText, path: "/dashboard/mam/quotes" },
+  { label: "MAM Admin", icon: Cog, path: "/dashboard/mam/admin" },
+];
+
 const dailyPricesNavItems = [
   { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
   { label: "Pool Updates", icon: TrendingUp, path: "/dashboard/daily-prices/pools" },
