@@ -168,23 +168,53 @@ Deno.serve(async (req) => {
           }
           const { data: match } = await matchQuery.maybeSingle();
 
-          if (match) {
-            results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_map" : "mapped", name: nameValue, new_id: match.id });
-            if (!isDryRun) {
-              await adminClient.from("legacy_id_mappings").insert({
-                tenant_id,
-                table_name,
-                legacy_id: String(legacyId),
-                new_id: match.id,
-                import_batch: batchId,
-                notes: `Mapped ${globalConfig.matchField}: ${nameValue}`,
-              });
+          let matchedId: string | null = match?.id ?? null;
+
+          // Auto-create if not found (for non-tenant-scoped global tables like titles, banks, etc.)
+          if (!matchedId) {
+            const insertRow: Record<string, unknown> = {
+              [globalConfig.matchField]: String(nameValue).trim(),
+              is_active: true,
+            };
+            // For tenant-scoped tables, include tenant_id
+            if (globalConfig.tenantScoped) {
+              insertRow.tenant_id = tenant_id;
             }
-            results.mapped++;
+
+            if (isDryRun) {
+              results.simulation.push({ legacy_id: legacyId, action: "will_create", name: nameValue, table: globalConfig.targetTable });
+              results.mapped++;
+              continue;
+            }
+
+            const { data: created, error: createErr } = await adminClient
+              .from(globalConfig.targetTable)
+              .insert(insertRow)
+              .select("id")
+              .single();
+
+            if (createErr || !created) {
+              results.errors.push(`${table_name} ${legacyId}: failed to create "${nameValue}": ${createErr?.message}`);
+              results.not_found++;
+              continue;
+            }
+            matchedId = created.id;
+            results.simulation.push({ legacy_id: legacyId, action: "created", name: nameValue, new_id: matchedId });
           } else {
-            results.not_found++;
-            results.simulation.push({ legacy_id: legacyId, action: "not_found", name: nameValue });
+            results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_map" : "mapped", name: nameValue, new_id: matchedId });
           }
+
+          if (!isDryRun) {
+            await adminClient.from("legacy_id_mappings").insert({
+              tenant_id,
+              table_name,
+              legacy_id: String(legacyId),
+              new_id: matchedId,
+              import_batch: batchId,
+              notes: `${match ? "Mapped" : "Created"} ${globalConfig.matchField}: ${nameValue}`,
+            });
+          }
+          results.mapped++;
         } catch (recErr: any) {
           results.errors.push(`Record error: ${recErr.message}`);
         }
