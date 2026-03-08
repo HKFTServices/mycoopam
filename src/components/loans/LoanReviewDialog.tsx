@@ -63,9 +63,10 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
   const [riskLevel, setRiskLevel] = useState(app?.risk_level ?? "medium");
   const [amountApproved, setAmountApproved] = useState(app?.amount_approved ?? app?.amount_requested ?? 0);
   const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
-  const [reviewNotes, setReviewNotes] = useState(app.review_notes ?? "");
+  const [reviewNotes, setReviewNotes] = useState(app?.review_notes ?? "");
 
   useEffect(() => {
+    if (!app) return;
     setRiskLevel(app.risk_level ?? "medium");
     setAmountApproved(app.amount_approved ?? app.amount_requested);
     setTermApproved(app.term_months_approved ?? app.term_months_requested);
