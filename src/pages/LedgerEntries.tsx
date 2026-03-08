@@ -52,7 +52,7 @@ const defaultBankForm = {
 };
 
 const defaultJournalForm = {
-  transaction_date: new Date().toISOString().split("T")[0],
+  transaction_date: formatLocalDate(),
   gl_account_id: "",
   debit_control_account_id: "",
   credit_control_account_id: "",
