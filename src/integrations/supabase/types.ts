@@ -1843,6 +1843,7 @@ export type Database = {
       }
       loan_applications: {
         Row: {
+          admin_signature_data: string | null
           admin_signature_path: string | null
           admin_signed_at: string | null
           amount_approved: number | null
@@ -1850,6 +1851,9 @@ export type Database = {
           applicant_user_id: string
           application_date: string
           created_at: string
+          disbursement_amount: number | null
+          disbursement_date: string | null
+          disbursement_reference: string | null
           entity_account_id: string
           entity_id: string
           existing_outstanding: number
@@ -1858,6 +1862,7 @@ export type Database = {
           loan_date: string
           loan_fee: number | null
           member_accepted_at: string | null
+          member_signature_data: string | null
           member_signature_path: string | null
           monthly_available_repayment: number
           monthly_instalment: number | null
@@ -1875,6 +1880,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_signature_data?: string | null
           admin_signature_path?: string | null
           admin_signed_at?: string | null
           amount_approved?: number | null
@@ -1882,6 +1888,9 @@ export type Database = {
           applicant_user_id: string
           application_date?: string
           created_at?: string
+          disbursement_amount?: number | null
+          disbursement_date?: string | null
+          disbursement_reference?: string | null
           entity_account_id: string
           entity_id: string
           existing_outstanding?: number
@@ -1890,6 +1899,7 @@ export type Database = {
           loan_date: string
           loan_fee?: number | null
           member_accepted_at?: string | null
+          member_signature_data?: string | null
           member_signature_path?: string | null
           monthly_available_repayment: number
           monthly_instalment?: number | null
@@ -1907,6 +1917,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_signature_data?: string | null
           admin_signature_path?: string | null
           admin_signed_at?: string | null
           amount_approved?: number | null
@@ -1914,6 +1925,9 @@ export type Database = {
           applicant_user_id?: string
           application_date?: string
           created_at?: string
+          disbursement_amount?: number | null
+          disbursement_date?: string | null
+          disbursement_reference?: string | null
           entity_account_id?: string
           entity_id?: string
           existing_outstanding?: number
@@ -1922,6 +1936,7 @@ export type Database = {
           loan_date?: string
           loan_fee?: number | null
           member_accepted_at?: string | null
+          member_signature_data?: string | null
           member_signature_path?: string | null
           monthly_available_repayment?: number
           monthly_instalment?: number | null
