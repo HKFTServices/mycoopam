@@ -71,6 +71,7 @@ const Memberships = () => {
   const [loanEntityId, setLoanEntityId] = useState<string | null>(null);
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [referrerDialogEntity, setReferrerDialogEntity] = useState<{ id: string; name: string } | null>(null);
+  const [loanApplyEntity, setLoanApplyEntity] = useState<{ entityAccountId: string; entityId: string; entityName: string } | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch entity account types (for mapping account_type int to id)
