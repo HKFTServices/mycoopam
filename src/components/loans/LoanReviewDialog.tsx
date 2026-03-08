@@ -351,10 +351,18 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {selectedPoolId && (
+                    <p className="text-xs text-muted-foreground">
+                      Pool value: {formatCurrency(getPoolValue(selectedPoolId))} — Max loan: {formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)} ({poolValueMultiple}×)
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Amount (R)</Label>
                   <Input type="number" min={0} value={amountApproved} onChange={(e) => setAmountApproved(parseFloat(e.target.value) || 0)} disabled={isReadOnly} />
+                  {selectedPoolId && getPoolValue(selectedPoolId) > 0 && amountApproved > getPoolValue(selectedPoolId) * poolValueMultiple && (
+                    <p className="text-xs text-destructive">⚠ Exceeds pool value limit ({formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)})</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Term (Months)</Label>
