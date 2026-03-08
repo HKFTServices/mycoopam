@@ -57,6 +57,7 @@ import {
   MessageSquare,
   SendHorizontal,
   History,
+  ShieldPlus,
 } from "lucide-react";
 
 const mainNavItems = [
@@ -115,6 +116,14 @@ const messagesNavItems = [
   { label: "Message History", icon: History, path: "/dashboard/message-history" },
 ];
 
+const mamNavItems = [
+  { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
+  { label: "Assets", icon: Package, path: "/dashboard/mam/assets" },
+  { label: "Contribution Plans", icon: DollarSign, path: "/dashboard/mam/contribution-plans" },
+  { label: "Quotes", icon: FileText, path: "/dashboard/mam/quotes" },
+  { label: "MAM Admin", icon: Cog, path: "/dashboard/mam/admin" },
+];
+
 const dailyPricesNavItems = [
   { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
   { label: "Pool Updates", icon: TrendingUp, path: "/dashboard/daily-prices/pools" },
@@ -128,6 +137,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [entitiesOpen, setEntitiesOpen] = useState(location.pathname.includes("/dashboard/entit"));
   const [messagesOpen, setMessagesOpen] = useState(location.pathname.includes("/dashboard/send-message") || location.pathname.includes("/dashboard/message-history"));
+  const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));
   const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/setup"));
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/setup"));
@@ -348,6 +358,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Transactions visible to members with approved accounts, clerks, managers, and admins */}
             {showTransactions && renderNavItem(mainNavItems[2])}
+
+            {/* Member Asset Manager - visible to all authenticated users */}
+            <button
+              onClick={() => setMamOpen(!mamOpen)}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <ShieldPlus className="h-4.5 w-4.5 shrink-0" />
+              <span>Asset Manager</span>
+              {mamOpen ? (
+                <ChevronDown className="ml-auto h-4 w-4" />
+              ) : (
+                <ChevronRight className="ml-auto h-4 w-4" />
+              )}
+            </button>
+            {mamOpen && (
+              <div className="ml-3 pl-3 border-l border-border space-y-0.5">
+                {mamNavItems.map(renderNavItem)}
+              </div>
+            )}
 
             {/* Messages - admin only */}
             {isAdmin && (
