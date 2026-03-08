@@ -47,17 +47,17 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
 
   // Fetch budget entries
   const { data: budgetEntries = [] } = useQuery({
-    queryKey: ["loan_budget_review", app.entity_account_id],
+    queryKey: ["loan_budget_review", app?.entity_account_id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("loan_budget_entries")
         .select("*, budget_categories(name, category_type)")
-        .eq("entity_account_id", app.entity_account_id)
+        .eq("entity_account_id", app!.entity_account_id)
         .eq("tenant_id", currentTenant!.id);
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!currentTenant?.id && open,
+    enabled: !!currentTenant?.id && open && !!app,
   });
 
   const [riskLevel, setRiskLevel] = useState(app.risk_level ?? "medium");
