@@ -61,6 +61,8 @@ import MamContributionPlans from "./pages/mam/MamContributionPlans";
 import MamQuotes from "./pages/mam/MamQuotes";
 import MamAdmin from "./pages/mam/MamAdmin";
 import RegisterTenant from "./pages/RegisterTenant";
+import LoanSettings from "./pages/setup/LoanSettings";
+import BudgetCategories from "./pages/setup/BudgetCategories";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 
 const queryClient = new QueryClient();
