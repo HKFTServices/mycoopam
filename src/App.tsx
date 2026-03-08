@@ -63,6 +63,7 @@ import MamAdmin from "./pages/mam/MamAdmin";
 import RegisterTenant from "./pages/RegisterTenant";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
+import LoanApplications from "./pages/LoanApplications";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 
 const queryClient = new QueryClient();
@@ -133,6 +134,7 @@ const App = () => (
               <Route path="/dashboard/setup/tenant-configuration" element={<DashboardRoute><TenantConfiguration /></DashboardRoute>} />
               <Route path="/dashboard/setup/tax-types" element={<DashboardRoute><TaxTypes /></DashboardRoute>} />
               <Route path="/dashboard/setup/data-import" element={<DashboardRoute><DataImport /></DashboardRoute>} />
+              <Route path="/dashboard/loan-applications" element={<DashboardRoute><LoanApplications /></DashboardRoute>} />
               <Route path="/dashboard/setup/loan-settings" element={<DashboardRoute><LoanSettings /></DashboardRoute>} />
               <Route path="/dashboard/setup/budget-categories" element={<DashboardRoute><BudgetCategories /></DashboardRoute>} />
               <Route path="/dashboard/setup/gl-accounts" element={<DashboardRoute><GLAccounts /></DashboardRoute>} />
