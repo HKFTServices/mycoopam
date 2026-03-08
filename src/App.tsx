@@ -63,6 +63,7 @@ import MamAdmin from "./pages/mam/MamAdmin";
 import RegisterTenant from "./pages/RegisterTenant";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
+import LoanApplications from "./pages/LoanApplications";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 
 const queryClient = new QueryClient();
