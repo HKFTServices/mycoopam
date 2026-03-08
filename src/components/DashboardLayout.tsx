@@ -238,7 +238,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     queryKey: ["pending_approvals_count", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return 0;
-      const [accountRes, txnRes, regRes, refRes] = await Promise.all([
+      const [accountRes, txnRes, regRes, refRes, loanRes] = await Promise.all([
         (supabase as any).from("entity_accounts")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", currentTenant.id).eq("is_approved", false).eq("status", "pending_activation"),
@@ -251,8 +251,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         (supabase as any).from("referrers")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", currentTenant.id).eq("status", "pending"),
+        (supabase as any).from("loan_applications")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", currentTenant.id).in("status", ["pending", "approved"]),
       ]);
-      return (accountRes.count ?? 0) + (txnRes.count ?? 0) + (regRes.count ?? 0) + (refRes.count ?? 0);
+      return (accountRes.count ?? 0) + (txnRes.count ?? 0) + (regRes.count ?? 0) + (refRes.count ?? 0) + (loanRes.count ?? 0);
     },
     enabled: !!currentTenant && canApprove,
     refetchInterval: 30000,
