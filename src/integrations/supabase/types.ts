@@ -332,6 +332,47 @@ export type Database = {
           },
         ]
       }
+      budget_categories: {
+        Row: {
+          category_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cashflow_transactions: {
         Row: {
           amount_excl_vat: number
@@ -1795,6 +1836,241 @@ export type Database = {
             foreignKeyName: "legacy_id_mappings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_applications: {
+        Row: {
+          admin_signature_path: string | null
+          admin_signed_at: string | null
+          amount_approved: number | null
+          amount_requested: number
+          applicant_user_id: string
+          application_date: string
+          created_at: string
+          entity_account_id: string
+          entity_id: string
+          existing_outstanding: number
+          id: string
+          interest_rate: number | null
+          loan_date: string
+          loan_fee: number | null
+          member_accepted_at: string | null
+          member_signature_path: string | null
+          monthly_available_repayment: number
+          monthly_instalment: number | null
+          reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_level: string | null
+          security_assets: string | null
+          status: string
+          tenant_id: string
+          term_months_approved: number | null
+          term_months_requested: number
+          total_loan: number | null
+          updated_at: string
+        }
+        Insert: {
+          admin_signature_path?: string | null
+          admin_signed_at?: string | null
+          amount_approved?: number | null
+          amount_requested: number
+          applicant_user_id: string
+          application_date?: string
+          created_at?: string
+          entity_account_id: string
+          entity_id: string
+          existing_outstanding?: number
+          id?: string
+          interest_rate?: number | null
+          loan_date: string
+          loan_fee?: number | null
+          member_accepted_at?: string | null
+          member_signature_path?: string | null
+          monthly_available_repayment: number
+          monthly_instalment?: number | null
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string | null
+          security_assets?: string | null
+          status?: string
+          tenant_id: string
+          term_months_approved?: number | null
+          term_months_requested: number
+          total_loan?: number | null
+          updated_at?: string
+        }
+        Update: {
+          admin_signature_path?: string | null
+          admin_signed_at?: string | null
+          amount_approved?: number | null
+          amount_requested?: number
+          applicant_user_id?: string
+          application_date?: string
+          created_at?: string
+          entity_account_id?: string
+          entity_id?: string
+          existing_outstanding?: number
+          id?: string
+          interest_rate?: number | null
+          loan_date?: string
+          loan_fee?: number | null
+          member_accepted_at?: string | null
+          member_signature_path?: string | null
+          monthly_available_repayment?: number
+          monthly_instalment?: number | null
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string | null
+          security_assets?: string | null
+          status?: string
+          tenant_id?: string
+          term_months_approved?: number | null
+          term_months_requested?: number
+          total_loan?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_applications_entity_account_id_fkey"
+            columns: ["entity_account_id"]
+            isOneToOne: false
+            referencedRelation: "entity_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_budget_entries: {
+        Row: {
+          amount: number
+          budget_category_id: string
+          created_at: string
+          entity_account_id: string
+          id: string
+          notes: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          budget_category_id: string
+          created_at?: string
+          entity_account_id: string
+          id?: string
+          notes?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          budget_category_id?: string
+          created_at?: string
+          entity_account_id?: string
+          id?: string
+          notes?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_budget_entries_budget_category_id_fkey"
+            columns: ["budget_category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_budget_entries_entity_account_id_fkey"
+            columns: ["entity_account_id"]
+            isOneToOne: false
+            referencedRelation: "entity_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_budget_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_settings: {
+        Row: {
+          created_at: string
+          id: string
+          interest_rate_high: number
+          interest_rate_low: number
+          interest_rate_medium: number
+          interest_type: string
+          is_active: boolean
+          loan_fee_high: number
+          loan_fee_low: number
+          loan_fee_medium: number
+          max_term_months: number
+          pool_value_multiple: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest_rate_high?: number
+          interest_rate_low?: number
+          interest_rate_medium?: number
+          interest_type?: string
+          is_active?: boolean
+          loan_fee_high?: number
+          loan_fee_low?: number
+          loan_fee_medium?: number
+          max_term_months?: number
+          pool_value_multiple?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest_rate_high?: number
+          interest_rate_low?: number
+          interest_rate_medium?: number
+          interest_type?: string
+          is_active?: boolean
+          loan_fee_high?: number
+          loan_fee_low?: number
+          loan_fee_medium?: number
+          max_term_months?: number
+          pool_value_multiple?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
