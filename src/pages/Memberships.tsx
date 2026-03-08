@@ -685,10 +685,21 @@ const Memberships = () => {
                                   </DropdownMenuItem>
                                 )}
                                 {g.accounts.some(a => a.status === "active" || a.status === "approved") && (
-                                  <DropdownMenuItem onClick={() => setTxnDialogOpen(true)}>
-                                    <ArrowLeftRight className="h-4 w-4 mr-2" />
-                                    New Transaction
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuItem onClick={() => setTxnDialogOpen(true)}>
+                                      <ArrowLeftRight className="h-4 w-4 mr-2" />
+                                      New Transaction
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      const activeAcct = g.accounts.find(a => a.status === "active" || a.status === "approved");
+                                      if (activeAcct) {
+                                        setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
+                                      }
+                                    }}>
+                                      <Banknote className="h-4 w-4 mr-2" />
+                                      Apply for Loan
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
