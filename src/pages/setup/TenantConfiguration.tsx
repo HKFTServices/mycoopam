@@ -645,18 +645,44 @@ const TenantConfiguration = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const resizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas not supported"));
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Failed to resize image"));
+        }, "image/png", 0.9);
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentTenant) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${currentTenant.id}/logo.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("tenant-logos").upload(path, file, { upsert: true });
+      const resized = await resizeImage(file, 200, 200);
+      const path = `${currentTenant.id}/logo.png`;
+      const { error: uploadError } = await supabase.storage.from("tenant-logos").upload(path, resized, { upsert: true, contentType: "image/png" });
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("tenant-logos").getPublicUrl(path);
       setForm((f) => ({ ...f, logo_url: urlData.publicUrl }));
-      toast.success("Logo uploaded — remember to save.");
+      toast.success("Logo uploaded & resized to 200×200 max — remember to save.");
     } catch (err: any) { toast.error(err.message); } finally { setUploading(false); }
   };
 
