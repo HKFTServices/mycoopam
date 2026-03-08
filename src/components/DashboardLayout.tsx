@@ -137,6 +137,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [entitiesOpen, setEntitiesOpen] = useState(location.pathname.includes("/dashboard/entit"));
   const [messagesOpen, setMessagesOpen] = useState(location.pathname.includes("/dashboard/send-message") || location.pathname.includes("/dashboard/message-history"));
+  const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));
   const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/setup"));
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/setup"));
