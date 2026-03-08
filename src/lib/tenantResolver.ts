@@ -22,35 +22,23 @@ export function getTenantSlugFromSubdomain(): string | null {
 }
 
 export async function fetchTenantBySlug(slug: string) {
-  const { data, error } = await (supabase as any)
+  // First get the tenant row (public RLS policy allows this)
+  const { data: tenant, error } = await (supabase as any)
     .from("tenants")
     .select("*")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
   if (error) console.error("Tenant lookup error:", error);
-  if (!data) return null;
+  if (!tenant) return null;
 
-  // If logo_url or legal_name missing on tenant, try tenant_configuration
-  if (!data.logo_url || !data.legal_name) {
-    const { data: config } = await supabase
-      .from("tenant_configuration")
-      .select("logo_url, legal_entity_id")
-      .eq("tenant_id", data.id)
-      .maybeSingle();
-
-    if (config?.logo_url && !data.logo_url) {
-      data.logo_url = config.logo_url;
-    }
-    if (config?.legal_entity_id && !data.legal_name) {
-      const { data: entity } = await supabase
-        .from("entities")
-        .select("name")
-        .eq("id", config.legal_entity_id)
-        .maybeSingle();
-      if (entity?.name) data.legal_name = entity.name;
-    }
+  // Use security definer RPC to get branding (works for anon users)
+  const { data: branding } = await supabase.rpc("get_tenant_branding_by_slug" as any, { p_slug: slug });
+  if (branding && (branding as any[]).length > 0) {
+    const b = (branding as any[])[0];
+    if (b.logo_url) tenant.logo_url = b.logo_url;
+    if (b.legal_name) tenant.legal_name = b.legal_name;
   }
 
-  return data;
+  return tenant;
 }

@@ -5618,6 +5618,15 @@ export type Database = {
           tenant_name: string
         }[]
       }
+      get_tenant_branding_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          legal_name: string
+          logo_url: string
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
       has_permission: {
         Args: {
           _action?: string
