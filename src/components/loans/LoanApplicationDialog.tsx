@@ -79,6 +79,22 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
     return new Date(b.updated_at) > sixMonthsAgo;
   });
 
+  // Fetch pools for selection
+  const { data: pools = [] } = useQuery({
+    queryKey: ["pools_for_loan", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pools")
+        .select("id, name")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant?.id && open,
+  });
+
   // Loan details form state
   const [loanForm, setLoanForm] = useState({
     loan_date: new Date().toISOString().split("T")[0],
@@ -87,6 +103,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
     monthly_available_repayment: 0,
     reason: "",
     security_assets: "",
+    pool_id: "",
   });
 
   const submitMutation = useMutation({
@@ -94,6 +111,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
       if (!currentTenant || !user) throw new Error("Missing context");
       if (loanForm.amount_requested <= 0) throw new Error("Loan amount must be greater than zero");
       if (!loanForm.reason.trim()) throw new Error("Reason is required");
+      if (!loanForm.pool_id) throw new Error("Please select a pool");
 
       const { error } = await (supabase as any)
         .from("loan_applications")
@@ -109,6 +127,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
           existing_outstanding: existingOutstanding,
           reason: loanForm.reason,
           security_assets: loanForm.security_assets,
+          pool_id: loanForm.pool_id,
           status: "pending",
         });
       if (error) throw error;
@@ -161,6 +180,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
               loanSettings={loanSettings}
               existingOutstanding={existingOutstanding}
               maxTermMonths={loanSettings?.max_term_months ?? 12}
+              pools={pools}
             />
           )}
         </div>

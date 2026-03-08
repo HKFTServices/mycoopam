@@ -59,10 +59,27 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     enabled: !!currentTenant?.id && open && !!app,
   });
 
+  // Fetch pools
+  const { data: pools = [] } = useQuery({
+    queryKey: ["pools_for_loan", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pools")
+        .select("id, name")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant?.id && open,
+  });
+
   const [riskLevel, setRiskLevel] = useState(app?.risk_level ?? "medium");
   const [amountApproved, setAmountApproved] = useState(app?.amount_approved ?? app?.amount_requested ?? 0);
   const [termApproved, setTermApproved] = useState(app?.term_months_approved ?? app?.term_months_requested ?? 12);
   const [reviewNotes, setReviewNotes] = useState(app?.review_notes ?? "");
+  const [selectedPoolId, setSelectedPoolId] = useState(app?.pool_id ?? "");
 
   // Disbursement fields
   const [disbursementRef, setDisbursementRef] = useState("");
@@ -76,6 +93,7 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
     setAmountApproved(app.amount_approved ?? app.amount_requested);
     setTermApproved(app.term_months_approved ?? app.term_months_requested);
     setReviewNotes(app.review_notes ?? "");
+    setSelectedPoolId(app.pool_id ?? "");
     setDisbursementAmount(Number(app.amount_approved ?? app.amount_requested ?? 0));
   }, [app]);
 
@@ -106,7 +124,8 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
           monthly_instalment: monthlyInstalment,
           reviewed_by: user!.id,
           reviewed_at: new Date().toISOString(),
-          review_notes: reviewNotes,
+           review_notes: reviewNotes,
+          pool_id: selectedPoolId || null,
         })
         .eq("id", app.id);
       if (error) throw error;
@@ -219,6 +238,8 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                 <span>{app.reason || "—"}</span>
                 <span className="text-muted-foreground">Security Assets:</span>
                 <span>{app.security_assets || "—"}</span>
+                <span className="text-muted-foreground">Pool Requested:</span>
+                <span>{pools.find((p: any) => p.id === app.pool_id)?.name ?? "—"}</span>
               </div>
             </CardContent>
           </Card>
@@ -268,7 +289,7 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
           <Card className="border-primary/30">
             <CardContent className="py-4 space-y-4">
               <h4 className="text-sm font-semibold">Manager's Assessment</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Risk Level</Label>
                   <Select value={riskLevel} onValueChange={setRiskLevel} disabled={isReadOnly}>
@@ -277,6 +298,17 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                       <SelectItem value="low">Low Risk</SelectItem>
                       <SelectItem value="medium">Medium Risk</SelectItem>
                       <SelectItem value="high">High Risk</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Pool</Label>
+                  <Select value={selectedPoolId} onValueChange={setSelectedPoolId} disabled={isReadOnly}>
+                    <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
+                    <SelectContent>
+                      {pools.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

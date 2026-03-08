@@ -699,7 +699,7 @@ const AccountApprovals = () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("loan_applications")
-        .select("*, entities(name, last_name), entity_accounts(account_number)")
+        .select("*, entities(name, last_name, identity_number, email_address), entity_accounts(account_number), pools(name)")
         .eq("tenant_id", currentTenant.id)
         .in("status", ["pending", "approved"])
         .order("created_at", { ascending: true });
