@@ -180,6 +180,17 @@ Deno.serve(async (req) => {
             if (globalConfig.tenantScoped) {
               insertRow.tenant_id = tenant_id;
             }
+            // entity_categories requires entity_type — derive from name
+            if (globalConfig.targetTable === "entity_categories") {
+              const nameLower = String(nameValue).trim().toLowerCase();
+              insertRow.entity_type = nameLower === "natural person" ? "natural_person" : "legal_entity";
+              // Also check if the record itself carries entity_type
+              const recordEntityType = record.entity_type || record.EntityType;
+              if (recordEntityType) {
+                const et = String(recordEntityType).toLowerCase().trim();
+                insertRow.entity_type = (et === "natural_person" || et === "1" || et === "naturalperson") ? "natural_person" : "legal_entity";
+              }
+            }
 
             if (isDryRun) {
               results.simulation.push({ legacy_id: legacyId, action: "will_create", name: nameValue, table: globalConfig.targetTable });
