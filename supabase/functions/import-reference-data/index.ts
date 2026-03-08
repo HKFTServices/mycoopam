@@ -212,33 +212,26 @@ Deno.serve(async (req) => {
               } else {
                 // Try to infer from name
                 const nameLower = String(nameValue).trim().toLowerCase();
-                const personKeywords = ["myself", "spouse", "child", "minor", "individual"];
-                const inferredType = personKeywords.some(k => nameLower.includes(k)) ? "natural_person" : "legal_entity";
-                // Find matching entity_category by entity_type
+                // Names containing these keywords map to specific legal entity categories
                 const categoryName = nameLower.includes("company") ? "Company"
                   : nameLower.includes("closed corporation") || nameLower.includes("close corporation") ? "Close Corporation"
                   : nameLower.includes("co-operative") || nameLower.includes("cooperative") ? "Co-operative"
-                  : nameLower.includes("corporation") ? "Corporation"
+                  : (nameLower.includes("corporation") && !nameLower.includes("close")) ? "Corporation"
                   : nameLower.includes("trust") ? "Trust"
                   : nameLower.includes("joint") ? "Joint Account"
                   : nameLower.includes("partnership") ? "Partnership"
                   : nameLower.includes("sole") ? "Sole Proprietory"
                   : nameLower.includes("political") ? "Political Party"
-                  : inferredType === "natural_person" ? "Natural Person"
-                  : null;
+                  : "Natural Person"; // Default: personal relationship types
 
-                if (categoryName) {
-                  const { data: cat } = await adminClient.from("entity_categories")
-                    .select("id").ilike("name", categoryName).maybeSingle();
-                  if (cat) {
-                    insertRow.entity_category_id = cat.id;
-                  }
-                }
-
-                if (!insertRow.entity_category_id) {
-                  // Fallback: use first category of matching type
+                const { data: cat } = await adminClient.from("entity_categories")
+                  .select("id").ilike("name", categoryName).maybeSingle();
+                if (cat) {
+                  insertRow.entity_category_id = cat.id;
+                } else {
+                  // Fallback: use first Natural Person category
                   const { data: fallbackCat } = await adminClient.from("entity_categories")
-                    .select("id").eq("entity_type", inferredType).limit(1).maybeSingle();
+                    .select("id").eq("entity_type", "natural_person").limit(1).maybeSingle();
                   if (fallbackCat) {
                     insertRow.entity_category_id = fallbackCat.id;
                   } else {
@@ -248,7 +241,7 @@ Deno.serve(async (req) => {
                   }
                 }
               }
-
+            }
             if (isDryRun) {
               results.simulation.push({ legacy_id: legacyId, action: "will_create", name: nameValue, table: globalConfig.targetTable });
               results.mapped++;
