@@ -90,6 +90,9 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
   // Withdrawal-specific: selected pool IDs + per-pool input state
   const [withdrawalPoolIds, setWithdrawalPoolIds] = useState<string[]>([]);
   const [withdrawalPoolInputs, setWithdrawalPoolInputs] = useState<Record<string, { amountInput: string; unitsInput: string; inputMode: "amount" | "units"; useAllUnits: boolean }>>({});
+  // Loan repayment state
+  const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
+  const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
 
   useEffect(() => {
     if (open) {
