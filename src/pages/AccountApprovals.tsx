@@ -701,7 +701,7 @@ const AccountApprovals = () => {
         .from("loan_applications")
         .select("*, entities(name, last_name, identity_number, email_address), entity_accounts(account_number), pools(name)")
         .eq("tenant_id", currentTenant.id)
-        .in("status", ["pending", "approved"])
+        .in("status", ["pending", "approved", "accepted"])
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
