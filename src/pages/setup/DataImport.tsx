@@ -753,9 +753,8 @@ const DataImport = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Large tables that need batching (edge function timeout protection)
-  const BATCH_SIZE = 200;
-  const LARGE_TABLES = new Set(["unit_transactions", "cashflow_transactions", "bookkeeping", "stock_transactions", "daily_stock_prices", "daily_pool_prices"]);
+  // Batching for edge function timeout protection — applies to ALL tables
+  const BATCH_SIZE = 50;
 
   // Actual import — with automatic batching for large tables
   const importMutation = useMutation({
@@ -763,8 +762,8 @@ const DataImport = () => {
       if (!selectedTable || !currentTenant) throw new Error("Select table first");
       const batchId = `${selectedTable}_${new Date().toISOString().slice(0, 10)}`;
       
-      // For large tables, chunk records and send sequentially
-      if (LARGE_TABLES.has(selectedTable) && records.length > BATCH_SIZE) {
+      // Batch all imports to avoid edge function CPU timeouts
+      if (records.length > BATCH_SIZE) {
         const chunks: unknown[][] = [];
         for (let i = 0; i < records.length; i += BATCH_SIZE) {
           chunks.push(records.slice(i, i + BATCH_SIZE));
