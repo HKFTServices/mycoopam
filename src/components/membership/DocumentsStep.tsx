@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle } from "lucide-react";
+import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -14,6 +14,14 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { generateAndOpenDocument, templateOptions, type EntityContext } from "@/lib/documentTemplates";
+import { useTenant } from "@/contexts/TenantContext";
 import type { StepProps } from "./types";
 
 interface DocumentsStepProps extends StepProps {
@@ -22,6 +30,25 @@ interface DocumentsStepProps extends StepProps {
 
 const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps) => {
   const [pendingFile, setPendingFile] = useState<{ docTypeId: string; file: File } | null>(null);
+  const { currentTenant } = useTenant();
+
+  // Build entity context for document generation
+  const entityCtx: EntityContext = {
+    entityName: data.entityName || "",
+    registrationNumber: data.registrationNumber || "",
+    firstName: data.firstName || "",
+    lastName: data.lastName || "",
+    idNumber: data.idNumber || "",
+    contactNumber: data.contactNumber || "",
+    emailAddress: data.emailAddress || "",
+    streetAddress: data.streetAddress || "",
+    suburb: data.suburb || "",
+    city: data.city || "",
+    province: data.province || "",
+    postalCode: data.postalCode || "",
+    country: data.country || "",
+    tenantName: currentTenant?.name || "",
+  };
 
   // Fetch required doc types for this relationship type
   const { data: requiredDocs = [] } = useQuery({
@@ -40,13 +67,13 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     enabled: !!tenantId && !!data.relationshipTypeId,
   });
 
-  // Fetch ALL document types for the tenant
+  // Fetch ALL document types for the tenant (including template_key and template_file_url)
   const { data: allDocTypes = [] } = useQuery({
-    queryKey: ["all_document_types", tenantId],
+    queryKey: ["all_document_types_with_templates", tenantId],
     queryFn: async () => {
-      const { data: types } = await supabase
+      const { data: types } = await (supabase as any)
         .from("document_types")
-        .select("id, name")
+        .select("id, name, template_key, template_file_url")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("name");
@@ -72,6 +99,14 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     },
     enabled: !!tenantId && !!entityId,
   });
+
+  // Build a lookup: docTypeId → template info
+  const docTypeTemplateMap = new Map<string, { templateKey?: string; templateFileUrl?: string }>();
+  for (const dt of allDocTypes) {
+    if (dt.template_key || dt.template_file_url) {
+      docTypeTemplateMap.set(dt.id, { templateKey: dt.template_key, templateFileUrl: dt.template_file_url });
+    }
+  }
 
   const handleFileSelect = (docTypeId: string, file: File) => {
     const rawUploads = data.uploadedDocs[docTypeId];
@@ -127,6 +162,20 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     }
   };
 
+  const handleGenerateDocument = (templateKey: string) => {
+    generateAndOpenDocument(templateKey, entityCtx);
+  };
+
+  const handleDownloadBlank = (templateKey: string) => {
+    const tmpl = templateOptions.find((t) => t.key === templateKey);
+    if (tmpl) {
+      const a = document.createElement("a");
+      a.href = tmpl.blankFile;
+      a.download = tmpl.blankFile.split("/").pop() || "template";
+      a.click();
+    }
+  };
+
   // Group existing docs by document_type_id
   const existingByType: Record<string, any[]> = {};
   for (const doc of existingDocs) {
@@ -158,6 +207,7 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     const uploaded = getUploaded(docTypeId);
     const existing = existingByType[docTypeId] || [];
     const isOutstanding = isRequired && uploaded.length === 0 && existing.length === 0;
+    const templateInfo = docTypeTemplateMap.get(docTypeId);
 
     return (
       <div
@@ -166,27 +216,88 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
           isOutstanding ? "border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20" : "border-border"
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex-1 flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 flex items-center gap-2 min-w-0">
             {isOutstanding && <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
-            <p className={`text-sm font-medium ${isOutstanding ? "text-red-700 dark:text-red-400" : ""}`}>
+            <p className={`text-sm font-medium truncate ${isOutstanding ? "text-red-700 dark:text-red-400" : ""}`}>
               {docTypeName}
             </p>
           </div>
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              className="hidden"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFileSelect(docTypeId, f);
-              }}
-            />
-            <Button variant={uploaded.length > 0 || existing.length > 0 ? "outline" : "default"} size="sm" asChild>
-              <span><Upload className="h-3.5 w-3.5 mr-1.5" />Upload</span>
-            </Button>
-          </label>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {templateInfo?.templateKey && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => handleGenerateDocument(templateInfo.templateKey!)}
+                    >
+                      <FileDown className="h-3.5 w-3.5 mr-1" />
+                      Generate
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Generate pre-filled document with your details</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {templateInfo?.templateKey && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => handleDownloadBlank(templateInfo.templateKey!)}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download blank template</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {templateInfo?.templateFileUrl && !templateInfo.templateKey && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => window.open(templateInfo.templateFileUrl!, "_blank")}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Template
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download document template</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(docTypeId, f);
+                }}
+              />
+              <Button variant={uploaded.length > 0 || existing.length > 0 ? "outline" : "default"} size="sm" className="h-8" asChild>
+                <span><Upload className="h-3.5 w-3.5 mr-1.5" />Upload</span>
+              </Button>
+            </label>
+          </div>
         </div>
         {uploaded.map((u, idx) => (
           <div key={`new-${idx}`} className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded p-2">
@@ -229,7 +340,7 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
             </div>
             <CardDescription>
               {hasOutstandingRequired
-                ? "Some required documents are still outstanding"
+                ? "Some required documents are still outstanding. Use 'Generate' to create a pre-filled document with your details."
                 : "All required documents have been provided"}
             </CardDescription>
           </CardHeader>
