@@ -103,7 +103,7 @@ ${printButton}
 </ol>
 <h2>RATIFICATION:</h2>
 <p>I hereby ratify and agree to ratify everything which the Agent or my substitute or substitutes or agent or agents appointed by the Agent under this power of attorney shall do or purport to do by virtue of this power of attorney.</p>
-<p>SIGNED at ${field("", "180px")} (Place) on this ${field("", "40px")} day of ${field("", "120px")} 20${field("", "40px")}</p>
+<p>SIGNED at ${field("", "180px")} (Place) on ${field(today(), "250px")}</p>
 <h2>AS WITNESSES:</h2>
 <table class="directors">
   <tr><td>1. <span class="signature-line"></span></td><td><span class="signature-line"></span><br/>(FULL NAME AGENT)</td></tr>
