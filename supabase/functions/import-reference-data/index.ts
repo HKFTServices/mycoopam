@@ -1097,6 +1097,55 @@ Deno.serve(async (req) => {
                 newId = ins.id;
               }
             }
+          } else if (table_name === "entity_documents") {
+            const entityId = await resolveLegacy("entities", record.legacy_entity_id || record.EntityId);
+            const docTypeId = await resolveLegacy("document_types", record.legacy_document_type_id || record.DocumentTypeId || record.DocumentId);
+
+            if (!entityId) { results.errors.push(`EntityDoc ${legacyId}: entity not found for legacy id ${record.legacy_entity_id || record.EntityId}`); continue; }
+
+            // Build the document record - file_path uses the legacy DocumentId as a reference
+            const legacyDocumentId = record.DocumentId || record.document_id || "";
+            const fileName = record.FileName || record.file_name || "unknown";
+            const description = record.Description || record.description || "";
+            const documentDate = record.DocumentDate || record.document_date || null;
+            const isActive = toBool(record.is_active ?? record.IsActive, true);
+            const isDeleted = toBool(record.is_deleted ?? record.IsDeleted, false);
+
+            // Check for existing document with same entity + filename + description
+            const { data: existingDoc } = await adminClient.from("entity_documents")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .eq("entity_id", entityId)
+              .eq("file_name", fileName)
+              .eq("description", description || "")
+              .maybeSingle();
+
+            if (existingDoc) {
+              results.simulation.push({ legacy_id: legacyId, action: "skip_duplicate", entity_id: entityId, file_name: fileName });
+              newId = existingDoc.id;
+              results.skipped++;
+            } else {
+              const row: Record<string, unknown> = {
+                tenant_id,
+                entity_id: entityId,
+                document_type_id: docTypeId || null,
+                file_name: fileName,
+                file_path: `legacy/${legacyDocumentId}/${fileName}`,
+                description: description || null,
+                document_date: documentDate ? new Date(documentDate).toISOString() : null,
+                is_active: isActive,
+                is_deleted: isDeleted,
+                legacy_document_id: legacyDocumentId || null,
+                legacy_id: String(legacyId),
+              };
+
+              results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_insert" : "insert", mapped_fields: row });
+              if (!isDryRun) {
+                const { data: ins, error: insErr } = await adminClient.from("entity_documents").insert(row).select("id").single();
+                if (insErr) { results.errors.push(`EntityDoc ${legacyId}: ${insErr.message}`); continue; }
+                newId = ins.id;
+              }
+            }
           }
 
           // Store legacy_id_mappings for all tables including entity_accounts (needed for shares resolution)
