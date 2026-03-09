@@ -15,6 +15,7 @@ import { Loader2, Upload, CheckCircle2, XCircle, AlertTriangle, Database, FileJs
 import { toast } from "sonner";
 
 const SUPPORTED_TABLES = [
+  { value: "countries", label: "Countries (global → map by name)", order: -1 },
   { value: "titles", label: "Titles (global → map by name)", order: 0 },
   { value: "entity_categories", label: "Entity Categories (global → map by name)", order: 0 },
   { value: "relationship_types", label: "Relationship Types (global → map by name)", order: 0 },
