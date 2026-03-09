@@ -258,7 +258,7 @@ const TABLE_QUERIES: Record<string, string> = {
     WHERE ed.IsDeleted = 0
   `,
 };
-  return new Promise((resolve, reject) => {
+function queryMssql(config: Record<string, unknown>, sql: string): Promise<Record<string, unknown>[]> {
     const mssqlPort = Deno.env.get("MSSQL_PORT");
     const port = mssqlPort ? parseInt(mssqlPort, 10) : 1433;
     console.log("Connecting to MSSQL:", config.server, "port:", port);
