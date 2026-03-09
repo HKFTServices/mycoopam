@@ -1142,36 +1142,65 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
       const metaJson = JSON.stringify({
         fee_breakdown: feeBreakdown,
         join_share: joinShareInfo.needed ? { share_class_id: joinShareClass?.id, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee, membership_fee_vat: joinShareInfo.membershipFeeVat } : null,
+        loan_repayment: effectiveLoanRepayment > 0 ? {
+          amount: effectiveLoanRepayment,
+          loan_ids: outstandingLoanInfo?.loanIds || [],
+          loan_pool_ids: outstandingLoanInfo?.loanPoolIds || [],
+          outstanding_at_time: outstandingLoanInfo?.outstanding || 0,
+        } : null,
         vat_rate: vatRate,
         is_vat_registered: isVatRegistered,
         total_vat: totalVatAmount,
         user_notes: notes || "",
       });
 
-      if (isDeposit && poolSplits.length > 0) {
-        const totalFeeAndDeductions = depositTotalDeductions;
-        for (let i = 0; i < splitSummaries.length; i++) {
-          const split = splitSummaries[i];
-          const isFirst = i === 0;
+      if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly)) {
+        if (loanRepaymentOnly) {
+          // Loan repayment only — single transaction row, no pool
           const { error } = await (supabase as any).from("transactions").insert({
             tenant_id: currentTenant.id,
             entity_account_id: selectedAccountId,
-            pool_id: split.poolId,
+            pool_id: null,
             transaction_type_id: selectedTxnTypeId,
             user_id: user.id,
-            amount: isFirst ? amountNum : 0,
-            fee_amount: isFirst ? totalFeeAndDeductions : 0,
-            net_amount: split.netAmount,
-            unit_price: split.unitPrice,
-            units: Math.abs(split.units),
+            amount: amountNum,
+            fee_amount: depositTotalDeductions,
+            net_amount: 0,
+            unit_price: 0,
+            units: 0,
             payment_method: paymentMethod,
             status: "pending",
             transaction_date: txnDateStr,
-            notes: isFirst ? metaJson : `${split.percentage}% to ${split.poolName}`,
-            pop_file_path: isFirst ? popFilePath : null,
-            pop_file_name: isFirst ? popFileName : null,
+            notes: metaJson,
+            pop_file_path: popFilePath,
+            pop_file_name: popFileName,
           });
           if (error) throw error;
+        } else {
+          const totalFeeAndDeductions = depositTotalDeductions;
+          for (let i = 0; i < splitSummaries.length; i++) {
+            const split = splitSummaries[i];
+            const isFirst = i === 0;
+            const { error } = await (supabase as any).from("transactions").insert({
+              tenant_id: currentTenant.id,
+              entity_account_id: selectedAccountId,
+              pool_id: split.poolId,
+              transaction_type_id: selectedTxnTypeId,
+              user_id: user.id,
+              amount: isFirst ? amountNum : 0,
+              fee_amount: isFirst ? totalFeeAndDeductions : 0,
+              net_amount: split.netAmount,
+              unit_price: split.unitPrice,
+              units: Math.abs(split.units),
+              payment_method: paymentMethod,
+              status: "pending",
+              transaction_date: txnDateStr,
+              notes: isFirst ? metaJson : `${split.percentage}% to ${split.poolName}`,
+              pop_file_path: isFirst ? popFilePath : null,
+              pop_file_name: isFirst ? popFileName : null,
+            });
+            if (error) throw error;
+          }
         }
       } else if (isSwitch) {
         // Switch: store full metadata for approval posting
