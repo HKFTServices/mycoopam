@@ -711,6 +711,7 @@ const AccountApprovals = () => {
 
   const pendingLoanCount = pendingLoans.filter((l: any) => l.status === "pending").length;
   const awaitingAcceptance = pendingLoans.filter((l: any) => l.status === "approved").length;
+  const awaitingDisbursement = pendingLoans.filter((l: any) => l.status === "accepted").length;
 
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
