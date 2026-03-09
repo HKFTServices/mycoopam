@@ -41,16 +41,25 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     queryKey: ["user_personal_entity", user?.id, tenantId],
     queryFn: async () => {
       if (!user) return null;
-      // Find the entity linked via the "Myself" relationship type
-      const { data } = await (supabase as any)
+      // First find the "Myself" relationship type id
+      const { data: relTypes } = await supabase
+        .from("relationship_types")
+        .select("id")
+        .ilike("name", "Myself")
+        .limit(1);
+      if (!relTypes || relTypes.length === 0) return null;
+      const myselfRelTypeId = relTypes[0].id;
+
+      // Then find the entity linked via "Myself"
+      const { data: rels } = await (supabase as any)
         .from("user_entity_relationships")
-        .select("entities!inner(id, name, last_name, identity_number, passport_number, email_address), relationship_types!inner(name)")
+        .select("entities!inner(id, name, last_name, identity_number, passport_number, email_address)")
         .eq("user_id", user.id)
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
-        .ilike("relationship_types.name", "Myself");
-      if (!data || data.length === 0) return null;
-      return data[0]?.entities || null;
+        .eq("relationship_type_id", myselfRelTypeId);
+      if (!rels || rels.length === 0) return null;
+      return rels[0]?.entities || null;
     },
     enabled: !!user && data.type === "entity",
   });
