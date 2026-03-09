@@ -1598,6 +1598,12 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
                   prev.includes(poolId) ? prev.filter((id) => id !== poolId) : [...prev, poolId]
                 )
               }
+              outstandingLoanInfo={isDeposit ? outstandingLoanInfo : undefined}
+              loanRepaymentOnly={loanRepaymentOnly}
+              onLoanRepaymentOnlyChange={(val) => {
+                setLoanRepaymentOnly(val);
+                if (val) setPoolSplits([]);
+              }}
             />
           )}
 
