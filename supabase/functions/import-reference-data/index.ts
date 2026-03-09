@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
             };
             // Countries require iso_code
             if (globalConfig.targetTable === "countries") {
-              const isoCode = record.iso_code || record.IsoCode || record.Code || record.code || record.ISO || "";
+              const isoCode = record.iso_code || record.IsoCode || record.Code || record.code || record.ISO || record.ShortCode || record.shortcode || record.short_code || "";
               insertRow.iso_code = String(isoCode).trim().toUpperCase() || String(nameValue).trim().substring(0, 2).toUpperCase();
             }
             // For tenant-scoped tables, include tenant_id
