@@ -171,6 +171,35 @@ Deno.serve(async (req) => {
 
           let matchedId: string | null = match?.id ?? null;
 
+          // For banks: update country_id and other fields on existing matched records
+          if (matchedId && globalConfig.targetTable === "banks") {
+            const updateFields: Record<string, unknown> = {};
+            const legacyCountryId = record.country_id || record.CountryId || record.CountryID;
+            const countryName = record.country || record.Country || record.country_name || record.CountryName;
+            if (legacyCountryId) {
+              const { data: countryMapping } = await adminClient.from("legacy_id_mappings")
+                .select("new_id")
+                .eq("tenant_id", tenant_id)
+                .eq("table_name", "countries")
+                .eq("legacy_id", String(legacyCountryId))
+                .maybeSingle();
+              if (countryMapping) updateFields.country_id = countryMapping.new_id;
+            } else if (countryName) {
+              const { data: countryMatch } = await adminClient.from("countries")
+                .select("id").ilike("name", String(countryName).trim()).maybeSingle();
+              if (countryMatch) updateFields.country_id = countryMatch.id;
+            }
+            const branchCode = record.branch_code || record.BranchCode;
+            const swiftCode = record.swift_code || record.SwiftCode || record.SWIFT;
+            const sortRouteCode = record.sort_route_code || record.SortRouteCode;
+            if (branchCode) updateFields.branch_code = String(branchCode).trim();
+            if (swiftCode) updateFields.swift_code = String(swiftCode).trim();
+            if (sortRouteCode) updateFields.sort_route_code = String(sortRouteCode).trim();
+            if (Object.keys(updateFields).length > 0) {
+              await adminClient.from("banks").update(updateFields).eq("id", matchedId);
+            }
+          }
+
           // For countries: also try matching by iso_code if name didn't match
           if (!matchedId && globalConfig.targetTable === "countries") {
             const isoCode = record.iso_code || record.IsoCode || record.Code || record.code || record.ISO || record.ShortCode || record.shortcode || record.short_code || "";
