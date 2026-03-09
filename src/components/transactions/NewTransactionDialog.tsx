@@ -90,6 +90,9 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
   // Withdrawal-specific: selected pool IDs + per-pool input state
   const [withdrawalPoolIds, setWithdrawalPoolIds] = useState<string[]>([]);
   const [withdrawalPoolInputs, setWithdrawalPoolInputs] = useState<Record<string, { amountInput: string; unitsInput: string; inputMode: "amount" | "units"; useAllUnits: boolean }>>({});
+  // Loan repayment state
+  const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
+  const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -115,6 +118,8 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
       setStockCourierOption("collect");
       setWithdrawalPoolIds([]);
       setWithdrawalPoolInputs({});
+      setLoanRepaymentOnly(false);
+      setLoanRepaymentAmount("");
     }
   }, [open, defaultPoolId]);
 
@@ -185,6 +190,55 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
     },
     enabled: !!selectedAccountId && !!currentTenant && open,
   });
+
+  // Outstanding loan check for the selected account
+  const { data: outstandingLoanInfo } = useQuery({
+    queryKey: ["outstanding_loan_for_txn", selectedAccountId, currentTenant?.id],
+    queryFn: async () => {
+      if (!selectedAccountId || !currentTenant) return null;
+      // Get disbursed loans
+      const { data: loans } = await (supabase as any)
+        .from("loan_applications")
+        .select("id, monthly_instalment, total_loan, amount_approved, pool_id")
+        .eq("entity_account_id", selectedAccountId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("status", "disbursed")
+        .order("created_at", { ascending: false });
+      if (!loans?.length) return null;
+
+      // Calculate outstanding from cashflow_transactions
+      const { data: cftRows } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("debit, credit")
+        .eq("entity_account_id", selectedAccountId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
+
+      const outstanding = (cftRows || []).reduce((sum: number, r: any) =>
+        sum + Number(r.debit) - Number(r.credit), 0);
+
+      if (outstanding <= 0) return null;
+
+      const totalInstalment = loans.reduce((sum: number, l: any) =>
+        sum + (Number(l.monthly_instalment) || 0), 0);
+
+      return {
+        loanIds: loans.map((l: any) => l.id),
+        loanPoolIds: loans.map((l: any) => l.pool_id).filter(Boolean),
+        outstanding,
+        instalment: totalInstalment,
+      };
+    },
+    enabled: !!selectedAccountId && !!currentTenant && open,
+  });
+
+  // Set default loan repayment amount when loan info loads
+  useEffect(() => {
+    if (outstandingLoanInfo?.instalment && !loanRepaymentAmount) {
+      setLoanRepaymentAmount(String(outstandingLoanInfo.instalment));
+    }
+  }, [outstandingLoanInfo?.instalment]);
 
   // Check if the RECEIVER of a transfer is a first-time member (no join share yet)
   const { data: receiverJoinShareData } = useQuery({
@@ -794,9 +848,11 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
     return { totalFee, totalVat: totalVatAmt, breakdown };
   };
 
-  // For deposits, fees are calculated on the amount AFTER membership deductions
+  // For deposits, fees are calculated on the amount AFTER loan repayment and membership deductions
   const membershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
-  const amountAfterMembership = Math.max(0, amountNum - membershipDeductions);
+  const loanRepaymentNum = parseFloat(loanRepaymentAmount) || 0;
+  const effectiveLoanRepayment = (outstandingLoanInfo && isDeposit) ? loanRepaymentNum : 0;
+  const amountAfterMembership = Math.max(0, amountNum - effectiveLoanRepayment - membershipDeductions);
 
   const depositFees = useMemo(
     () => isDeposit
@@ -813,7 +869,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
   const commissionBase = isDeposit && commissionPct > 0 ? amountAfterMembership * (commissionPct / 100) : 0;
   const commissionVat = isVatRegistered && commissionBase > 0 ? commissionBase * (vatRate / 100) : 0;
   const commissionAmount = commissionBase + commissionVat;
-  const depositTotalDeductions = membershipDeductions + depositFees.totalFee + commissionAmount;
+  const depositTotalDeductions = effectiveLoanRepayment + membershipDeductions + depositFees.totalFee + commissionAmount;
   const depositNetAvailable = amountNum - depositTotalDeductions;
 
   const splitSummaries = useMemo(() => {
@@ -1086,36 +1142,65 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
       const metaJson = JSON.stringify({
         fee_breakdown: feeBreakdown,
         join_share: joinShareInfo.needed ? { share_class_id: joinShareClass?.id, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee, membership_fee_vat: joinShareInfo.membershipFeeVat } : null,
+        loan_repayment: effectiveLoanRepayment > 0 ? {
+          amount: effectiveLoanRepayment,
+          loan_ids: outstandingLoanInfo?.loanIds || [],
+          loan_pool_ids: outstandingLoanInfo?.loanPoolIds || [],
+          outstanding_at_time: outstandingLoanInfo?.outstanding || 0,
+        } : null,
         vat_rate: vatRate,
         is_vat_registered: isVatRegistered,
         total_vat: totalVatAmount,
         user_notes: notes || "",
       });
 
-      if (isDeposit && poolSplits.length > 0) {
-        const totalFeeAndDeductions = depositTotalDeductions;
-        for (let i = 0; i < splitSummaries.length; i++) {
-          const split = splitSummaries[i];
-          const isFirst = i === 0;
+      if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly)) {
+        if (loanRepaymentOnly) {
+          // Loan repayment only — single transaction row, no pool
           const { error } = await (supabase as any).from("transactions").insert({
             tenant_id: currentTenant.id,
             entity_account_id: selectedAccountId,
-            pool_id: split.poolId,
+            pool_id: null,
             transaction_type_id: selectedTxnTypeId,
             user_id: user.id,
-            amount: isFirst ? amountNum : 0,
-            fee_amount: isFirst ? totalFeeAndDeductions : 0,
-            net_amount: split.netAmount,
-            unit_price: split.unitPrice,
-            units: Math.abs(split.units),
+            amount: amountNum,
+            fee_amount: depositTotalDeductions,
+            net_amount: 0,
+            unit_price: 0,
+            units: 0,
             payment_method: paymentMethod,
             status: "pending",
             transaction_date: txnDateStr,
-            notes: isFirst ? metaJson : `${split.percentage}% to ${split.poolName}`,
-            pop_file_path: isFirst ? popFilePath : null,
-            pop_file_name: isFirst ? popFileName : null,
+            notes: metaJson,
+            pop_file_path: popFilePath,
+            pop_file_name: popFileName,
           });
           if (error) throw error;
+        } else {
+          const totalFeeAndDeductions = depositTotalDeductions;
+          for (let i = 0; i < splitSummaries.length; i++) {
+            const split = splitSummaries[i];
+            const isFirst = i === 0;
+            const { error } = await (supabase as any).from("transactions").insert({
+              tenant_id: currentTenant.id,
+              entity_account_id: selectedAccountId,
+              pool_id: split.poolId,
+              transaction_type_id: selectedTxnTypeId,
+              user_id: user.id,
+              amount: isFirst ? amountNum : 0,
+              fee_amount: isFirst ? totalFeeAndDeductions : 0,
+              net_amount: split.netAmount,
+              unit_price: split.unitPrice,
+              units: Math.abs(split.units),
+              payment_method: paymentMethod,
+              status: "pending",
+              transaction_date: txnDateStr,
+              notes: isFirst ? metaJson : `${split.percentage}% to ${split.poolName}`,
+              pop_file_path: isFirst ? popFilePath : null,
+              pop_file_name: isFirst ? popFileName : null,
+            });
+            if (error) throw error;
+          }
         }
       } else if (isSwitch) {
         // Switch: store full metadata for approval posting
@@ -1373,7 +1458,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
   const canProceedToDetails = isWithdrawal
     ? withdrawalPoolIds.length > 0
     : isDeposit
-    ? poolSplits.length > 0 && totalSplitPct === 100
+    ? (loanRepaymentOnly && !!outstandingLoanInfo) || (poolSplits.length > 0 && totalSplitPct === 100)
     : isTransfer
       ? !!selectedPoolId && selectedPoolHasUnits
       : !!selectedPoolId;
@@ -1513,6 +1598,12 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
                   prev.includes(poolId) ? prev.filter((id) => id !== poolId) : [...prev, poolId]
                 )
               }
+              outstandingLoanInfo={isDeposit ? outstandingLoanInfo : undefined}
+              loanRepaymentOnly={loanRepaymentOnly}
+              onLoanRepaymentOnlyChange={(val) => {
+                setLoanRepaymentOnly(val);
+                if (val) setPoolSplits([]);
+              }}
             />
           )}
 
@@ -1678,6 +1769,12 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
               totalFee={feeCalculation.totalFee}
               transactionDate={transactionDate}
               onTransactionDateChange={setTransactionDate}
+              loanRepaymentAmount={effectiveLoanRepayment}
+              onLoanRepaymentAmountChange={setLoanRepaymentAmount}
+              hasOutstandingLoan={!!outstandingLoanInfo}
+              outstandingLoanBalance={outstandingLoanInfo?.outstanding || 0}
+              loanInstalment={outstandingLoanInfo?.instalment || 0}
+              loanRepaymentOnly={loanRepaymentOnly}
             />
           )}
 

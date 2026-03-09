@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, CheckCircle, Percent, TrendingUp } from "lucide-react";
+import { AlertCircle, CheckCircle, Percent, TrendingUp, Banknote } from "lucide-react";
 
 interface PoolSplit {
   poolId: string;
@@ -12,6 +12,12 @@ interface PoolSplit {
 interface AccountHolding {
   pool_id: string;
   units: number;
+}
+
+interface OutstandingLoanInfo {
+  loanIds: string[];
+  outstanding: number;
+  instalment: number;
 }
 
 interface PoolSelectionStepProps {
@@ -32,6 +38,10 @@ interface PoolSelectionStepProps {
   // For withdrawal: simple multi-select (no percentages)
   selectedWithdrawalPoolIds?: string[];
   onToggleWithdrawalPool?: (poolId: string) => void;
+  // Loan repayment
+  outstandingLoanInfo?: OutstandingLoanInfo | null;
+  loanRepaymentOnly?: boolean;
+  onLoanRepaymentOnlyChange?: (val: boolean) => void;
 }
 
 const POOL_COLORS = [
@@ -46,6 +56,7 @@ const PoolSelectionStep = ({
   pools, isDeposit, isWithdrawal = false, isSwitch = false, isTransfer = false, poolSplits, selectedPoolId, totalSplitPct,
   onTogglePool, onUpdateSplitPct, onSelectPool, formatCurrency, getUnitPrice, accountHoldings = [],
   selectedWithdrawalPoolIds = [], onToggleWithdrawalPool,
+  outstandingLoanInfo, loanRepaymentOnly = false, onLoanRepaymentOnlyChange,
 }: PoolSelectionStepProps) => {
 
   // ── Withdrawal: simple multi-select (no percentages) ─────────────────────
@@ -120,6 +131,48 @@ const PoolSelectionStep = ({
   if (isDeposit) {
     return (
       <div className="space-y-4">
+        {/* Outstanding Loan Info */}
+        {outstandingLoanInfo && outstandingLoanInfo.outstanding > 0 && (
+          <>
+            <div
+              className={`rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer ${
+                loanRepaymentOnly
+                  ? "border-amber-500/60 bg-amber-500/10 shadow-sm ring-2 ring-amber-500/20"
+                  : "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50"
+              }`}
+              onClick={() => onLoanRepaymentOnlyChange?.(!loanRepaymentOnly)}
+            >
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={loanRepaymentOnly}
+                  onCheckedChange={(checked) => onLoanRepaymentOnlyChange?.(!!checked)}
+                  className="h-5 w-5"
+                />
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/15">
+                  <Banknote className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm">Full Loan Repayment — No Pool Allocation</p>
+                  <p className="text-xs text-muted-foreground">
+                    Outstanding: {formatCurrency(outstandingLoanInfo.outstanding)} · Instalment: {formatCurrency(outstandingLoanInfo.instalment)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {!loanRepaymentOnly && (
+              <div className="flex items-center gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-2">
+                <Banknote className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  Loan instalment of {formatCurrency(outstandingLoanInfo.instalment)} will be deducted from your deposit before pool allocation.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {!loanRepaymentOnly && (
+        <>
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
           <Label className="text-sm font-medium">Choose your investment pools</Label>
@@ -199,6 +252,15 @@ const PoolSelectionStep = ({
               Total Allocation
             </span>
             <span className="text-lg">{totalSplitPct}%</span>
+          </div>
+        )}
+        </>
+        )}
+
+        {loanRepaymentOnly && (
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border-2 bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400">
+            <CheckCircle className="h-4 w-4" />
+            Full deposit will be applied to loan repayment
           </div>
         )}
       </div>

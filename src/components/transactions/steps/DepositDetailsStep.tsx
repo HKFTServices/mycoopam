@@ -72,6 +72,13 @@ interface DepositDetailsStepProps {
   totalFee?: number;
   transactionDate: Date;
   onTransactionDateChange: (date: Date) => void;
+  // Loan repayment
+  loanRepaymentAmount?: number;
+  onLoanRepaymentAmountChange?: (val: string) => void;
+  hasOutstandingLoan?: boolean;
+  outstandingLoanBalance?: number;
+  loanInstalment?: number;
+  loanRepaymentOnly?: boolean;
 }
 
 const DepositDetailsStep = ({
@@ -82,6 +89,8 @@ const DepositDetailsStep = ({
   depositNetAvailable, splitSummaries, amountNum, formatCurrency, isDeposit,
   netAmount = 0, currentUnitPrice = 0, unitsToTransact = 0, currentHolding = 0, isWithdrawal = false, totalFee = 0,
   transactionDate, onTransactionDateChange,
+  loanRepaymentAmount = 0, onLoanRepaymentAmountChange, hasOutstandingLoan = false,
+  outstandingLoanBalance = 0, loanInstalment = 0, loanRepaymentOnly = false,
 }: DepositDetailsStepProps) => {
   const [displayAmount, setDisplayAmount] = useState(amount || "");
   const [isFocused, setIsFocused] = useState(false);
@@ -206,7 +215,34 @@ const DepositDetailsStep = ({
         )}
       </div>
 
-      {/* Payment Method */}
+      {/* Loan Repayment Amount */}
+      {hasOutstandingLoan && isDeposit && (
+        <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-4 space-y-2 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <Label className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              {loanRepaymentOnly ? "Loan Repayment Amount (R)" : "Loan Instalment Deduction (R)"}
+            </Label>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Outstanding: {formatCurrency(outstandingLoanBalance)} · Default instalment: {formatCurrency(loanInstalment)}
+          </p>
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder={String(loanInstalment)}
+            value={loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : ""}
+            onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/\s/g, ""))}
+            className="text-lg font-bold h-10"
+          />
+          {loanRepaymentAmount > outstandingLoanBalance && outstandingLoanBalance > 0 && (
+            <div className="flex items-center gap-2 text-destructive text-xs">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Repayment exceeds outstanding balance
+            </div>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         <Label>Payment Method</Label>
         <div className="grid grid-cols-3 gap-2">
@@ -291,6 +327,14 @@ const DepositDetailsStep = ({
             <span>{formatCurrency(amountNum)}</span>
           </div>
 
+          {/* Loan Repayment deduction */}
+          {hasOutstandingLoan && loanRepaymentAmount > 0 && (
+            <div className="flex justify-between text-sm text-amber-700 dark:text-amber-400">
+              <span className="flex items-center gap-1.5"><Minus className="h-3 w-3" /> Loan Repayment</span>
+              <span>- {formatCurrency(loanRepaymentAmount)}</span>
+            </div>
+          )}
+
           {/* Membership deductions */}
           {joinShareInfo.needed && (
             <>
@@ -311,7 +355,7 @@ const DepositDetailsStep = ({
             </>
           )}
 
-          {isDeposit && splitSummaries.length > 0 ? (
+          {isDeposit && (splitSummaries.length > 0 || loanRepaymentOnly) ? (
             <>
               {feeBreakdown.map((b, i) => (
                 <div key={i} className="flex justify-between text-sm text-muted-foreground">
@@ -349,29 +393,38 @@ const DepositDetailsStep = ({
 
               <Separator />
 
-              <div className="flex justify-between text-sm font-bold text-primary">
-                <span>Net Available for Pools</span>
-                <span>{formatCurrency(depositNetAvailable)}</span>
-              </div>
-
-              <Separator />
-
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <TrendingUp className="h-3 w-3" /> Pool Allocation
-              </p>
-
-              {splitSummaries.map((s) => (
-                <div key={s.poolId} className="rounded-lg bg-background/50 border border-border p-2.5 space-y-1">
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span>{s.poolName}</span>
-                    <span>{s.percentage}%</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatCurrency(s.netAmount)}</span>
-                    <span className="font-mono font-bold text-primary">{s.units.toFixed(4)} units</span>
-                  </div>
+              {loanRepaymentOnly ? (
+                <div className="flex justify-between text-sm font-bold text-amber-700 dark:text-amber-400">
+                  <span>Total Applied to Loan</span>
+                  <span>{formatCurrency(loanRepaymentAmount)}</span>
                 </div>
-              ))}
+              ) : (
+                <>
+                  <div className="flex justify-between text-sm font-bold text-primary">
+                    <span>Net Available for Pools</span>
+                    <span>{formatCurrency(depositNetAvailable)}</span>
+                  </div>
+
+                  <Separator />
+
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3" /> Pool Allocation
+                  </p>
+
+                  {splitSummaries.map((s) => (
+                    <div key={s.poolId} className="rounded-lg bg-background/50 border border-border p-2.5 space-y-1">
+                      <div className="flex justify-between text-sm font-semibold">
+                        <span>{s.poolName}</span>
+                        <span>{s.percentage}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{formatCurrency(s.netAmount)}</span>
+                        <span className="font-mono font-bold text-primary">{s.units.toFixed(4)} units</span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           ) : (
             <>
