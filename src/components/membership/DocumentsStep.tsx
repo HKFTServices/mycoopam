@@ -36,23 +36,28 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
   // Build entity context for document generation
   const { user, profile } = useAuth();
 
-  // For entity applications, fetch the logged-in user's personal entity to get their ID number
+  // For entity applications, fetch the logged-in user's OWN personal entity (matched by profile email)
   const { data: userPersonalEntity } = useQuery({
-    queryKey: ["user_personal_entity", user?.id, tenantId],
+    queryKey: ["user_personal_entity", user?.id, tenantId, profile?.email],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user || !profile?.email) return null;
+      // Fetch all natural_person entities linked to this user
       const { data } = await (supabase as any)
         .from("user_entity_relationships")
-        .select("entities!inner(id, name, last_name, identity_number, passport_number, entity_categories!inner(entity_type))")
+        .select("entities!inner(id, name, last_name, identity_number, passport_number, email_address, entity_categories!inner(entity_type))")
         .eq("user_id", user.id)
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
-        .eq("entities.entity_categories.entity_type", "natural_person")
-        .limit(1)
-        .maybeSingle();
-      return data?.entities ?? null;
+        .eq("entities.entity_categories.entity_type", "natural_person");
+      if (!data || data.length === 0) return null;
+      // Prefer the entity whose email matches the profile email (= "myself" entity)
+      const entities = data.map((r: any) => r.entities).filter(Boolean);
+      const emailMatch = entities.find((e: any) => 
+        e.email_address && e.email_address.toLowerCase() === profile.email!.toLowerCase()
+      );
+      return emailMatch || entities[0];
     },
-    enabled: !!user && data.type === "entity",
+    enabled: !!user && !!profile?.email && data.type === "entity",
   });
 
   const entityCtx: EntityContext = {
