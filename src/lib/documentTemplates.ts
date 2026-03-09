@@ -66,7 +66,7 @@ ${printButton}
 <h1>AFFIDAVIT</h1>
 <p style="text-align:center;font-style:italic">(To be completed in the presence of a Commissioner of Oaths)</p>
 <div class="field-block">I, ${field(rep(ctx).name, "350px")}</div>
-<div class="field-block">ID-Number ${field(rep(ctx).id, "300px")}</div>
+<div class="field-block">ID/Passport Number ${field(rep(ctx).id, "300px")}</div>
 <div class="field-block">Residing address ${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province, ctx.postalCode].filter(Boolean).join(", "), "400px")}</div>
 <div class="field-block">Tel ${field(ctx.contactNumber, "180px")} (cell)</div>
 <p>Declare under oath in English / confirm in English –</p>
