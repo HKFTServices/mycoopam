@@ -762,8 +762,8 @@ const DataImport = () => {
       if (!selectedTable || !currentTenant) throw new Error("Select table first");
       const batchId = `${selectedTable}_${new Date().toISOString().slice(0, 10)}`;
       
-      // For large tables, chunk records and send sequentially
-      if (LARGE_TABLES.has(selectedTable) && records.length > BATCH_SIZE) {
+      // Batch all imports to avoid edge function CPU timeouts
+      if (records.length > BATCH_SIZE) {
         const chunks: unknown[][] = [];
         for (let i = 0; i < records.length; i += BATCH_SIZE) {
           chunks.push(records.slice(i, i + BATCH_SIZE));
