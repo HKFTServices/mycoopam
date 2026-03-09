@@ -370,15 +370,18 @@ const Memberships = () => {
     return values;
   }, [accounts, accountValueMap]);
 
-  // Fetch loan outstanding per entity from loan_applications
-  const { data: loanApplications = [] } = useQuery({
-    queryKey: ["loan_applications_outstanding", currentTenant?.id],
+  // Fetch loan outstanding per entity from cashflow_transactions (CFT ledger)
+  // Outstanding = sum(debit) - sum(credit) for loan entry types per entity
+  const { data: cftLoanBalances = [] } = useQuery({
+    queryKey: ["cft_loan_balances", currentTenant?.id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("loan_applications")
-        .select("entity_id, total_loan, disbursement_amount, status")
+        .from("cashflow_transactions")
+        .select("entity_account_id, debit, credit, entry_type")
         .eq("tenant_id", currentTenant!.id)
-        .in("status", ["accepted", "approved", "disbursed"]);
+        .eq("is_active", true)
+        .like("entry_type", "loan_%")
+        .not("entity_account_id", "is", null);
       if (error) throw error;
       return data ?? [];
     },
@@ -400,12 +403,28 @@ const Memberships = () => {
 
   const entityLoanMap: Record<string, number> = useMemo(() => {
     const map: Record<string, number> = {};
-    // From loan_applications: total_loan is the outstanding amount (capital + interest + fee)
-    for (const la of loanApplications) {
-      if (la.entity_id && la.total_loan) {
-        map[la.entity_id] = (map[la.entity_id] || 0) + Number(la.total_loan);
+
+    // From CFT: aggregate per entity_account_id, then map to entity_id via accounts
+    // Only include entries that hit the Member Loans GL (entry_type: loan_capital, loan_fee, loan_loading, loan_repayment)
+    // Exclude bank, control, and income entries as they don't represent member debt
+    const memberDebtTypes = ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"];
+    const accountBalances: Record<string, number> = {};
+    for (const cft of cftLoanBalances) {
+      if (!memberDebtTypes.includes(cft.entry_type)) continue;
+      const accId = cft.entity_account_id;
+      if (!accountBalances[accId]) accountBalances[accId] = 0;
+      accountBalances[accId] += Number(cft.debit || 0) - Number(cft.credit || 0);
+    }
+    // Map entity_account_id → entity_id using loaded accounts
+    if (accounts) {
+      for (const acc of accounts) {
+        if (accountBalances[acc.id] && Math.abs(accountBalances[acc.id]) > 0.01) {
+          const entityId = acc.entity_id;
+          map[entityId] = (map[entityId] || 0) + accountBalances[acc.id];
+        }
       }
     }
+
     // Also merge legacy bookkeeping loan data
     for (const s of legacyLoanSummaries) {
       if (s.entity_id && Math.abs(s.outstanding) > 0.001) {
@@ -413,7 +432,7 @@ const Memberships = () => {
       }
     }
     return map;
-  }, [loanApplications, legacyLoanSummaries]);
+  }, [cftLoanBalances, legacyLoanSummaries, accounts]);
 
   const totalLoansOutstanding = useMemo(() => 
     Object.values(entityLoanMap).reduce((sum, v) => sum + v, 0),
