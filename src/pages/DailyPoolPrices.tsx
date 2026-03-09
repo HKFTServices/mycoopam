@@ -177,7 +177,7 @@ const DailyPoolPrices = () => {
       const balances: Record<string, number> = {};
       for (const row of data || []) {
         if (row.control_account_id) {
-          balances[row.control_account_id] = Number(row.balance);
+          balances[row.control_account_id] = (balances[row.control_account_id] || 0) + Number(row.balance);
         }
       }
       return balances;
