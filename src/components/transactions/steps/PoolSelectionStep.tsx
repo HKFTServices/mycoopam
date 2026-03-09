@@ -254,6 +254,15 @@ const PoolSelectionStep = ({
             <span className="text-lg">{totalSplitPct}%</span>
           </div>
         )}
+        </>
+        )}
+
+        {loanRepaymentOnly && (
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border-2 bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400">
+            <CheckCircle className="h-4 w-4" />
+            Full deposit will be applied to loan repayment
+          </div>
+        )}
       </div>
     );
   }
