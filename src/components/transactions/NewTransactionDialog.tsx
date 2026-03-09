@@ -191,6 +191,55 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
     enabled: !!selectedAccountId && !!currentTenant && open,
   });
 
+  // Outstanding loan check for the selected account
+  const { data: outstandingLoanInfo } = useQuery({
+    queryKey: ["outstanding_loan_for_txn", selectedAccountId, currentTenant?.id],
+    queryFn: async () => {
+      if (!selectedAccountId || !currentTenant) return null;
+      // Get disbursed loans
+      const { data: loans } = await (supabase as any)
+        .from("loan_applications")
+        .select("id, monthly_instalment, total_loan, amount_approved, pool_id")
+        .eq("entity_account_id", selectedAccountId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("status", "disbursed")
+        .order("created_at", { ascending: false });
+      if (!loans?.length) return null;
+
+      // Calculate outstanding from cashflow_transactions
+      const { data: cftRows } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("debit, credit")
+        .eq("entity_account_id", selectedAccountId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
+
+      const outstanding = (cftRows || []).reduce((sum: number, r: any) =>
+        sum + Number(r.debit) - Number(r.credit), 0);
+
+      if (outstanding <= 0) return null;
+
+      const totalInstalment = loans.reduce((sum: number, l: any) =>
+        sum + (Number(l.monthly_instalment) || 0), 0);
+
+      return {
+        loanIds: loans.map((l: any) => l.id),
+        loanPoolIds: loans.map((l: any) => l.pool_id).filter(Boolean),
+        outstanding,
+        instalment: totalInstalment,
+      };
+    },
+    enabled: !!selectedAccountId && !!currentTenant && open,
+  });
+
+  // Set default loan repayment amount when loan info loads
+  useEffect(() => {
+    if (outstandingLoanInfo?.instalment && !loanRepaymentAmount) {
+      setLoanRepaymentAmount(String(outstandingLoanInfo.instalment));
+    }
+  }, [outstandingLoanInfo?.instalment]);
+
   // Check if the RECEIVER of a transfer is a first-time member (no join share yet)
   const { data: receiverJoinShareData } = useQuery({
     queryKey: ["receiver_join_share_check", transferRecipientAccountId, currentTenant?.id],
