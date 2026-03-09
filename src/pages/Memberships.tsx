@@ -815,7 +815,7 @@ const Memberships = () => {
       <LoanDetailsDialog
         open={loanDialogOpen}
         onOpenChange={(v) => { setLoanDialogOpen(v); if (!v) setLoanEntityId(null); }}
-        loanSummaries={loanEntityId ? loanSummaries.filter((s: any) => s.entity_id === loanEntityId) : loanSummaries}
+        loanSummaries={loanEntityId ? legacyLoanSummaries.filter((s: any) => s.entity_id === loanEntityId) : legacyLoanSummaries}
         totalOutstanding={loanEntityId ? (entityLoanMap[loanEntityId] || 0) : totalLoansOutstanding}
       />
 
