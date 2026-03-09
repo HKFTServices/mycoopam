@@ -848,9 +848,11 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
     return { totalFee, totalVat: totalVatAmt, breakdown };
   };
 
-  // For deposits, fees are calculated on the amount AFTER membership deductions
+  // For deposits, fees are calculated on the amount AFTER loan repayment and membership deductions
   const membershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
-  const amountAfterMembership = Math.max(0, amountNum - membershipDeductions);
+  const loanRepaymentNum = parseFloat(loanRepaymentAmount) || 0;
+  const effectiveLoanRepayment = (outstandingLoanInfo && isDeposit) ? loanRepaymentNum : 0;
+  const amountAfterMembership = Math.max(0, amountNum - effectiveLoanRepayment - membershipDeductions);
 
   const depositFees = useMemo(
     () => isDeposit
@@ -867,7 +869,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
   const commissionBase = isDeposit && commissionPct > 0 ? amountAfterMembership * (commissionPct / 100) : 0;
   const commissionVat = isVatRegistered && commissionBase > 0 ? commissionBase * (vatRate / 100) : 0;
   const commissionAmount = commissionBase + commissionVat;
-  const depositTotalDeductions = membershipDeductions + depositFees.totalFee + commissionAmount;
+  const depositTotalDeductions = effectiveLoanRepayment + membershipDeductions + depositFees.totalFee + commissionAmount;
   const depositNetAvailable = amountNum - depositTotalDeductions;
 
   const splitSummaries = useMemo(() => {
