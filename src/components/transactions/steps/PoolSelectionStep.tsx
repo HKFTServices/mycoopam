@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, CheckCircle, Percent, TrendingUp } from "lucide-react";
+import { AlertCircle, CheckCircle, Percent, TrendingUp, Banknote } from "lucide-react";
 
 interface PoolSplit {
   poolId: string;
@@ -12,6 +12,12 @@ interface PoolSplit {
 interface AccountHolding {
   pool_id: string;
   units: number;
+}
+
+interface OutstandingLoanInfo {
+  loanIds: string[];
+  outstanding: number;
+  instalment: number;
 }
 
 interface PoolSelectionStepProps {
@@ -32,6 +38,10 @@ interface PoolSelectionStepProps {
   // For withdrawal: simple multi-select (no percentages)
   selectedWithdrawalPoolIds?: string[];
   onToggleWithdrawalPool?: (poolId: string) => void;
+  // Loan repayment
+  outstandingLoanInfo?: OutstandingLoanInfo | null;
+  loanRepaymentOnly?: boolean;
+  onLoanRepaymentOnlyChange?: (val: boolean) => void;
 }
 
 const POOL_COLORS = [
