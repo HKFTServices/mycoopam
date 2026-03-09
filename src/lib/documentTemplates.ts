@@ -134,7 +134,7 @@ ${printButton}
 <h1>TRUSTEE'S RESOLUTION</h1>
 <p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE TRUSTEES OF THE ${field(ctx.entityName || "", "350px")} TRUST IN ITS MEETING HELD ON ${field("", "150px")} 20${field("", "40px")}.</p>
 <p>It was resolved that:</p>
-<p>1. ${field(rep(ctx).name, "250px")} (ID no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of The ${field(ctx.entityName || "", "250px")} TRUST in matters pertaining to any kind of transaction with;</p>
+<p>1. ${field(rep(ctx).name, "250px")} (ID/Passport no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of The ${field(ctx.entityName || "", "250px")} TRUST in matters pertaining to any kind of transaction with;</p>
 <ol>
   <li>${field(ctx.tenantName || "", "400px")}</li>
   <li>${field("", "400px")}</li>
