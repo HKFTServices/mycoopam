@@ -12,10 +12,14 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { templateOptions } from "@/lib/documentTemplates";
 
 type DocumentType = {
   id: string;
@@ -23,6 +27,8 @@ type DocumentType = {
   name: string;
   comment_instruction: string | null;
   is_active: boolean;
+  template_key: string | null;
+  template_file_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -32,13 +38,13 @@ const DocumentTypes = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DocumentType | null>(null);
-  const [form, setForm] = useState({ name: "", comment_instruction: "", is_active: true });
+  const [form, setForm] = useState({ name: "", comment_instruction: "", is_active: true, template_key: "", template_file_url: "" });
 
   const { data: types = [], isLoading } = useQuery({
     queryKey: ["document_types", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("document_types")
         .select("*")
         .eq("tenant_id", currentTenant.id)
@@ -52,16 +58,18 @@ const DocumentTypes = () => {
   const upsert = useMutation({
     mutationFn: async (values: typeof form & { id?: string }) => {
       if (!currentTenant) throw new Error("No tenant");
-      const payload = {
+      const payload: any = {
         name: values.name,
         comment_instruction: values.comment_instruction || null,
         is_active: values.is_active,
+        template_key: values.template_key || null,
+        template_file_url: values.template_file_url || null,
       };
       if (values.id) {
-        const { error } = await supabase.from("document_types").update(payload).eq("id", values.id);
+        const { error } = await (supabase as any).from("document_types").update(payload).eq("id", values.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("document_types").insert({ ...payload, tenant_id: currentTenant.id });
+        const { error } = await (supabase as any).from("document_types").insert({ ...payload, tenant_id: currentTenant.id });
         if (error) throw error;
       }
     },
@@ -76,13 +84,19 @@ const DocumentTypes = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", comment_instruction: "", is_active: true });
+    setForm({ name: "", comment_instruction: "", is_active: true, template_key: "", template_file_url: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (dt: DocumentType) => {
     setEditing(dt);
-    setForm({ name: dt.name, comment_instruction: dt.comment_instruction || "", is_active: dt.is_active });
+    setForm({
+      name: dt.name,
+      comment_instruction: dt.comment_instruction || "",
+      is_active: dt.is_active,
+      template_key: dt.template_key || "",
+      template_file_url: dt.template_file_url || "",
+    });
     setDialogOpen(true);
   };
 
@@ -103,28 +117,40 @@ const DocumentTypes = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Instruction</TableHead>
+                <TableHead className="hidden lg:table-cell">Template</TableHead>
                 <TableHead>Active</TableHead>
                 <TableHead className="w-16" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : types.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No document types yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No document types yet.</TableCell></TableRow>
               ) : (
-                types.map((dt) => (
-                  <TableRow key={dt.id}>
-                    <TableCell className="font-medium">{dt.name}</TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-xs truncate">{dt.comment_instruction || "—"}</TableCell>
-                    <TableCell>{dt.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(dt)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                types.map((dt) => {
+                  const tmpl = templateOptions.find((t) => t.key === dt.template_key);
+                  return (
+                    <TableRow key={dt.id}>
+                      <TableCell className="font-medium">{dt.name}</TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-xs truncate">{dt.comment_instruction || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">
+                        {tmpl ? (
+                          <span className="inline-flex items-center gap-1 text-primary">
+                            <FileDown className="h-3.5 w-3.5" />
+                            {tmpl.label}
+                          </span>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>{dt.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(dt)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -144,6 +170,26 @@ const DocumentTypes = () => {
             <div className="space-y-2">
               <Label>Upload Instruction</Label>
               <Textarea value={form.comment_instruction} onChange={(e) => setForm({ ...form, comment_instruction: e.target.value })} placeholder="Instructions shown to the user when uploading…" rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label>Document Template</Label>
+              <Select
+                value={form.template_key || "none"}
+                onValueChange={(v) => setForm({ ...form, template_key: v === "none" ? "" : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No template</SelectItem>
+                  {templateOptions.map((t) => (
+                    <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                When set, members can generate a pre-filled document with their details during registration.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
