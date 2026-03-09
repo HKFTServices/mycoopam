@@ -86,9 +86,9 @@ ${printButton}
 ${printButton}
 <h1>GENERAL POWER OF ATTORNEY</h1>
 <h2>APPOINTMENT OF AGENT:</h2>
-<p>I, the undersigned ${field(ctx.firstName + " " + ctx.lastName, "350px")}</p>
+<p>I, the undersigned ${field(rep(ctx).name, "350px")}</p>
 <p>(full name) (herein after referred to as "PRINCIPAL"),</p>
-<p>with IDENTITY NUMBER ${field(ctx.idNumber, "300px")} residing at</p>
+<p>with IDENTITY NUMBER ${field(rep(ctx).id, "300px")} residing at</p>
 <p>${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province].filter(Boolean).join(", "), "450px")}</p>
 <p>(residential address),</p>
 <p>do hereby appoint ${field("", "350px")} (full name),</p>
