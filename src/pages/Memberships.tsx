@@ -383,14 +383,29 @@ const Memberships = () => {
     return values;
   }, [accounts, accountValueMap]);
 
-  // Fetch loan outstanding per entity
-  const { data: loanSummaries = [] } = useQuery({
-    queryKey: ["loan_outstanding", currentTenant?.id],
+  // Fetch loan outstanding per entity from loan_applications
+  const { data: loanApplications = [] } = useQuery({
+    queryKey: ["loan_applications_outstanding", currentTenant?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("loan_applications")
+        .select("entity_id, total_loan, disbursement_amount, status")
+        .eq("tenant_id", currentTenant!.id)
+        .in("status", ["accepted", "approved", "disbursed"]);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant?.id,
+  });
+
+  // Also try legacy loan outstanding (bookkeeping)
+  const { data: legacyLoanSummaries = [] } = useQuery({
+    queryKey: ["loan_outstanding_legacy", currentTenant?.id],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("get_loan_outstanding", {
         p_tenant_id: currentTenant!.id,
       });
-      if (error) throw error;
+      if (error) return [];
       return data ?? [];
     },
     enabled: !!currentTenant?.id,
@@ -398,17 +413,24 @@ const Memberships = () => {
 
   const entityLoanMap: Record<string, number> = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const s of loanSummaries) {
+    // From loan_applications: total_loan is the outstanding amount (capital + interest + fee)
+    for (const la of loanApplications) {
+      if (la.entity_id && la.total_loan) {
+        map[la.entity_id] = (map[la.entity_id] || 0) + Number(la.total_loan);
+      }
+    }
+    // Also merge legacy bookkeeping loan data
+    for (const s of legacyLoanSummaries) {
       if (s.entity_id && Math.abs(s.outstanding) > 0.001) {
         map[s.entity_id] = (map[s.entity_id] || 0) + s.outstanding;
       }
     }
     return map;
-  }, [loanSummaries]);
+  }, [loanApplications, legacyLoanSummaries]);
 
   const totalLoansOutstanding = useMemo(() => 
-    loanSummaries.reduce((sum: number, s: any) => sum + s.outstanding, 0),
-    [loanSummaries]
+    Object.values(entityLoanMap).reduce((sum, v) => sum + v, 0),
+    [entityLoanMap]
   );
   const isLoading = loadingEntities || loadingAccounts;
   const referralHouseAccounts = accounts.filter(
