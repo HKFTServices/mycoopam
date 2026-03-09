@@ -23,6 +23,7 @@ const SUPPORTED_TABLES = [
   { value: "banks", label: "Banks (global → map by name)", order: 0 },
   { value: "bank_account_types", label: "Bank Account Types (global → map by name)", order: 0 },
   { value: "document_types", label: "Document Types (tenant → map by name)", order: 0 },
+  { value: "document_entity_requirements", label: "Document Entity Requirements (tenant → requires Doc Types & Rel Types)", order: 0.5 },
   { value: "gen_type_values", label: "Gen Type Values (reference lookup — IDs only)", order: 0.5 },
   { value: "ex_fees", label: "Legacy Fees (reference lookup — IDs only)", order: 0.5 },
   { value: "pools", label: "Pools", order: 1 },
