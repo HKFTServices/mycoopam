@@ -65,7 +65,7 @@ const Users = () => {
         .from("tenant_memberships")
         .select("user_id, is_active")
         .eq("tenant_id", currentTenant.id);
-      console.log("[Users] tenant_memberships query:", { tenantId: currentTenant.id, count: memberships?.length, error: memErr });
+      
       if (memErr) throw memErr;
       if (!memberships?.length) return [];
 
