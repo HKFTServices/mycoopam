@@ -355,7 +355,7 @@ const DepositDetailsStep = ({
             </>
           )}
 
-          {isDeposit && splitSummaries.length > 0 ? (
+          {isDeposit && (splitSummaries.length > 0 || loanRepaymentOnly) ? (
             <>
               {feeBreakdown.map((b, i) => (
                 <div key={i} className="flex justify-between text-sm text-muted-foreground">
@@ -393,29 +393,38 @@ const DepositDetailsStep = ({
 
               <Separator />
 
-              <div className="flex justify-between text-sm font-bold text-primary">
-                <span>Net Available for Pools</span>
-                <span>{formatCurrency(depositNetAvailable)}</span>
-              </div>
-
-              <Separator />
-
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <TrendingUp className="h-3 w-3" /> Pool Allocation
-              </p>
-
-              {splitSummaries.map((s) => (
-                <div key={s.poolId} className="rounded-lg bg-background/50 border border-border p-2.5 space-y-1">
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span>{s.poolName}</span>
-                    <span>{s.percentage}%</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatCurrency(s.netAmount)}</span>
-                    <span className="font-mono font-bold text-primary">{s.units.toFixed(4)} units</span>
-                  </div>
+              {loanRepaymentOnly ? (
+                <div className="flex justify-between text-sm font-bold text-amber-700 dark:text-amber-400">
+                  <span>Total Applied to Loan</span>
+                  <span>{formatCurrency(loanRepaymentAmount)}</span>
                 </div>
-              ))}
+              ) : (
+                <>
+                  <div className="flex justify-between text-sm font-bold text-primary">
+                    <span>Net Available for Pools</span>
+                    <span>{formatCurrency(depositNetAvailable)}</span>
+                  </div>
+
+                  <Separator />
+
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3" /> Pool Allocation
+                  </p>
+
+                  {splitSummaries.map((s) => (
+                    <div key={s.poolId} className="rounded-lg bg-background/50 border border-border p-2.5 space-y-1">
+                      <div className="flex justify-between text-sm font-semibold">
+                        <span>{s.poolName}</span>
+                        <span>{s.percentage}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{formatCurrency(s.netAmount)}</span>
+                        <span className="font-mono font-bold text-primary">{s.units.toFixed(4)} units</span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           ) : (
             <>
