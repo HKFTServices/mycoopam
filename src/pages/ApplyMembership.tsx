@@ -124,7 +124,8 @@ const ApplyMembership = () => {
         .select("document_type_id")
         .eq("tenant_id", currentTenant.id)
         .eq("relationship_type_id", data.relationshipTypeId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_required_for_registration", true);
       return (reqs ?? []).map((r: any) => r.document_type_id);
     },
     enabled: !!currentTenant && !!data.relationshipTypeId,

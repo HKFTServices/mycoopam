@@ -265,7 +265,8 @@ const Onboarding = () => {
         .select("*, document_types!inner(id, name)")
         .eq("tenant_id", currentTenant.id)
         .eq("relationship_type_id", memberRelType.id)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_required_for_registration", true);
 
       return requirements ?? [];
     },
