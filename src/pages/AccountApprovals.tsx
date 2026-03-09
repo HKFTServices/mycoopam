@@ -1277,8 +1277,8 @@ const AccountApprovals = () => {
                         </TableCell>
                         <TableCell className="text-right">{loan.term_months_requested} mo</TableCell>
                         <TableCell>
-                          <Badge variant={loan.status === "pending" ? "secondary" : "default"}>
-                            {loan.status === "approved" ? "Awaiting Acceptance" : "Pending Review"}
+                          <Badge variant={loan.status === "pending" ? "secondary" : loan.status === "accepted" ? "default" : "outline"}>
+                            {loan.status === "approved" ? "Awaiting Acceptance" : loan.status === "accepted" ? "Ready to Release" : "Pending Review"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -1289,8 +1289,12 @@ const AccountApprovals = () => {
                             <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> Review
                             </Button>
+                          ) : loan.status === "accepted" ? (
+                            <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
+                              <Send className="h-3.5 w-3.5 mr-1" /> Release
+                            </Button>
                           ) : loan.status === "approved" ? (
-                            <Button size="sm" variant="outline" onClick={() => setAcceptLoanApp(loan)}>
+                            <Button size="sm" variant="ghost" onClick={() => setAcceptLoanApp(loan)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> View
                             </Button>
                           ) : null}
