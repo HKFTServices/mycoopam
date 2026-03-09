@@ -5593,6 +5593,13 @@ export type Database = {
           control_account_id: string
         }[]
       }
+      get_latest_pool_prices: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          pool_id: string
+          unit_price_buy: number
+        }[]
+      }
       get_loan_outstanding: {
         Args: { p_tenant_id: string }
         Returns: {
