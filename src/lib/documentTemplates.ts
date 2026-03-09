@@ -60,6 +60,12 @@ const rep = (ctx: EntityContext) => ({
   id: ctx.userIdNumber || ctx.idNumber,
 });
 
+/** Get the logged-in user's own "Myself" entity details only (no fallback to entity fields) */
+const myself = (ctx: EntityContext) => ({
+  name: [ctx.userFirstName, ctx.userLastName].filter(Boolean).join(" "),
+  id: ctx.userIdNumber || "",
+});
+
 export const templateGenerators: Record<string, (ctx: EntityContext) => string> = {
   affidavit: (ctx) => `<!DOCTYPE html><html><head><title>Affidavit</title><style>${pageStyles}</style></head><body>
 ${printButton}
