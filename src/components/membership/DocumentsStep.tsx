@@ -33,6 +33,7 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
   const { currentTenant } = useTenant();
 
   // Build entity context for document generation
+  const { user, profile } = useAuth();
   const entityCtx: EntityContext = {
     entityName: data.entityName || "",
     registrationNumber: data.registrationNumber || "",
@@ -48,6 +49,10 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     postalCode: data.postalCode || "",
     country: data.country || "",
     tenantName: currentTenant?.name || "",
+    // For entity applications, pass the logged-in user's details as the authorised representative
+    userFirstName: data.type === "entity" ? (profile?.first_name || "") : "",
+    userLastName: data.type === "entity" ? (profile?.last_name || "") : "",
+    userIdNumber: data.type === "entity" ? (profile?.id_number || "") : "",
   };
 
   // Fetch required doc types for this relationship type
