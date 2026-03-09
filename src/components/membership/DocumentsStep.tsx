@@ -35,6 +35,26 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
 
   // Build entity context for document generation
   const { user, profile } = useAuth();
+
+  // For entity applications, fetch the logged-in user's personal entity to get their ID number
+  const { data: userPersonalEntity } = useQuery({
+    queryKey: ["user_personal_entity", user?.id, tenantId],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entities!inner(id, name, last_name, identity_number, passport_number, entity_categories!inner(entity_type))")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .eq("entities.entity_categories.entity_type", "natural_person")
+        .limit(1)
+        .maybeSingle();
+      return data?.entities ?? null;
+    },
+    enabled: !!user && data.type === "entity",
+  });
+
   const entityCtx: EntityContext = {
     entityName: data.entityName || "",
     registrationNumber: data.registrationNumber || "",
@@ -51,9 +71,9 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     country: data.country || "",
     tenantName: currentTenant?.name || "",
     // For entity applications, pass the logged-in user's details as the authorised representative
-    userFirstName: data.type === "entity" ? (profile?.first_name || "") : "",
-    userLastName: data.type === "entity" ? (profile?.last_name || "") : "",
-    userIdNumber: data.type === "entity" ? (profile?.id_number || "") : "",
+    userFirstName: data.type === "entity" ? (profile?.first_name || userPersonalEntity?.name || "") : "",
+    userLastName: data.type === "entity" ? (profile?.last_name || userPersonalEntity?.last_name || "") : "",
+    userIdNumber: data.type === "entity" ? (userPersonalEntity?.identity_number || userPersonalEntity?.passport_number || profile?.id_number || "") : "",
   };
 
   // Fetch required doc types for this relationship type
