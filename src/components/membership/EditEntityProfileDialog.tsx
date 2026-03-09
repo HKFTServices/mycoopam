@@ -132,7 +132,8 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType }: E
         .select("*, document_types!inner(name)")
         .eq("tenant_id", currentTenant.id)
         .eq("relationship_type_id", data.relationshipTypeId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_required_for_registration", true);
       return (requirements ?? []).some((r: any) =>
         r.document_types?.name?.toLowerCase().includes("bank")
       );

@@ -67,7 +67,8 @@ const DocumentReviewDialog = ({
         .select("document_type_id, document_types(name)")
         .eq("tenant_id", tenantId)
         .eq("relationship_type_id", relTypeId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_required_for_registration", true);
       return reqs ?? [];
     },
     enabled: open && !!entityId,

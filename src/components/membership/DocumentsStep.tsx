@@ -33,7 +33,8 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
         .select("*, document_types!inner(id, name)")
         .eq("tenant_id", tenantId)
         .eq("relationship_type_id", data.relationshipTypeId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_required_for_registration", true);
       return requirements ?? [];
     },
     enabled: !!tenantId && !!data.relationshipTypeId,
