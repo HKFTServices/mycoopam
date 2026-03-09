@@ -312,11 +312,27 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            const { data: created, error: createErr } = await adminClient
-              .from(globalConfig.targetTable)
-              .insert(insertRow)
-              .select("id")
-              .single();
+            let created: { id: string } | null = null;
+            let createErr: any = null;
+
+            // For countries, use upsert on iso_code to handle conflicts
+            if (globalConfig.targetTable === "countries" && insertRow.iso_code) {
+              const { data: d, error: e } = await adminClient
+                .from("countries")
+                .upsert(insertRow as any, { onConflict: "iso_code" })
+                .select("id")
+                .single();
+              created = d;
+              createErr = e;
+            } else {
+              const { data: d, error: e } = await adminClient
+                .from(globalConfig.targetTable)
+                .insert(insertRow)
+                .select("id")
+                .single();
+              created = d;
+              createErr = e;
+            }
 
             if (createErr || !created) {
               results.errors.push(`${table_name} ${legacyId}: failed to create "${nameValue}": ${createErr?.message}`);
