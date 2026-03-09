@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote, Send } from "lucide-react";
 import { toast } from "sonner";
 import DocumentReviewDialog from "@/components/approvals/DocumentReviewDialog";
 import TransactionReviewDialog, { type DateOverride, type StockApprovalMeta } from "@/components/approvals/TransactionReviewDialog";
@@ -701,7 +701,7 @@ const AccountApprovals = () => {
         .from("loan_applications")
         .select("*, entities(name, last_name, identity_number, email_address), entity_accounts(account_number), pools(name)")
         .eq("tenant_id", currentTenant.id)
-        .in("status", ["pending", "approved"])
+        .in("status", ["pending", "approved", "accepted"])
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
@@ -711,6 +711,7 @@ const AccountApprovals = () => {
 
   const pendingLoanCount = pendingLoans.filter((l: any) => l.status === "pending").length;
   const awaitingAcceptance = pendingLoans.filter((l: any) => l.status === "approved").length;
+  const awaitingDisbursement = pendingLoans.filter((l: any) => l.status === "accepted").length;
 
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
@@ -768,8 +769,8 @@ const AccountApprovals = () => {
           <TabsTrigger value="loans" className="gap-1.5">
             <Banknote className="h-3.5 w-3.5" />
             Loans
-            {(pendingLoanCount + awaitingAcceptance) > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLoanCount + awaitingAcceptance}</Badge>
+            {(pendingLoanCount + awaitingAcceptance + awaitingDisbursement) > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLoanCount + awaitingAcceptance + awaitingDisbursement}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -1276,8 +1277,8 @@ const AccountApprovals = () => {
                         </TableCell>
                         <TableCell className="text-right">{loan.term_months_requested} mo</TableCell>
                         <TableCell>
-                          <Badge variant={loan.status === "pending" ? "secondary" : "default"}>
-                            {loan.status === "approved" ? "Awaiting Acceptance" : "Pending Review"}
+                          <Badge variant={loan.status === "pending" ? "secondary" : loan.status === "accepted" ? "default" : "outline"}>
+                            {loan.status === "approved" ? "Awaiting Acceptance" : loan.status === "accepted" ? "Ready to Release" : "Pending Review"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -1288,8 +1289,12 @@ const AccountApprovals = () => {
                             <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> Review
                             </Button>
+                          ) : loan.status === "accepted" ? (
+                            <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
+                              <Send className="h-3.5 w-3.5 mr-1" /> Release
+                            </Button>
                           ) : loan.status === "approved" ? (
-                            <Button size="sm" variant="outline" onClick={() => setAcceptLoanApp(loan)}>
+                            <Button size="sm" variant="ghost" onClick={() => setAcceptLoanApp(loan)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> View
                             </Button>
                           ) : null}
