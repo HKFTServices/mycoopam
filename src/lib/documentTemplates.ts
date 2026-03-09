@@ -93,7 +93,7 @@ ${printButton}
 <p>(residential address),</p>
 <p>do hereby appoint ${field("", "350px")} (full name),</p>
 <p>(herein after referred to as "AGENT")</p>
-<p>with IDENTITY NUMBER ${field("", "300px")} of</p>
+<p>with ID/PASSPORT NUMBER ${field("", "300px")} of</p>
 <p>${field("", "400px")}</p>
 <p>(company, firm, institution's name) with power of substitution, to be my lawful agent, with full power of attorney for me and in my name with respect to:</p>
 <ol>
