@@ -48,7 +48,7 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
   countries: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / Name", targetColumn: "name (matched by name)", required: true },
-    { csvColumn: "iso_code / IsoCode / Code", targetColumn: "iso_code", required: false },
+    { csvColumn: "iso_code / IsoCode / ShortCode / Code", targetColumn: "iso_code", required: false },
   ],
   titles: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
