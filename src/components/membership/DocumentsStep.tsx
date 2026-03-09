@@ -70,10 +70,10 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     postalCode: data.postalCode || "",
     country: data.country || "",
     tenantName: currentTenant?.name || "",
-    // For entity applications, pass the logged-in user's details as the authorised representative
-    userFirstName: data.type === "entity" ? (profile?.first_name || userPersonalEntity?.name || "") : "",
-    userLastName: data.type === "entity" ? (profile?.last_name || userPersonalEntity?.last_name || "") : "",
-    userIdNumber: data.type === "entity" ? (userPersonalEntity?.identity_number || userPersonalEntity?.passport_number || profile?.id_number || "") : "",
+    // For entity applications, use the "Myself" entity's details as the authorised representative
+    userFirstName: data.type === "entity" ? (userPersonalEntity?.name || profile?.first_name || "") : "",
+    userLastName: data.type === "entity" ? (userPersonalEntity?.last_name || profile?.last_name || "") : "",
+    userIdNumber: data.type === "entity" ? (userPersonalEntity?.identity_number || userPersonalEntity?.passport_number || "") : "",
   };
 
   // Fetch required doc types for this relationship type
