@@ -89,6 +89,8 @@ const DepositDetailsStep = ({
   depositNetAvailable, splitSummaries, amountNum, formatCurrency, isDeposit,
   netAmount = 0, currentUnitPrice = 0, unitsToTransact = 0, currentHolding = 0, isWithdrawal = false, totalFee = 0,
   transactionDate, onTransactionDateChange,
+  loanRepaymentAmount = 0, onLoanRepaymentAmountChange, hasOutstandingLoan = false,
+  outstandingLoanBalance = 0, loanInstalment = 0, loanRepaymentOnly = false,
 }: DepositDetailsStepProps) => {
   const [displayAmount, setDisplayAmount] = useState(amount || "");
   const [isFocused, setIsFocused] = useState(false);
