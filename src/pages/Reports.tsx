@@ -282,9 +282,9 @@ const Reports = () => {
       const type = gl.gl_type as string;
       if (!["asset", "liability", "equity", "income", "expense"].includes(type)) continue;
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
-      if (r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control") {
-        // Bank GL, VAT entries, and Stock Control entries: straight posting (CFT Dr = GL Dr, CFT Cr = GL Cr)
-        // Stock control is an asset — debit increases it, credit decreases it, same as bank.
+      const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
+      if (r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry) {
+        // Bank GL, VAT entries, Stock Control entries, and Loan entries: straight posting (CFT Dr = GL Dr, CFT Cr = GL Cr)
         map[r.gl_account_id].netDebit  += Number(r.debit || 0);
         map[r.gl_account_id].netCredit += Number(r.credit || 0);
       } else {
