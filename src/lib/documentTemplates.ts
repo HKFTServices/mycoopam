@@ -18,6 +18,12 @@ export interface EntityContext {
   postalCode: string;
   country: string;
   tenantName?: string;
+  /** The logged-in user's first name (the person authorised to act on behalf of the entity) */
+  userFirstName?: string;
+  /** The logged-in user's last name */
+  userLastName?: string;
+  /** The logged-in user's ID number */
+  userIdNumber?: string;
 }
 
 const pageStyles = `
