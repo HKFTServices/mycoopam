@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Check, X, Send } from "lucide-react";
 import SignaturePad from "@/components/ui/signature-pad";
+import { postLoanDisbursement } from "@/lib/postLoanDisbursement";
 
 interface Props {
   open: boolean;
@@ -220,6 +221,17 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
         })
         .eq("id", app.id);
       if (error) throw error;
+
+      // ─── Post loan financial entries (CFT) ───
+      // Re-fetch the updated loan to get all computed fields
+      const { data: updatedLoan } = await (supabase as any)
+        .from("loan_applications")
+        .select("*")
+        .eq("id", app.id)
+        .single();
+      if (updatedLoan) {
+        await postLoanDisbursement(updatedLoan, currentTenant!.id, user!.id);
+      }
 
       // Fire edge function to generate PDF and email (fire-and-forget)
       try {
