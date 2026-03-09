@@ -1099,7 +1099,7 @@ Deno.serve(async (req) => {
             }
           } else if (table_name === "entity_documents") {
             const entityId = await resolveLegacy("entities", record.legacy_entity_id || record.EntityId);
-            const docTypeId = await resolveLegacy("document_types", record.legacy_document_type_id || record.DocumentTypeId || record.DocumentId);
+            const docTypeId = await resolveLegacy("document_types", record.legacy_document_type_id || record.DocumentTypeId);
 
             if (!entityId) { results.errors.push(`EntityDoc ${legacyId}: entity not found for legacy id ${record.legacy_entity_id || record.EntityId}`); continue; }
 
