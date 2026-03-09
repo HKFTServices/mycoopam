@@ -141,6 +141,13 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / DocumentName", targetColumn: "name (matched by name)", required: true },
   ],
+  document_entity_requirements: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "legacy_document_type_id / DocumentTypeId", targetColumn: "document_type_id (resolved via mapping)", required: true },
+    { csvColumn: "legacy_relationship_type_id / RelationshipTypeId", targetColumn: "relationship_type_id (resolved via mapping)", required: true },
+    { csvColumn: "is_required_for_registration / IsRequiredForRegistration", targetColumn: "is_required_for_registration", required: false },
+    { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
+  ],
   entities: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / Name", targetColumn: "name", required: true },

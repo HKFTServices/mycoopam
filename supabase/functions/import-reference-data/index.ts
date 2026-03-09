@@ -64,7 +64,7 @@ const TABLE_CONFIGS: Record<string, { required: string[]; optional: string[]; na
 };
 
 // Custom import tables with specialized logic
-const CUSTOM_TABLES = new Set(["entities", "entity_accounts", "entity_user_relationships", "entity_addresses", "users", "unit_transactions", "stock_transactions", "daily_stock_prices", "daily_pool_prices", "entity_banks"]);
+const CUSTOM_TABLES = new Set(["entities", "entity_accounts", "entity_user_relationships", "entity_addresses", "users", "unit_transactions", "stock_transactions", "daily_stock_prices", "daily_pool_prices", "entity_banks", "document_entity_requirements"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
