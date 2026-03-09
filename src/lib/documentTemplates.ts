@@ -66,7 +66,7 @@ ${printButton}
 <h1>AFFIDAVIT</h1>
 <p style="text-align:center;font-style:italic">(To be completed in the presence of a Commissioner of Oaths)</p>
 <div class="field-block">I, ${field(rep(ctx).name, "350px")}</div>
-<div class="field-block">ID-Number ${field(rep(ctx).id, "300px")}</div>
+<div class="field-block">ID/Passport Number ${field(rep(ctx).id, "300px")}</div>
 <div class="field-block">Residing address ${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province, ctx.postalCode].filter(Boolean).join(", "), "400px")}</div>
 <div class="field-block">Tel ${field(ctx.contactNumber, "180px")} (cell)</div>
 <p>Declare under oath in English / confirm in English –</p>
@@ -88,12 +88,12 @@ ${printButton}
 <h2>APPOINTMENT OF AGENT:</h2>
 <p>I, the undersigned ${field(rep(ctx).name, "350px")}</p>
 <p>(full name) (herein after referred to as "PRINCIPAL"),</p>
-<p>with IDENTITY NUMBER ${field(rep(ctx).id, "300px")} residing at</p>
+<p>with ID/PASSPORT NUMBER ${field(rep(ctx).id, "300px")} residing at</p>
 <p>${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province].filter(Boolean).join(", "), "450px")}</p>
 <p>(residential address),</p>
 <p>do hereby appoint ${field("", "350px")} (full name),</p>
 <p>(herein after referred to as "AGENT")</p>
-<p>with IDENTITY NUMBER ${field("", "300px")} of</p>
+<p>with ID/PASSPORT NUMBER ${field("", "300px")} of</p>
 <p>${field("", "400px")}</p>
 <p>(company, firm, institution's name) with power of substitution, to be my lawful agent, with full power of attorney for me and in my name with respect to:</p>
 <ol>
@@ -119,7 +119,7 @@ ${printButton}
 ${field(ctx.entityName || "", "350px")} (Pty) Ltd / CC / Co-Op IN ITS MEETING HELD ON</p>
 <p>${field("", "180px")} 20${field("", "40px")}</p>
 <p>It was resolved that:</p>
-<p>1. ${field(rep(ctx).name, "250px")} (ID no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of
+<p>1. ${field(rep(ctx).name, "250px")} (ID/Passport no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of
 ${field(ctx.entityName || "", "250px")} (Pty) Ltd / CC / Co-Op in matters pertaining to any kind of transaction with;</p>
 <p style="text-align:center;margin-top:8px">${field(ctx.tenantName || "", "300px")}</p>
 <table class="directors">
@@ -134,7 +134,7 @@ ${printButton}
 <h1>TRUSTEE'S RESOLUTION</h1>
 <p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE TRUSTEES OF THE ${field(ctx.entityName || "", "350px")} TRUST IN ITS MEETING HELD ON ${field("", "150px")} 20${field("", "40px")}.</p>
 <p>It was resolved that:</p>
-<p>1. ${field(rep(ctx).name, "250px")} (ID no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of The ${field(ctx.entityName || "", "250px")} TRUST in matters pertaining to any kind of transaction with;</p>
+<p>1. ${field(rep(ctx).name, "250px")} (ID/Passport no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of The ${field(ctx.entityName || "", "250px")} TRUST in matters pertaining to any kind of transaction with;</p>
 <ol>
   <li>${field(ctx.tenantName || "", "400px")}</li>
   <li>${field("", "400px")}</li>
@@ -150,11 +150,11 @@ ${printButton}
 <h1>AUTHORISATION TO ACCESS LINKED ACCOUNTS</h1>
 <p style="text-align:center">${field(ctx.tenantName || "CO-OPERATIVE LTD", "350px")}</p>
 <div class="field-block"><strong>FULL NAMES & SURNAME OF PRINCIPAL MEMBER</strong><br/>${field(rep(ctx).name, "450px")}</div>
-<div class="field-block"><strong>IDENTITY NUMBER</strong><br/>${field(rep(ctx).id, "300px")}</div>
+<div class="field-block"><strong>ID/PASSPORT NUMBER</strong><br/>${field(rep(ctx).id, "300px")}</div>
 <div class="field-block"><strong>MEMBERSHIP ACCOUNT NUMBERS TO BE LINKED</strong><br/>${field("", "450px")}</div>
 <p>Hereby AUTHORISE the following person TO HAVE ACCESS or TO LINK MY ACCOUNTS LISTED ABOVE or to be created to his/her as User on the Platform with rights specified below.</p>
 <div class="field-block"><strong>FULL NAMES & SURNAME OF USER</strong><br/>${field("", "450px")}</div>
-<div class="field-block"><strong>ID NUMBER OF USER</strong><br/>${field("", "300px")}</div>
+<div class="field-block"><strong>ID/PASSPORT NUMBER OF USER</strong><br/>${field("", "300px")}</div>
 <h2>With following permissions:</h2>
 <ul>
   <li>May register as user on the platform with email address and personal details verified with own secret password.</li>
@@ -175,7 +175,7 @@ ${printButton}
 <h1>APPOINTMENT AS REFERRER</h1>
 <p style="text-align:center">${field(ctx.tenantName || "CO-OPERATIVE LTD", "350px")}</p>
 <div class="field-block"><strong>FULL NAMES & SURNAME OF PRINCIPAL MEMBER</strong><br/>${field(rep(ctx).name, "450px")}</div>
-<div class="field-block"><strong>IDENTITY NUMBER</strong><br/>${field(rep(ctx).id, "300px")}</div>
+<div class="field-block"><strong>ID/PASSPORT NUMBER</strong><br/>${field(rep(ctx).id, "300px")}</div>
 <div class="field-block"><strong>RESIDENTIAL ADDRESS</strong><br/>${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province, ctx.postalCode].filter(Boolean).join(", "), "450px")}</div>
 <p>Hereby appoint the following person as referrer on my accounts, to be created or already created and linked to myself as user (please register as user as soon as possible)</p>
 <div class="field-block"><strong>FULL NAMES & SURNAME OF REFERRER</strong><br/>${field("", "450px")}</div>
