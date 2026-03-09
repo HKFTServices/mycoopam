@@ -245,9 +245,20 @@ const TABLE_QUERIES: Record<string, string> = {
     LEFT JOIN dbo.Banks b ON b.Id = eb.BankId
     LEFT JOIN dbo.BankAccountTypes bat ON bat.Id = eb.BankAccountTypeId
   `,
+  entity_documents: `
+    SELECT CAST(ed.Id AS VARCHAR(36)) AS legacy_id,
+      ed.FileName AS file_name,
+      ed.Description AS description,
+      ed.DocumentDate AS document_date,
+      CAST(ed.EntityId AS VARCHAR(36)) AS legacy_entity_id,
+      CAST(ed.DocumentTypeId AS VARCHAR(36)) AS legacy_document_type_id,
+      CAST(ed.DocumentId AS VARCHAR(36)) AS document_id,
+      ed.IsActive AS is_active
+    FROM dbo.EntityDocuments ed
+    WHERE ed.IsDeleted = 0
+  `,
 };
 function queryMssql(config: Record<string, unknown>, sql: string): Promise<Record<string, unknown>[]> {
-  return new Promise((resolve, reject) => {
     const mssqlPort = Deno.env.get("MSSQL_PORT");
     const port = mssqlPort ? parseInt(mssqlPort, 10) : 1433;
     console.log("Connecting to MSSQL:", config.server, "port:", port);
