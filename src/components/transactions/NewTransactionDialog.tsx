@@ -1458,7 +1458,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
   const canProceedToDetails = isWithdrawal
     ? withdrawalPoolIds.length > 0
     : isDeposit
-    ? poolSplits.length > 0 && totalSplitPct === 100
+    ? (loanRepaymentOnly && !!outstandingLoanInfo) || (poolSplits.length > 0 && totalSplitPct === 100)
     : isTransfer
       ? !!selectedPoolId && selectedPoolHasUnits
       : !!selectedPoolId;
