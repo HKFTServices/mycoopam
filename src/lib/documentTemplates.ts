@@ -174,8 +174,8 @@ ${printButton}
 ${printButton}
 <h1>APPOINTMENT AS REFERRER</h1>
 <p style="text-align:center">${field(ctx.tenantName || "CO-OPERATIVE LTD", "350px")}</p>
-<div class="field-block"><strong>FULL NAMES & SURNAME OF PRINCIPAL MEMBER</strong><br/>${field(ctx.firstName + " " + ctx.lastName, "450px")}</div>
-<div class="field-block"><strong>IDENTITY NUMBER</strong><br/>${field(ctx.idNumber, "300px")}</div>
+<div class="field-block"><strong>FULL NAMES & SURNAME OF PRINCIPAL MEMBER</strong><br/>${field(rep(ctx).name, "450px")}</div>
+<div class="field-block"><strong>IDENTITY NUMBER</strong><br/>${field(rep(ctx).id, "300px")}</div>
 <div class="field-block"><strong>RESIDENTIAL ADDRESS</strong><br/>${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province, ctx.postalCode].filter(Boolean).join(", "), "450px")}</div>
 <p>Hereby appoint the following person as referrer on my accounts, to be created or already created and linked to myself as user (please register as user as soon as possible)</p>
 <div class="field-block"><strong>FULL NAMES & SURNAME OF REFERRER</strong><br/>${field("", "450px")}</div>
