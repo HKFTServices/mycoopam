@@ -18,6 +18,12 @@ export interface EntityContext {
   postalCode: string;
   country: string;
   tenantName?: string;
+  /** The logged-in user's first name (the person authorised to act on behalf of the entity) */
+  userFirstName?: string;
+  /** The logged-in user's last name */
+  userLastName?: string;
+  /** The logged-in user's ID number */
+  userIdNumber?: string;
 }
 
 const pageStyles = `
@@ -48,13 +54,19 @@ const today = () => {
 const field = (value: string, width = "250px") =>
   `<span class="field" style="min-width:${width}">${value || "&nbsp;"}</span>`;
 
+/** Get the authorised representative's details (user for entity apps, person for individual apps) */
+const rep = (ctx: EntityContext) => ({
+  name: [ctx.userFirstName || ctx.firstName, ctx.userLastName || ctx.lastName].filter(Boolean).join(" "),
+  id: ctx.userIdNumber || ctx.idNumber,
+});
+
 export const templateGenerators: Record<string, (ctx: EntityContext) => string> = {
   affidavit: (ctx) => `<!DOCTYPE html><html><head><title>Affidavit</title><style>${pageStyles}</style></head><body>
 ${printButton}
 <h1>AFFIDAVIT</h1>
 <p style="text-align:center;font-style:italic">(To be completed in the presence of a Commissioner of Oaths)</p>
-<div class="field-block">I, ${field(ctx.firstName + " " + ctx.lastName, "350px")}</div>
-<div class="field-block">ID-Number ${field(ctx.idNumber, "300px")}</div>
+<div class="field-block">I, ${field(rep(ctx).name, "350px")}</div>
+<div class="field-block">ID-Number ${field(rep(ctx).id, "300px")}</div>
 <div class="field-block">Residing address ${field([ctx.streetAddress, ctx.suburb, ctx.city, ctx.province, ctx.postalCode].filter(Boolean).join(", "), "400px")}</div>
 <div class="field-block">Tel ${field(ctx.contactNumber, "180px")} (cell)</div>
 <p>Declare under oath in English / confirm in English –</p>
