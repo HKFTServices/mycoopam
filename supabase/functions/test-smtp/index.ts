@@ -42,39 +42,51 @@ serve(async (req) => {
       });
     }
 
-    // Deno's native TLS can cause "write UNKNOWN" with STARTTLS on port 587.
-    // Try the user-requested port first, then fall back to port 465 (implicit TLS)
-    // or port 587 (STARTTLS) depending on what was requested.
-    const requestedPort = smtp_port || 587;
-    const portStrategies = requestedPort === 465
-      ? [{ port: 465, secure: true }, { port: 587, secure: false }]
-      : [{ port: 587, secure: false }, { port: 465, secure: true }];
+    // Deno's TLS stack does NOT honour nodemailer's rejectUnauthorized and
+    // fails with "write UNKNOWN" (STARTTLS) or "NotValidForName" (implicit TLS)
+    // when the server certificate doesn't match the hostname.
+    // Strategy order:
+    //   1. Port 465, secure (implicit TLS) – works when cert is valid
+    //   2. Port 587, STARTTLS – works when cert is valid
+    //   3. Port 587, ignoreTLS – skips TLS entirely (plain SMTP, last resort)
+    //   4. Port 25, ignoreTLS – plain SMTP fallback
+    const portStrategies = [
+      { port: 465, secure: true,  ignoreTLS: false },
+      { port: 587, secure: false, ignoreTLS: false },
+      { port: 587, secure: false, ignoreTLS: true  },
+      { port: 25,  secure: false, ignoreTLS: true  },
+    ];
 
     let transporter: any = null;
     let lastError: any = null;
 
     for (const strategy of portStrategies) {
-      console.log(`[test-smtp] Trying ${smtp_host}:${strategy.port} (secure=${strategy.secure})`);
+      const label = strategy.ignoreTLS
+        ? `${smtp_host}:${strategy.port} (plain/no-TLS)`
+        : `${smtp_host}:${strategy.port} (secure=${strategy.secure})`;
+      console.log(`[test-smtp] Trying ${label}`);
       try {
-        transporter = nodemailer.createTransport({
+        const opts: any = {
           host: smtp_host,
           port: strategy.port,
           secure: strategy.secure,
           tls: { rejectUnauthorized: false },
-          auth: smtp_username ? {
-            user: smtp_username,
-            pass: smtp_password || "",
-          } : undefined,
           connectionTimeout: 10000,
           greetingTimeout: 10000,
-        });
-        // Verify connection works
+        };
+        if (strategy.ignoreTLS) {
+          opts.ignoreTLS = true;
+        }
+        if (smtp_username) {
+          opts.auth = { user: smtp_username, pass: smtp_password || "" };
+        }
+        transporter = nodemailer.createTransport(opts);
         await transporter.verify();
-        console.log(`[test-smtp] Connected successfully on port ${strategy.port}`);
+        console.log(`[test-smtp] Connected successfully via ${label}`);
         lastError = null;
         break;
       } catch (err: any) {
-        console.warn(`[test-smtp] Port ${strategy.port} failed: ${err.message}`);
+        console.warn(`[test-smtp] ${label} failed: ${err.message}`);
         lastError = err;
         transporter = null;
       }
