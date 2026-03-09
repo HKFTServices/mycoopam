@@ -72,6 +72,13 @@ interface DepositDetailsStepProps {
   totalFee?: number;
   transactionDate: Date;
   onTransactionDateChange: (date: Date) => void;
+  // Loan repayment
+  loanRepaymentAmount?: number;
+  onLoanRepaymentAmountChange?: (val: string) => void;
+  hasOutstandingLoan?: boolean;
+  outstandingLoanBalance?: number;
+  loanInstalment?: number;
+  loanRepaymentOnly?: boolean;
 }
 
 const DepositDetailsStep = ({
