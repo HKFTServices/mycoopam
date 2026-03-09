@@ -1769,6 +1769,12 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
               totalFee={feeCalculation.totalFee}
               transactionDate={transactionDate}
               onTransactionDateChange={setTransactionDate}
+              loanRepaymentAmount={effectiveLoanRepayment}
+              onLoanRepaymentAmountChange={setLoanRepaymentAmount}
+              hasOutstandingLoan={!!outstandingLoanInfo}
+              outstandingLoanBalance={outstandingLoanInfo?.outstanding || 0}
+              loanInstalment={outstandingLoanInfo?.instalment || 0}
+              loanRepaymentOnly={loanRepaymentOnly}
             />
           )}
 
