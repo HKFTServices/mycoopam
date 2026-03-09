@@ -117,7 +117,7 @@ ${printButton}
 <h1>BOARD OF DIRECTORS RESOLUTION</h1>
 <p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE BOARD OF DIRECTORS OF
 ${field(ctx.entityName || "", "350px")} (Pty) Ltd / CC / Co-Op IN ITS MEETING HELD ON</p>
-<p>${field("", "180px")} 20${field("", "40px")}</p>
+<p>${field(today(), "250px")}</p>
 <p>It was resolved that:</p>
 <p>1. ${field(rep(ctx).name, "250px")} (ID/Passport no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of
 ${field(ctx.entityName || "", "250px")} (Pty) Ltd / CC / Co-Op in matters pertaining to any kind of transaction with;</p>
