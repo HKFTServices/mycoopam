@@ -54,6 +54,12 @@ const today = () => {
 const field = (value: string, width = "250px") =>
   `<span class="field" style="min-width:${width}">${value || "&nbsp;"}</span>`;
 
+/** Get the authorised representative's details (user for entity apps, person for individual apps) */
+const rep = (ctx: EntityContext) => ({
+  name: [ctx.userFirstName || ctx.firstName, ctx.userLastName || ctx.lastName].filter(Boolean).join(" "),
+  id: ctx.userIdNumber || ctx.idNumber,
+});
+
 export const templateGenerators: Record<string, (ctx: EntityContext) => string> = {
   affidavit: (ctx) => `<!DOCTYPE html><html><head><title>Affidavit</title><style>${pageStyles}</style></head><body>
 ${printButton}
