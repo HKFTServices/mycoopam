@@ -118,7 +118,7 @@ ${field(ctx.entityName || "", "250px")} (Pty) Ltd / CC / Co-Op in matters pertai
   trust_resolution: (ctx) => `<!DOCTYPE html><html><head><title>Trustee's Resolution</title><style>${pageStyles}</style></head><body>
 ${printButton}
 <h1>TRUST</h1>
-<p style="text-align:center">IT ${field("", "60px")} / ${field("", "120px")}</p>
+<p style="text-align:center"><span class="field-label">Trust Number:</span> ${field(ctx.registrationNumber || "", "250px")}</p>
 <h1>TRUSTEE'S RESOLUTION</h1>
 <p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE TRUSTEES OF THE ${field(ctx.entityName || "", "350px")} TRUST IN ITS MEETING HELD ON ${field("", "150px")} 20${field("", "40px")}.</p>
 <p>It was resolved that:</p>
