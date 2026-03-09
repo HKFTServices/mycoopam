@@ -753,9 +753,8 @@ const DataImport = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Large tables that need batching (edge function timeout protection)
-  const BATCH_SIZE = 200;
-  const LARGE_TABLES = new Set(["unit_transactions", "cashflow_transactions", "bookkeeping", "stock_transactions", "daily_stock_prices", "daily_pool_prices"]);
+  // Batching for edge function timeout protection — applies to ALL tables
+  const BATCH_SIZE = 50;
 
   // Actual import — with automatic batching for large tables
   const importMutation = useMutation({
