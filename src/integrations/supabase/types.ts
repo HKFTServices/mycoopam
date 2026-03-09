@@ -1014,6 +1014,8 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          template_file_url: string | null
+          template_key: string | null
           tenant_id: string
           updated_at: string
         }
@@ -1023,6 +1025,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          template_file_url?: string | null
+          template_key?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -1032,6 +1036,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          template_file_url?: string | null
+          template_key?: string | null
           tenant_id?: string
           updated_at?: string
         }
