@@ -245,9 +245,12 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 flex items-center gap-2 min-w-0">
             {isOutstanding && <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
-            <p className={`text-sm font-medium truncate ${isOutstanding ? "text-red-700 dark:text-red-400" : ""}`}>
-              {docTypeName}
-            </p>
+            <div className="min-w-0">
+              <p className={`text-sm font-medium truncate ${isOutstanding ? "text-red-700 dark:text-red-400" : ""}`}>
+                {docTypeName}
+              </p>
+              <p className="text-xs text-muted-foreground">Upload {docTypeName}</p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {templateInfo?.templateKey && (
