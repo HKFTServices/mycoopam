@@ -248,6 +248,31 @@ Deno.serve(async (req) => {
                 }
               }
             }
+            // banks may carry a country reference — resolve country_id from legacy mapping or name
+            if (globalConfig.targetTable === "banks") {
+              const legacyCountryId = record.country_id || record.CountryId || record.CountryID;
+              const countryName = record.country || record.Country || record.country_name || record.CountryName;
+              if (legacyCountryId) {
+                const { data: countryMapping } = await adminClient.from("legacy_id_mappings")
+                  .select("new_id")
+                  .eq("tenant_id", tenant_id)
+                  .eq("table_name", "countries")
+                  .eq("legacy_id", String(legacyCountryId))
+                  .maybeSingle();
+                if (countryMapping) insertRow.country_id = countryMapping.new_id;
+              } else if (countryName) {
+                const { data: countryMatch } = await adminClient.from("countries")
+                  .select("id").ilike("name", String(countryName).trim()).maybeSingle();
+                if (countryMatch) insertRow.country_id = countryMatch.id;
+              }
+              // Also pick up branch_code, swift_code, sort_route_code if present
+              const branchCode = record.branch_code || record.BranchCode;
+              const swiftCode = record.swift_code || record.SwiftCode || record.SWIFT;
+              const sortRouteCode = record.sort_route_code || record.SortRouteCode;
+              if (branchCode) insertRow.branch_code = String(branchCode).trim();
+              if (swiftCode) insertRow.swift_code = String(swiftCode).trim();
+              if (sortRouteCode) insertRow.sort_route_code = String(sortRouteCode).trim();
+            }
             // entity_account_types requires prefix — resolve from record or infer
             if (globalConfig.targetTable === "entity_account_types") {
               const prefix = record.prefix || record.Prefix;
