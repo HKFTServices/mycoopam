@@ -215,7 +215,34 @@ const DepositDetailsStep = ({
         )}
       </div>
 
-      {/* Payment Method */}
+      {/* Loan Repayment Amount */}
+      {hasOutstandingLoan && isDeposit && (
+        <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-4 space-y-2 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <Label className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              {loanRepaymentOnly ? "Loan Repayment Amount (R)" : "Loan Instalment Deduction (R)"}
+            </Label>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Outstanding: {formatCurrency(outstandingLoanBalance)} · Default instalment: {formatCurrency(loanInstalment)}
+          </p>
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder={String(loanInstalment)}
+            value={loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : ""}
+            onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/\s/g, ""))}
+            className="text-lg font-bold h-10"
+          />
+          {loanRepaymentAmount > outstandingLoanBalance && outstandingLoanBalance > 0 && (
+            <div className="flex items-center gap-2 text-destructive text-xs">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Repayment exceeds outstanding balance
+            </div>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         <Label>Payment Method</Label>
         <div className="grid grid-cols-3 gap-2">
