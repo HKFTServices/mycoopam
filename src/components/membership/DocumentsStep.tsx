@@ -36,28 +36,23 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
   // Build entity context for document generation
   const { user, profile } = useAuth();
 
-  // For entity applications, fetch the logged-in user's OWN personal entity (matched by profile email)
+  // For entity applications, fetch the logged-in user's OWN "Myself" entity
   const { data: userPersonalEntity } = useQuery({
-    queryKey: ["user_personal_entity", user?.id, tenantId, profile?.email],
+    queryKey: ["user_personal_entity", user?.id, tenantId],
     queryFn: async () => {
-      if (!user || !profile?.email) return null;
-      // Fetch all natural_person entities linked to this user
+      if (!user) return null;
+      // Find the entity linked via the "Myself" relationship type
       const { data } = await (supabase as any)
         .from("user_entity_relationships")
-        .select("entities!inner(id, name, last_name, identity_number, passport_number, email_address, entity_categories!inner(entity_type))")
+        .select("entities!inner(id, name, last_name, identity_number, passport_number, email_address), relationship_types!inner(name)")
         .eq("user_id", user.id)
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
-        .eq("entities.entity_categories.entity_type", "natural_person");
+        .ilike("relationship_types.name", "Myself");
       if (!data || data.length === 0) return null;
-      // Prefer the entity whose email matches the profile email (= "myself" entity)
-      const entities = data.map((r: any) => r.entities).filter(Boolean);
-      const emailMatch = entities.find((e: any) => 
-        e.email_address && e.email_address.toLowerCase() === profile.email!.toLowerCase()
-      );
-      return emailMatch || entities[0];
+      return data[0]?.entities || null;
     },
-    enabled: !!user && !!profile?.email && data.type === "entity",
+    enabled: !!user && data.type === "entity",
   });
 
   const entityCtx: EntityContext = {
@@ -75,10 +70,10 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
     postalCode: data.postalCode || "",
     country: data.country || "",
     tenantName: currentTenant?.name || "",
-    // For entity applications, pass the logged-in user's details as the authorised representative
-    userFirstName: data.type === "entity" ? (profile?.first_name || userPersonalEntity?.name || "") : "",
-    userLastName: data.type === "entity" ? (profile?.last_name || userPersonalEntity?.last_name || "") : "",
-    userIdNumber: data.type === "entity" ? (userPersonalEntity?.identity_number || userPersonalEntity?.passport_number || profile?.id_number || "") : "",
+    // For entity applications, use the "Myself" entity's details as the authorised representative
+    userFirstName: data.type === "entity" ? (userPersonalEntity?.name || profile?.first_name || "") : "",
+    userLastName: data.type === "entity" ? (userPersonalEntity?.last_name || profile?.last_name || "") : "",
+    userIdNumber: data.type === "entity" ? (userPersonalEntity?.identity_number || userPersonalEntity?.passport_number || "") : "",
   };
 
   // Fetch required doc types for this relationship type
