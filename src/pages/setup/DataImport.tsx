@@ -15,6 +15,7 @@ import { Loader2, Upload, CheckCircle2, XCircle, AlertTriangle, Database, FileJs
 import { toast } from "sonner";
 
 const SUPPORTED_TABLES = [
+  { value: "countries", label: "Countries (global → map by name)", order: -1 },
   { value: "titles", label: "Titles (global → map by name)", order: 0 },
   { value: "entity_categories", label: "Entity Categories (global → map by name)", order: 0 },
   { value: "relationship_types", label: "Relationship Types (global → map by name)", order: 0 },
@@ -44,6 +45,11 @@ const SUPPORTED_TABLES = [
 ];
 
 const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string; required: boolean }[]> = {
+  countries: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "name / Name", targetColumn: "name (matched by name)", required: true },
+    { csvColumn: "iso_code / IsoCode / Code", targetColumn: "iso_code", required: false },
+  ],
   titles: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / DisplayName", targetColumn: "name (matched to description)", required: true },

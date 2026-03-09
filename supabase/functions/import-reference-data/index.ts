@@ -9,6 +9,7 @@ const corsHeaders = {
 // Global reference tables — match by name, create legacy_id_mappings only (no inserts)
 // tenantScoped: if true, filter target table by tenant_id when matching
 const GLOBAL_TABLE_CONFIGS: Record<string, { matchField: string; targetTable: string; tenantScoped?: boolean }> = {
+  countries: { matchField: "name", targetTable: "countries" },
   titles: { matchField: "description", targetTable: "titles" },
   entity_categories: { matchField: "name", targetTable: "entity_categories" },
   relationship_types: { matchField: "name", targetTable: "relationship_types" },
@@ -176,6 +177,11 @@ Deno.serve(async (req) => {
               [globalConfig.matchField]: String(nameValue).trim(),
               is_active: true,
             };
+            // Countries require iso_code
+            if (globalConfig.targetTable === "countries") {
+              const isoCode = record.iso_code || record.IsoCode || record.Code || record.code || record.ISO || "";
+              insertRow.iso_code = String(isoCode).trim().toUpperCase() || String(nameValue).trim().substring(0, 2).toUpperCase();
+            }
             // For tenant-scoped tables, include tenant_id
             if (globalConfig.tenantScoped) {
               insertRow.tenant_id = tenant_id;
