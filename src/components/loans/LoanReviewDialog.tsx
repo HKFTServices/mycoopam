@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Check, X, Send } from "lucide-react";
 import SignaturePad from "@/components/ui/signature-pad";
+import { postLoanDisbursement } from "@/lib/postLoanDisbursement";
 
 interface Props {
   open: boolean;
