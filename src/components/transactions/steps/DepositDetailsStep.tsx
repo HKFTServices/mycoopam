@@ -327,6 +327,14 @@ const DepositDetailsStep = ({
             <span>{formatCurrency(amountNum)}</span>
           </div>
 
+          {/* Loan Repayment deduction */}
+          {hasOutstandingLoan && loanRepaymentAmount > 0 && (
+            <div className="flex justify-between text-sm text-amber-700 dark:text-amber-400">
+              <span className="flex items-center gap-1.5"><Minus className="h-3 w-3" /> Loan Repayment</span>
+              <span>- {formatCurrency(loanRepaymentAmount)}</span>
+            </div>
+          )}
+
           {/* Membership deductions */}
           {joinShareInfo.needed && (
             <>
