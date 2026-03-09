@@ -119,7 +119,7 @@ ${printButton}
 ${field(ctx.entityName || "", "350px")} (Pty) Ltd / CC / Co-Op IN ITS MEETING HELD ON</p>
 <p>${field("", "180px")} 20${field("", "40px")}</p>
 <p>It was resolved that:</p>
-<p>1. ${field(ctx.firstName + " " + ctx.lastName, "250px")} (ID no: ${field(ctx.idNumber, "180px")}) be appointed to act on behalf of
+<p>1. ${field(rep(ctx).name, "250px")} (ID no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of
 ${field(ctx.entityName || "", "250px")} (Pty) Ltd / CC / Co-Op in matters pertaining to any kind of transaction with;</p>
 <p style="text-align:center;margin-top:8px">${field(ctx.tenantName || "", "300px")}</p>
 <table class="directors">
