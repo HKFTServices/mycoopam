@@ -60,6 +60,12 @@ const rep = (ctx: EntityContext) => ({
   id: ctx.userIdNumber || ctx.idNumber,
 });
 
+/** Get the logged-in user's own "Myself" entity details only (no fallback to entity fields) */
+const myself = (ctx: EntityContext) => ({
+  name: [ctx.userFirstName, ctx.userLastName].filter(Boolean).join(" "),
+  id: ctx.userIdNumber || "",
+});
+
 export const templateGenerators: Record<string, (ctx: EntityContext) => string> = {
   affidavit: (ctx) => `<!DOCTYPE html><html><head><title>Affidavit</title><style>${pageStyles}</style></head><body>
 ${printButton}
@@ -149,12 +155,12 @@ ${printButton}
 ${printButton}
 <h1>AUTHORISATION TO ACCESS LINKED ACCOUNTS</h1>
 <p style="text-align:center">${field(ctx.tenantName || "CO-OPERATIVE LTD", "350px")}</p>
-<div class="field-block"><strong>FULL NAMES & SURNAME OF PRINCIPAL MEMBER</strong><br/>${field(rep(ctx).name, "450px")}</div>
-<div class="field-block"><strong>ID/PASSPORT NUMBER</strong><br/>${field(rep(ctx).id, "300px")}</div>
+<div class="field-block"><strong>FULL NAMES & SURNAME OF PRINCIPAL MEMBER</strong><br/>${field([ctx.firstName, ctx.lastName].filter(Boolean).join(" "), "450px")}</div>
+<div class="field-block"><strong>ID/PASSPORT NUMBER</strong><br/>${field(ctx.idNumber, "300px")}</div>
 <div class="field-block"><strong>MEMBERSHIP ACCOUNT NUMBERS TO BE LINKED</strong><br/>${field("", "450px")}</div>
 <p>Hereby AUTHORISE the following person TO HAVE ACCESS or TO LINK MY ACCOUNTS LISTED ABOVE or to be created to his/her as User on the Platform with rights specified below.</p>
-<div class="field-block"><strong>FULL NAMES & SURNAME OF USER</strong><br/>${field(rep(ctx).name, "450px")}</div>
-<div class="field-block"><strong>ID/PASSPORT NUMBER OF USER</strong><br/>${field(rep(ctx).id, "300px")}</div>
+<div class="field-block"><strong>FULL NAMES & SURNAME OF USER</strong><br/>${field(myself(ctx).name, "450px")}</div>
+<div class="field-block"><strong>ID/PASSPORT NUMBER OF USER</strong><br/>${field(myself(ctx).id, "300px")}</div>
 <h2>With following permissions:</h2>
 <ul>
   <li>May register as user on the platform with email address and personal details verified with own secret password.</li>
