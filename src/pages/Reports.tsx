@@ -241,13 +241,25 @@ const Reports = () => {
       const type = gl.gl_type as string;
       if (!["income", "expense"].includes(type)) continue;
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0, exclVatDebit: 0, exclVatCredit: 0 };
-      // CFT Debit → GL Credit; CFT Credit → GL Debit
-      map[r.gl_account_id].netCredit += Number(r.debit || 0);
-      map[r.gl_account_id].netDebit  += Number(r.credit || 0);
-      if (Number(r.debit || 0) > 0) {
-        map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
+      const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
+      if (isLoanEntry) {
+        // Loan entries are already in GL perspective — straight posting
+        map[r.gl_account_id].netDebit  += Number(r.debit || 0);
+        map[r.gl_account_id].netCredit += Number(r.credit || 0);
+        if (Number(r.debit || 0) > 0) {
+          map[r.gl_account_id].exclVatDebit += Number(r.amount_excl_vat || 0);
+        } else {
+          map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
+        }
       } else {
-        map[r.gl_account_id].exclVatDebit += Number(r.amount_excl_vat || 0);
+        // CFT Debit → GL Credit; CFT Credit → GL Debit
+        map[r.gl_account_id].netCredit += Number(r.debit || 0);
+        map[r.gl_account_id].netDebit  += Number(r.credit || 0);
+        if (Number(r.debit || 0) > 0) {
+          map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
+        } else {
+          map[r.gl_account_id].exclVatDebit += Number(r.amount_excl_vat || 0);
+        }
       }
     }
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
