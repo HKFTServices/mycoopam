@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote, Send } from "lucide-react";
 import { toast } from "sonner";
 import DocumentReviewDialog from "@/components/approvals/DocumentReviewDialog";
 import TransactionReviewDialog, { type DateOverride, type StockApprovalMeta } from "@/components/approvals/TransactionReviewDialog";
