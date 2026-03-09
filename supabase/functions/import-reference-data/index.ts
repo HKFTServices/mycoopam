@@ -171,6 +171,24 @@ Deno.serve(async (req) => {
 
           let matchedId: string | null = match?.id ?? null;
 
+          // For countries: also try matching by iso_code if name didn't match
+          if (!matchedId && globalConfig.targetTable === "countries") {
+            const isoCode = record.iso_code || record.IsoCode || record.Code || record.code || record.ISO || record.ShortCode || record.shortcode || record.short_code || "";
+            if (isoCode) {
+              const { data: isoMatch } = await adminClient
+                .from("countries")
+                .select("id")
+                .ilike("iso_code", String(isoCode).trim())
+                .maybeSingle();
+              if (isoMatch) {
+                matchedId = isoMatch.id;
+                // Also update the name to match the CSV
+                await adminClient.from("countries").update({ name: String(nameValue).trim() }).eq("id", isoMatch.id);
+                results.simulation.push({ legacy_id: legacyId, action: "matched_by_iso", name: nameValue, iso_code: isoCode, new_id: matchedId });
+              }
+            }
+          }
+
           // Auto-create if not found (for non-tenant-scoped global tables like titles, banks, etc.)
           if (!matchedId) {
             const insertRow: Record<string, unknown> = {
