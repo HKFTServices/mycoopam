@@ -45,6 +45,11 @@ const SUPPORTED_TABLES = [
 ];
 
 const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string; required: boolean }[]> = {
+  countries: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "name / Name", targetColumn: "name (matched by name)", required: true },
+    { csvColumn: "iso_code / IsoCode / Code", targetColumn: "iso_code", required: false },
+  ],
   titles: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / DisplayName", targetColumn: "name (matched to description)", required: true },
