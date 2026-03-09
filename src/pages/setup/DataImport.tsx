@@ -127,6 +127,10 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
   banks: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / Name", targetColumn: "name (matched by name)", required: true },
+    { csvColumn: "country_id / CountryId", targetColumn: "country_id (resolved via countries mapping)", required: false },
+    { csvColumn: "branch_code / BranchCode", targetColumn: "branch_code", required: false },
+    { csvColumn: "swift_code / SwiftCode", targetColumn: "swift_code", required: false },
+    { csvColumn: "sort_route_code / SortRouteCode", targetColumn: "sort_route_code", required: false },
   ],
   bank_account_types: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
