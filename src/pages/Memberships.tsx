@@ -330,26 +330,13 @@ const Memberships = () => {
     enabled: !!currentTenant,
   });
 
-  // Fetch latest daily_pool_prices (most recent date)
+  // Fetch latest pool price per pool (uses most recent non-zero price per pool)
   const { data: latestPoolPrices = [] } = useQuery({
     queryKey: ["latest_pool_prices", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
-      // Get the most recent totals_date
-      const { data: latest, error: dateErr } = await (supabase as any)
-        .from("daily_pool_prices")
-        .select("totals_date")
-        .eq("tenant_id", currentTenant.id)
-        .order("totals_date", { ascending: false })
-        .limit(1);
-      if (dateErr) throw dateErr;
-      if (!latest?.length) return [];
-      const latestDate = latest[0].totals_date;
       const { data, error } = await (supabase as any)
-        .from("daily_pool_prices")
-        .select("pool_id, unit_price_buy")
-        .eq("tenant_id", currentTenant.id)
-        .eq("totals_date", latestDate);
+        .rpc("get_latest_pool_prices", { p_tenant_id: currentTenant.id });
       if (error) throw error;
       return data ?? [];
     },
