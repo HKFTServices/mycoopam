@@ -56,6 +56,7 @@ const PoolSelectionStep = ({
   pools, isDeposit, isWithdrawal = false, isSwitch = false, isTransfer = false, poolSplits, selectedPoolId, totalSplitPct,
   onTogglePool, onUpdateSplitPct, onSelectPool, formatCurrency, getUnitPrice, accountHoldings = [],
   selectedWithdrawalPoolIds = [], onToggleWithdrawalPool,
+  outstandingLoanInfo, loanRepaymentOnly = false, onLoanRepaymentOnlyChange,
 }: PoolSelectionStepProps) => {
 
   // ── Withdrawal: simple multi-select (no percentages) ─────────────────────
