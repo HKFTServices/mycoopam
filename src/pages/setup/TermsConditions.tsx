@@ -6,7 +6,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -218,12 +218,12 @@ const TermsConditions = () => {
               <Input type="date" value={form.effective_from} onChange={(e) => setForm({ ...form, effective_from: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Content (HTML)</Label>
-              <Textarea
+              <Label>Content</Label>
+              <RichTextEditor
                 value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                placeholder="<p>Enter terms and conditions HTML content...</p>"
-                rows={10}
+                onChange={(val) => setForm({ ...form, content: val })}
+                placeholder="Enter terms and conditions content..."
+                minHeight={250}
               />
             </div>
             <div className="flex items-center gap-2">
