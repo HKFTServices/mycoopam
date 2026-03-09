@@ -103,7 +103,7 @@ ${printButton}
 </ol>
 <h2>RATIFICATION:</h2>
 <p>I hereby ratify and agree to ratify everything which the Agent or my substitute or substitutes or agent or agents appointed by the Agent under this power of attorney shall do or purport to do by virtue of this power of attorney.</p>
-<p>SIGNED at ${field("", "180px")} (Place) on this ${field("", "40px")} day of ${field("", "120px")} 20${field("", "40px")}</p>
+<p>SIGNED at ${field("", "180px")} (Place) on ${field(today(), "250px")}</p>
 <h2>AS WITNESSES:</h2>
 <table class="directors">
   <tr><td>1. <span class="signature-line"></span></td><td><span class="signature-line"></span><br/>(FULL NAME AGENT)</td></tr>
@@ -117,7 +117,7 @@ ${printButton}
 <h1>BOARD OF DIRECTORS RESOLUTION</h1>
 <p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE BOARD OF DIRECTORS OF
 ${field(ctx.entityName || "", "350px")} (Pty) Ltd / CC / Co-Op IN ITS MEETING HELD ON</p>
-<p>${field("", "180px")} 20${field("", "40px")}</p>
+<p>${field(today(), "250px")}</p>
 <p>It was resolved that:</p>
 <p>1. ${field(rep(ctx).name, "250px")} (ID/Passport no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of
 ${field(ctx.entityName || "", "250px")} (Pty) Ltd / CC / Co-Op in matters pertaining to any kind of transaction with;</p>
@@ -132,7 +132,7 @@ ${printButton}
 <h1>TRUST</h1>
 <p style="text-align:center"><span class="field-label">Trust Number:</span> ${field(ctx.registrationNumber || "", "250px")}</p>
 <h1>TRUSTEE'S RESOLUTION</h1>
-<p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE TRUSTEES OF THE ${field(ctx.entityName || "", "350px")} TRUST IN ITS MEETING HELD ON ${field("", "150px")} 20${field("", "40px")}.</p>
+<p>CERTIFIED TRUE COPY OF THE RESOLUTION PASSED BY THE TRUSTEES OF THE ${field(ctx.entityName || "", "350px")} TRUST IN ITS MEETING HELD ON ${field(today(), "250px")}.</p>
 <p>It was resolved that:</p>
 <p>1. ${field(rep(ctx).name, "250px")} (ID/Passport no: ${field(rep(ctx).id, "180px")}) be appointed to act on behalf of The ${field(ctx.entityName || "", "250px")} TRUST in matters pertaining to any kind of transaction with;</p>
 <ol>
