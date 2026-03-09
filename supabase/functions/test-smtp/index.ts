@@ -42,22 +42,47 @@ serve(async (req) => {
       });
     }
 
-    // Deno's native TLS enforces strict cert validation and ignores
-    // nodemailer's rejectUnauthorized. Always use port 587 with opportunistic
-    // STARTTLS so nodemailer handles TLS itself and can skip cert checks.
-    const usePort = 587;
-    console.log(`[test-smtp] Sending via ${smtp_host}:${usePort} (requested: ${smtp_port || 587})`);
+    // Deno's native TLS can cause "write UNKNOWN" with STARTTLS on port 587.
+    // Try the user-requested port first, then fall back to port 465 (implicit TLS)
+    // or port 587 (STARTTLS) depending on what was requested.
+    const requestedPort = smtp_port || 587;
+    const portStrategies = requestedPort === 465
+      ? [{ port: 465, secure: true }, { port: 587, secure: false }]
+      : [{ port: 587, secure: false }, { port: 465, secure: true }];
 
-    const transporter = nodemailer.createTransport({
-      host: smtp_host,
-      port: usePort,
-      secure: false,
-      tls: { rejectUnauthorized: false },
-      auth: smtp_username ? {
-        user: smtp_username,
-        pass: smtp_password || "",
-      } : undefined,
-    });
+    let transporter: any = null;
+    let lastError: any = null;
+
+    for (const strategy of portStrategies) {
+      console.log(`[test-smtp] Trying ${smtp_host}:${strategy.port} (secure=${strategy.secure})`);
+      try {
+        transporter = nodemailer.createTransport({
+          host: smtp_host,
+          port: strategy.port,
+          secure: strategy.secure,
+          tls: { rejectUnauthorized: false },
+          auth: smtp_username ? {
+            user: smtp_username,
+            pass: smtp_password || "",
+          } : undefined,
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+        });
+        // Verify connection works
+        await transporter.verify();
+        console.log(`[test-smtp] Connected successfully on port ${strategy.port}`);
+        lastError = null;
+        break;
+      } catch (err: any) {
+        console.warn(`[test-smtp] Port ${strategy.port} failed: ${err.message}`);
+        lastError = err;
+        transporter = null;
+      }
+    }
+
+    if (!transporter) {
+      throw new Error(`Could not connect to SMTP server. Last error: ${lastError?.message}`);
+    }
 
     const isSmtpUserEmail = smtp_username?.includes("@");
     const effectiveFromEmail = isSmtpUserEmail ? smtp_username : smtp_from_email;
