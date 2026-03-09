@@ -1061,6 +1061,42 @@ Deno.serve(async (req) => {
               if (insErr) { results.errors.push(`EntityBank ${legacyId}: ${insErr.message}`); continue; }
               newId = ins.id;
             }
+          } else if (table_name === "document_entity_requirements") {
+            const docTypeId = await resolveLegacy("document_types", record.legacy_document_type_id || record.DocumentTypeId);
+            const relTypeId = await resolveLegacy("relationship_types", record.legacy_relationship_type_id || record.RelationshipTypeId);
+
+            if (!docTypeId) { results.errors.push(`DocReq ${legacyId}: document_type not found for legacy id ${record.legacy_document_type_id || record.DocumentTypeId}`); continue; }
+            if (!relTypeId) { results.errors.push(`DocReq ${legacyId}: relationship_type not found for legacy id ${record.legacy_relationship_type_id || record.RelationshipTypeId}`); continue; }
+
+            // Check for existing requirement with same doc type + rel type combo
+            const { data: existingReq } = await adminClient.from("document_entity_requirements")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .eq("document_type_id", docTypeId)
+              .eq("relationship_type_id", relTypeId)
+              .maybeSingle();
+
+            if (existingReq) {
+              results.simulation.push({ legacy_id: legacyId, action: "skip_duplicate", doc_type: docTypeId, rel_type: relTypeId });
+              newId = existingReq.id;
+              results.skipped++;
+              // Still store legacy mapping below
+            } else {
+              const row: Record<string, unknown> = {
+                tenant_id,
+                document_type_id: docTypeId,
+                relationship_type_id: relTypeId,
+                is_required_for_registration: toBool(record.is_required_for_registration ?? record.IsRequiredForRegistration, false),
+                is_active: toBool(record.is_active ?? record.IsActive, true),
+              };
+
+              results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_insert" : "insert", mapped_fields: row });
+              if (!isDryRun) {
+                const { data: ins, error: insErr } = await adminClient.from("document_entity_requirements").insert(row).select("id").single();
+                if (insErr) { results.errors.push(`DocReq ${legacyId}: ${insErr.message}`); continue; }
+                newId = ins.id;
+              }
+            }
           }
 
           // Store legacy_id_mappings for all tables including entity_accounts (needed for shares resolution)
