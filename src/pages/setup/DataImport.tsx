@@ -303,7 +303,18 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
     { csvColumn: "member_interest_buy / MemberInterestIncl", targetColumn: "member_interest_buy", required: false },
     { csvColumn: "member_interest_sell / MemberInterestExcl", targetColumn: "member_interest_sell", required: false },
     { csvColumn: "unit_price_buy / UnitPriceBuy", targetColumn: "unit_price_buy", required: false },
-    { csvColumn: "unit_price_sell / UnitPriceSell", targetColumn: "unit_price_sell", required: false },
+     { csvColumn: "unit_price_sell / UnitPriceSell", targetColumn: "unit_price_sell", required: false },
+  ],
+  entity_documents: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "legacy_entity_id / EntityId", targetColumn: "entity_id (resolved via mapping)", required: true },
+    { csvColumn: "legacy_document_type_id / DocumentTypeId", targetColumn: "document_type_id (resolved via mapping)", required: false },
+    { csvColumn: "file_name / FileName", targetColumn: "file_name", required: true },
+    { csvColumn: "description / Description", targetColumn: "description", required: false },
+    { csvColumn: "document_date / DocumentDate", targetColumn: "document_date", required: false },
+    { csvColumn: "document_id / DocumentId", targetColumn: "document_id (links to binary object)", required: false },
+    { csvColumn: "Bytes / bytes", targetColumn: "binary file data (hex or base64)", required: true },
+    { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
   ],
 };
 
