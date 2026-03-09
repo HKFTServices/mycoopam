@@ -202,7 +202,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("cashflow_transactions")
-        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, gl_accounts(name, code, gl_type)")
+        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, entry_type, gl_accounts(name, code, gl_type)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .not("entry_type", "eq", "vat")
