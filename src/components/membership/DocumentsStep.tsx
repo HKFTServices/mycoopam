@@ -265,7 +265,7 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Generate pre-filled document with your details</p>
+                    <p>Generate a pre-filled template here. Download, print, sign and upload it to complete your application.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
