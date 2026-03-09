@@ -23,6 +23,7 @@ const SUPPORTED_TABLES = [
   { value: "banks", label: "Banks (global → map by name)", order: 0 },
   { value: "bank_account_types", label: "Bank Account Types (global → map by name)", order: 0 },
   { value: "document_types", label: "Document Types (tenant → map by name)", order: 0 },
+  { value: "document_entity_requirements", label: "Document Entity Requirements (tenant → requires Doc Types & Rel Types)", order: 0.5 },
   { value: "gen_type_values", label: "Gen Type Values (reference lookup — IDs only)", order: 0.5 },
   { value: "ex_fees", label: "Legacy Fees (reference lookup — IDs only)", order: 0.5 },
   { value: "pools", label: "Pools", order: 1 },
@@ -139,6 +140,13 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
   document_types: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
     { csvColumn: "name / DocumentName", targetColumn: "name (matched by name)", required: true },
+  ],
+  document_entity_requirements: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "legacy_document_type_id / DocumentTypeId", targetColumn: "document_type_id (resolved via mapping)", required: true },
+    { csvColumn: "legacy_relationship_type_id / RelationshipTypeId", targetColumn: "relationship_type_id (resolved via mapping)", required: true },
+    { csvColumn: "is_required_for_registration / IsRequiredForRegistration", targetColumn: "is_required_for_registration", required: false },
+    { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
   ],
   entities: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
