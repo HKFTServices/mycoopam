@@ -111,7 +111,6 @@ export async function postLoanDisbursement(
     tenant_id: tenantId,
     entity_account_id: entityAccountId,
     pool_id: resolvedPoolId,
-    control_account_id: loanControlId,
     transaction_date: txnDate,
     debit: disbursementAmount,
     credit: 0,

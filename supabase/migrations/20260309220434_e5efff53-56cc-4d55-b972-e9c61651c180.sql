@@ -1,0 +1,1 @@
+UPDATE cashflow_transactions SET control_account_id = NULL WHERE id = '16f3b7f4-fd8f-46a7-892f-e641f2e7fde6';
