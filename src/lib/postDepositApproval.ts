@@ -415,6 +415,124 @@ export async function postDepositApproval(
     // BK entries removed — CFT child entries are the source of truth
   }
 
+  // ─── 4b. Loan Repayment ───
+  const loanRepayment = meta.loan_repayment || null;
+  if (loanRepayment && Number(loanRepayment.amount) > 0) {
+    const repaymentAmount = Number(loanRepayment.amount);
+    const loanPoolIds: string[] = loanRepayment.loan_pool_ids || [];
+
+    // Resolve GL accounts for loan entries
+    const { data: glAccounts } = await (supabase as any)
+      .from("gl_accounts")
+      .select("id, name")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true);
+
+    const findGl = (patterns: string[]) => {
+      if (!glAccounts) return null;
+      for (const pattern of patterns) {
+        const found = glAccounts.find((g: any) =>
+          g.name.toLowerCase().includes(pattern.toLowerCase())
+        );
+        if (found) return found.id;
+      }
+      return null;
+    };
+
+    const memberLoansGlId = findGl(["member loan", "loan receivable", "member loans"]);
+
+    // Resolve pool control accounts (use loan's pool, fallback to admin pool)
+    let loanPoolId = loanPoolIds[0] || adminPoolId;
+    let loanCashControlId = adminCashControlId;
+    let loanControlId: string | null = null;
+
+    if (loanPoolId) {
+      const { data: loanPool } = await (supabase as any)
+        .from("pools")
+        .select("id, cash_control_account_id, loan_control_account_id")
+        .eq("id", loanPoolId)
+        .single();
+      if (loanPool) {
+        loanCashControlId = loanPool.cash_control_account_id || adminCashControlId;
+        loanControlId = loanPool.loan_control_account_id || null;
+      }
+    }
+
+    // Fallback loan control from admin pool
+    if (!loanControlId) {
+      const { data: adminPoolForLoan } = await (supabase as any)
+        .from("pools")
+        .select("loan_control_account_id")
+        .eq("tenant_id", tenantId)
+        .ilike("name", "%admin%")
+        .limit(1);
+      loanControlId = adminPoolForLoan?.[0]?.loan_control_account_id || null;
+    }
+
+    // 4b-i. CR Member Loans (BS) — reduce member's debt
+    await (supabase as any).from("cashflow_transactions").insert({
+      tenant_id: tenantId,
+      transaction_id: primaryTxn.id,
+      parent_id: rootCftId,
+      entity_account_id: entityAccountId,
+      pool_id: loanPoolId,
+      transaction_date: txnDate,
+      debit: 0,
+      credit: repaymentAmount,
+      description: "Loan Repayment",
+      entry_type: "loan_repayment",
+      is_bank: false,
+      posted_by: approvedBy,
+      vat_amount: 0,
+      amount_excl_vat: repaymentAmount,
+      gl_account_id: memberLoansGlId,
+    });
+
+    // 4b-ii. CR Loan Control (pool) — pool loan asset decreases
+    if (loanControlId) {
+      await (supabase as any).from("cashflow_transactions").insert({
+        tenant_id: tenantId,
+        transaction_id: primaryTxn.id,
+        parent_id: rootCftId,
+        entity_account_id: entityAccountId,
+        pool_id: loanPoolId,
+        control_account_id: loanControlId,
+        transaction_date: txnDate,
+        debit: 0,
+        credit: repaymentAmount,
+        description: "Loan Repayment — Loan Control CR",
+        entry_type: "loan_control",
+        is_bank: false,
+        posted_by: approvedBy,
+        vat_amount: 0,
+        amount_excl_vat: repaymentAmount,
+        gl_account_id: null,
+      });
+    }
+
+    // 4b-iii. DR Cash Control (pool) — pool cash increases (money coming in)
+    if (loanCashControlId) {
+      await (supabase as any).from("cashflow_transactions").insert({
+        tenant_id: tenantId,
+        transaction_id: primaryTxn.id,
+        parent_id: rootCftId,
+        entity_account_id: entityAccountId,
+        pool_id: loanPoolId,
+        control_account_id: loanCashControlId,
+        transaction_date: txnDate,
+        debit: repaymentAmount,
+        credit: 0,
+        description: "Loan Repayment — Cash Control DR",
+        entry_type: "loan_control",
+        is_bank: false,
+        posted_by: approvedBy,
+        vat_amount: 0,
+        amount_excl_vat: repaymentAmount,
+        gl_account_id: null,
+      });
+    }
+  }
+
   // ─── 5. Commission ───
   const commissionEntry = feeBreakdown.find((f: any) => f.name.toLowerCase().includes("commission"));
   if (commissionEntry && Number(commissionEntry.amount) > 0) {
