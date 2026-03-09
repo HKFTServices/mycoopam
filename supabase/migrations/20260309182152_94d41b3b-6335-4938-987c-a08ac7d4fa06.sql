@@ -1,0 +1,1 @@
+UPDATE document_types SET comment_instruction = 'Upload ' || name WHERE comment_instruction IS NULL OR comment_instruction = '';
