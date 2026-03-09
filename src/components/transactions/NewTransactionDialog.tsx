@@ -118,6 +118,8 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
       setStockCourierOption("collect");
       setWithdrawalPoolIds([]);
       setWithdrawalPoolInputs({});
+      setLoanRepaymentOnly(false);
+      setLoanRepaymentAmount("");
     }
   }, [open, defaultPoolId]);
 
