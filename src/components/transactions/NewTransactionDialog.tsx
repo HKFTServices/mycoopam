@@ -97,8 +97,8 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
 
   useEffect(() => {
     if (open) {
-      setStep("account");
-      setSelectedAccountId("");
+      setStep(defaultAccountId ? "type" : "account");
+      setSelectedAccountId(defaultAccountId || "");
       setSelectedTxnTypeId("");
       setSelectedPoolId(defaultPoolId || "");
       setPoolSplits([]);
