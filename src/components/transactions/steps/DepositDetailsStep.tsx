@@ -198,7 +198,7 @@ const DepositDetailsStep = ({
         <Input
           type="text"
           inputMode="decimal"
-          placeholder="0.00"
+          placeholder={loanRepaymentOnly && loanRepaymentAmount > 0 ? formatCurrency(loanRepaymentAmount) : "0.00"}
           value={displayAmount}
           onChange={handleAmountChange}
           onFocus={handleFocus}
