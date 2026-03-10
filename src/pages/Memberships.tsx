@@ -715,7 +715,11 @@ const Memberships = () => {
                                 )}
                                 {g.accounts.some(a => a.status === "active" || a.status === "approved") && (
                                   <>
-                                    <DropdownMenuItem onClick={() => setTxnDialogOpen(true)}>
+                                    <DropdownMenuItem onClick={() => {
+                                      const activeAcct = g.accounts.find(a => a.status === "active" || a.status === "approved");
+                                      setTxnDefaultAccountId(activeAcct?.id);
+                                      setTxnDialogOpen(true);
+                                    }}>
                                       <ArrowLeftRight className="h-4 w-4 mr-2" />
                                       New Transaction
                                     </DropdownMenuItem>
