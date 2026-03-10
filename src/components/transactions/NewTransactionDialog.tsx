@@ -1830,6 +1830,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
               transferFeeBreakdown={transferFeeCalc.breakdown}
               transferTotalFee={transferFeeCalc.totalFee}
               withdrawalSummaries={withdrawalSplitSummaries}
+              loanRepaymentAmount={effectiveLoanRepayment}
             />
           )}
         </div>
