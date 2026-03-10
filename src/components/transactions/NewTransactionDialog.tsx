@@ -239,7 +239,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
     if (outstandingLoanInfo?.instalment && !loanRepaymentAmount) {
       setLoanRepaymentAmount(String(outstandingLoanInfo.instalment));
     }
-  }, [outstandingLoanInfo?.instalment]);
+  }, [outstandingLoanInfo?.instalment, open]);
 
   // Check if the RECEIVER of a transfer is a first-time member (no join share yet)
   const { data: receiverJoinShareData } = useQuery({
