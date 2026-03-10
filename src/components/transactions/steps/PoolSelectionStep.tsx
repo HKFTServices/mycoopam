@@ -152,7 +152,7 @@ const PoolSelectionStep = ({
                   <Banknote className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">Full Loan Repayment — No Pool Allocation</p>
+                  <p className="font-semibold text-sm">Loan Instalment Only — No extra into pools (if more select pools below)</p>
                   <p className="text-xs text-muted-foreground">
                     Outstanding: {formatCurrency(outstandingLoanInfo.outstanding)} · Instalment: {formatCurrency(outstandingLoanInfo.instalment)}
                   </p>
