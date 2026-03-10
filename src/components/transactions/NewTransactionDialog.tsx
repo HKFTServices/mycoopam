@@ -234,12 +234,15 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
     enabled: !!selectedAccountId && !!currentTenant && open,
   });
 
-  // Set default loan repayment amount when loan info loads
+  // Set default loan repayment amount when loan info loads or dialog reopens
   useEffect(() => {
-    if (outstandingLoanInfo?.instalment && !loanRepaymentAmount) {
+    if (open && outstandingLoanInfo?.instalment && (loanRepaymentAmount === "__reset__" || !loanRepaymentAmount)) {
       setLoanRepaymentAmount(String(outstandingLoanInfo.instalment));
     }
-  }, [outstandingLoanInfo?.instalment, open]);
+    if (!open && loanRepaymentAmount === "__reset__") {
+      setLoanRepaymentAmount("");
+    }
+  }, [outstandingLoanInfo?.instalment, open, loanRepaymentAmount]);
 
   // Check if the RECEIVER of a transfer is a first-time member (no join share yet)
   const { data: receiverJoinShareData } = useQuery({
