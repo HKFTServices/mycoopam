@@ -231,7 +231,7 @@ const DepositDetailsStep = ({
             type="text"
             inputMode="decimal"
             placeholder={formatCurrency(loanInstalment)}
-            value={loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : ""}
+            value={loanRepaymentAmount > 0 ? loanRepaymentAmount.toFixed(2) : ""}
             onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/\s/g, ""))}
             className="text-lg font-bold h-10"
           />
