@@ -830,7 +830,7 @@ const Memberships = () => {
         totalOutstanding={loanEntityId ? (entityLoanMap[loanEntityId] || 0) : totalLoansOutstanding}
       />
 
-      <NewTransactionDialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen} />
+      <NewTransactionDialog open={txnDialogOpen} onOpenChange={(v) => { setTxnDialogOpen(v); if (!v) setTxnDefaultAccountId(undefined); }} defaultAccountId={txnDefaultAccountId} />
 
       <ApplyReferrerDialog
         open={!!referrerDialogEntity}
