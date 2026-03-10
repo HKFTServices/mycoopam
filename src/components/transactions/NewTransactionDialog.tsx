@@ -55,6 +55,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultPoolId?: string;
+  defaultAccountId?: string;
   depositOnly?: boolean;
   stockOnly?: boolean;
 }
