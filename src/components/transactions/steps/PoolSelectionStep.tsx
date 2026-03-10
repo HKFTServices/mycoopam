@@ -173,9 +173,15 @@ const PoolSelectionStep = ({
 
         {!loanRepaymentOnly && (
         <>
+        <div className="flex items-center justify-center my-2">
+          <div className="flex-1 border-t border-border" />
+          <span className="px-4 text-lg font-bold text-muted-foreground uppercase">OR</span>
+          <div className="flex-1 border-t border-border" />
+        </div>
+
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">Choose your investment pools</Label>
+          <Label className="text-sm font-medium">Choose pools to allocate extra funds</Label>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">
           Select one or more pools and allocate your deposit percentage. Total must equal 100%.
