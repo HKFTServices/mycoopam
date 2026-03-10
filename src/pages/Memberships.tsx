@@ -70,6 +70,7 @@ const Memberships = () => {
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [loanEntityId, setLoanEntityId] = useState<string | null>(null);
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
+  const [txnDefaultAccountId, setTxnDefaultAccountId] = useState<string | undefined>(undefined);
   const [referrerDialogEntity, setReferrerDialogEntity] = useState<{ id: string; name: string } | null>(null);
   const [loanApplyEntity, setLoanApplyEntity] = useState<{ entityAccountId: string; entityId: string; entityName: string } | null>(null);
   const queryClient = useQueryClient();
