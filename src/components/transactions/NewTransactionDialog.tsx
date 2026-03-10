@@ -120,7 +120,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
       setWithdrawalPoolIds([]);
       setWithdrawalPoolInputs({});
       setLoanRepaymentOnly(false);
-      setLoanRepaymentAmount("");
+      setLoanRepaymentAmount("__reset__");
     }
   }, [open, defaultPoolId]);
 
