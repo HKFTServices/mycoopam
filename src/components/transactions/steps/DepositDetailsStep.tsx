@@ -230,7 +230,7 @@ const DepositDetailsStep = ({
           <Input
             type="text"
             inputMode="decimal"
-            placeholder={Number(loanInstalment).toFixed(2)}
+            placeholder={formatCurrency(loanInstalment)}
             value={loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : ""}
             onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/\s/g, ""))}
             className="text-lg font-bold h-10"
