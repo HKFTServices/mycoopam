@@ -103,6 +103,7 @@ const ReviewStep = ({
   transferGrossRedemption = 0, transferFeeUnitsRedeemed = 0, transferUnitPriceSell = 0,
   transferFeeBreakdown = [], transferTotalFee = 0,
   withdrawalSummaries = [],
+  loanRepaymentAmount = 0,
 }: ReviewStepProps) => {
 
   return (
