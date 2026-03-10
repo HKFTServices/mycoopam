@@ -70,6 +70,7 @@ const Memberships = () => {
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [loanEntityId, setLoanEntityId] = useState<string | null>(null);
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
+  const [txnDefaultAccountId, setTxnDefaultAccountId] = useState<string | undefined>(undefined);
   const [referrerDialogEntity, setReferrerDialogEntity] = useState<{ id: string; name: string } | null>(null);
   const [loanApplyEntity, setLoanApplyEntity] = useState<{ entityAccountId: string; entityId: string; entityName: string } | null>(null);
   const queryClient = useQueryClient();
@@ -714,7 +715,11 @@ const Memberships = () => {
                                 )}
                                 {g.accounts.some(a => a.status === "active" || a.status === "approved") && (
                                   <>
-                                    <DropdownMenuItem onClick={() => setTxnDialogOpen(true)}>
+                                    <DropdownMenuItem onClick={() => {
+                                      const activeAcct = g.accounts.find(a => a.status === "active" || a.status === "approved");
+                                      setTxnDefaultAccountId(activeAcct?.id);
+                                      setTxnDialogOpen(true);
+                                    }}>
                                       <ArrowLeftRight className="h-4 w-4 mr-2" />
                                       New Transaction
                                     </DropdownMenuItem>
@@ -825,7 +830,7 @@ const Memberships = () => {
         totalOutstanding={loanEntityId ? (entityLoanMap[loanEntityId] || 0) : totalLoansOutstanding}
       />
 
-      <NewTransactionDialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen} />
+      <NewTransactionDialog open={txnDialogOpen} onOpenChange={(v) => { setTxnDialogOpen(v); if (!v) setTxnDefaultAccountId(undefined); }} defaultAccountId={txnDefaultAccountId} />
 
       <ApplyReferrerDialog
         open={!!referrerDialogEntity}

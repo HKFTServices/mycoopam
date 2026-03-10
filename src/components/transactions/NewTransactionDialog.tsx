@@ -55,11 +55,12 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultPoolId?: string;
+  defaultAccountId?: string;
   depositOnly?: boolean;
   stockOnly?: boolean;
 }
 
-const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: Props) => {
+const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccountId, stockOnly }: Props) => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -96,8 +97,8 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: 
 
   useEffect(() => {
     if (open) {
-      setStep("account");
-      setSelectedAccountId("");
+      setStep(defaultAccountId ? "type" : "account");
+      setSelectedAccountId(defaultAccountId || "");
       setSelectedTxnTypeId("");
       setSelectedPoolId(defaultPoolId || "");
       setPoolSplits([]);
