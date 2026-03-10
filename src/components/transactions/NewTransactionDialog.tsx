@@ -60,7 +60,7 @@ interface Props {
   stockOnly?: boolean;
 }
 
-const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, stockOnly }: Props) => {
+const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccountId, stockOnly }: Props) => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
