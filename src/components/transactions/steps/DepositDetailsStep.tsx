@@ -232,7 +232,7 @@ const DepositDetailsStep = ({
             inputMode="decimal"
             placeholder={formatCurrency(loanInstalment)}
             value={loanRepaymentAmount > 0 ? formatCurrency(loanRepaymentAmount) : ""}
-            onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/\s/g, ""))}
+            onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/[^\d.]/g, ""))}
             className="text-lg font-bold h-10"
           />
           {loanRepaymentAmount > outstandingLoanBalance && outstandingLoanBalance > 0 && (
