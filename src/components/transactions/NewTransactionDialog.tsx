@@ -1606,7 +1606,14 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
               loanRepaymentOnly={loanRepaymentOnly}
               onLoanRepaymentOnlyChange={(val) => {
                 setLoanRepaymentOnly(val);
-                if (val) setPoolSplits([]);
+                if (val) {
+                  setPoolSplits([]);
+                  // Auto-fill gross deposit with loan repayment amount
+                  const repayment = parseFloat(loanRepaymentAmount) || 0;
+                  if (repayment > 0) {
+                    setAmount(String(repayment));
+                  }
+                }
               }}
             />
           )}
