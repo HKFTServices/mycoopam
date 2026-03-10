@@ -86,6 +86,7 @@ interface ReviewStepProps {
   transferTotalFee?: number;
   // withdrawal multi-pool
   withdrawalSummaries?: WithdrawalPoolSummaryReview[];
+  loanRepaymentAmount?: number;
 }
 
 const ReviewStep = ({
