@@ -329,8 +329,17 @@ const ReviewStep = ({
             <div className="space-y-2">
               <div className="flex justify-between text-sm font-bold">
                 <span>Gross Amount</span>
-                <span className="text-lg">{formatCurrency(amountNum)}</span>
+               <span className="text-lg">{formatCurrency(amountNum)}</span>
               </div>
+
+              {loanRepaymentAmount > 0 && (
+                <div className="flex justify-between text-sm text-amber-700 dark:text-amber-400">
+                  <span className="flex items-center gap-1">
+                    <Minus className="h-3 w-3" /> Loan Repayment
+                  </span>
+                  <span>- {formatCurrency(loanRepaymentAmount)}</span>
+                </div>
+              )}
 
               {joinShareInfo.needed && (
                 <div className="rounded-lg bg-warning/5 border border-warning/20 p-2.5 space-y-1.5">
