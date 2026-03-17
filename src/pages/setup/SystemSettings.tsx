@@ -81,6 +81,16 @@ const SystemSettings = () => {
       setClearProgress([...steps]);
 
       await run("admin_stock_transactions");
+
+      // Delete loan applications by created_at
+      const { error: loanErr } = await (supabase as any)
+        .from("loan_applications")
+        .delete()
+        .gte("created_at", cutoff.toISOString());
+      if (loanErr) throw new Error(`loan_applications: ${loanErr.message}`);
+      steps.push("✓ loan_applications");
+      setClearProgress([...steps]);
+
       await run("operating_journals");
       await run("unit_transactions");
       await run("member_shares");
