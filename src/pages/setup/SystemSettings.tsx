@@ -26,6 +26,7 @@ const TABLES_TO_CLEAR = [
   { key: "commissions", label: "Commissions", note: "cleared first (FK)" },
   { key: "admin_stock_transaction_lines", label: "Admin Stock Lines", note: "FK to admin_stock_transactions" },
   { key: "admin_stock_transactions", label: "Admin Stock Transactions", note: "" },
+  { key: "loan_applications", label: "Loan Applications", note: "" },
   { key: "operating_journals", label: "Operating Journals (BK)", note: "" },
   { key: "unit_transactions", label: "Unit Transactions (UT)", note: "" },
   { key: "member_shares", label: "Member Shares", note: "" },
@@ -80,6 +81,16 @@ const SystemSettings = () => {
       setClearProgress([...steps]);
 
       await run("admin_stock_transactions");
+
+      // Delete loan applications by created_at
+      const { error: loanErr } = await (supabase as any)
+        .from("loan_applications")
+        .delete()
+        .gte("created_at", cutoff.toISOString());
+      if (loanErr) throw new Error(`loan_applications: ${loanErr.message}`);
+      steps.push("✓ loan_applications");
+      setClearProgress([...steps]);
+
       await run("operating_journals");
       await run("unit_transactions");
       await run("member_shares");
