@@ -132,8 +132,7 @@ export function generateMemberStatement(data: StatementData): string {
     const credit = Number(tx.credit || 0);
     return `<tr>
       <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.entry_type || ""}</td>
-      <td>${tx.description || ""}</td>
+      <td>${tx.description || tx.entry_type || ""}</td>
       <td>${tx.pool_name || ""}</td>
       <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
       <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
@@ -337,7 +336,6 @@ export function generateMemberStatement(data: StatementData): string {
       <tr>
         <th>Date</th>
         <th>Type</th>
-        <th>Description</th>
         <th>Pool</th>
         <th class="num">Debit</th>
         <th class="num">Credit</th>
@@ -346,7 +344,7 @@ export function generateMemberStatement(data: StatementData): string {
     <tbody>
       ${cashRows}
       <tr class="total">
-        <td colspan="4">Total</td>
+        <td colspan="3">Total</td>
         <td class="num">${fmtNum(cashDebitTotal, sym)}</td>
         <td class="num">${fmtNum(cashCreditTotal, sym)}</td>
       </tr>
