@@ -771,10 +771,14 @@ export default function SendMessage() {
                 <div className="border rounded-md p-1">
                   <div className="bg-muted/30 px-3 py-2 border-b">
                     <p className="text-xs text-muted-foreground">Subject</p>
-                    <p className="text-sm font-medium">{selectedTemplate.subject}</p>
+                    <p className="text-sm font-medium">{previewSubject || selectedTemplate.subject}</p>
+                  </div>
+                  <div className="bg-muted/30 px-3 py-2 border-b">
+                    <p className="text-xs text-muted-foreground">To</p>
+                    <p className="text-sm">{firstRecipient ? `${firstRecipient.name} <${firstRecipient.email}>` : "—"}</p>
                   </div>
                   <div
-                    className="p-3 text-sm max-h-80 overflow-y-auto prose prose-sm max-w-none"
+                    className="p-4 text-sm prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
                 </div>
