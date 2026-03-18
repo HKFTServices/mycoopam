@@ -19,16 +19,31 @@ import PoolUnitPrices from "@/components/pools/PoolUnitPrices";
 import PoolItemsPrices from "@/components/pools/PoolItemsPrices";
 import PoolTermsConditions from "@/components/pools/PoolTermsConditions";
 
-const COLORS = [
-  "hsl(152, 68%, 36%)",
+const FALLBACK_COLORS = [
   "hsl(200, 70%, 50%)",
-  "hsl(45, 85%, 55%)",
+  "hsl(152, 68%, 36%)",
   "hsl(280, 60%, 55%)",
   "hsl(350, 65%, 55%)",
   "hsl(170, 55%, 45%)",
   "hsl(25, 75%, 55%)",
   "hsl(220, 65%, 55%)",
 ];
+
+const POOL_COLOR_MAP: Record<string, string> = {
+  gold: "hsl(43, 80%, 50%)",
+  silver: "hsl(210, 10%, 70%)",
+  member: "hsl(152, 68%, 36%)",
+  reserve: "hsl(200, 70%, 50%)",
+  admin: "hsl(280, 60%, 55%)",
+};
+
+const getPoolColor = (poolName: string, idx: number): string => {
+  const lower = poolName.toLowerCase();
+  for (const [key, color] of Object.entries(POOL_COLOR_MAP)) {
+    if (lower.includes(key)) return color;
+  }
+  return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+};
 
 const EntityPoolDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
