@@ -46,6 +46,7 @@ import OperatingJournals from "./pages/OperatingJournals";
 import LedgerEntries from "./pages/LedgerEntries";
 import GLAccounts from "./pages/setup/GLAccounts";
 import Permissions from "./pages/setup/Permissions";
+import ApiProviders from "./pages/setup/ApiProviders";
 import DailyStockPrices from "./pages/DailyStockPrices";
 import DailyPoolPrices from "./pages/DailyPoolPrices";
 import EntityPoolDetails from "./pages/EntityPoolDetails";
