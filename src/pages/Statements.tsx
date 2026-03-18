@@ -130,6 +130,11 @@ export default function Statements() {
   const [specificMemberId, setSpecificMemberId] = useState("");
   const [valuationDate, setValuationDate] = useState(() => new Date().toISOString().split("T")[0]);
 
+  // Email delivery options (admin only)
+  const [ccAdmin, setCcAdmin] = useState(false);
+  const [emailDelivery, setEmailDelivery] = useState<"members" | "single">("members");
+  const [singleEmailAddress, setSingleEmailAddress] = useState("");
+
   // Target entities (built from audience for admin, or from linked entities for member)
   const [targetEntities, setTargetEntities] = useState<TargetEntity[]>([]);
   const [recipientSearch, setRecipientSearch] = useState("");
