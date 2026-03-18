@@ -371,13 +371,22 @@ const TransactionReviewDialog = ({
       {renderPoolAllocations()}
       {renderDateChangeNote()}
       {renderPOP()}
-      {/* Funds Confirmation */}
-      <div className="flex items-center gap-2 py-1">
-        <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
-        <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
-          I confirm the funds have been received and verified in the bank account.
-        </label>
-      </div>
+      {/* Funds Confirmation — not needed for debit order deposits */}
+      {isDebitOrderDeposit ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-2">
+          <Banknote className="h-4 w-4 text-primary shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            This is a <strong>debit order</strong> deposit. No bank confirmation is required — approve the application and load the debit order mandate.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 py-1">
+          <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
+          <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
+            I confirm the funds have been received and verified in the bank account.
+          </label>
+        </div>
+      )}
     </>
   );
 
