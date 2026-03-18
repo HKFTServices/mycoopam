@@ -119,7 +119,7 @@ export function generateMemberStatement(data: StatementData): string {
     </tr>`;
   }).join("");
 
-  // Cash flow section
+  // Cash flow section (already normalized with pool_name field from dialog)
   const cashRows = data.cashflowTransactions.map((tx: any) => {
     const debit = Number(tx.debit || 0);
     const credit = Number(tx.credit || 0);
@@ -127,7 +127,7 @@ export function generateMemberStatement(data: StatementData): string {
       <td>${fmtDate(tx.transaction_date)}</td>
       <td>${tx.entry_type || ""}</td>
       <td>${tx.description || ""}</td>
-      <td>${tx.pools?.name || ""}</td>
+      <td>${tx.pool_name || ""}</td>
       <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
       <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
     </tr>`;
