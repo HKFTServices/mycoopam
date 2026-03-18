@@ -196,9 +196,14 @@ const DebitOrders = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => setViewOrder(d)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setViewOrder(d)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setEditOrder(d)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
