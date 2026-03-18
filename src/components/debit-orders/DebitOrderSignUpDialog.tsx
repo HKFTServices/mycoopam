@@ -47,9 +47,15 @@ const DebitOrderSignUpDialog = ({
 
   const [step, setStep] = useState<Step>("details");
   const [monthlyAmount, setMonthlyAmount] = useState("");
-  const [debitDay, setDebitDay] = useState("1");
+  const debitDay = "1";
   const [frequency, setFrequency] = useState("monthly");
-  const [startDate, setStartDate] = useState(formatLocalDate());
+  // Default to 1st of upcoming month
+  const getFirstOfNextMonth = () => {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return formatLocalDate(next);
+  };
+  const [startDate, setStartDate] = useState(getFirstOfNextMonth());
   const [allocations, setAllocations] = useState<PoolAllocation[]>([]);
   const [notes, setNotes] = useState("");
 
@@ -378,9 +384,8 @@ const DebitOrderSignUpDialog = ({
   const resetForm = () => {
     setStep("details");
     setMonthlyAmount("");
-    setDebitDay("1");
     setFrequency("monthly");
-    setStartDate(formatLocalDate());
+    setStartDate(getFirstOfNextMonth());
     setAllocations([]);
     setSignatureData(null);
     setNotes("");
@@ -428,14 +433,7 @@ const DebitOrderSignUpDialog = ({
                 </div>
                 <div>
                   <Label>Debit Day</Label>
-                  <Select value={debitDay} onValueChange={setDebitDay}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 28 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input value="1st" disabled className="bg-muted" />
                 </div>
                 <div>
                   <Label>Frequency</Label>
@@ -449,8 +447,8 @@ const DebitOrderSignUpDialog = ({
                   </Select>
                 </div>
                 <div>
-                  <Label>Start Date</Label>
-                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <Label>Start Date (1st of month)</Label>
+                  <Input type="month" value={startDate.substring(0, 7)} onChange={(e) => setStartDate(e.target.value + "-01")} min={getFirstOfNextMonth().substring(0, 7)} />
                 </div>
               </div>
             </div>
