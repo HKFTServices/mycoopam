@@ -111,9 +111,9 @@ export default function MemberStatementDialog({
         // Loan outstanding
         (supabase as any).rpc("get_loan_outstanding", { p_tenant_id: tenantId }),
         // Pool prices at start of period (nearest before fromStr)
-        (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
+        (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
         // Pool prices at end of period (nearest before toStr)
-        (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
+        (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
         // Legacy cashflow transactions
         (supabase as any).rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: entityId, p_from_date: fromStr, p_to_date: toStr }),
       ]);
@@ -161,6 +161,41 @@ export default function MemberStatementDialog({
         }
         return map;
       };
+
+      // Build list of exposed pool IDs from closing prices
+      const dedupEnd = dedup(poolPricesEndRes.data);
+      const exposedPoolIds = Object.keys(dedupEnd).filter(pid => {
+        const dt = dedupEnd[pid]?.pools?.pool_statement_display_type;
+        return dt !== "do_not_display";
+      });
+
+      // Fetch unit prices, stock item prices, and T&C in parallel
+      const [itemsRes, stockPricesRes, termsRes] = await Promise.all([
+        exposedPoolIds.length > 0
+          ? (supabase as any).from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds).order("description")
+          : Promise.resolve({ data: [] }),
+        (supabase as any).from("daily_stock_prices").select("item_id, cost_incl_vat, price_date").eq("tenant_id", tenantId).eq("price_date", toStr).order("price_date", { ascending: false }),
+        (supabase as any).from("terms_conditions").select("content").eq("tenant_id", tenantId).eq("condition_type", "pool").eq("is_active", true).eq("language_code", "en").order("effective_from", { ascending: false }).limit(1),
+      ]);
+
+      // Pool unit prices
+      const poolUnitPrices = exposedPoolIds.map(pid => {
+        const pp = dedupEnd[pid];
+        return { poolName: pp?.pools?.name || "Unknown", sellPrice: Number(pp?.unit_price_sell || 0) };
+      }).filter(p => p.sellPrice > 0);
+
+      // Stock item prices
+      const stockPriceMap: Record<string, number> = {};
+      for (const sp of (stockPricesRes.data ?? [])) {
+        stockPriceMap[sp.item_id] = Number(sp.cost_incl_vat);
+      }
+      const stockItemPrices = (itemsRes.data ?? []).map((item: any) => ({
+        description: item.description,
+        price: stockPriceMap[item.id] ?? null,
+      }));
+
+      // T&C
+      const termsConditionsHtml = termsRes.data?.[0]?.content || "";
 
       // Filter out zero-value unit transactions
       const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => {
