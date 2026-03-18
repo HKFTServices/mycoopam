@@ -459,14 +459,13 @@ const AdminStockReviewDialog = ({
     return (
       <div className="space-y-3">
         <div className="text-sm font-medium">{currentStep.description}</div>
-        <div className="flex items-start gap-2 rounded-lg border-2 border-primary/20 bg-primary/5 p-3">
+        <div className="flex items-center gap-2 py-1">
           <Checkbox
             id={`step_confirm_${currentStep.id}`}
             checked={stepConfirmed}
             onCheckedChange={(v) => setStepConfirmed(!!v)}
-            className="mt-0.5"
           />
-          <label htmlFor={`step_confirm_${currentStep.id}`} className="text-xs font-medium cursor-pointer">
+          <label htmlFor={`step_confirm_${currentStep.id}`} className="text-xs text-muted-foreground cursor-pointer select-none">
             {confirmLabel}
           </label>
         </div>

@@ -227,27 +227,15 @@ const WithdrawalReviewDialog = ({
                 )}
               </div>
 
-              <div
-                className={`rounded-xl border-2 p-4 flex items-start gap-3 cursor-pointer transition-colors ${
-                  payoutConfirmed ? "border-primary bg-primary/5" : "border-border bg-muted/20"
-                }`}
-                onClick={() => setPayoutConfirmed((v) => !v)}
-              >
+              <div className="flex items-center gap-2 py-1">
                 <Checkbox
                   id="payout-confirmed"
                   checked={payoutConfirmed}
                   onCheckedChange={(v) => setPayoutConfirmed(!!v)}
-                  className="mt-0.5"
                 />
-                <div className="space-y-0.5">
-                  <label htmlFor="payout-confirmed" className="text-sm font-semibold flex items-center gap-1.5 cursor-pointer">
-                    <Banknote className="h-4 w-4 text-primary" />
-                    Confirm Payout Sent to Member
-                  </label>
-                  <p className="text-[11px] text-muted-foreground">
-                    I confirm that the net payout of <strong>{fmt(totalNet)}</strong> has been transferred to the member's bank account. This will post the financial ledger entries.
-                  </p>
-                </div>
+                <label htmlFor="payout-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
+                  I confirm the net payout of <strong>{fmt(totalNet)}</strong> has been transferred to the member's bank account.
+                </label>
               </div>
             </>
           )}
