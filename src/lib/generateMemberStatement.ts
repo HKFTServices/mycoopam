@@ -82,12 +82,19 @@ export function generateMemberStatement(data: StatementData): string {
     poolSummary[poolId].closePrice = Number(priceInfo?.unit_price_sell || 0);
   }
 
-  const openTotal = Object.values(poolSummary).reduce((s, p) => s + p.openUnits * p.openPrice, 0);
-  const closeTotal = Object.values(poolSummary).reduce((s, p) => s + p.closeUnits * p.closePrice, 0);
+  // Filter out pools with no values
+  const activePools = Object.entries(poolSummary).filter(([, p]) => {
+    const openVal = Math.abs(p.openUnits * p.openPrice);
+    const closeVal = Math.abs(p.closeUnits * p.closePrice);
+    return openVal > 0.001 || closeVal > 0.001;
+  });
+
+  const openTotal = activePools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
+  const closeTotal = activePools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
   const changeTotal = closeTotal - openTotal;
 
   // Build sections HTML
-  const summaryRows = Object.entries(poolSummary).map(([, p]) => {
+  const summaryRows = activePools.map(([, p]) => {
     const openVal = p.openUnits * p.openPrice;
     const closeVal = p.closeUnits * p.closePrice;
     const change = closeVal - openVal;
