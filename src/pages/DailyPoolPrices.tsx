@@ -187,11 +187,11 @@ const DailyPoolPrices = () => {
 
   // Fetch total units per pool via server-side aggregation (avoids row limits)
   const { data: unitsByPool = {} } = useQuery({
-    queryKey: ["pool_units", currentTenant?.id],
+    queryKey: ["pool_units", currentTenant?.id, dateStr],
     queryFn: async () => {
       if (!currentTenant) return {};
       const { data, error } = await (supabase as any)
-        .rpc("get_pool_units", { p_tenant_id: currentTenant.id });
+        .rpc("get_pool_units", { p_tenant_id: currentTenant.id, p_up_to_date: dateStr });
       if (error) throw error;
 
       const units: Record<string, number> = {};
