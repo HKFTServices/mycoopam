@@ -176,7 +176,7 @@ const DebitOrderSignUpDialog = ({
   });
 
   // Auto-fill bank details when data loads
-  useState(() => {
+  useEffect(() => {
     if (existingBank) {
       setBankName(existingBank.banks?.name ?? "");
       setBranchCode(existingBank.banks?.branch_code ?? "");
@@ -184,12 +184,11 @@ const DebitOrderSignUpDialog = ({
       setBankAccountNumber(existingBank.account_number ?? "");
       setBankAccountType(existingBank.bank_account_types?.name?.toLowerCase() ?? "savings");
     }
-  });
+  }, [existingBank]);
 
   // Initialize allocations when pools load
-  useMemo(() => {
+  useEffect(() => {
     if (pools.length > 0 && allocations.length === 0) {
-      const amt = parseFloat(monthlyAmount) || 0;
       const equalPct = pools.length > 0 ? Math.floor(100 / pools.length) : 100;
       setAllocations(pools.map((p: any, i: number) => ({
         poolId: p.id,
