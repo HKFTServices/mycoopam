@@ -349,8 +349,8 @@ const EntityPoolDetails = () => {
                     )}
                     labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                   >
-                    {pieData.map((_, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                    {pieData.map((entry, idx) => (
+                      <Cell key={idx} fill={getPoolColor(entry.name, idx)} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value, sym)} />
