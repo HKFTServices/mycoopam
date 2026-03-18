@@ -367,7 +367,7 @@ const EntityPoolDetails = () => {
       ) : poolData.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No pool holdings found for this entity.
+            {t(lang, "noHoldings")}
           </CardContent>
         </Card>
       ) : (
