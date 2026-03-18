@@ -567,6 +567,7 @@ export default function Statements() {
       console.error("Email CGT error:", err);
       toast({ title: "Error", description: err.message || "Failed to email CGT certificate", variant: "destructive" });
     } finally { setEmailing(false); }
+  };
 
   const handleViewStatement = async () => {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
