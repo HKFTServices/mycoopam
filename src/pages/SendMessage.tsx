@@ -383,6 +383,11 @@ export default function SendMessage() {
 
   // Template preview with full merge data from first recipient
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
+  const templateHasAgmFields = useMemo(() => {
+    if (!selectedTemplate) return false;
+    const combined = (selectedTemplate.subject || "") + (selectedTemplate.body_html || "");
+    return combined.includes("{{agm_venue}}") || combined.includes("{{agm_date}}") || combined.includes("{{agm_time}}");
+  }, [selectedTemplate]);
   const firstRecipient = recipients.find((r) => r.selected);
 
   // Resolve full merge data for preview
