@@ -44,14 +44,17 @@ type StockItemDetail = {
   quantity: number;
   costPrice: number;
   buyPrice: number;
+  sellPrice: number;
   totalCost: number;
   totalBuy: number;
+  totalSell: number;
 };
 
 type PoolRow = {
   pool: Pool;
   totalStockCost: number;
   totalStockBuy: number;
+  totalStockSell: number;
   cashControl: number;
   vatControl: number;
   loanControl: number;
@@ -137,14 +140,14 @@ const DailyPoolPrices = () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("items")
-        .select("id, pool_id, item_code, description")
+        .select("id, pool_id, item_code, description, sell_margin_percentage")
         .eq("tenant_id", currentTenant.id)
         .eq("is_deleted", false)
         .eq("is_active", true)
         .eq("is_stock_item", true)
         .order("item_code");
       if (error) throw error;
-      return data as { id: string; pool_id: string; item_code: string; description: string }[];
+      return data as { id: string; pool_id: string; item_code: string; description: string; sell_margin_percentage: number }[];
     },
     enabled: !!currentTenant,
   });
@@ -231,10 +234,10 @@ const DailyPoolPrices = () => {
   // Build pool rows - use saved data when available, otherwise calculate live
   const poolRows: PoolRow[] = useMemo(() => {
     const itemPoolMap: Record<string, string> = {};
-    const itemDetailsMap: Record<string, { item_code: string; description: string }> = {};
+    const itemDetailsMap: Record<string, { item_code: string; description: string; sell_margin_percentage: number }> = {};
     items.forEach((i) => {
       itemPoolMap[i.id] = i.pool_id;
-      itemDetailsMap[i.id] = { item_code: i.item_code, description: i.description };
+      itemDetailsMap[i.id] = { item_code: i.item_code, description: i.description, sell_margin_percentage: i.sell_margin_percentage ?? 0 };
     });
 
     // Build stock price lookup
@@ -256,9 +259,10 @@ const DailyPoolPrices = () => {
     return pools.map((pool) => {
       const poolItemIds = itemsByPool[pool.id] || [];
       const stockItems: StockItemDetail[] = poolItemIds.map((itemId) => {
-        const details = itemDetailsMap[itemId] || { item_code: "?", description: "?" };
+        const details = itemDetailsMap[itemId] || { item_code: "?", description: "?", sell_margin_percentage: 0 };
         const prices = stockPriceMap[itemId] || { cost: 0, buy: 0 };
         const quantity = qtys[itemId] || 0;
+        const sellPrice = prices.cost * (1 - details.sell_margin_percentage / 100);
         return {
           itemId,
           itemCode: details.item_code,
@@ -266,8 +270,10 @@ const DailyPoolPrices = () => {
           quantity,
           costPrice: prices.cost,
           buyPrice: prices.buy,
+          sellPrice,
           totalCost: prices.cost * quantity,
           totalBuy: prices.buy * quantity,
+          totalSell: sellPrice * quantity,
         };
       });
 
@@ -279,12 +285,11 @@ const DailyPoolPrices = () => {
       // If saved data exists for this pool+date, use saved stock/unit values but live control balances
       const saved = existingMap[pool.id];
       if (saved) {
-        // Always recalculate units and stock from live data (not stored values)
-        // to account for corrections that may have been made
         const totalStockCost = stockItems.reduce((s, i) => s + i.totalCost, 0);
         const totalStockBuy = stockItems.reduce((s, i) => s + i.totalBuy, 0);
+        const totalStockSell = stockItems.reduce((s, i) => s + i.totalSell, 0);
         const totalUnits = (unitsByPool as Record<string, number>)[pool.id] || 0;
-        const memberInterestSell = totalStockCost + cashControl + vatControl + loanControl;
+        const memberInterestSell = totalStockSell + cashControl + vatControl + loanControl;
         const memberInterestBuy = totalStockBuy + cashControl + vatControl + loanControl;
         const isFixedPrice = pool.fixed_unit_price != null && pool.fixed_unit_price > 0;
         const unitPriceSell = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestSell / totalUnits : 0);
@@ -293,6 +298,7 @@ const DailyPoolPrices = () => {
           pool,
           totalStockCost,
           totalStockBuy,
+          totalStockSell,
           cashControl,
           vatControl,
           loanControl,
@@ -305,10 +311,10 @@ const DailyPoolPrices = () => {
         };
       }
 
-      // Otherwise calculate everything live
       const totalStockCost = stockItems.reduce((s, i) => s + i.totalCost, 0);
       const totalStockBuy = stockItems.reduce((s, i) => s + i.totalBuy, 0);
-      const memberInterestSell = totalStockCost + cashControl + vatControl + loanControl;
+      const totalStockSell = stockItems.reduce((s, i) => s + i.totalSell, 0);
+      const memberInterestSell = totalStockSell + cashControl + vatControl + loanControl;
       const memberInterestBuy = totalStockBuy + cashControl + vatControl + loanControl;
       const totalUnits = (unitsByPool as Record<string, number>)[pool.id] || 0;
       const isFixedPrice = pool.fixed_unit_price != null && pool.fixed_unit_price > 0;
@@ -319,6 +325,7 @@ const DailyPoolPrices = () => {
         pool,
         totalStockCost,
         totalStockBuy,
+        totalStockSell,
         cashControl,
         vatControl,
         loanControl,
@@ -496,7 +503,7 @@ const DailyPoolPrices = () => {
                           <Badge variant="outline" className="text-xs">Sell</Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {formatCurrency(row.totalStockCost, sym)}
+                          {formatCurrency(row.totalStockSell, sym)}
                         </TableCell>
                         <TableCell className="text-right font-mono" rowSpan={2}>
                           {formatCurrency(row.cashControl, sym)}
@@ -552,9 +559,10 @@ const DailyPoolPrices = () => {
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Qty</TableCell>
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Cost Price</TableCell>
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Buy Price</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Cost</TableCell>
+                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Sell Price</TableCell>
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Buy</TableCell>
-                            <TableCell colSpan={3} />
+                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Sell</TableCell>
+                            <TableCell colSpan={2} />
                           </TableRow>
                           {row.stockItems.map((si) => (
                             <TableRow key={si.itemId} className="bg-muted/20">
@@ -563,9 +571,10 @@ const DailyPoolPrices = () => {
                               <TableCell className="text-right font-mono text-xs">{si.quantity.toFixed(4)}</TableCell>
                               <TableCell className="text-right font-mono text-xs">{formatCurrency(si.costPrice, sym)}</TableCell>
                               <TableCell className="text-right font-mono text-xs">{formatCurrency(si.buyPrice, sym)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalCost, sym)}</TableCell>
+                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.sellPrice, sym)}</TableCell>
                               <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalBuy, sym)}</TableCell>
-                              <TableCell colSpan={3} />
+                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalSell, sym)}</TableCell>
+                              <TableCell colSpan={2} />
                             </TableRow>
                           ))}
                           <TableRow className="bg-muted/30 border-b-2">
@@ -574,9 +583,10 @@ const DailyPoolPrices = () => {
                               {row.stockItems.reduce((s, i) => s + i.quantity, 0).toFixed(4)}
                             </TableCell>
                             <TableCell colSpan={2} />
-                            <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockCost, sym)}</TableCell>
+                            <TableCell />
                             <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockBuy, sym)}</TableCell>
-                            <TableCell colSpan={3} />
+                            <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockSell, sym)}</TableCell>
+                            <TableCell colSpan={2} />
                           </TableRow>
                         </>
                       )}
