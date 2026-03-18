@@ -442,10 +442,10 @@ const EntityPoolDetails = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Pool</TableHead>
-                  <TableHead className="text-right">Units</TableHead>
-                  <TableHead className="text-right">Unit Price</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
+                  <TableHead>{t(lang, "pool")}</TableHead>
+                  <TableHead className="text-right">{t(lang, "units")}</TableHead>
+                  <TableHead className="text-right">{t(lang, "unitPrice")}</TableHead>
+                  <TableHead className="text-right">{t(lang, "value")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
