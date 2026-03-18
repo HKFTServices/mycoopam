@@ -28,6 +28,7 @@ type Item = {
   item_code: string;
   description: string;
   margin_percentage: number;
+  sell_margin_percentage: number;
   use_fixed_price: number | null;
   calculate_price_with_item_id: string | null;
   calculation_type: string | null;
@@ -55,6 +56,7 @@ const defaultForm = {
   item_code: "",
   description: "",
   margin_percentage: 0,
+  sell_margin_percentage: 0,
   use_fixed_price: "" as string,
   calculate_price_with_item_id: "",
   calculation_type: "",
@@ -142,6 +144,7 @@ const Items = () => {
         item_code: values.item_code,
         description: values.description,
         margin_percentage: values.margin_percentage,
+        sell_margin_percentage: values.sell_margin_percentage,
         use_fixed_price: values.use_fixed_price !== "" ? parseFloat(values.use_fixed_price) : null,
         calculate_price_with_item_id: values.calculate_price_with_item_id === "__none__" ? null : (values.calculate_price_with_item_id || null),
         calculation_type: values.calculation_type || null,
@@ -197,6 +200,7 @@ const Items = () => {
       item_code: item.item_code,
       description: item.description,
       margin_percentage: item.margin_percentage,
+      sell_margin_percentage: (item as any).sell_margin_percentage ?? 0,
       use_fixed_price: item.use_fixed_price != null ? String(item.use_fixed_price) : "",
       calculate_price_with_item_id: item.calculate_price_with_item_id ?? "",
       calculation_type: item.calculation_type ?? "",
@@ -278,7 +282,8 @@ const Items = () => {
                 <TableHead>Description</TableHead>
                 <TableHead>Pool</TableHead>
                 <TableHead>Tax Type</TableHead>
-                <TableHead>Margin %</TableHead>
+                <TableHead>Buy Margin %</TableHead>
+                <TableHead>Sell Margin %</TableHead>
                 <TableHead>Fixed Price</TableHead>
                 <TableHead>API Provider</TableHead>
                 <TableHead>API Code</TableHead>
@@ -294,9 +299,9 @@ const Items = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">No items found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">No items found.</TableCell></TableRow>
               ) : (
                 filtered.map((item) => {
                   const taxType = taxTypes.find((t) => t.id === item.tax_type_id);
@@ -317,6 +322,7 @@ const Items = () => {
                       </TableCell>
                       <TableCell className="text-xs">{taxType ? `${taxType.name} (${taxType.percentage}%)` : "—"}</TableCell>
                       <TableCell>{item.margin_percentage}%</TableCell>
+                      <TableCell>{(item as any).sell_margin_percentage ?? 0}%</TableCell>
                       <TableCell>{item.use_fixed_price != null ? item.use_fixed_price.toFixed(2) : "—"}</TableCell>
                       <TableCell className="text-xs">{item.api_provider_id ? providerMap[item.api_provider_id] ?? "—" : "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{item.api_code ?? "—"}</TableCell>
@@ -394,10 +400,14 @@ const Items = () => {
             </div>
 
             {/* Margin, Tax */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Margin % (for Buy Price)</Label>
+                <Label>Buy Margin %</Label>
                 <Input type="number" step="0.01" value={form.margin_percentage} onChange={(e) => setForm({ ...form, margin_percentage: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Sell Margin %</Label>
+                <Input type="number" step="0.01" value={(form as any).sell_margin_percentage} onChange={(e) => setForm({ ...form, sell_margin_percentage: parseFloat(e.target.value) || 0 })} />
               </div>
               <div className="space-y-2">
                 <Label>Tax Type</Label>
