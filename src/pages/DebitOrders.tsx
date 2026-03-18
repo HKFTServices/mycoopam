@@ -315,6 +315,19 @@ const DebitOrders = () => {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Edit dialog */}
+      {editOrder && (
+        <DebitOrderSignUpDialog
+          open={!!editOrder}
+          onOpenChange={(o) => { if (!o) setEditOrder(null); }}
+          entityId={editOrder.entity_id}
+          entityName={[editOrder.entities?.name, editOrder.entities?.last_name].filter(Boolean).join(" ")}
+          entityAccountId={editOrder.entity_account_id}
+          accountNumber={editOrder.entity_accounts?.account_number}
+          existingOrder={editOrder}
+        />
+      )}
     </div>
   );
 };
