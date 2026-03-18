@@ -71,6 +71,7 @@ export default function MemberStatementDialog({
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [loading, setLoading] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const dates = preset === "custom"
     ? { from: customFrom ?? new Date(), to: customTo ?? new Date() }
