@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
 
     // ── TEST EMAIL ──
     if (action === "test") {
-      const { test_user_id } = body;
+      const { test_user_id, custom_fields } = body;
+      const cf = custom_fields || {};
       const { data: profile } = await adminClient
         .from("profiles")
         .select("first_name, last_name, email, language_code")
