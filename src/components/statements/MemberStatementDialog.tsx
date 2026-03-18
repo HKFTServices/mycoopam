@@ -266,7 +266,10 @@ export default function MemberStatementDialog({
         openingUnits,
         closingUnits,
         poolPricesStart: dedup(poolPricesStartRes.data),
-        poolPricesEnd: dedup(poolPricesEndRes.data),
+        poolPricesEnd: dedupEnd,
+        poolUnitPrices,
+        stockItemPrices,
+        termsConditionsHtml,
       };
 
       const html = generateMemberStatement(statementData);
