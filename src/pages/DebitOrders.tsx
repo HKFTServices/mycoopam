@@ -32,6 +32,7 @@ const DebitOrders = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [viewOrder, setViewOrder] = useState<any>(null);
+  const [editOrder, setEditOrder] = useState<any>(null);
 
   const { data: userRoles = [] } = useQuery({
     queryKey: ["user_roles_do", user?.id],
