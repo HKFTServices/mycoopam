@@ -553,8 +553,8 @@ const Memberships = () => {
                 <TableHead>Entity Name</TableHead>
                 <TableHead>Relationship</TableHead>
                 <TableHead className="text-right">Combined Unit Value</TableHead>
-                <TableHead className="w-32">Account Type</TableHead>
-                <TableHead className="w-36">Account Number</TableHead>
+                <TableHead className="w-32">Type</TableHead>
+                <TableHead className="w-36">Number</TableHead>
                 <TableHead className="w-28">Status</TableHead>
                 <TableHead className="w-20">Active</TableHead>
                 <TableHead>Referred By</TableHead>
