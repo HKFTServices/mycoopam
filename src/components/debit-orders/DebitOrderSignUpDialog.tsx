@@ -839,7 +839,7 @@ const DebitOrderSignUpDialog = ({
                 onClick={() => submitMutation.mutate()}
               >
                 {submitMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-                Submit Debit Order for Approval
+                {isEditMode ? "Update & Re-submit for Approval" : "Submit Debit Order for Approval"}
               </Button>
             </div>
           </div>
