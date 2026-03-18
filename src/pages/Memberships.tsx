@@ -655,6 +655,15 @@ const Memberships = () => {
                                   <Banknote className="h-4 w-4 mr-2" />
                                   Apply for Loan
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved");
+                                  if (activeAcct) {
+                                    setDebitOrderEntity({ entityId: g.entityId, entityName: g.entityName, entityAccountId: activeAcct.id, accountNumber: activeAcct.accountNumber });
+                                  }
+                                }}>
+                                  <CreditCard className="h-4 w-4 mr-2" />
+                                  Debit Order Sign Up
+                                </DropdownMenuItem>
                               </>
                             )}
                             {g.accounts.length === 0 && (
