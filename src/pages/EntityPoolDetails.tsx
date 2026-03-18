@@ -312,7 +312,7 @@ const EntityPoolDetails = () => {
   const netValue = totalValue - loanOutstanding;
 
   const pieData = summaryPools.map((p) => ({
-    name: p.poolName,
+    name: translatePoolName(p.poolName, lang),
     value: Math.round(p.value * 100) / 100,
   }));
 
