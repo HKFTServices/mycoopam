@@ -122,6 +122,8 @@ const messagesNavItems = [
   { label: "Message History", icon: History, path: "/dashboard/message-history" },
 ];
 
+const statementsNavItem = { label: "Statements", icon: FileText, path: "/dashboard/statements" };
+
 const mamNavItems = [
   { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
   { label: "Assets", icon: Package, path: "/dashboard/mam/assets" },
