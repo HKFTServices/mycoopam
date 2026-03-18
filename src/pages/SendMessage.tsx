@@ -460,6 +460,7 @@ export default function SendMessage() {
           tenant_id: tenantId,
           template_id: templateId,
           test_user_id: user?.id,
+          custom_fields: { agm_venue: agmVenue, agm_date: agmDate, agm_time: agmTime },
         },
       });
       if (error) throw error;
