@@ -551,9 +551,9 @@ const Memberships = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-28">Actions</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">Combined Unit Value</TableHead>
-                <TableHead>Referred By</TableHead>
+                <TableHead className="w-[30%]">Name</TableHead>
+                <TableHead className="text-right w-[18%]">Combined Unit Value</TableHead>
+                <TableHead className="w-[15%]">Referred By</TableHead>
                 <TableHead>Accounts</TableHead>
               </TableRow>
             </TableHeader>
