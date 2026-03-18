@@ -436,6 +436,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </>
             )}
 
+            {/* Statements - available to all users */}
+            {renderNavItem(statementsNavItem)}
+
             {/* Admin-only nav items */}
             {isAdmin && (
               <>
