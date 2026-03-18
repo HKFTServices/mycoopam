@@ -812,6 +812,16 @@ const Memberships = () => {
           entityName={loanApplyEntity.entityName}
         />
       )}
+      {debitOrderEntity && (
+        <DebitOrderSignUpDialog
+          open={!!debitOrderEntity}
+          onOpenChange={(open) => { if (!open) setDebitOrderEntity(null); }}
+          entityId={debitOrderEntity.entityId}
+          entityName={debitOrderEntity.entityName}
+          entityAccountId={debitOrderEntity.entityAccountId}
+          accountNumber={debitOrderEntity.accountNumber}
+        />
+      )}
     </div>
   );
 };
