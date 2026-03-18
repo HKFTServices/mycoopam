@@ -503,7 +503,7 @@ const DailyPoolPrices = () => {
                           <Badge variant="outline" className="text-xs">Sell</Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {formatCurrency(row.totalStockCost, sym)}
+                          {formatCurrency(row.totalStockSell, sym)}
                         </TableCell>
                         <TableCell className="text-right font-mono" rowSpan={2}>
                           {formatCurrency(row.cashControl, sym)}
