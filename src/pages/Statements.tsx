@@ -202,19 +202,16 @@ export default function Statements() {
   const { data: unitHoldings = [] } = useQuery({
     queryKey: ["unit_holdings_statements", tenantId, valuationDate],
     queryFn: async () => {
-      const { data: unitTxns } = await (supabase as any)
-        .from("unit_transactions").select("entity_account_id, pool_id, debit, credit")
-        .eq("tenant_id", tenantId).lte("transaction_date", valuationDate);
-      if (!unitTxns) return [];
-      const map = new Map<string, { entity_account_id: string; pool_id: string; total_units: number }>();
-      for (const ut of unitTxns) {
-        const key = `${ut.entity_account_id}_${ut.pool_id}`;
-        const existing = map.get(key);
-        const units = (Number(ut.debit) || 0) - (Number(ut.credit) || 0);
-        if (existing) { existing.total_units += units; }
-        else { map.set(key, { entity_account_id: ut.entity_account_id, pool_id: ut.pool_id, total_units: units }); }
-      }
-      return Array.from(map.values());
+      const { data, error } = await (supabase as any).rpc("get_account_pool_units", {
+        p_tenant_id: tenantId,
+        p_up_to_date: valuationDate,
+      });
+      if (error) { console.error("get_account_pool_units error:", error); return []; }
+      return (data || []).map((r: any) => ({
+        entity_account_id: r.entity_account_id,
+        pool_id: r.pool_id,
+        total_units: Number(r.total_units) || 0,
+      }));
     },
     enabled: !!tenantId && isAdmin && (audienceType === "members_with_units" || audienceType === "members_in_pools"),
   });
