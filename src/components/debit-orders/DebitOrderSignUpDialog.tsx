@@ -27,6 +27,7 @@ interface DebitOrderSignUpDialogProps {
   entityName: string;
   entityAccountId: string;
   accountNumber?: string;
+  existingOrder?: any; // When provided, dialog operates in edit mode
 }
 
 interface PoolAllocation {
