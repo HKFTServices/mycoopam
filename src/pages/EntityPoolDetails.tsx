@@ -178,25 +178,29 @@ const EntityPoolDetails = () => {
   const entityAccountIds = new Set(entityAccounts.map((a: any) => a.id));
 
   const poolData = useMemo(() => {
-    const priceByPool: Record<string, { buy: number; sell: number; name: string; iconUrl: string | null }> = {};
+    const priceByPool: Record<string, { buy: number; sell: number; name: string; iconUrl: string | null; displayType: string; statementDesc: string }> = {};
     for (const pp of poolPrices) {
+      const displayType = pp.pools?.pool_statement_display_type ?? "display_in_summary";
       priceByPool[pp.pool_id] = {
         buy: Number(pp.unit_price_buy),
         sell: Number(pp.unit_price_sell),
         name: pp.pools?.name ?? "Unknown Pool",
         iconUrl: pp.pools?.icon_url ?? null,
+        displayType,
+        statementDesc: pp.pools?.pool_statement_description ?? "",
       };
     }
 
-    const poolMap: Record<string, { poolName: string; units: number; value: number; iconUrl: string | null }> = {};
+    const poolMap: Record<string, { poolName: string; units: number; value: number; iconUrl: string | null; displayType: string; statementDesc: string }> = {};
     for (const row of accountPoolUnits) {
       if (!entityAccountIds.has(row.entity_account_id)) continue;
       const poolId = row.pool_id;
       const units = Number(row.total_units);
       const price = priceByPool[poolId];
       if (!price) continue;
+      if (price.displayType === "do_not_display") continue;
       if (!poolMap[poolId]) {
-        poolMap[poolId] = { poolName: price.name, units: 0, value: 0, iconUrl: price.iconUrl };
+        poolMap[poolId] = { poolName: price.name, units: 0, value: 0, iconUrl: price.iconUrl, displayType: price.displayType, statementDesc: price.statementDesc };
       }
       poolMap[poolId].units += units;
       poolMap[poolId].value += units * price.sell;
@@ -204,10 +208,13 @@ const EntityPoolDetails = () => {
     return Object.entries(poolMap).map(([poolId, v]) => ({ poolId, ...v }));
   }, [accountPoolUnits, poolPrices, entityAccountIds]);
 
-  const totalValue = poolData.reduce((s, p) => s + p.value, 0);
+  const summaryPools = poolData.filter((p) => p.displayType === "display_in_summary");
+  const belowSummaryPools = poolData.filter((p) => p.displayType === "display_below_summary");
+
+  const totalValue = summaryPools.reduce((s, p) => s + p.value, 0);
   const netValue = totalValue - loanOutstanding;
 
-  const pieData = poolData.map((p) => ({
+  const pieData = summaryPools.map((p) => ({
     name: p.poolName,
     value: Math.round(p.value * 100) / 100,
   }));
