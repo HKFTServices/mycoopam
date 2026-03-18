@@ -185,6 +185,7 @@ const EntityPoolDetails = () => {
 
   // Date picker — default to latest available date
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   // Fetch available dates
   const { data: availableDates = [] } = useQuery({
