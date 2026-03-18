@@ -463,7 +463,6 @@ const Communications = () => {
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Event</TableHead>
                 <TableHead>Channels</TableHead>
-                <TableHead>Afrikaans</TableHead>
                 <TableHead>Active</TableHead>
                 <TableHead className="w-16" />
               </TableRow>
