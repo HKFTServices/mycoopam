@@ -9,9 +9,11 @@ export function formatCurrency(
   symbol: string = "R",
   decimals: number = 2
 ): string {
-  const fixed = value.toFixed(decimals);
+  const isNegative = value < 0;
+  const abs = Math.abs(value);
+  const fixed = abs.toFixed(decimals);
   const [intPart, decPart] = fixed.split(".");
   // Add spaces as thousand separators
   const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${symbol} ${formatted}.${decPart}`;
+  return `${isNegative ? "-" : ""}${symbol} ${formatted}.${decPart}`;
 }
