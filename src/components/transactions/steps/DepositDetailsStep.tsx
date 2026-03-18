@@ -123,7 +123,7 @@ const DepositDetailsStep = ({
   const minimumDeposit = totalMembershipDeductions + 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Join Share Notice */}
       {joinShareInfo.needed && (
         <div className="rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-4 space-y-2 animate-fade-in">
