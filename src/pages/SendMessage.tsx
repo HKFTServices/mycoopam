@@ -123,10 +123,30 @@ export default function SendMessage() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, account_number, entity_id, entity_account_type_id, entities!entity_accounts_entity_id_fkey(id, name, last_name, email_address, contact_number, title_id, titles!entities_title_id_fkey(name))")
+        .select("id, account_number, entity_id, entity_account_type_id, entities!entity_accounts_entity_id_fkey(id, name, last_name, email_address, contact_number, title_id)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true);
-      return data || [];
+      if (!data) return [];
+      // Fetch titles separately to resolve title names
+      const titleIds = [...new Set(data.map((ea: any) => ea.entities?.title_id).filter(Boolean))];
+      let titleMap: Record<string, string> = {};
+      if (titleIds.length > 0) {
+        const { data: titles } = await (supabase as any)
+          .from("titles")
+          .select("id, name")
+          .in("id", titleIds);
+        if (titles) {
+          titleMap = Object.fromEntries(titles.map((t: any) => [t.id, t.name]));
+        }
+      }
+      // Attach title name to each entity
+      return data.map((ea: any) => ({
+        ...ea,
+        entities: ea.entities ? {
+          ...ea.entities,
+          titles: ea.entities.title_id ? { name: titleMap[ea.entities.title_id] || "" } : null,
+        } : null,
+      }));
     },
     enabled: !!tenantId,
   });
@@ -364,6 +384,17 @@ export default function SendMessage() {
   const selectedCount = recipients.filter((r) => r.selected).length;
 
   // Template preview with full merge data from first recipient
+  // Deduplicate templates by name — show only one entry per unified template
+  const uniqueTemplates = useMemo(() => {
+    const seen = new Map<string, any>();
+    for (const t of templates) {
+      if (!seen.has(t.name)) {
+        seen.set(t.name, t);
+      }
+    }
+    return Array.from(seen.values());
+  }, [templates]);
+
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
   const templateHasAgmFields = useMemo(() => {
     if (!selectedTemplate) return false;
@@ -691,13 +722,16 @@ export default function SendMessage() {
                 <Select value={templateId} onValueChange={setTemplateId}>
                   <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
                   <SelectContent>
-                    {templates.map((t: any) => (
+                    {uniqueTemplates.map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>
-                        {t.name} ({t.language_code.toUpperCase()})
+                        {t.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Each recipient will receive the template in their preferred language (EN/AF).
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -759,9 +793,16 @@ export default function SendMessage() {
                     <p className="text-xs text-muted-foreground">To</p>
                     <p className="text-sm">{firstRecipient ? `${firstRecipient.name} <${firstRecipient.email}>` : "—"}</p>
                   </div>
-                  <div
-                    className="p-4 text-sm prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  <iframe
+                    srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:14px;line-height:1.6;margin:16px;color:#333}table{border-collapse:collapse;width:100%}td{padding:8px;border:1px solid #ddd}</style></head><body>${previewHtml}</body></html>`}
+                    className="w-full border-0"
+                    style={{ minHeight: 400 }}
+                    onLoad={(e) => {
+                      const iframe = e.target as HTMLIFrameElement;
+                      if (iframe.contentDocument) {
+                        iframe.style.height = Math.max(400, iframe.contentDocument.body.scrollHeight + 40) + "px";
+                      }
+                    }}
                   />
                 </div>
                 {firstRecipient && Object.keys(previewMergeData).length > 0 && (
