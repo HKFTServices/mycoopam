@@ -854,6 +854,18 @@ Deno.serve(async (req) => {
       if (le?.name) tenantName = le.name;
     }
 
+    // Determine member language for signature
+    const { data: memberEntity } = await adminClient
+      .from("entities")
+      .select("language_code")
+      .eq("id", entity_id)
+      .single();
+    const memberLang = memberEntity?.language_code || "en";
+
+    const emailSignature = memberLang === "af"
+      ? (tenantConfig.email_signature_af || tenantConfig.email_signature_en || "")
+      : (tenantConfig.email_signature_en || "");
+
     const subject = `Member Statement — ${memberName} (${fmtDate(from_date)} to ${fmtDate(to_date)})`;
     const emailBody = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
@@ -861,6 +873,7 @@ Deno.serve(async (req) => {
         <p>Dear ${entityData?.name || "Member"},</p>
         <p>Please find your member statement for the period <strong>${fmtDate(from_date)}</strong> to <strong>${fmtDate(to_date)}</strong> attached as a PDF.</p>
         <p style="color:#666;font-size:13px;margin-top:24px;">Kind regards,<br/>${tenantName}</p>
+        ${emailSignature ? emailSignature : ""}
       </div>`;
 
     const requestedPort = tenantConfig.smtp_port || 587;
