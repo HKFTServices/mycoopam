@@ -117,7 +117,7 @@ export default function SendMessage() {
     enabled: !!tenantId,
   });
 
-  // Fetch entity accounts (members) with entity details for merge fields
+  // Fetch active entity accounts (members) with entity details for merge fields
   const { data: entityAccounts = [] } = useQuery({
     queryKey: ["entity_accounts_for_campaign", tenantId],
     queryFn: async () => {
@@ -125,9 +125,9 @@ export default function SendMessage() {
         .from("entity_accounts")
         .select("id, account_number, entity_id, entity_account_type_id, entities!entity_accounts_entity_id_fkey(id, name, last_name, email_address, contact_number, title_id, titles!entities_title_id_fkey(name))")
         .eq("tenant_id", tenantId)
-        .eq("is_active", true)
-        .eq("is_approved", true);
+        .eq("is_active", true);
       return data || [];
+    },
     },
     enabled: !!tenantId,
   });
