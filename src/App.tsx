@@ -56,6 +56,7 @@ import NotFound from "./pages/NotFound";
 import TenantLanding from "./pages/TenantLanding";
 import SendMessage from "./pages/SendMessage";
 import MessageHistory from "./pages/MessageHistory";
+import Statements from "./pages/Statements";
 import MamDashboard from "./pages/mam/MamDashboard";
 import MamAssets from "./pages/mam/MamAssets";
 import MamContributionPlans from "./pages/mam/MamContributionPlans";
