@@ -400,10 +400,14 @@ const Items = () => {
             </div>
 
             {/* Margin, Tax */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Margin % (for Buy Price)</Label>
+                <Label>Buy Margin %</Label>
                 <Input type="number" step="0.01" value={form.margin_percentage} onChange={(e) => setForm({ ...form, margin_percentage: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Sell Margin %</Label>
+                <Input type="number" step="0.01" value={(form as any).sell_margin_percentage} onChange={(e) => setForm({ ...form, sell_margin_percentage: parseFloat(e.target.value) || 0 })} />
               </div>
               <div className="space-y-2">
                 <Label>Tax Type</Label>
