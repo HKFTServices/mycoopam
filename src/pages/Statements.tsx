@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { format, subDays, subMonths, subQuarters, startOfQuarter, endOfQuarter } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { generateMemberStatement, type StatementData } from "@/lib/generateMemberStatement";
+import { generateCgtCertificate, type CgtCertificateData } from "@/lib/generateCgtCertificate";
 
 type PresetKey = "custom" | "since_inception" | "last_2_weeks" | "last_30_days" | "last_12_months" | "prev_quarter" | "prev_fin_year";
 
