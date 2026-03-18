@@ -111,7 +111,7 @@ const tenantSetupNavItems = [
   { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts" },
   { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements" },
   { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
-  { label: "Message Templates", icon: Mail, path: "/dashboard/setup/communications" },
+  { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" },
   { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
   { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings", subItems: [
     { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
