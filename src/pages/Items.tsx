@@ -34,8 +34,9 @@ type Item = {
   price_formula: string | null;
   calculate_price_with_factor: number | null;
   api_code: string | null;
-  api_key: string | null;  // legacy, not used in UI
-  api_link: string | null; // legacy, not used in UI
+  api_provider_id: string | null;
+  api_key: string | null;
+  api_link: string | null;
   is_stock_item: boolean;
   is_active: boolean;
   tax_type_id: string | null;
@@ -47,6 +48,7 @@ type Item = {
 
 type Pool = { id: string; name: string; icon_url?: string | null };
 type TaxType = { id: string; name: string; percentage: number };
+type ApiProvider = { id: string; name: string; is_active: boolean };
 
 const defaultForm = {
   pool_id: "",
