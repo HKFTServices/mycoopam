@@ -1,0 +1,1 @@
+DELETE FROM legacy_id_mappings WHERE table_name = 'unit_transactions';
