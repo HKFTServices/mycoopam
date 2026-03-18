@@ -299,9 +299,9 @@ const Items = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">No items found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">No items found.</TableCell></TableRow>
               ) : (
                 filtered.map((item) => {
                   const taxType = taxTypes.find((t) => t.id === item.tax_type_id);
