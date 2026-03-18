@@ -279,9 +279,11 @@ const DailyPoolPrices = () => {
       // If saved data exists for this pool+date, use saved stock/unit values but live control balances
       const saved = existingMap[pool.id];
       if (saved) {
-        const totalStockCost = Number(saved.total_stock || 0);
+        // Always recalculate units and stock from live data (not stored values)
+        // to account for corrections that may have been made
+        const totalStockCost = stockItems.reduce((s, i) => s + i.totalCost, 0);
         const totalStockBuy = stockItems.reduce((s, i) => s + i.totalBuy, 0);
-        const totalUnits = Number(saved.total_units || 0);
+        const totalUnits = (unitsByPool as Record<string, number>)[pool.id] || 0;
         const memberInterestSell = totalStockCost + cashControl + vatControl + loanControl;
         const memberInterestBuy = totalStockBuy + cashControl + vatControl + loanControl;
         const isFixedPrice = pool.fixed_unit_price != null && pool.fixed_unit_price > 0;
