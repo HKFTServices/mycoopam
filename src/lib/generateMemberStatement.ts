@@ -353,14 +353,18 @@ export function generateMemberStatement(data: StatementData): string {
   <table>
     <thead>
       <tr>
-        <th>Pool</th>
-        <th class="num">Open Units</th>
-        <th class="num">Open Price</th>
-        <th class="num">Open Value</th>
-        <th class="num">Close Units</th>
-        <th class="num">Close Price</th>
-        <th class="num">Close Value</th>
-        <th class="num">Change</th>
+        <th rowspan="2" style="vertical-align:bottom">Pool</th>
+        <th class="group-header" colspan="3">${fmtDate(data.fromDate)}</th>
+        <th class="group-header" colspan="3">${fmtDate(data.toDate)}</th>
+        <th rowspan="2" class="num" style="vertical-align:bottom">Change</th>
+      </tr>
+      <tr>
+        <th class="num">Units</th>
+        <th class="num">Price</th>
+        <th class="num">Value</th>
+        <th class="num">Units</th>
+        <th class="num">Price</th>
+        <th class="num">Value</th>
       </tr>
     </thead>
     <tbody>
