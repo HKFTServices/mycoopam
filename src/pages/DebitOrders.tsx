@@ -11,11 +11,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, CreditCard, Eye } from "lucide-react";
+import { Loader2, CreditCard, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { toast } from "sonner";
+import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
 const statusColor = (s: string) => {
   switch (s) {
