@@ -793,9 +793,16 @@ export default function SendMessage() {
                     <p className="text-xs text-muted-foreground">To</p>
                     <p className="text-sm">{firstRecipient ? `${firstRecipient.name} <${firstRecipient.email}>` : "—"}</p>
                   </div>
-                  <div
-                    className="p-4 text-sm prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  <iframe
+                    srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:14px;line-height:1.6;margin:16px;color:#333}table{border-collapse:collapse;width:100%}td{padding:8px;border:1px solid #ddd}</style></head><body>${previewHtml}</body></html>`}
+                    className="w-full border-0"
+                    style={{ minHeight: 400 }}
+                    onLoad={(e) => {
+                      const iframe = e.target as HTMLIFrameElement;
+                      if (iframe.contentDocument) {
+                        iframe.style.height = Math.max(400, iframe.contentDocument.body.scrollHeight + 40) + "px";
+                      }
+                    }}
                   />
                 </div>
                 {firstRecipient && Object.keys(previewMergeData).length > 0 && (
