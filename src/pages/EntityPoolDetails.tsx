@@ -411,6 +411,33 @@ const EntityPoolDetails = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Unit Prices for exposed pools */}
+      {poolData.length > 0 && (
+        <PoolUnitPrices
+          poolPrices={poolPrices}
+          exposedPoolIds={poolData.map((p) => p.poolId)}
+          currencySymbol={sym}
+        />
+      )}
+
+      {/* Items & Prices for exposed pools */}
+      {poolData.length > 0 && effectiveDate && currentTenant && (
+        <PoolItemsPrices
+          tenantId={currentTenant.id}
+          poolIds={poolData.map((p) => p.poolId)}
+          effectiveDate={effectiveDate}
+          currencySymbol={sym}
+        />
+      )}
+
+      {/* Pool Terms & Conditions */}
+      {poolData.length > 0 && currentTenant && (
+        <PoolTermsConditions
+          tenantId={currentTenant.id}
+          poolIds={poolData.map((p) => p.poolId)}
+        />
+      )}
     </div>
   );
 };
