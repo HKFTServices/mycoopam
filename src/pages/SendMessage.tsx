@@ -415,6 +415,7 @@ export default function SendMessage() {
       user_surname: resolvedUser?.last_name || "",
       email_address: firstRecipient.email || "",
       tenant_name: currentTenant?.name || "",
+      legal_entity_name: currentTenant?.name || "",
       title: entity?.titles?.name || "",
       phone_number: entity?.contact_number || "",
       account_number: ea?.account_number || "",
