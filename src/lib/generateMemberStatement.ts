@@ -114,6 +114,11 @@ export function generateMemberStatement(data: StatementData): string {
   const unitRows = data.unitTransactions.map((tx: any) => {
     const debit = Number(tx.debit || 0);
     const credit = Number(tx.credit || 0);
+    const rawValue = Number(tx.value || 0);
+    // Redemptions (credit/out) show value as negative in red
+    const isRedemption = credit > 0 && debit === 0;
+    const displayValue = isRedemption && rawValue > 0 ? -rawValue : rawValue;
+    const valueStyle = displayValue < 0 ? ' style="color:red"' : '';
     return `<tr>
       <td>${fmtDate(tx.transaction_date)}</td>
       <td>${tx.transaction_type || ""}</td>
@@ -121,7 +126,7 @@ export function generateMemberStatement(data: StatementData): string {
       <td class="num">${debit > 0 ? debit.toFixed(4) : ""}</td>
       <td class="num">${credit > 0 ? credit.toFixed(4) : ""}</td>
       <td class="num">${fmtNum(Number(tx.unit_price || 0), sym)}</td>
-      <td class="num">${fmtNum(Number(tx.value || 0), sym)}</td>
+      <td class="num"${valueStyle}>${fmtNum(displayValue, sym)}</td>
       <td>${tx.notes || ""}</td>
     </tr>`;
   }).join("");
