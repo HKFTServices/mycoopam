@@ -270,23 +270,47 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return "User";
   })();
 
-  const renderNavItem = (item: { label: string; icon: React.ElementType; path: string }) => {
+  const renderNavItem = (item: { label: string; icon: React.ElementType; path: string; subItems?: { label: string; icon: React.ElementType; path: string }[] }) => {
     const isActive = location.pathname === item.path;
+    const hasActiveChild = item.subItems?.some(sub => location.pathname === sub.path);
     return (
-      <Link
-        key={item.path}
-        to={item.path}
-        onClick={() => setSidebarOpen(false)}
-        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-          isActive
-            ? "bg-accent text-accent-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-        }`}
-      >
-        <item.icon className="h-4.5 w-4.5 shrink-0" />
-        <span>{item.label}</span>
-        {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
-      </Link>
+      <div key={item.path}>
+        <Link
+          to={item.path}
+          onClick={() => setSidebarOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            isActive || hasActiveChild
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <item.icon className="h-4.5 w-4.5 shrink-0" />
+          <span>{item.label}</span>
+          {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+        </Link>
+        {item.subItems && (isActive || hasActiveChild) && (
+          <div className="ml-5 pl-3 border-l border-border space-y-0.5 mt-0.5">
+            {item.subItems.map(sub => {
+              const subActive = location.pathname === sub.path;
+              return (
+                <Link
+                  key={sub.path}
+                  to={sub.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                    subActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <sub.icon className="h-3.5 w-3.5 shrink-0" />
+                  <span>{sub.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
