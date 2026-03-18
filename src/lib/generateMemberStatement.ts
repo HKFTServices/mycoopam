@@ -20,11 +20,40 @@ export interface StatementData {
   loanOutstanding: number;
   loanPayout: number;
   loanRepaid: number;
+  loanTransactions?: any[];
   openingUnits: any[];
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
 }
+
+/** Clean up raw legacy entry type labels like "Entry 1963" into readable descriptions */
+const cleanEntryType = (entryType: string, debit: number, credit: number): string => {
+  if (!entryType) return "Transaction";
+  // If it's a proper modern entry type, format it nicely
+  const entryTypeLabels: Record<string, string> = {
+    pool_allocation: "Deposit",
+    pool_redemption: "Withdrawal",
+    bank_deposit: "Bank Deposit",
+    bank_withdrawal: "Bank Withdrawal",
+    fee: "Fee",
+    stock_deposit: "Stock Deposit",
+    stock_withdrawal: "Stock Withdrawal",
+    stock_control: "Stock Control",
+    journal: "Journal",
+    bank: "Bank",
+    bank_contra: "Bank Contra",
+  };
+  if (entryTypeLabels[entryType]) return entryTypeLabels[entryType];
+  // Legacy "Entry XXXX" pattern — derive label from debit/credit direction
+  if (/^Entry\s+\d+$/i.test(entryType)) {
+    if (debit > 0 && credit === 0) return "Deposit";
+    if (credit > 0 && debit === 0) return "Withdrawal";
+    return "Transaction";
+  }
+  // Fallback: title-case the entry_type
+  return entryType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 const fmtDate = (d: string) => {
   if (!d) return "";
@@ -135,9 +164,10 @@ export function generateMemberStatement(data: StatementData): string {
   const cashRows = data.cashflowTransactions.map((tx: any) => {
     const debit = Number(tx.debit || 0);
     const credit = Number(tx.credit || 0);
+    const typeLabel = tx.description || cleanEntryType(tx.entry_type || "", debit, credit);
     return `<tr>
       <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.description || tx.entry_type || ""}</td>
+      <td>${typeLabel}</td>
       <td>${tx.pool_name || ""}</td>
       <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
       <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
@@ -162,8 +192,41 @@ export function generateMemberStatement(data: StatementData): string {
     </tr>`;
   }).join("");
 
-  // Loans section
-  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0;
+  // Loans section - build transaction detail with opening/closing balance
+  const loanTx = data.loanTransactions ?? [];
+  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0 || loanTx.length > 0;
+
+  // Calculate opening loan balance = total outstanding minus period movements
+  // Opening balance = closing balance - (period debits - period credits)
+  const periodLoanDebit = loanTx.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
+  const periodLoanCredit = loanTx.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
+  const loanClosingBalance = data.loanOutstanding;
+  const loanOpeningBalance = loanClosingBalance - (periodLoanDebit - periodLoanCredit);
+
+  const loanEntryTypeLabels: Record<string, string> = {
+    loan_capital: "Loan Payout",
+    loan_fee: "Loan Fee",
+    loan_loading: "Loan Loading",
+    loan_repayment: "Loan Repayment",
+    loan_interest: "Loan Interest",
+    loan_writeoff: "Loan Write-off",
+    loan_control: "Loan Control",
+  };
+
+  let loanRunning = loanOpeningBalance;
+  const loanRows = loanTx.map((tx: any) => {
+    const debit = Number(tx.debit || 0);
+    const credit = Number(tx.credit || 0);
+    loanRunning += debit - credit;
+    const label = tx.entry_type_name || loanEntryTypeLabels[tx.entry_type] || tx.entry_type?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Transaction";
+    return `<tr>
+      <td>${fmtDate(tx.transaction_date)}</td>
+      <td>${label}</td>
+      <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
+      <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
+      <td class="num ${loanRunning > 0 ? 'neg' : ''}">${fmtNum(loanRunning, sym)}</td>
+    </tr>`;
+  }).join("");
 
   return `<!DOCTYPE html>
 <html><head>
@@ -381,14 +444,25 @@ ${hasLoanData ? `<div class="section">
   <table>
     <thead>
       <tr>
-        <th>Description</th>
-        <th class="num">Amount</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th class="num">Debit</th>
+        <th class="num">Credit</th>
+        <th class="num">Balance</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td>Total Disbursed</td><td class="num">${fmtNum(data.loanPayout, sym)}</td></tr>
-      <tr><td>Total Repaid</td><td class="num">${fmtNum(data.loanRepaid, sym)}</td></tr>
-      <tr class="total"><td>Outstanding Balance</td><td class="num ${data.loanOutstanding > 0 ? 'neg' : ''}">${fmtNum(data.loanOutstanding, sym)}</td></tr>
+      <tr style="background:#f5f7fa;font-weight:600">
+        <td colspan="4">Opening Balance</td>
+        <td class="num ${loanOpeningBalance > 0 ? 'neg' : ''}">${fmtNum(loanOpeningBalance, sym)}</td>
+      </tr>
+      ${loanRows || '<tr><td colspan="5" class="empty-msg">No loan movements in this period</td></tr>'}
+      <tr class="total">
+        <td colspan="2">Closing Balance</td>
+        <td class="num">${periodLoanDebit > 0 ? fmtNum(periodLoanDebit, sym) : ""}</td>
+        <td class="num">${periodLoanCredit > 0 ? fmtNum(periodLoanCredit, sym) : ""}</td>
+        <td class="num ${loanClosingBalance > 0 ? 'neg' : ''}">${fmtNum(loanClosingBalance, sym)}</td>
+      </tr>
     </tbody>
   </table>
 </div>` : ""}
