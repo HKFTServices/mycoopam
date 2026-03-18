@@ -593,7 +593,8 @@ const DailyPoolPrices = () => {
                         </>
                       )}
                     </Fragment>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
