@@ -34,8 +34,9 @@ type Item = {
   price_formula: string | null;
   calculate_price_with_factor: number | null;
   api_code: string | null;
-  api_key: string | null;  // legacy, not used in UI
-  api_link: string | null; // legacy, not used in UI
+  api_provider_id: string | null;
+  api_key: string | null;
+  api_link: string | null;
   is_stock_item: boolean;
   is_active: boolean;
   tax_type_id: string | null;
@@ -47,6 +48,7 @@ type Item = {
 
 type Pool = { id: string; name: string; icon_url?: string | null };
 type TaxType = { id: string; name: string; percentage: number };
+type ApiProvider = { id: string; name: string; is_active: boolean };
 
 const defaultForm = {
   pool_id: "",
@@ -59,6 +61,7 @@ const defaultForm = {
   calculate_price_with_factor: "" as string,
   price_formula: "",
   api_code: "",
+  api_provider_id: "",
   is_stock_item: false,
   is_active: true,
   tax_type_id: "",
@@ -116,8 +119,20 @@ const Items = () => {
     enabled: !!currentTenant,
   });
 
+  const { data: apiProviders = [] } = useQuery({
+    queryKey: ["api_providers_list"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("api_providers").select("id, name, is_active")
+        .eq("is_active", true).order("name");
+      if (error) throw error;
+      return data as ApiProvider[];
+    },
+  });
+
   const poolMap = Object.fromEntries(pools.map((p) => [p.id, p.name]));
   const poolIconMap = Object.fromEntries(pools.map((p) => [p.id, p.icon_url]));
+  const providerMap = Object.fromEntries(apiProviders.map((p) => [p.id, p.name]));
 
   const saveMutation = useMutation({
     mutationFn: async (values: typeof form & { id?: string }) => {
@@ -133,6 +148,7 @@ const Items = () => {
         calculate_price_with_factor: values.calculate_price_with_factor !== "" ? parseFloat(values.calculate_price_with_factor) : null,
         price_formula: values.price_formula || null,
         api_code: values.api_code || null,
+        api_provider_id: values.api_provider_id === "__none__" ? null : (values.api_provider_id || null),
         is_stock_item: values.is_stock_item,
         is_active: values.is_active,
         tax_type_id: values.tax_type_id === "__none__" ? null : (values.tax_type_id || null),
@@ -187,6 +203,7 @@ const Items = () => {
       calculate_price_with_factor: item.calculate_price_with_factor != null ? String(item.calculate_price_with_factor) : "",
       price_formula: (item as any).price_formula ?? "",
       api_code: item.api_code ?? "",
+      api_provider_id: item.api_provider_id ?? "",
       is_stock_item: item.is_stock_item,
       is_active: item.is_active,
       tax_type_id: item.tax_type_id ?? "",
@@ -263,8 +280,8 @@ const Items = () => {
                 <TableHead>Tax Type</TableHead>
                 <TableHead>Margin %</TableHead>
                 <TableHead>Fixed Price</TableHead>
+                <TableHead>API Provider</TableHead>
                 <TableHead>API Code</TableHead>
-                
                 <TableHead>Formula</TableHead>
                 
                 <TableHead>Stock</TableHead>
@@ -301,8 +318,8 @@ const Items = () => {
                       <TableCell className="text-xs">{taxType ? `${taxType.name} (${taxType.percentage}%)` : "—"}</TableCell>
                       <TableCell>{item.margin_percentage}%</TableCell>
                       <TableCell>{item.use_fixed_price != null ? item.use_fixed_price.toFixed(2) : "—"}</TableCell>
+                      <TableCell className="text-xs">{item.api_provider_id ? providerMap[item.api_provider_id] ?? "—" : "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{item.api_code ?? "—"}</TableCell>
-                      
                       <TableCell className="font-mono text-xs max-w-[200px] truncate">{(item as any).price_formula ?? "—"}</TableCell>
                       <TableCell>{item.is_stock_item ? "Yes" : "No"}</TableCell>
                       <TableCell>{item.show_item_price_on_statement ? "Yes" : "No"}</TableCell>
@@ -400,13 +417,25 @@ const Items = () => {
             <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
               <Label className="text-sm font-semibold">Pricing Configuration</Label>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Fixed Price (overrides calculation)</Label>
                   <Input type="number" step="0.01" value={form.use_fixed_price} onChange={(e) => setForm({ ...form, use_fixed_price: e.target.value })} placeholder="Leave empty for calculated" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU, XAG, XPT, USD, XRP)</Label>
+                  <Label className="text-xs text-muted-foreground">API Provider</Label>
+                  <Select value={form.api_provider_id} onValueChange={(v) => setForm({ ...form, api_provider_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {apiProviders.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU, XAG, XPT)</Label>
                   <Input value={form.api_code} onChange={(e) => setForm({ ...form, api_code: e.target.value.toUpperCase() })} placeholder="e.g. XAU" />
                 </div>
               </div>

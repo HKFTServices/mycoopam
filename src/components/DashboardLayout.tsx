@@ -97,6 +97,7 @@ const globalSetupNavItems = [
   { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
   { label: "System Email Templates", icon: Mail, path: "/dashboard/setup/system-email-templates" },
   { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions" },
+  { label: "API Providers", icon: Globe, path: "/dashboard/setup/api-providers" },
 ];
 
 // Tenant setup: copied to tenant on creation, tenant admin can add/edit

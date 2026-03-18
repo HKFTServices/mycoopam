@@ -46,6 +46,7 @@ import OperatingJournals from "./pages/OperatingJournals";
 import LedgerEntries from "./pages/LedgerEntries";
 import GLAccounts from "./pages/setup/GLAccounts";
 import Permissions from "./pages/setup/Permissions";
+import ApiProviders from "./pages/setup/ApiProviders";
 import DailyStockPrices from "./pages/DailyStockPrices";
 import DailyPoolPrices from "./pages/DailyPoolPrices";
 import EntityPoolDetails from "./pages/EntityPoolDetails";
@@ -139,6 +140,7 @@ const App = () => (
               <Route path="/dashboard/setup/budget-categories" element={<DashboardRoute><BudgetCategories /></DashboardRoute>} />
               <Route path="/dashboard/setup/gl-accounts" element={<DashboardRoute><GLAccounts /></DashboardRoute>} />
               <Route path="/dashboard/setup/permissions" element={<DashboardRoute><Permissions /></DashboardRoute>} />
+              <Route path="/dashboard/setup/api-providers" element={<DashboardRoute><ApiProviders /></DashboardRoute>} />
               <Route path="/dashboard/setup/system-email-templates" element={<DashboardRoute><SystemEmailTemplates /></DashboardRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

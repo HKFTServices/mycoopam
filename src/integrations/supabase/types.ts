@@ -264,6 +264,51 @@ export type Database = {
           },
         ]
       }
+      api_providers: {
+        Row: {
+          auth_method: string
+          auth_param_name: string
+          base_currency: string
+          base_url: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          response_path: string
+          secret_name: string
+          updated_at: string
+        }
+        Insert: {
+          auth_method?: string
+          auth_param_name?: string
+          base_currency?: string
+          base_url: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          response_path?: string
+          secret_name: string
+          updated_at?: string
+        }
+        Update: {
+          auth_method?: string
+          auth_param_name?: string
+          base_currency?: string
+          base_url?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          response_path?: string
+          secret_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bank_account_types: {
         Row: {
           created_at: string
@@ -1695,6 +1740,7 @@ export type Database = {
           api_code: string | null
           api_key: string | null
           api_link: string | null
+          api_provider_id: string | null
           calculate_price_with_factor: number | null
           calculate_price_with_item_id: string | null
           calculation_type: string | null
@@ -1722,6 +1768,7 @@ export type Database = {
           api_code?: string | null
           api_key?: string | null
           api_link?: string | null
+          api_provider_id?: string | null
           calculate_price_with_factor?: number | null
           calculate_price_with_item_id?: string | null
           calculation_type?: string | null
@@ -1749,6 +1796,7 @@ export type Database = {
           api_code?: string | null
           api_key?: string | null
           api_link?: string | null
+          api_provider_id?: string | null
           calculate_price_with_factor?: number | null
           calculate_price_with_item_id?: string | null
           calculation_type?: string | null
@@ -1773,6 +1821,13 @@ export type Database = {
           use_fixed_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "items_api_provider_id_fkey"
+            columns: ["api_provider_id"]
+            isOneToOne: false
+            referencedRelation: "api_providers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "items_calculate_price_with_item_id_fkey"
             columns: ["calculate_price_with_item_id"]

@@ -28,22 +28,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const metalsApiKey = Deno.env.get("METALS_API_KEY");
-    if (!metalsApiKey) {
-      return new Response(JSON.stringify({ error: "METALS_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch item
+    // Fetch item with provider info
     const { data: item, error: itemError } = await supabase
       .from("items")
-      .select("api_code, item_code")
+      .select("api_code, item_code, api_provider_id")
       .eq("id", item_id)
       .single();
 
@@ -57,17 +49,51 @@ Deno.serve(async (req) => {
     if (!item.api_code) {
       return new Response(
         JSON.stringify({ error: "Item has no API code configured" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Get provider config
+    let providerName = "Unknown";
+    let url: string;
     const symbol = item.api_code.toUpperCase();
-    const url = `https://metals-api.com/api/latest?access_key=${metalsApiKey}&base=ZAR&symbols=${symbol}`;
 
-    console.log(`Testing metals-api for ${symbol}`);
+    if (item.api_provider_id) {
+      const { data: provider } = await supabase
+        .from("api_providers")
+        .select("name, base_url, auth_method, auth_param_name, secret_name, base_currency")
+        .eq("id", item.api_provider_id)
+        .single();
+
+      if (!provider) {
+        return new Response(JSON.stringify({ error: "API provider not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const apiKey = Deno.env.get(provider.secret_name);
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ error: `Secret ${provider.secret_name} not configured` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      providerName = provider.name;
+      url = `${provider.base_url}/latest?${provider.auth_param_name}=${apiKey}&base=${provider.base_currency}&symbols=${symbol}`;
+    } else {
+      // Fallback to METALS_API_KEY for items without a provider
+      const metalsApiKey = Deno.env.get("METALS_API_KEY");
+      if (!metalsApiKey) {
+        return new Response(JSON.stringify({ error: "No API provider configured and METALS_API_KEY not set" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      providerName = "Metals API (fallback)";
+      url = `https://metals-api.com/api/latest?access_key=${metalsApiKey}&base=ZAR&symbols=${symbol}`;
+    }
+
+    console.log(`Testing ${providerName} for ${symbol}`);
 
     const apiResponse = await fetch(url);
     const data = await apiResponse.json();
@@ -81,21 +107,17 @@ Deno.serve(async (req) => {
       JSON.stringify({
         status: apiResponse.status,
         symbol,
+        provider: providerName,
         api_response: data,
         price_in_zar: priceInZar,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Error:", err);
     return new Response(
       JSON.stringify({ error: err.message || "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
