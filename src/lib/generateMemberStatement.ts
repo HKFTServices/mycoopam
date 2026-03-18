@@ -336,7 +336,6 @@ export function generateMemberStatement(data: StatementData): string {
       <tr>
         <th>Date</th>
         <th>Type</th>
-        <th>Description</th>
         <th>Pool</th>
         <th class="num">Debit</th>
         <th class="num">Credit</th>
@@ -345,7 +344,7 @@ export function generateMemberStatement(data: StatementData): string {
     <tbody>
       ${cashRows}
       <tr class="total">
-        <td colspan="4">Total</td>
+        <td colspan="3">Total</td>
         <td class="num">${fmtNum(cashDebitTotal, sym)}</td>
         <td class="num">${fmtNum(cashCreditTotal, sym)}</td>
       </tr>
