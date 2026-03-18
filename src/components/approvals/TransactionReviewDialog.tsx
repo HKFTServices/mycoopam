@@ -977,7 +977,8 @@ const TransactionReviewDialog = ({
               onClick={handleNext}
               disabled={
                 (currentStep === "review" && !canProceedFromReview) ||
-                (currentStep === "courier" && !canProceedFromCourier)
+                (currentStep === "courier" && !canProceedFromCourier) ||
+                (currentStep === "receipt" && !canProceedFromReceipt)
               }
             >
               Next<ChevronRight className="h-3.5 w-3.5 ml-1" />
