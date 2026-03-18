@@ -264,21 +264,13 @@ const EntityPoolDetails = () => {
             </CardContent>
           </Card>
 
-          {/* Summary Cards */}
+          {/* Summary Card */}
           <div className="space-y-4">
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Buy Value</p>
-                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalBuyValue, sym)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-secondary/30 bg-secondary/20">
-              <CardContent className="py-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Sell Value</p>
-                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalSellValue, sym)}</p>
+                  <p className="text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
                 </div>
               </CardContent>
             </Card>
