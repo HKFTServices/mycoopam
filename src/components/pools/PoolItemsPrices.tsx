@@ -16,11 +16,11 @@ const PoolItemsPrices = ({ tenantId, poolIds, effectiveDate, currencySymbol }: P
       if (poolIds.length === 0) return [];
       const { data, error } = await (supabase as any)
         .from("items")
-        .select("id, item_code, description, pool_id, is_stock_item, pools (name)")
+        .select("id, item_code, description, pool_id, is_stock_item, show_item_price_on_statement, pools (name)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .eq("is_deleted", false)
-        .eq("is_stock_item", true)
+        .eq("show_item_price_on_statement", true)
         .in("pool_id", poolIds)
         .order("description");
       if (error) throw error;
