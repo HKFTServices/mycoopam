@@ -70,7 +70,15 @@ const DebitOrders = () => {
     enabled: !!currentTenant && !!user,
   });
 
-  const sym = currentTenant?.currency_symbol || "R";
+  const { data: tenantConfig } = useQuery({
+    queryKey: ["tenant_config_currency_do", currentTenant?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("tenant_configuration").select("currency_symbol").eq("tenant_id", currentTenant!.id).maybeSingle();
+      return data;
+    },
+    enabled: !!currentTenant,
+  });
+  const sym = tenantConfig?.currency_symbol ?? "R";
 
   const parseNotes = (notesStr: string | null) => {
     if (!notesStr) return null;
