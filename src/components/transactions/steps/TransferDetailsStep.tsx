@@ -23,6 +23,7 @@ interface TransferDetailsStepProps {
   poolName: string;
   currentHolding: number;
   unitPriceSell: number;
+  unitPriceBuy: number;
   feeBreakdown: FeeBreakdown[];
   totalFee: number;
   amount: string;
@@ -44,7 +45,7 @@ type IdValidation = "idle" | "valid" | "invalid";
 
 const TransferDetailsStep = ({
   tenantId, fromAccountId, poolId, poolName,
-  currentHolding, unitPriceSell,
+  currentHolding, unitPriceSell, unitPriceBuy,
   feeBreakdown, totalFee,
   amount, useAllUnits, notes,
   recipientAccountNumber, recipientAccountId, recipientIdNumber,
@@ -76,7 +77,7 @@ const TransferDetailsStep = ({
   const netTransferAmount = useAllUnits ? Math.max(0, allUnitsValue - totalFee) : amountNum;
   const grossRedemption = netTransferAmount + totalFee;
   const grossUnitsRedeemed = unitPriceSell > 0 ? grossRedemption / unitPriceSell : 0;
-  const netUnitsReceived = unitPriceSell > 0 ? netTransferAmount / unitPriceSell : 0;
+  const netUnitsReceived = unitPriceBuy > 0 ? netTransferAmount / unitPriceBuy : 0;
   const maxValue = currentHolding * unitPriceSell;
 
   const bothValid = accountValidation === "valid" && idValidation === "valid";
@@ -408,7 +409,7 @@ const TransferDetailsStep = ({
                 <span className="font-mono">{netUnitsReceived.toFixed(4)} units</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Net Value to Recipient</span>
+                <span>Net Value @ UP Buy {formatCurrency(unitPriceBuy)}</span>
                 <span className="font-mono">{formatCurrency(netTransferAmount)}</span>
               </div>
             </div>

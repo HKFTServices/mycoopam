@@ -1273,6 +1273,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
           to_account_id: transferRecipientAccountId,
           recipient_id_number: transferRecipientIdNumber,
           unit_price_sell: currentUnitPriceSell,
+          unit_price_buy: currentUnitPriceBuy,
           gross_redemption_amount: transferGrossRedemption,
           net_transfer_amount: transferNetAmount,          // net INTO receiver's pool (after all receiver deductions)
           net_before_receiver_deductions: transferNetAmountBeforeReceiverDeductions,
@@ -1675,7 +1676,8 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
               poolId={selectedPoolId}
               poolName={selectedPool?.name || ""}
               currentHolding={currentHolding}
-              unitPriceSell={currentUnitPrice}
+              unitPriceSell={currentUnitPriceSell}
+              unitPriceBuy={currentUnitPriceBuy}
               feeBreakdown={transferFeeCalc.breakdown}
               totalFee={transferFeeCalc.totalFee}
               amount={amount}
