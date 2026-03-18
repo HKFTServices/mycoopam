@@ -311,15 +311,15 @@ const EntityPoolDetails = () => {
   const totalValue = summaryPools.reduce((s, p) => s + p.value, 0);
   const netValue = totalValue - loanOutstanding;
 
-  const pieData = summaryPools.map((p) => ({
-    name: translatePoolName(p.poolName, lang),
-    value: Math.round(p.value * 100) / 100,
-  }));
-
   const entityFullName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
   const regOrId = entity?.registration_number || entity?.identity_number || "";
   const categoryName = entity?.entity_categories?.name || "";
   const lang: Lang = (entity?.language_code === "af" ? "af" : "en");
+
+  const pieData = summaryPools.map((p) => ({
+    name: translatePoolName(p.poolName, lang),
+    value: Math.round(p.value * 100) / 100,
+  }));
 
   const membershipAccount = entityAccounts.find((a: any) => a.entity_account_types?.account_type === 1);
 
