@@ -997,6 +997,127 @@ export type Database = {
           },
         ]
       }
+      debit_orders: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          account_type: string | null
+          approved_at: string | null
+          approved_by: string | null
+          bank_name: string | null
+          branch_code: string | null
+          card_expiry: string | null
+          card_number: string | null
+          card_type: string | null
+          created_at: string
+          created_by: string | null
+          debit_day: number
+          declined_at: string | null
+          declined_by: string | null
+          declined_reason: string | null
+          entity_account_id: string
+          entity_id: string
+          frequency: string
+          id: string
+          is_active: boolean
+          monthly_amount: number
+          notes: string | null
+          pool_allocations: Json
+          signature_data: string | null
+          signed_at: string | null
+          start_date: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          card_expiry?: string | null
+          card_number?: string | null
+          card_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          debit_day?: number
+          declined_at?: string | null
+          declined_by?: string | null
+          declined_reason?: string | null
+          entity_account_id: string
+          entity_id: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          monthly_amount?: number
+          notes?: string | null
+          pool_allocations?: Json
+          signature_data?: string | null
+          signed_at?: string | null
+          start_date?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          card_expiry?: string | null
+          card_number?: string | null
+          card_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          debit_day?: number
+          declined_at?: string | null
+          declined_by?: string | null
+          declined_reason?: string | null
+          entity_account_id?: string
+          entity_id?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          monthly_amount?: number
+          notes?: string | null
+          pool_allocations?: Json
+          signature_data?: string | null
+          signed_at?: string | null
+          start_date?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debit_orders_entity_account_id_fkey"
+            columns: ["entity_account_id"]
+            isOneToOne: false
+            referencedRelation: "entity_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debit_orders_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debit_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_entity_requirements: {
         Row: {
           created_at: string
