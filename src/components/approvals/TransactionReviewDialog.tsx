@@ -146,6 +146,7 @@ const TransactionReviewDialog = ({
     { id: "review", label: "Review", icon: <FileText className="h-3.5 w-3.5" /> },
     ...(useCourier ? [{ id: "courier" as StepId, label: "Courier Arranged", icon: <Truck className="h-3.5 w-3.5" /> }] : []),
     { id: "stock_received", label: "Stock Received", icon: <BoxSelect className="h-3.5 w-3.5" /> },
+    { id: "receipt", label: "Stock Receipt", icon: <PenTool className="h-3.5 w-3.5" /> },
     { id: "approve", label: "Final Approval", icon: <CheckCircle className="h-3.5 w-3.5" /> },
   ];
 
