@@ -1513,12 +1513,19 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
     ? stockWithdrawalValid
     : (amountNum >= minimumDeposit && !!selectedAccountId);
 
+  // Dynamic steps based on whether debit order payment method is selected for a deposit
+  const isDebitOrderDeposit = isDeposit && paymentMethod === "debit_order";
+  const STEPS = isDebitOrderDeposit ? DEBIT_ORDER_STEPS : BASE_STEPS;
+
+  const canProceedFromDebitOrder = !!(doBankName && doBankAccountNumber && doAccountName && doSignatureData);
+
   const canProceed = () => {
     switch (step) {
       case "account": return canProceedFromAccount;
       case "type": return canProceedFromType;
       case "pool": return canProceedToDetails;
       case "details": return canProceedToReview;
+      case "debit_order": return canProceedFromDebitOrder;
       default: return false;
     }
   };
