@@ -411,16 +411,6 @@ const Items = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Key</Label>
-                  <Input type="password" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} placeholder="Enter API key" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Link</Label>
-                  <Input value={form.api_link} onChange={(e) => setForm({ ...form, api_link: e.target.value })} placeholder="https://..." />
-                </div>
-              </div>
 
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Price Formula (use API code as variable, e.g. XAU * 1.05 / 10 + 50)</Label>
