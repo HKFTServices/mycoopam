@@ -409,7 +409,7 @@ const TransferDetailsStep = ({
                 <span className="font-mono">{netUnitsReceived.toFixed(4)} units</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Net Value to Recipient</span>
+                <span>Net Value @ UP Buy {formatCurrency(unitPriceBuy)}</span>
                 <span className="font-mono">{formatCurrency(netTransferAmount)}</span>
               </div>
             </div>
