@@ -95,7 +95,7 @@ const t = (lang: Lang, key: keyof typeof translations.en) => translations[lang]?
 const POOL_NAME_AF: Record<string, string> = {
   "gold": "Goud",
   "silver": "Silwer",
-  "member account": "Lidmaatskaprekening",
+  "member account": "Lidrekening",
   "reserve": "Reserwe",
   "admin": "Admin",
 };
