@@ -384,6 +384,17 @@ export default function SendMessage() {
   const selectedCount = recipients.filter((r) => r.selected).length;
 
   // Template preview with full merge data from first recipient
+  // Deduplicate templates by name — show only one entry per unified template
+  const uniqueTemplates = useMemo(() => {
+    const seen = new Map<string, any>();
+    for (const t of templates) {
+      if (!seen.has(t.name)) {
+        seen.set(t.name, t);
+      }
+    }
+    return Array.from(seen.values());
+  }, [templates]);
+
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
   const templateHasAgmFields = useMemo(() => {
     if (!selectedTemplate) return false;
