@@ -11,9 +11,13 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, CreditCard, Eye, Pencil } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Loader2, CreditCard, Eye, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
@@ -33,6 +37,9 @@ const DebitOrders = () => {
   const queryClient = useQueryClient();
   const [viewOrder, setViewOrder] = useState<any>(null);
   const [editOrder, setEditOrder] = useState<any>(null);
+  const [signUpOpen, setSignUpOpen] = useState(false);
+  const [entitySelectOpen, setEntitySelectOpen] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
 
   const { data: userRoles = [] } = useQuery({
     queryKey: ["user_roles_do", user?.id],
@@ -45,6 +52,44 @@ const DebitOrders = () => {
   });
 
   const isAdmin = userRoles.some(r => ["super_admin", "tenant_admin", "manager"].includes(r));
+
+  // Fetch user's linked entities with their entity accounts
+  const { data: userEntities = [] } = useQuery({
+    queryKey: ["user_entities_do", user?.id, currentTenant?.id],
+    queryFn: async () => {
+      if (!user || !currentTenant) return [];
+      const { data: rels } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id, relationship_types(name), entities(id, name, last_name)")
+        .eq("user_id", user.id)
+        .eq("tenant_id", currentTenant.id);
+      if (!rels) return [];
+
+      // For each entity, get the entity account
+      const results: any[] = [];
+      for (const rel of rels) {
+        if (!rel.entities) continue;
+        const { data: accounts } = await (supabase as any)
+          .from("entity_accounts")
+          .select("id, account_number")
+          .eq("entity_id", rel.entities.id)
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true)
+          .limit(1);
+        if (accounts?.[0]) {
+          results.push({
+            entityId: rel.entities.id,
+            entityName: [rel.entities.name, rel.entities.last_name].filter(Boolean).join(" "),
+            relationshipType: rel.relationship_types?.name || "",
+            entityAccountId: accounts[0].id,
+            accountNumber: accounts[0].account_number,
+          });
+        }
+      }
+      return results;
+    },
+    enabled: !!user && !!currentTenant && !isAdmin,
+  });
 
   const { data: debitOrders = [], isLoading } = useQuery({
     queryKey: ["debit_orders_list", currentTenant?.id, user?.id, isAdmin],
@@ -103,6 +148,33 @@ const DebitOrders = () => {
     try { return JSON.parse(notesStr); } catch { return null; }
   };
 
+  const handleSignUpClick = () => {
+    if (userEntities.length === 0) {
+      toast.error("No linked entities with active accounts found");
+      return;
+    }
+    if (userEntities.length === 1) {
+      // Only one entity — go straight to sign-up
+      setSelectedEntityId(userEntities[0].entityId);
+      setSignUpOpen(true);
+    } else {
+      // Multiple entities — show selector first
+      setSelectedEntityId("");
+      setEntitySelectOpen(true);
+    }
+  };
+
+  const handleEntitySelected = () => {
+    if (!selectedEntityId) {
+      toast.error("Please select an entity first");
+      return;
+    }
+    setEntitySelectOpen(false);
+    setSignUpOpen(true);
+  };
+
+  const selectedEntity = userEntities.find((e: any) => e.entityId === selectedEntityId);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -113,36 +185,54 @@ const DebitOrders = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <CreditCard className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Debit Orders</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <CreditCard className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Debit Orders</h1>
+        </div>
+        {!isAdmin && (
+          <Button onClick={handleSignUpClick} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Sign Up for Debit Order
+          </Button>
+        )}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdmin && <TableHead className="text-center">Active</TableHead>}
-                <TableHead>Pool Allocations</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {debitOrders.length === 0 ? (
+      {debitOrders.length === 0 && !isAdmin ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
+            <CreditCard className="h-12 w-12 text-muted-foreground" />
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-semibold">No Debit Orders</h3>
+              <p className="text-sm text-muted-foreground">
+                You don't have any debit orders yet. Set up a recurring debit order to automate your contributions.
+              </p>
+            </div>
+            <Button onClick={handleSignUpClick} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Sign Up for Debit Order
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 9 : 8} className="text-center text-muted-foreground py-8">
-                    No debit orders found
-                  </TableCell>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Frequency</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin && <TableHead className="text-center">Active</TableHead>}
+                  <TableHead>Pool Allocations</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
-              ) : (
-                debitOrders.map((d: any) => {
+              </TableHeader>
+              <TableBody>
+                {debitOrders.map((d: any) => {
                   const pools = Array.isArray(d.pool_allocations) ? d.pool_allocations : [];
                   const notes = parseNotes(d.notes);
                   const isLoaded = d.status === "loaded";
@@ -207,12 +297,45 @@ const DebitOrders = () => {
                       </TableCell>
                     </TableRow>
                   );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Entity selection dialog (when user has multiple entities) */}
+      <Dialog open={entitySelectOpen} onOpenChange={setEntitySelectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Entity</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You have multiple linked entities. Please select which entity you want to set up a debit order for.
+            </p>
+            <div className="space-y-2">
+              <Label>Entity</Label>
+              <Select value={selectedEntityId} onValueChange={setSelectedEntityId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an entity..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {userEntities.map((e: any) => (
+                    <SelectItem key={e.entityId} value={e.entityId}>
+                      {e.entityName} {e.relationshipType ? `(${e.relationshipType})` : ""} — {e.accountNumber || "No account"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEntitySelectOpen(false)}>Cancel</Button>
+              <Button onClick={handleEntitySelected} disabled={!selectedEntityId}>Continue</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* View detail dialog */}
       <Dialog open={!!viewOrder} onOpenChange={(o) => { if (!o) setViewOrder(null); }}>
@@ -326,6 +449,23 @@ const DebitOrders = () => {
           entityAccountId={editOrder.entity_account_id}
           accountNumber={editOrder.entity_accounts?.account_number}
           existingOrder={editOrder}
+        />
+      )}
+
+      {/* New sign-up dialog */}
+      {signUpOpen && selectedEntity && (
+        <DebitOrderSignUpDialog
+          open={signUpOpen}
+          onOpenChange={(o) => {
+            if (!o) {
+              setSignUpOpen(false);
+              setSelectedEntityId("");
+            }
+          }}
+          entityId={selectedEntity.entityId}
+          entityName={selectedEntity.entityName}
+          entityAccountId={selectedEntity.entityAccountId}
+          accountNumber={selectedEntity.accountNumber}
         />
       )}
     </div>
