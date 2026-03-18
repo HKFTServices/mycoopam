@@ -669,6 +669,9 @@ const Memberships = () => {
                       <TableCell className="align-top">
                         <div>
                           <span className="font-medium">{g.entityName}</span>
+                          {(g.identityNumber || g.registrationNumber) && (
+                            <p className="text-xs text-muted-foreground font-mono">{g.identityNumber || g.registrationNumber}</p>
+                          )}
                           {g.categoryName && (
                             <p className="text-xs text-muted-foreground">({g.categoryName})</p>
                           )}
