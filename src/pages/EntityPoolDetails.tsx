@@ -149,7 +149,7 @@ const EntityPoolDetails = () => {
       };
     }
 
-    const poolMap: Record<string, { poolName: string; units: number; buyValue: number; sellValue: number; iconUrl: string | null }> = {};
+    const poolMap: Record<string, { poolName: string; units: number; value: number; iconUrl: string | null }> = {};
     for (const row of accountPoolUnits) {
       if (!entityAccountIds.has(row.entity_account_id)) continue;
       const poolId = row.pool_id;
@@ -157,21 +157,19 @@ const EntityPoolDetails = () => {
       const price = priceByPool[poolId];
       if (!price) continue;
       if (!poolMap[poolId]) {
-        poolMap[poolId] = { poolName: price.name, units: 0, buyValue: 0, sellValue: 0, iconUrl: price.iconUrl };
+        poolMap[poolId] = { poolName: price.name, units: 0, value: 0, iconUrl: price.iconUrl };
       }
       poolMap[poolId].units += units;
-      poolMap[poolId].buyValue += units * price.buy;
-      poolMap[poolId].sellValue += units * price.sell;
+      poolMap[poolId].value += units * price.sell;
     }
     return Object.entries(poolMap).map(([poolId, v]) => ({ poolId, ...v }));
   }, [accountPoolUnits, poolPrices, entityAccountIds]);
 
-  const totalBuyValue = poolData.reduce((s, p) => s + p.buyValue, 0);
-  const totalSellValue = poolData.reduce((s, p) => s + p.sellValue, 0);
+  const totalValue = poolData.reduce((s, p) => s + p.value, 0);
 
   const pieData = poolData.map((p) => ({
     name: p.poolName,
-    value: Math.round(p.buyValue * 100) / 100,
+    value: Math.round(p.value * 100) / 100,
   }));
 
   const entityFullName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
