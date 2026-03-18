@@ -23,6 +23,7 @@ interface TransferDetailsStepProps {
   poolName: string;
   currentHolding: number;
   unitPriceSell: number;
+  unitPriceBuy: number;
   feeBreakdown: FeeBreakdown[];
   totalFee: number;
   amount: string;
