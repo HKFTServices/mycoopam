@@ -62,12 +62,17 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { template, transporter, fromHeader, tenantName, legalEntityName, signature } = await resolveSmtpAndTemplate(
+      const langCode = profile.language_code || "en";
+      const { templates, transporter, fromHeader, tenantName, legalEntityName, signatures } = await resolveSmtpAndTemplates(
         adminClient,
         tenant_id,
-        template_id,
-        profile.language_code || "en"
+        template_id
       );
+
+      const template = templates[langCode] || templates["en"];
+      const signature = langCode === "af"
+        ? (signatures.af || signatures.en || "")
+        : (signatures.en || "");
 
       if (!template || !transporter) {
         return new Response(JSON.stringify({ error: "Template or SMTP not configured" }), {
@@ -168,11 +173,14 @@ Deno.serve(async (req) => {
   }
 });
 
-async function resolveSmtpAndTemplate(
+/**
+ * Resolves SMTP config and BOTH language versions of the template (EN + AF).
+ * Returns a `templates` map keyed by language_code.
+ */
+async function resolveSmtpAndTemplates(
   adminClient: any,
   tenantId: string,
-  templateId: string,
-  langCode: string
+  templateId: string
 ) {
   // Fetch tenant SMTP
   const { data: tenantConfig } = await adminClient
@@ -182,15 +190,42 @@ async function resolveSmtpAndTemplate(
     .maybeSingle();
 
   if (!tenantConfig?.smtp_host || !tenantConfig?.smtp_from_email) {
-    return { template: null, transporter: null, fromHeader: "", tenantName: "", signature: "" };
+    return { templates: {}, transporter: null, fromHeader: "", tenantName: "", legalEntityName: "", signatures: { en: "", af: "" } };
   }
 
-  // Fetch template
-  const { data: template } = await adminClient
+  // Fetch the selected (EN) template
+  const { data: enTemplate } = await adminClient
     .from("communication_templates")
-    .select("subject, body_html")
+    .select("name, application_event, subject, body_html, language_code")
     .eq("id", templateId)
     .single();
+
+  // Build templates map — start with the selected template
+  const templates: Record<string, { subject: string; body_html: string }> = {};
+  if (enTemplate) {
+    templates[enTemplate.language_code || "en"] = {
+      subject: enTemplate.subject || "",
+      body_html: enTemplate.body_html || "",
+    };
+
+    // Find the sibling template in the other language
+    const siblingLang = (enTemplate.language_code || "en") === "en" ? "af" : "en";
+    const { data: siblingTemplate } = await adminClient
+      .from("communication_templates")
+      .select("subject, body_html, language_code")
+      .eq("tenant_id", tenantId)
+      .eq("name", enTemplate.name)
+      .eq("application_event", enTemplate.application_event)
+      .eq("language_code", siblingLang)
+      .maybeSingle();
+
+    if (siblingTemplate) {
+      templates[siblingLang] = {
+        subject: siblingTemplate.subject || "",
+        body_html: siblingTemplate.body_html || "",
+      };
+    }
+  }
 
   // Resolve tenant name and legal entity name
   let tenantName = "";
@@ -224,11 +259,12 @@ async function resolveSmtpAndTemplate(
     ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
     : effectiveFromEmail;
 
-  const signature = langCode === "af"
-    ? (tenantConfig.email_signature_af || tenantConfig.email_signature_en || "")
-    : (tenantConfig.email_signature_en || "");
+  const signatures = {
+    en: tenantConfig.email_signature_en || "",
+    af: tenantConfig.email_signature_af || tenantConfig.email_signature_en || "",
+  };
 
-  return { template, transporter, fromHeader, tenantName, legalEntityName, signature };
+  return { templates, transporter, fromHeader, tenantName, legalEntityName, signatures };
 }
 
 function renderTemplate(
@@ -274,6 +310,56 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Resolves a recipient's language_code from entity → user_entity_relationships → profile,
+ * or falls back to the entity's own language_code.
+ */
+async function resolveRecipientLanguage(
+  adminClient: any,
+  recipient: any
+): Promise<string> {
+  // Try entity's language_code first
+  if (recipient.entity_id) {
+    const { data: entity } = await adminClient
+      .from("entities")
+      .select("language_code")
+      .eq("id", recipient.entity_id)
+      .maybeSingle();
+    if (entity?.language_code) return entity.language_code;
+  }
+
+  // Try via user profile
+  if (recipient.user_id) {
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("language_code")
+      .eq("user_id", recipient.user_id)
+      .maybeSingle();
+    if (profile?.language_code) return profile.language_code;
+  }
+
+  // Try via user_entity_relationships → profile
+  if (recipient.entity_id) {
+    const { data: rel } = await adminClient
+      .from("user_entity_relationships")
+      .select("user_id")
+      .eq("entity_id", recipient.entity_id)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (rel?.user_id) {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("language_code")
+        .eq("user_id", rel.user_id)
+        .maybeSingle();
+      if (profile?.language_code) return profile.language_code;
+    }
+  }
+
+  return "en";
+}
+
 async function sendBatchBackground(
   adminClient: any,
   campaignId: string,
@@ -311,14 +397,14 @@ async function sendBatchBackground(
       return;
     }
 
-    const { template, transporter, fromHeader, tenantName, legalEntityName, signature } = await resolveSmtpAndTemplate(
+    // Resolve SMTP + both language templates once for the batch
+    const { templates, transporter, fromHeader, tenantName, legalEntityName, signatures } = await resolveSmtpAndTemplates(
       adminClient,
       tenantId,
-      templateId,
-      "en" // default to English for batch
+      templateId
     );
 
-    if (!template || !transporter) {
+    if (!Object.keys(templates).length || !transporter) {
       await adminClient
         .from("message_campaigns")
         .update({ status: "failed" })
@@ -331,9 +417,22 @@ async function sendBatchBackground(
 
     for (const recipient of recipients) {
       try {
-        // Resolve entity name from recipient_name (already entity name)
+        // Resolve this recipient's language
+        const langCode = await resolveRecipientLanguage(adminClient, recipient);
+
+        // Pick the correct template — fall back to EN if AF not available
+        const template = templates[langCode] || templates["en"];
+        const signature = langCode === "af"
+          ? (signatures.af || signatures.en || "")
+          : (signatures.en || "");
+
+        if (!template) {
+          throw new Error("No template available for language: " + langCode);
+        }
+
+        // Resolve entity name from recipient_name
         const entityName = recipient.recipient_name || "";
-        // Resolve user profile if user_id available
+        // Resolve user profile for merge fields
         let userName = "";
         let userSurname = "";
         if (recipient.user_id) {
@@ -347,7 +446,6 @@ async function sendBatchBackground(
             userSurname = userProfile.last_name || "";
           }
         } else if (recipient.entity_id) {
-          // Try to find user via user_entity_relationships
           const { data: rel } = await adminClient
             .from("user_entity_relationships")
             .select("user_id")
@@ -367,6 +465,7 @@ async function sendBatchBackground(
             }
           }
         }
+
         const { subject, html } = renderTemplate(template, {
           entity_name: entityName,
           user_name: userName,
@@ -398,7 +497,7 @@ async function sendBatchBackground(
 
         sentCount++;
 
-        // Log to email_logs too
+        // Log to email_logs
         await adminClient.from("email_logs").insert({
           tenant_id: tenantId,
           recipient_email: recipient.recipient_email,
@@ -407,10 +506,10 @@ async function sendBatchBackground(
           subject,
           status: "sent",
           message_id: info.messageId,
-          metadata: { campaign_id: campaignId },
+          metadata: { campaign_id: campaignId, language: langCode },
         });
 
-        console.log(`[campaign] Sent to ${recipient.recipient_email} (${sentCount}/${recipients.length})`);
+        console.log(`[campaign] Sent to ${recipient.recipient_email} (${langCode}) (${sentCount}/${recipients.length})`);
       } catch (err: any) {
         failedCount++;
         await adminClient
@@ -426,7 +525,7 @@ async function sendBatchBackground(
           recipient_email: recipient.recipient_email,
           recipient_user_id: recipient.user_id,
           application_event: "campaign_message",
-          subject: template.subject,
+          subject: templates["en"]?.subject || "",
           status: "failed",
           error_message: err.message,
           metadata: { campaign_id: campaignId },
