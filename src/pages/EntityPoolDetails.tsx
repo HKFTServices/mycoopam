@@ -326,9 +326,9 @@ const EntityPoolDetails = () => {
   const membershipAccount = entityAccounts.find((a: any) => a.entity_account_types?.account_type === 1);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in px-1 sm:px-0">
       {/* Header — centered */}
-      <div className="flex flex-col items-center gap-2 text-center">
+      <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center">
         <Button variant="ghost" size="icon" className="self-start" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
