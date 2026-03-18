@@ -100,6 +100,8 @@ const TransactionReviewDialog = ({
       setCourierNotes("");
       setStockReceivedConfirmed(false);
       setStockReceivedNotes("");
+      setAdminSignature(null);
+      setMemberSignature(null);
     }
   }, [open]);
 
