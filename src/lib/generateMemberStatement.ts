@@ -90,13 +90,16 @@ export function generateMemberStatement(data: StatementData): string {
     : "";
 
   // Calculate summary - opening and closing values per pool
-  const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number }> = {};
+  // Include display type from pool settings
+  const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number; displayType: string; statementDesc: string }> = {};
 
   for (const row of data.openingUnits) {
     const poolId = row.pool_id;
     const priceInfo = data.poolPricesStart[poolId];
+    const displayType = priceInfo?.pools?.pool_statement_display_type ?? "display_in_summary";
+    if (displayType === "do_not_display") continue;
     if (!poolSummary[poolId]) {
-      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0 };
+      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0, displayType, statementDesc: priceInfo?.pools?.pool_statement_description || "" };
     }
     poolSummary[poolId].openUnits += Number(row.total_units);
   }
@@ -104,11 +107,16 @@ export function generateMemberStatement(data: StatementData): string {
   for (const row of data.closingUnits) {
     const poolId = row.pool_id;
     const priceInfo = data.poolPricesEnd[poolId];
+    const displayType = priceInfo?.pools?.pool_statement_display_type ?? "display_in_summary";
+    if (displayType === "do_not_display") continue;
     if (!poolSummary[poolId]) {
-      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0) };
+      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0), displayType, statementDesc: priceInfo?.pools?.pool_statement_description || "" };
     }
     poolSummary[poolId].closeUnits += Number(row.total_units);
     poolSummary[poolId].closePrice = Number(priceInfo?.unit_price_sell || 0);
+    if (!poolSummary[poolId].statementDesc) {
+      poolSummary[poolId].statementDesc = priceInfo?.pools?.pool_statement_description || "";
+    }
   }
 
   // Filter out pools with no values
@@ -118,12 +126,17 @@ export function generateMemberStatement(data: StatementData): string {
     return openVal > 0.001 || closeVal > 0.001;
   });
 
-  const openTotal = activePools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
-  const closeTotal = activePools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
+  // Split by display type
+  const summaryPools = activePools.filter(([, p]) => p.displayType === "display_in_summary");
+  const belowSummaryPools = activePools.filter(([, p]) => p.displayType === "display_below_summary");
+
+  // Totals based on summary pools only
+  const openTotal = summaryPools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
+  const closeTotal = summaryPools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
   const changeTotal = closeTotal - openTotal;
 
-  // Build sections HTML
-  const summaryRows = activePools.map(([, p]) => {
+  // Build sections HTML - summary table only shows display_in_summary pools
+  const summaryRows = summaryPools.map(([, p]) => {
     const openVal = p.openUnits * p.openPrice;
     const closeVal = p.closeUnits * p.closePrice;
     const change = closeVal - openVal;
@@ -138,6 +151,17 @@ export function generateMemberStatement(data: StatementData): string {
       <td class="num ${change < 0 ? 'neg' : ''}">${fmtNum(change, sym)}</td>
     </tr>`;
   }).join("");
+
+  // Below-summary notes
+  const belowSummaryHtml = belowSummaryPools.length > 0
+    ? `<div style="margin-top:8px;font-size:8pt;color:#444;line-height:1.7;">
+        ${belowSummaryPools.map(([, p]) => {
+          const closeVal = p.closeUnits * p.closePrice;
+          const label = p.statementDesc || p.name;
+          return `<div><strong>${label}:</strong> ${fmtNum(closeVal, sym)}</div>`;
+        }).join("")}
+      </div>`
+    : "";
 
   // Unit movements section
   const unitRows = data.unitTransactions.map((tx: any) => {
