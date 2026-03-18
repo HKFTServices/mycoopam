@@ -444,7 +444,7 @@ const Communications = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Message Templates</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Campaign Templates</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage custom email, SMS, and notification templates. Each template has English and Afrikaans versions.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -463,16 +463,15 @@ const Communications = () => {
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Event</TableHead>
                 <TableHead>Channels</TableHead>
-                <TableHead>Afrikaans</TableHead>
                 <TableHead>Active</TableHead>
                 <TableHead className="w-16" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : englishTemplates.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No custom templates yet. Import a system template to get started.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No custom templates yet. Import a system template to get started.</TableCell></TableRow>
               ) : (
                 englishTemplates.map((t) => (
                   <TableRow key={t.id}>
@@ -481,13 +480,6 @@ const Communications = () => {
                       {APPLICATION_EVENTS.find((e) => e.value === t.application_event)?.label || t.application_event}
                     </TableCell>
                     <TableCell>{channelIcons(t)}</TableCell>
-                    <TableCell>
-                      {hasAfVersion(t) ? (
-                        <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">AF ✓</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">—</Badge>
-                      )}
-                    </TableCell>
                     <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
