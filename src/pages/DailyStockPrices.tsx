@@ -206,26 +206,34 @@ const DailyStockPrices = () => {
       let costInclVat = 0;
       let buyPriceExclVat = 0;
       let buyPriceInclVat = 0;
+      let sellPriceExclVat = 0;
+      let sellPriceInclVat = 0;
       let pricingSource = "Manual";
 
       if (fetched) {
-        // Use live fetched prices
         costExclVat = fetched.cost_excl_vat;
         costInclVat = fetched.cost_incl_vat;
         buyPriceExclVat = fetched.buy_price_excl_vat;
         buyPriceInclVat = fetched.buy_price_incl_vat;
+        sellPriceExclVat = fetched.sell_price_excl_vat ?? costExclVat * (1 - item.sell_margin_percentage / 100);
+        sellPriceInclVat = fetched.sell_price_incl_vat ?? sellPriceExclVat * (1 + vatRate);
         pricingSource = fetched.pricing_source;
       } else if (existing) {
         costExclVat = Number(existing.cost_excl_vat || 0);
         costInclVat = Number(existing.cost_incl_vat || 0);
         buyPriceExclVat = Number(existing.buy_price_excl_vat || 0);
         buyPriceInclVat = Number(existing.buy_price_incl_vat || 0);
+        // Recalculate sell price from cost and sell margin
+        sellPriceExclVat = costExclVat * (1 - item.sell_margin_percentage / 100);
+        sellPriceInclVat = sellPriceExclVat * (1 + vatRate);
         pricingSource = item.api_link ? "API" : item.use_fixed_price != null ? "Fixed" : item.calculate_price_with_item_id ? "Formula" : "Manual";
       } else if (item.use_fixed_price != null) {
         costExclVat = item.use_fixed_price;
         costInclVat = costExclVat * (1 + vatRate);
         buyPriceExclVat = costExclVat * (1 + item.margin_percentage / 100);
         buyPriceInclVat = buyPriceExclVat * (1 + vatRate);
+        sellPriceExclVat = costExclVat * (1 - item.sell_margin_percentage / 100);
+        sellPriceInclVat = sellPriceExclVat * (1 + vatRate);
         pricingSource = "Fixed";
       }
 
@@ -235,6 +243,8 @@ const DailyStockPrices = () => {
         costInclVat,
         buyPriceExclVat,
         buyPriceInclVat,
+        sellPriceExclVat,
+        sellPriceInclVat,
         pricingSource,
         taxName: tax ? `${tax.name} (${tax.percentage}%)` : "—",
         poolName: poolMap[item.pool_id] ?? "—",
