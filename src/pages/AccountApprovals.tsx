@@ -713,6 +713,33 @@ const AccountApprovals = () => {
   const awaitingAcceptance = pendingLoans.filter((l: any) => l.status === "approved").length;
   const awaitingDisbursement = pendingLoans.filter((l: any) => l.status === "accepted").length;
 
+  // ─── Debit Order Approvals ───
+  const { data: pendingDebitOrders = [], isLoading: loadingDebitOrders } = useQuery({
+    queryKey: ["pending_debit_orders", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("debit_orders")
+        .select("*, entities(name, last_name), entity_accounts(account_number)")
+        .eq("tenant_id", currentTenant.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const { data: tenantConfigApproval } = useQuery({
+    queryKey: ["tenant_config_approval_sym", currentTenant?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("tenant_configuration").select("currency_symbol").eq("tenant_id", currentTenant!.id).maybeSingle();
+      return data;
+    },
+    enabled: !!currentTenant,
+  });
+  const approvalSym = tenantConfigApproval?.currency_symbol ?? "R";
+
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
