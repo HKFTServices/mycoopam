@@ -164,7 +164,7 @@ const DepositDetailsStep = ({
         <p className="text-[10px] text-muted-foreground">
           Unit prices will be based on this date. Default is today.
         </p>
-        <Popover>
+        <Popover modal={false}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
