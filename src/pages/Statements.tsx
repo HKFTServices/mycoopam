@@ -507,9 +507,15 @@ export default function Statements() {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setEmailing(true);
     try {
+      const adminEmail = isAdmin && ccAdmin ? user?.email : undefined;
+      const overrideEmail = isAdmin && emailDelivery === "single" && singleEmailAddress ? singleEmailAddress : undefined;
       for (const entityId of effectiveEntityIds) {
         const { error } = await supabase.functions.invoke("send-member-statement", {
-          body: { tenant_id: tenantId, entity_id: entityId, from_date: fromStr, to_date: toStr },
+          body: {
+            tenant_id: tenantId, entity_id: entityId, from_date: fromStr, to_date: toStr,
+            ...(adminEmail ? { cc_email: adminEmail } : {}),
+            ...(overrideEmail ? { override_recipient_email: overrideEmail } : {}),
+          },
         });
         if (error) throw error;
       }
