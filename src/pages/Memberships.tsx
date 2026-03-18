@@ -715,7 +715,7 @@ const Memberships = () => {
                         {g.accounts.length > 0 ? (
                           <div className="space-y-1.5">
                             {g.accounts.map((a: AccountRow) => {
-                              const isActive = a.status === "active" || a.status === "approved";
+                              const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
                               const isPending = a.status === "pending_activation" || a.status === "pending";
                               return (
                                 <div key={a.id} className="flex items-center gap-1.5 text-sm">
