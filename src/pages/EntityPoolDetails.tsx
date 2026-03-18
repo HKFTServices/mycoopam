@@ -486,13 +486,13 @@ const EntityPoolDetails = () => {
           <CardHeader>
             <CardTitle className="text-lg">{t(lang, "poolBreakdown")} {effectiveDate && <span className="text-sm font-normal text-muted-foreground">{t(lang, "on")} {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}</span>}</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t(lang, "pool")}</TableHead>
-                  <TableHead className="text-right">{t(lang, "units")}</TableHead>
-                  <TableHead className="text-right">{t(lang, "unitPrice")}</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">{t(lang, "units")}</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">{t(lang, "unitPrice")}</TableHead>
                   <TableHead className="text-right">{t(lang, "value")}</TableHead>
                 </TableRow>
               </TableHeader>
