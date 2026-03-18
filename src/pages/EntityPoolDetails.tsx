@@ -333,7 +333,7 @@ const EntityPoolDetails = () => {
         {/* Membership number */}
         {membershipAccount && (
           <div className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm">
-            <span className="text-muted-foreground">Membership:</span>
+            <span className="text-muted-foreground">{t(lang, "membership")}:</span>
             <code className="font-mono font-medium">{membershipAccount.account_number ?? "N/A"}</code>
           </div>
         )}
