@@ -550,216 +550,147 @@ const Memberships = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Entity Name</TableHead>
-                <TableHead>Relationship</TableHead>
+                <TableHead className="w-28">Actions</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead className="text-right">Combined Unit Value</TableHead>
-                <TableHead className="w-32">Type</TableHead>
-                <TableHead className="w-36">Number</TableHead>
-                <TableHead className="w-28">Status</TableHead>
-                <TableHead className="w-20">Active</TableHead>
                 <TableHead>Referred By</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
+                <TableHead>Accounts</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                <TableCell colSpan={10} className="text-center py-12">
-                     <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                   </TableCell>
-                 </TableRow>
-               ) : filteredGroups.length === 0 ? (
-                 <TableRow>
-                   <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-12">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                     <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     {search ? "No matching records found." : "No entities yet."}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredGroups.map((g, gi) => {
-                  const rowCount = Math.max(g.accounts.length, 1);
-                  const entityColors = [
-                    "bg-primary/5 hover:bg-primary/10",
-                    "bg-secondary/30 hover:bg-secondary/40",
-                    "bg-accent/20 hover:bg-accent/30",
-                    "bg-muted/40 hover:bg-muted/60",
-                  ];
-                  const entityBg = entityColors[gi % entityColors.length];
-                  return g.accounts.length > 0 ? (
-                    g.accounts.map((a, i) => (
-                      <TableRow key={a.id} className={`${entityBg} border-b-0`}>
-                        {i === 0 && (
-                          <>
-                            <TableCell rowSpan={rowCount} className="align-middle border-b">
-                              <div>
-                                <span className="font-medium">{g.entityName}</span>
-                                {(g.identityNumber || g.registrationNumber) && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {g.categoryName && <span className="font-medium text-foreground">{g.categoryName} </span>}
-                                    ({g.identityNumber || g.registrationNumber})
-                                  </p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell rowSpan={rowCount} className="align-middle border-b">
-                              <span className="text-sm">{g.relationshipName ?? "—"}</span>
-                            </TableCell>
-                            <TableCell rowSpan={rowCount} className="align-middle border-b text-right">
-                              <div className="space-y-1">
-                                {entityValueMap[g.entityId] ? (
-                                  <button
-                                    onClick={() => navigate(`/dashboard/entity-pool-details?entityId=${g.entityId}`)}
-                                    className="font-mono text-xs font-semibold text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors cursor-pointer"
-                                  >
-                                    {formatCurrency(entityValueMap[g.entityId], sym)}
-                                  </button>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                                {entityLoanMap[g.entityId] != null && (
-                                  <button
-                                    onClick={() => { setLoanEntityId(g.entityId); setLoanDialogOpen(true); }}
-                                    className={`block ml-auto font-mono text-[10px] hover:underline cursor-pointer ${entityLoanMap[g.entityId] >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
-                                  >
-                                    <Banknote className="h-3 w-3 inline mr-0.5" />
-                                    Loan: {formatCurrency(entityLoanMap[g.entityId], sym)}
-                                  </button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </>
-                        )}
-                        <TableCell className={`align-middle py-0 ${i === rowCount - 1 ? "border-b" : ""}`}>
-                          <span className="text-xs">
-                            {a.accountTypeName ?? "—"}
-                            {a.accountTypeInt === 1 && <span className="text-muted-foreground"> (Full)</span>}
-                            {a.accountTypeInt === 4 && <span className="text-muted-foreground"> (Associated)</span>}
-                          </span>
-                        </TableCell>
-                        <TableCell className={`align-middle py-0 ${i === rowCount - 1 ? "border-b" : ""}`}>
-                          {a.accountNumber ? (
-                            <code className="text-[11px] font-mono bg-muted px-1 py-0.5 rounded">{a.accountNumber}</code>
-                          ) : <span className="text-[10px] text-muted-foreground italic">Not allocated</span>}
-                        </TableCell>
-                        <TableCell className={`align-middle py-0 ${i === rowCount - 1 ? "border-b" : ""}`}>
-                           {a.status ? <Badge variant={statusVariant(a.status)} className="text-[10px] px-1.5 py-0">{statusLabel(a.status)}</Badge> : <span className="text-[10px] text-muted-foreground italic">—</span>}
-                         </TableCell>
-                         <TableCell className={`align-middle py-0 ${i === rowCount - 1 ? "border-b" : ""}`}>
-                           {a.isActive !== undefined ? (
-                             <Badge variant={a.isActive ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">{a.isActive ? "Yes" : "No"}</Badge>
-                           ) : <span className="text-[10px] text-muted-foreground italic">—</span>}
-                         </TableCell>
-                         <TableCell className={`align-middle py-0 ${i === rowCount - 1 ? "border-b" : ""}`}>
-                          {i === 0 && g.referredBy ? (
-                            <span className="text-xs text-muted-foreground">{g.referredBy}</span>
-                          ) : null}
-                        </TableCell>
-                        {i === 0 && (() => {
-                          const existingTypes = new Set(g.accounts.map(a => a.accountTypeInt).filter(Boolean));
-                          const hasReferralHouseAcct = existingTypes.has(5);
-                          const hasCustomer = existingTypes.has(2);
-                          const hasSupplier = existingTypes.has(3);
-                          // Edit Profile is always available, so always show Actions
-                          return (
-                          <TableCell rowSpan={rowCount} className="align-middle border-b">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" className="h-8 px-3 text-xs">
-                                  Actions
-                                  <ChevronDown className="h-3 w-3 ml-1" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => setEditEntity({ id: g.entityId, type: g.entityType })}
-                                >
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Edit Profile
+                  const entityBg = gi % 2 === 0 ? "" : "bg-muted/30";
+                  const existingTypes = new Set(g.accounts.map((a: AccountRow) => a.accountTypeInt).filter(Boolean));
+                  const hasReferralHouseAcct = existingTypes.has(5);
+                  const hasCustomer = existingTypes.has(2);
+                  const hasSupplier = existingTypes.has(3);
+
+                  return (
+                    <TableRow key={g.entityId} className={`${entityBg} hover:bg-muted/50`}>
+                      {/* Actions - first column */}
+                      <TableCell className="align-top">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" className="h-8 px-3 text-xs">
+                              Actions
+                              <ChevronDown className="h-3 w-3 ml-1" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            <DropdownMenuItem
+                              onClick={() => setEditEntity({ id: g.entityId, type: g.entityType })}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit Profile
+                            </DropdownMenuItem>
+                            {!hasReferralHouseAcct && (
+                              <DropdownMenuItem
+                                disabled={applyMutation.isPending}
+                                onClick={() => applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 5 })}
+                              >
+                                <Home className="h-4 w-4 mr-2" />
+                                Apply for Referral House
+                              </DropdownMenuItem>
+                            )}
+                            {g.entityType === "natural_person" && (
+                              <DropdownMenuItem
+                                onClick={() => setReferrerDialogEntity({ id: g.entityId, name: g.entityName })}
+                              >
+                                <UserCheck className="h-4 w-4 mr-2" />
+                                Apply as Referrer
+                              </DropdownMenuItem>
+                            )}
+                            {!hasCustomer && (
+                              <DropdownMenuItem
+                                disabled={!isTenantAdmin || applyMutation.isPending}
+                                onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 2 })}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Apply for Customer
+                                {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
+                              </DropdownMenuItem>
+                            )}
+                            {!hasSupplier && (
+                              <DropdownMenuItem
+                                disabled={!isTenantAdmin || applyMutation.isPending}
+                                onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 3 })}
+                              >
+                                <Truck className="h-4 w-4 mr-2" />
+                                Apply for Supplier
+                                {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
+                              </DropdownMenuItem>
+                            )}
+                            {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved") && (
+                              <>
+                                <DropdownMenuItem onClick={() => {
+                                  const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved");
+                                  setTxnDefaultAccountId(activeAcct?.id);
+                                  setTxnDialogOpen(true);
+                                }}>
+                                  <ArrowLeftRight className="h-4 w-4 mr-2" />
+                                  New Transaction
                                 </DropdownMenuItem>
-                                {!hasReferralHouseAcct && (
-                                  <DropdownMenuItem
-                                    disabled={applyMutation.isPending}
-                                    onClick={() => applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 5 })}
-                                  >
-                                    <Home className="h-4 w-4 mr-2" />
-                                    Apply for Referral House
-                                  </DropdownMenuItem>
-                                )}
-                                {g.entityType === "natural_person" && (
-                                  <DropdownMenuItem
-                                    onClick={() => setReferrerDialogEntity({ id: g.entityId, name: g.entityName })}
-                                  >
-                                    <UserCheck className="h-4 w-4 mr-2" />
-                                    Apply as Referrer
-                                  </DropdownMenuItem>
-                                )}
-                                {!hasCustomer && (
-                                  <DropdownMenuItem
-                                    disabled={!isTenantAdmin || applyMutation.isPending}
-                                    onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 2 })}
-                                  >
-                                    <ShoppingCart className="h-4 w-4 mr-2" />
-                                    Apply for Customer
-                                    {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
-                                  </DropdownMenuItem>
-                                )}
-                                {!hasSupplier && (
-                                  <DropdownMenuItem
-                                    disabled={!isTenantAdmin || applyMutation.isPending}
-                                    onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 3 })}
-                                  >
-                                    <Truck className="h-4 w-4 mr-2" />
-                                    Apply for Supplier
-                                    {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
-                                  </DropdownMenuItem>
-                                )}
-                                {g.accounts.some(a => a.status === "active" || a.status === "approved") && (
-                                  <>
-                                    <DropdownMenuItem onClick={() => {
-                                      const activeAcct = g.accounts.find(a => a.status === "active" || a.status === "approved");
-                                      setTxnDefaultAccountId(activeAcct?.id);
-                                      setTxnDialogOpen(true);
-                                    }}>
-                                      <ArrowLeftRight className="h-4 w-4 mr-2" />
-                                      New Transaction
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => {
-                                      const activeAcct = g.accounts.find(a => a.status === "active" || a.status === "approved");
-                                      if (activeAcct) {
-                                        setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
-                                      }
-                                    }}>
-                                      <Banknote className="h-4 w-4 mr-2" />
-                                      Apply for Loan
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                          );
-                        })()}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow key={`no-account-${g.entityId}`} className={entityBg}>
-                      <TableCell>
+                                <DropdownMenuItem onClick={() => {
+                                  const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved");
+                                  if (activeAcct) {
+                                    setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
+                                  }
+                                }}>
+                                  <Banknote className="h-4 w-4 mr-2" />
+                                  Apply for Loan
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {g.accounts.length === 0 && (
+                              <DropdownMenuItem onClick={() => navigate("/apply-membership?type=myself")}>
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Apply for Membership
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+
+                      {/* Name - entity info consolidated */}
+                      <TableCell className="align-top">
                         <div>
                           <span className="font-medium">{g.entityName}</span>
-                          {(g.identityNumber || g.registrationNumber) && (
-                            <p className="text-xs text-muted-foreground">
-                              {g.categoryName && <span className="font-medium text-foreground">{g.categoryName} </span>}
-                              ({g.identityNumber || g.registrationNumber})
-                            </p>
+                          {g.categoryName && (
+                            <p className="text-xs text-muted-foreground">({g.categoryName})</p>
+                          )}
+                          {g.relationshipName && (
+                            <p className="text-xs text-muted-foreground">{g.relationshipName}</p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell><span className="text-sm">{g.relationshipName ?? "—"}</span></TableCell>
-                      <TableCell className="text-right">
+
+                      {/* Combined Unit Value */}
+                      <TableCell className="align-top text-right">
                         <div className="space-y-1">
                           {entityValueMap[g.entityId] ? (
-                            <span className="font-mono text-xs">{formatCurrency(entityValueMap[g.entityId], sym)}</span>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                            <button
+                              onClick={() => navigate(`/dashboard/entity-pool-details?entityId=${g.entityId}`)}
+                              className="font-mono text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors cursor-pointer"
+                            >
+                              {formatCurrency(entityValueMap[g.entityId], sym)}
+                            </button>
+                          ) : (
+                            <span className="font-mono text-sm text-muted-foreground">{formatCurrency(0, sym)}</span>
+                          )}
                           {entityLoanMap[g.entityId] != null && (
                             <button
                               onClick={() => { setLoanEntityId(g.entityId); setLoanDialogOpen(true); }}
@@ -771,41 +702,51 @@ const Memberships = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell><span className="text-xs text-muted-foreground italic">None</span></TableCell>
-                      <TableCell><span className="text-xs text-muted-foreground italic">Not allocated</span></TableCell>
-                      <TableCell><span className="text-xs text-muted-foreground italic">—</span></TableCell>
-                       <TableCell><span className="text-xs text-muted-foreground italic">—</span></TableCell>
-                       <TableCell>
-                        {g.referredBy ? <span className="text-xs text-muted-foreground">{g.referredBy}</span> : null}
+
+                      {/* Referred By */}
+                      <TableCell className="align-top">
+                        {g.referredBy ? (
+                          <span className="text-sm text-muted-foreground">{g.referredBy}</span>
+                        ) : null}
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm" className="h-8 px-3 text-xs">
-                              Actions
-                              <ChevronDown className="h-3 w-3 ml-1" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => setEditEntity({ id: g.entityId, type: g.entityType })}
-                            >
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate("/apply-membership?type=myself")}>
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Apply for Membership
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={applyMutation.isPending}
-                              onClick={() => applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 5 })}
-                            >
-                              <Home className="h-4 w-4 mr-2" />
-                              Apply for Referral House
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+
+                      {/* Accounts - consolidated */}
+                      <TableCell className="align-top">
+                        {g.accounts.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {g.accounts.map((a: AccountRow) => {
+                              const isActive = a.status === "active" || a.status === "approved";
+                              const isPending = a.status === "pending_activation" || a.status === "pending";
+                              return (
+                                <div key={a.id} className="flex items-center gap-1.5 text-sm">
+                                  <span className="font-medium">{a.accountTypeName}</span>
+                                  {a.accountNumber ? (
+                                    <>
+                                      <span className="text-muted-foreground">(</span>
+                                      {isActive ? (
+                                        <span className="text-emerald-600 dark:text-emerald-400">✓</span>
+                                      ) : isPending ? (
+                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" />
+                                      ) : (
+                                        <span className="text-destructive">✗</span>
+                                      )}
+                                      <code className="font-mono text-xs">{a.accountNumber}</code>
+                                      <span className="text-muted-foreground">)</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground italic">
+                                      ({isPending ? (
+                                        <><Loader2 className="h-3 w-3 animate-spin inline mr-0.5" />{statusLabel(a.status ?? "")}</>
+                                      ) : statusLabel(a.status ?? "No account")})
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">No accounts</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
