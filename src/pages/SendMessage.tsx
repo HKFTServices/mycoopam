@@ -128,7 +128,6 @@ export default function SendMessage() {
         .eq("is_active", true);
       return data || [];
     },
-    },
     enabled: !!tenantId,
   });
 
