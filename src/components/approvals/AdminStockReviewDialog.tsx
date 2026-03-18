@@ -231,6 +231,8 @@ const AdminStockReviewDialog = ({
   const [showLines, setShowLines] = useState(true);
   const [sendingDoc, setSendingDoc] = useState(false);
   const [docEmailSent, setDocEmailSent] = useState(false);
+  const [adminSignature, setAdminSignature] = useState<string | null>(null);
+  const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
   // Reset all local state when the transaction changes
   useEffect(() => {
