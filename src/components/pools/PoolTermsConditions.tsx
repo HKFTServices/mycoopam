@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface PoolTermsConditionsProps {
@@ -28,31 +27,21 @@ const PoolTermsConditions = ({ tenantId, poolIds }: PoolTermsConditionsProps) =>
   if (terms.length === 0) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Terms & Conditions</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {terms.map((tc: any, idx: number) => (
-            <AccordionItem key={tc.id} value={tc.id}>
-              <AccordionTrigger className="text-sm font-medium">
-                Pool Terms & Conditions
-                {tc.language_code && tc.language_code !== "en" && (
-                  <span className="ml-2 text-xs text-muted-foreground uppercase">({tc.language_code})</span>
-                )}
-              </AccordionTrigger>
-              <AccordionContent>
-                <div
-                  className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: tc.content }}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </CardContent>
-    </Card>
+    <Accordion type="single" collapsible className="w-full">
+      {terms.map((tc: any) => (
+        <AccordionItem key={tc.id} value={tc.id} className="border-b-0">
+          <AccordionTrigger className="text-xs font-medium text-muted-foreground py-1 hover:no-underline">
+            Terms & Conditions
+          </AccordionTrigger>
+          <AccordionContent>
+            <div
+              className="prose prose-xs max-w-none dark:prose-invert text-muted-foreground text-xs leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: tc.content }}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
   );
 };
 
