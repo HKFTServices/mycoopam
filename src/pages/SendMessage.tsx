@@ -447,7 +447,7 @@ export default function SendMessage() {
       html = html.replaceAll(key, val);
     }
     return html;
-  }, [selectedTemplate, firstRecipient, previewMergeData]);
+  }, [selectedTemplate, firstRecipient, previewMergeData, agmVenue, agmDate, agmTime]);
 
   // Send test email
   const handleTestEmail = async () => {
