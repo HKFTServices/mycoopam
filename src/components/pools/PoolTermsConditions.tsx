@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface PoolTermsConditionsProps {
   tenantId: string;
@@ -17,7 +16,8 @@ const PoolTermsConditions = ({ tenantId, poolIds }: PoolTermsConditionsProps) =>
         .eq("tenant_id", tenantId)
         .eq("condition_type", "pool")
         .eq("is_active", true)
-        .order("effective_from", { ascending: false });
+        .order("effective_from", { ascending: false })
+        .limit(1);
       if (error) throw error;
       return data ?? [];
     },
@@ -26,22 +26,16 @@ const PoolTermsConditions = ({ tenantId, poolIds }: PoolTermsConditionsProps) =>
 
   if (terms.length === 0) return null;
 
+  const tc = terms[0];
+
   return (
-    <Accordion type="single" collapsible className="w-full">
-      {terms.map((tc: any) => (
-        <AccordionItem key={tc.id} value={tc.id} className="border-b-0">
-          <AccordionTrigger className="text-xs font-medium text-muted-foreground py-1 hover:no-underline">
-            Terms & Conditions
-          </AccordionTrigger>
-          <AccordionContent>
-            <div
-              className="prose prose-xs max-w-none dark:prose-invert text-muted-foreground text-xs leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: tc.content }}
-            />
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+    <div className="mt-1">
+      <p className="text-xs font-medium text-muted-foreground mb-1">Terms & Conditions</p>
+      <div
+        className="prose prose-xs max-w-none dark:prose-invert text-muted-foreground text-xs leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: tc.content }}
+      />
+    </div>
   );
 };
 
