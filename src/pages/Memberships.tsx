@@ -763,7 +763,7 @@ const Memberships = () => {
                           {entityLoanMap[g.entityId] != null && (
                             <button
                               onClick={() => { setLoanEntityId(g.entityId); setLoanDialogOpen(true); }}
-                              className={`block font-mono text-[10px] hover:underline cursor-pointer ${entityLoanMap[g.entityId] >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
+                              className={`block ml-auto font-mono text-[10px] hover:underline cursor-pointer ${entityLoanMap[g.entityId] >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
                             >
                               <Banknote className="h-3 w-3 inline mr-0.5" />
                               Loan: {formatCurrency(entityLoanMap[g.entityId], sym)}
