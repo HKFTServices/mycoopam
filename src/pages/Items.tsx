@@ -56,6 +56,7 @@ const defaultForm = {
   item_code: "",
   description: "",
   margin_percentage: 0,
+  sell_margin_percentage: 0,
   use_fixed_price: "" as string,
   calculate_price_with_item_id: "",
   calculation_type: "",
