@@ -497,6 +497,7 @@ const EntityPoolDetails = () => {
             poolPrices={poolPrices}
             exposedPoolIds={poolData.map((p) => p.poolId)}
             currencySymbol={sym}
+            label={t(lang, "unitPrices")}
           />
 
           {effectiveDate && currentTenant && (
@@ -505,6 +506,7 @@ const EntityPoolDetails = () => {
               poolIds={poolData.map((p) => p.poolId)}
               effectiveDate={effectiveDate}
               currencySymbol={sym}
+              label={t(lang, "stockPrices")}
             />
           )}
 
@@ -512,6 +514,8 @@ const EntityPoolDetails = () => {
             <PoolTermsConditions
               tenantId={currentTenant.id}
               poolIds={poolData.map((p) => p.poolId)}
+              lang={lang}
+              label={t(lang, "termsConditions")}
             />
           )}
         </div>
