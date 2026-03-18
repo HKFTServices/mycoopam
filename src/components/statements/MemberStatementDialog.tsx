@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, FileText, Loader2 } from "lucide-react";
+import { CalendarIcon, FileText, Loader2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears, startOfQuarter, endOfQuarter, subQuarters } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +70,7 @@ export default function MemberStatementDialog({
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [loading, setLoading] = useState(false);
+  const [emailing, setEmailing] = useState(false);
 
   const dates = preset === "custom"
     ? { from: customFrom ?? new Date(), to: customTo ?? new Date() }
@@ -279,9 +280,37 @@ export default function MemberStatementDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleGenerate} disabled={loading}>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              setEmailing(true);
+              try {
+                const { error } = await supabase.functions.invoke("send-member-statement", {
+                  body: {
+                    tenant_id: tenantId,
+                    entity_id: entityId,
+                    from_date: fromStr,
+                    to_date: toStr,
+                  },
+                });
+                if (error) throw error;
+                toast({ title: "Statement Emailed", description: "The statement has been sent to the member's email address." });
+                onOpenChange(false);
+              } catch (err: any) {
+                console.error("Email statement error:", err);
+                toast({ title: "Error", description: err.message || "Failed to email statement", variant: "destructive" });
+              } finally {
+                setEmailing(false);
+              }
+            }}
+            disabled={emailing || loading}
+          >
+            {emailing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+            Email Statement
+          </Button>
+          <Button onClick={handleGenerate} disabled={loading || emailing}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
             Generate Statement
           </Button>
