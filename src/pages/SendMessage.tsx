@@ -429,6 +429,7 @@ export default function SendMessage() {
     let html = selectedTemplate.body_html;
     const replacements: Record<string, string> = {
       "{{entity_name}}": previewMergeData.entity_name || "",
+      "{{legal_entity_name}}": previewMergeData.legal_entity_name || "",
       "{{user_name}}": previewMergeData.user_name || "",
       "{{user_surname}}": previewMergeData.user_surname || "",
       "{{first_name}}": previewMergeData.entity_name || "",
