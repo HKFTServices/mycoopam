@@ -5662,6 +5662,7 @@ export type Database = {
         Returns: {
           pool_id: string
           unit_price_buy: number
+          unit_price_sell: number
         }[]
       }
       get_loan_outstanding: {
