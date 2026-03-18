@@ -66,6 +66,7 @@ const mainNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Memberships", icon: Briefcase, path: "/dashboard/memberships" },
   { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions", subItems: [
+    { label: "Loan Applications", icon: Banknote, path: "/dashboard/loan-applications" },
     { label: "Debit Orders", icon: CreditCard, path: "/dashboard/debit-orders" },
   ] },
 ];
@@ -396,23 +397,27 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             {/* Transactions visible to members with approved accounts, clerks, managers, and admins */}
             {showTransactions && renderNavItem(mainNavItems[2])}
 
-            {/* Member Asset Manager - visible to all authenticated users */}
-            <button
-              onClick={() => setMamOpen(!mamOpen)}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <ShieldPlus className="h-4.5 w-4.5 shrink-0" />
-              <span>Asset Manager</span>
-              {mamOpen ? (
-                <ChevronDown className="ml-auto h-4 w-4" />
-              ) : (
-                <ChevronRight className="ml-auto h-4 w-4" />
-              )}
-            </button>
-            {mamOpen && (
-              <div className="ml-3 pl-3 border-l border-border space-y-0.5">
-                {mamNavItems.map(renderNavItem)}
-              </div>
+            {/* Member Asset Manager - super_admin only for now */}
+            {isSuperAdmin && (
+              <>
+                <button
+                  onClick={() => setMamOpen(!mamOpen)}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <ShieldPlus className="h-4.5 w-4.5 shrink-0" />
+                  <span>Asset Manager</span>
+                  {mamOpen ? (
+                    <ChevronDown className="ml-auto h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="ml-auto h-4 w-4" />
+                  )}
+                </button>
+                {mamOpen && (
+                  <div className="ml-3 pl-3 border-l border-border space-y-0.5">
+                    {mamNavItems.map(renderNavItem)}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Messages - admin only */}
