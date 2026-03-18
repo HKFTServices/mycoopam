@@ -510,8 +510,8 @@ const EntityPoolDetails = () => {
                           <span className="font-medium">{translatePoolName(p.poolName, lang)}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-mono text-sm">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{formatCurrency(price ? Number(price.unit_price_sell) : 0, sym)}</TableCell>
+                      <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
+                      <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{formatCurrency(price ? Number(price.unit_price_sell) : 0, sym)}</TableCell>
                       <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.value, sym)}</TableCell>
                     </TableRow>
                   );
