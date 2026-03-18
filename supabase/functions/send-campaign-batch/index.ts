@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
         tenant_name: tenantName,
         legal_entity_name: legalEntityName,
         email_signature: signature,
+        agm_venue: cf.agm_venue || "",
+        agm_date: cf.agm_date || "",
+        agm_time: cf.agm_time || "",
       });
 
       await transporter.sendMail({
