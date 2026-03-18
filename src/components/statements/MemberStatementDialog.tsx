@@ -118,36 +118,6 @@ export default function MemberStatementDialog({
         (supabase as any).rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: entityId, p_from_date: fromStr, p_to_date: toStr }),
       ]);
 
-      // Fetch legal entity address
-      const legalEntityId = tenantConfigRes.data?.legal_entity_id;
-      let legalAddress: any = null;
-      if (legalEntityId) {
-        const { data: addrData } = await (supabase as any).from("addresses").select("street_address, suburb, city, province, postal_code").eq("entity_id", legalEntityId).eq("tenant_id", tenantId).eq("is_primary", true).maybeSingle();
-        legalAddress = addrData;
-      }
-
-      // Member address
-      const { data: memberAddr } = await (supabase as any).from("addresses").select("street_address, suburb, city, province, postal_code").eq("entity_id", entityId).eq("tenant_id", tenantId).eq("is_primary", true).maybeSingle();
-
-      // Get unit balances at start of period (opening balance)
-      const { data: openingUnitsData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId, p_up_to_date: format(new Date(dates.from.getTime() - 86400000), "yyyy-MM-dd") });
-      // Get unit balances at end of period (closing balance)
-      const { data: closingUnitsData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId, p_up_to_date: toStr });
-
-      // Filter opening/closing to member accounts
-      const accountSet = new Set(entityAccountIds);
-      const openingUnits = (openingUnitsData ?? []).filter((r: any) => accountSet.has(r.entity_account_id));
-      const closingUnits = (closingUnitsData ?? []).filter((r: any) => accountSet.has(r.entity_account_id));
-
-      // Deduplicate pool prices - get latest per pool
-      const dedup = (rows: any[]) => {
-        const map: Record<string, any> = {};
-        for (const r of rows ?? []) {
-          if (!map[r.pool_id]) map[r.pool_id] = r;
-        }
-        return map;
-      };
-
       const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
       const legacyEntityId = loanRow?.legacy_entity_id || loanRow?.client_acct_id;
 
