@@ -39,10 +39,10 @@ const formatCcy = (v: number) =>
 // ── Step definitions ──────────────────────────────────────────────────────────
 
 const PURCHASE_STATUS_ORDER = [
-  "pending", "order_sent", "invoice_received", "stock_received", "vault_confirmed", "approved",
+  "pending", "order_sent", "invoice_received", "stock_received", "vault_confirmed", "receipt_signed", "approved",
 ];
 const SALE_STATUS_ORDER = [
-  "pending", "quote_sent", "quote_accepted", "invoice_sent", "stock_collected", "stock_delivered", "approved",
+  "pending", "quote_sent", "quote_accepted", "invoice_sent", "stock_collected", "stock_delivered", "receipt_signed", "approved",
 ];
 
 interface StepDef {
