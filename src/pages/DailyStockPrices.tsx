@@ -33,6 +33,7 @@ type Item = {
   description: string;
   pool_id: string;
   margin_percentage: number;
+  sell_margin_percentage: number;
   use_fixed_price: number | null;
   api_code: string | null;
   api_link: string | null;
