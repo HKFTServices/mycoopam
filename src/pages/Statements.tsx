@@ -521,6 +521,53 @@ export default function Statements() {
     } finally { setLoading(false); }
   };
 
+  const handleDownloadCgtPdf = async () => {
+    if (effectiveEntityIds.length === 0 || !tenantId) return;
+    setDownloading(true);
+    try {
+      for (const entityId of effectiveEntityIds) {
+        const { data, error } = await supabase.functions.invoke("send-cgt-certificate", {
+          body: { tenant_id: tenantId, entity_id: entityId, from_date: fromStr, to_date: toStr, mode: "download" },
+        });
+        if (error) throw error;
+        if (!data?.pdf_base64) throw new Error("No PDF returned");
+        const byteChars = atob(data.pdf_base64);
+        const byteArray = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = data.filename || "cgt_certificate.pdf";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      }
+      toast({ title: "CGT PDF Downloaded" });
+    } catch (err: any) {
+      console.error("Download CGT PDF error:", err);
+      toast({ title: "Error", description: err.message || "Failed to download CGT PDF", variant: "destructive" });
+    } finally { setDownloading(false); }
+  };
+
+  const handleEmailCgtPdf = async () => {
+    if (effectiveEntityIds.length === 0 || !tenantId) return;
+    setEmailing(true);
+    try {
+      const adminEmail = isAdmin && ccAdmin ? user?.email : undefined;
+      const overrideEmail = isAdmin && emailDelivery === "single" && singleEmailAddress ? singleEmailAddress : undefined;
+      for (const entityId of effectiveEntityIds) {
+        const { error } = await supabase.functions.invoke("send-cgt-certificate", {
+          body: {
+            tenant_id: tenantId, entity_id: entityId, from_date: fromStr, to_date: toStr,
+            ...(adminEmail ? { cc_email: adminEmail } : {}),
+            ...(overrideEmail ? { override_recipient_email: overrideEmail } : {}),
+          },
+        });
+        if (error) throw error;
+      }
+      toast({ title: "CGT Certificates Emailed", description: `${effectiveEntityIds.length} certificate(s) sent successfully.` });
+    } catch (err: any) {
+      console.error("Email CGT error:", err);
+      toast({ title: "Error", description: err.message || "Failed to email CGT certificate", variant: "destructive" });
+    } finally { setEmailing(false); }
+
   const handleViewStatement = async () => {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setLoading(true);
