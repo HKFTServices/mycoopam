@@ -242,6 +242,8 @@ const AdminStockReviewDialog = ({
     setDeclineReason("");
     setShowDecline(false);
     setDocEmailSent(false);
+    setAdminSignature(null);
+    setMemberSignature(null);
   }, [txn?.id]);
 
   const { data: linesData = [], isLoading } = useQuery({
