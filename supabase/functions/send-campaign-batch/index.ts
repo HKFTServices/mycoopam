@@ -279,7 +279,8 @@ async function sendBatchBackground(
   campaignId: string,
   tenantId: string,
   templateId: string,
-  batchNumber: number
+  batchNumber: number,
+  customFields: Record<string, string> = {}
 ) {
   try {
     // Get pending recipients for this batch
