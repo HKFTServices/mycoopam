@@ -11,16 +11,17 @@ interface PoolUnitPricesProps {
   poolPrices: PoolPrice[];
   exposedPoolIds: string[];
   currencySymbol: string;
+  label?: string;
 }
 
-const PoolUnitPrices = ({ poolPrices, exposedPoolIds, currencySymbol }: PoolUnitPricesProps) => {
+const PoolUnitPrices = ({ poolPrices, exposedPoolIds, currencySymbol, label = "Unit Prices" }: PoolUnitPricesProps) => {
   const filtered = poolPrices.filter((pp) => exposedPoolIds.includes(pp.pool_id));
 
   if (filtered.length === 0) return null;
 
   return (
     <div className="text-sm text-muted-foreground">
-      <span className="font-medium text-foreground mr-2">Unit Prices:</span>
+      <span className="font-medium text-foreground mr-2">{label}:</span>
       {filtered.map((pp, idx) => (
         <span key={pp.pool_id}>
           {pp.pools?.name ?? "Unknown"}{" "}
