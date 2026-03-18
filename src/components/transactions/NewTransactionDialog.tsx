@@ -37,14 +37,16 @@ const SWITCH_CODES = ["SWITCH"];
 const STOCK_ONLY_CODES = ["DEPOSIT_STOCK", "WITHDRAW_STOCK"];
 const TRANSFER_CODES = ["TRANSFER"];
 
-type Step = "type" | "account" | "pool" | "details" | "review";
-const STEPS: Step[] = ["account", "type", "pool", "details", "review"];
+type Step = "type" | "account" | "pool" | "details" | "debit_order" | "review";
+const BASE_STEPS: Step[] = ["account", "type", "pool", "details", "review"];
+const DEBIT_ORDER_STEPS: Step[] = ["account", "type", "pool", "details", "debit_order", "review"];
 
 const STEP_META: Record<Step, { label: string; icon: typeof User }> = {
   type: { label: "Type", icon: ListChecks },
   account: { label: "Account", icon: User },
   pool: { label: "Pools", icon: TrendingUp },
   details: { label: "Details", icon: FileText },
+  debit_order: { label: "Mandate", icon: FileText },
   review: { label: "Review", icon: Search },
 };
 
