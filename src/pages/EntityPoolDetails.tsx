@@ -73,7 +73,7 @@ const EntityPoolDetails = () => {
       if (!entityId || !currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, account_number, entity_account_types (name)")
+        .select("id, account_number, entity_account_types (name, account_type)")
         .eq("entity_id", entityId)
         .eq("tenant_id", currentTenant.id);
       if (error) throw error;
