@@ -363,6 +363,7 @@ async function sendBatchBackground(
           user_surname: userSurname,
           email_address: recipient.recipient_email,
           tenant_name: tenantName,
+          legal_entity_name: legalEntityName,
           email_signature: signature,
         });
 
