@@ -583,9 +583,10 @@ const DailyPoolPrices = () => {
                               {row.stockItems.reduce((s, i) => s + i.quantity, 0).toFixed(4)}
                             </TableCell>
                             <TableCell colSpan={2} />
-                            <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockCost, sym)}</TableCell>
+                            <TableCell />
                             <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockBuy, sym)}</TableCell>
-                            <TableCell colSpan={3} />
+                            <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockSell, sym)}</TableCell>
+                            <TableCell colSpan={2} />
                           </TableRow>
                         </>
                       )}
