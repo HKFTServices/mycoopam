@@ -446,6 +446,52 @@ const AdminStockReviewDialog = ({
       );
     }
 
+    // Receipt / signature step
+    if (currentStep.type === "receipt") {
+      const counterpartyName = txn.counterparty_entity
+        ? [txn.counterparty_entity.name, txn.counterparty_entity.last_name].filter(Boolean).join(" ")
+        : undefined;
+      const receiptLines = (linesData as any[]).map((l: any) => ({
+        description: l.items?.description ?? "—",
+        itemCode: l.items?.item_code,
+        quantity: Number(l.quantity),
+        unitPrice: Number(l.unit_price_excl_vat),
+        lineTotal: Number(l.line_total_incl_vat),
+        adjustmentType: l.adjustment_type,
+      }));
+      const bothSigned = !!adminSignature && !!memberSignature;
+      return (
+        <div className="space-y-3">
+          <StockReceiptPanel
+            receiptType={isPurchase ? "purchase" : "sale"}
+            transactionDate={txn.transaction_date}
+            reference={txn.reference}
+            counterpartyName={counterpartyName}
+            stockLines={receiptLines}
+            vaultReference={txn.vault_reference}
+            notes={txn.vault_notes}
+            adminSignature={adminSignature}
+            memberSignature={memberSignature}
+            onAdminSignatureChange={setAdminSignature}
+            onMemberSignatureChange={setMemberSignature}
+            adminLabel="Authorised Representative (Admin)"
+            memberLabel={isPurchase ? "Supplier Representative" : "Customer Representative"}
+          />
+          <Button
+            disabled={!bothSigned || updatingStatus}
+            onClick={() => {
+              onUpdateStatus(txn.id, currentStep.advancesTo!);
+              setStepConfirmed(false);
+            }}
+            className="gap-1.5"
+          >
+            {updatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            Confirm Signatures & Advance
+          </Button>
+        </div>
+      );
+    }
+
     // Final approval step
     if (currentStep.type === "final") {
       return (
