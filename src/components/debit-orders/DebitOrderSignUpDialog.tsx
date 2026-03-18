@@ -47,9 +47,15 @@ const DebitOrderSignUpDialog = ({
 
   const [step, setStep] = useState<Step>("details");
   const [monthlyAmount, setMonthlyAmount] = useState("");
-  const [debitDay, setDebitDay] = useState("1");
+  const debitDay = "1";
   const [frequency, setFrequency] = useState("monthly");
-  const [startDate, setStartDate] = useState(formatLocalDate());
+  // Default to 1st of upcoming month
+  const getFirstOfNextMonth = () => {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return formatLocalDate(next);
+  };
+  const [startDate, setStartDate] = useState(getFirstOfNextMonth());
   const [allocations, setAllocations] = useState<PoolAllocation[]>([]);
   const [notes, setNotes] = useState("");
 
