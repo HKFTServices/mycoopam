@@ -15,8 +15,9 @@ import { Separator } from "@/components/ui/separator";
 import {
   Loader2, CheckCircle, XCircle, CalendarIcon, AlertTriangle, TrendingUp,
   FileText, Eye, Banknote, Package, Truck, Building2, ChevronRight, ChevronLeft,
-  ClipboardCheck, BoxSelect, Save,
+  ClipboardCheck, BoxSelect, Save, PenTool,
 } from "lucide-react";
+import StockReceiptPanel from "@/components/stock/StockReceiptPanel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
