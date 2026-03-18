@@ -489,9 +489,70 @@ async function generateStatementPdf(data: {
       y += 4;
     }
   }
-  y += 6;
 
-  // ── Unit Movements ──
+  // ── Notes section: unit prices, stock prices, T&C ──
+  const hasNotes = (data.poolUnitPrices && data.poolUnitPrices.length > 0) || (data.stockItemPrices && data.stockItemPrices.length > 0) || data.termsConditionsText;
+  if (hasNotes) {
+    y += 3;
+    if (y > 265) { doc.addPage(); y = 15; }
+    // Separator line
+    doc.setDrawColor(...BORDER);
+    doc.line(15, y, 195, y);
+    y += 3;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text("NOTES", 15, y);
+    y += 4;
+
+    // Unit prices
+    if (data.poolUnitPrices && data.poolUnitPrices.length > 0) {
+      if (y > 275) { doc.addPage(); y = 15; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT_DARK);
+      doc.text("Unit Prices:", 15, y);
+      doc.setFont("helvetica", "normal");
+      const priceText = data.poolUnitPrices.map(p => `${p.poolName} ${fmtCurrency(p.sellPrice, sym)}`).join("  ·  ");
+      doc.text(priceText, 15 + doc.getTextWidth("Unit Prices: ") + 1, y, { maxWidth: 160 });
+      y += 4;
+    }
+
+    // Stock item prices
+    if (data.stockItemPrices && data.stockItemPrices.length > 0) {
+      if (y > 275) { doc.addPage(); y = 15; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT_DARK);
+      doc.text("Stock Prices:", 15, y);
+      doc.setFont("helvetica", "normal");
+      const stockText = data.stockItemPrices.map(p => `${p.description} ${p.price != null ? fmtCurrency(p.price, sym) : "—"}`).join("  ·  ");
+      doc.text(stockText, 15 + doc.getTextWidth("Stock Prices: ") + 1, y, { maxWidth: 160 });
+      y += 4;
+    }
+
+    // T&C
+    if (data.termsConditionsText) {
+      if (y > 265) { doc.addPage(); y = 15; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6);
+      doc.setTextColor(...TEXT_GREY);
+      doc.text("Terms & Conditions", 15, y);
+      y += 3;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6);
+      doc.setTextColor(102, 102, 102);
+      const lines = doc.splitTextToSize(data.termsConditionsText, 170);
+      for (const line of lines) {
+        if (y > 278) { doc.addPage(); y = 15; }
+        doc.text(line, 15, y);
+        y += 3;
+      }
+    }
+  }
+
+  y += 6;
   y = drawSectionTitle(doc, "Unit Movements", y);
   if (data.unitTransactions.length > 0) {
     const unitRows = data.unitTransactions.map((tx: any) => {
