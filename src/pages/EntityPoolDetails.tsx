@@ -19,16 +19,31 @@ import PoolUnitPrices from "@/components/pools/PoolUnitPrices";
 import PoolItemsPrices from "@/components/pools/PoolItemsPrices";
 import PoolTermsConditions from "@/components/pools/PoolTermsConditions";
 
-const COLORS = [
-  "hsl(152, 68%, 36%)",
+const FALLBACK_COLORS = [
   "hsl(200, 70%, 50%)",
-  "hsl(45, 85%, 55%)",
+  "hsl(152, 68%, 36%)",
   "hsl(280, 60%, 55%)",
   "hsl(350, 65%, 55%)",
   "hsl(170, 55%, 45%)",
   "hsl(25, 75%, 55%)",
   "hsl(220, 65%, 55%)",
 ];
+
+const POOL_COLOR_MAP: Record<string, string> = {
+  gold: "hsl(43, 80%, 50%)",
+  silver: "hsl(210, 10%, 70%)",
+  member: "hsl(152, 68%, 36%)",
+  reserve: "hsl(200, 70%, 50%)",
+  admin: "hsl(280, 60%, 55%)",
+};
+
+const getPoolColor = (poolName: string, idx: number): string => {
+  const lower = poolName.toLowerCase();
+  for (const [key, color] of Object.entries(POOL_COLOR_MAP)) {
+    if (lower.includes(key)) return color;
+  }
+  return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+};
 
 const EntityPoolDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -334,8 +349,8 @@ const EntityPoolDetails = () => {
                     )}
                     labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                   >
-                    {pieData.map((_, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                    {pieData.map((entry, idx) => (
+                      <Cell key={idx} fill={getPoolColor(entry.name, idx)} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value, sym)} />
@@ -394,7 +409,7 @@ const EntityPoolDetails = () => {
                     <TableRow key={p.poolId}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: getPoolColor(p.poolName, idx) }} />
                           {p.iconUrl ? (
                             <img src={p.iconUrl} alt={p.poolName} className="h-6 w-6 rounded object-cover shrink-0" />
                           ) : null}
