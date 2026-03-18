@@ -149,7 +149,7 @@ const EntityPoolDetails = () => {
       };
     }
 
-    const poolMap: Record<string, { poolName: string; units: number; buyValue: number; sellValue: number; iconUrl: string | null }> = {};
+    const poolMap: Record<string, { poolName: string; units: number; value: number; iconUrl: string | null }> = {};
     for (const row of accountPoolUnits) {
       if (!entityAccountIds.has(row.entity_account_id)) continue;
       const poolId = row.pool_id;
@@ -157,21 +157,19 @@ const EntityPoolDetails = () => {
       const price = priceByPool[poolId];
       if (!price) continue;
       if (!poolMap[poolId]) {
-        poolMap[poolId] = { poolName: price.name, units: 0, buyValue: 0, sellValue: 0, iconUrl: price.iconUrl };
+        poolMap[poolId] = { poolName: price.name, units: 0, value: 0, iconUrl: price.iconUrl };
       }
       poolMap[poolId].units += units;
-      poolMap[poolId].buyValue += units * price.buy;
-      poolMap[poolId].sellValue += units * price.sell;
+      poolMap[poolId].value += units * price.sell;
     }
     return Object.entries(poolMap).map(([poolId, v]) => ({ poolId, ...v }));
   }, [accountPoolUnits, poolPrices, entityAccountIds]);
 
-  const totalBuyValue = poolData.reduce((s, p) => s + p.buyValue, 0);
-  const totalSellValue = poolData.reduce((s, p) => s + p.sellValue, 0);
+  const totalValue = poolData.reduce((s, p) => s + p.value, 0);
 
   const pieData = poolData.map((p) => ({
     name: p.poolName,
-    value: Math.round(p.buyValue * 100) / 100,
+    value: Math.round(p.value * 100) / 100,
   }));
 
   const entityFullName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
@@ -266,21 +264,13 @@ const EntityPoolDetails = () => {
             </CardContent>
           </Card>
 
-          {/* Summary Cards */}
+          {/* Summary Card */}
           <div className="space-y-4">
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Buy Value</p>
-                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalBuyValue, sym)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-secondary/30 bg-secondary/20">
-              <CardContent className="py-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Sell Value</p>
-                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalSellValue, sym)}</p>
+                  <p className="text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -300,10 +290,8 @@ const EntityPoolDetails = () => {
                 <TableRow>
                   <TableHead>Pool</TableHead>
                   <TableHead className="text-right">Units</TableHead>
-                  <TableHead className="text-right">Buy Price</TableHead>
-                  <TableHead className="text-right">Buy Value</TableHead>
-                  <TableHead className="text-right">Sell Price</TableHead>
-                  <TableHead className="text-right">Sell Value</TableHead>
+                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -321,10 +309,8 @@ const EntityPoolDetails = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{formatCurrency(price ? Number(price.unit_price_buy) : 0, sym)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.buyValue, sym)}</TableCell>
                       <TableCell className="text-right font-mono text-sm">{formatCurrency(price ? Number(price.unit_price_sell) : 0, sym)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.sellValue, sym)}</TableCell>
+                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.value, sym)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -332,9 +318,7 @@ const EntityPoolDetails = () => {
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right font-mono">{poolData.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
                   <TableCell />
-                  <TableCell className="text-right font-mono">{formatCurrency(totalBuyValue, sym)}</TableCell>
-                  <TableCell />
-                  <TableCell className="text-right font-mono">{formatCurrency(totalSellValue, sym)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
