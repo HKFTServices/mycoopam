@@ -424,6 +424,14 @@ const EntityPoolDetails = () => {
         <div className="space-y-1.5 border-t border-border pt-4 mt-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</p>
 
+          {/* Below-summary pools with statement descriptions */}
+          {belowSummaryPools.map((p) => (
+            <div key={p.poolId} className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground mr-2">{p.statementDesc || p.poolName}:</span>
+              <span className="font-mono">{formatCurrency(p.value, sym)}</span>
+            </div>
+          ))}
+
           <PoolUnitPrices
             poolPrices={poolPrices}
             exposedPoolIds={poolData.map((p) => p.poolId)}
