@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TenantProvider } from "@/contexts/TenantContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import DashboardLayout from "@/components/DashboardLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -77,6 +78,33 @@ const DashboardRoute = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
+/** Admin routes: tenant_admin + super_admin */
+const AdminRoute = ({ children }: { children: React.ReactNode }) => (
+  <DashboardRoute>
+    <RoleProtectedRoute allowedRoles={["super_admin", "tenant_admin"]}>
+      {children}
+    </RoleProtectedRoute>
+  </DashboardRoute>
+);
+
+/** Admin + operational staff */
+const StaffRoute = ({ children }: { children: React.ReactNode }) => (
+  <DashboardRoute>
+    <RoleProtectedRoute allowedRoles={["super_admin", "tenant_admin", "manager", "clerk"]}>
+      {children}
+    </RoleProtectedRoute>
+  </DashboardRoute>
+);
+
+/** Super admin only */
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => (
+  <DashboardRoute>
+    <RoleProtectedRoute allowedRoles={["super_admin"]}>
+      {children}
+    </RoleProtectedRoute>
+  </DashboardRoute>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -86,66 +114,82 @@ const App = () => (
         <AuthProvider>
           <TenantProvider>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/t/:slug" element={<TenantLanding />} />
               <Route path="/register-tenant" element={<RegisterTenant />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+
+              {/* Auth-only (no role restriction) */}
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/membership-application" element={<ProtectedRoute><MembershipApplication /></ProtectedRoute>} />
               <Route path="/apply-membership" element={<ProtectedRoute><ApplyMembership /></ProtectedRoute>} />
+
+              {/* All authenticated users */}
               <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
               <Route path="/dashboard/memberships" element={<DashboardRoute><Memberships /></DashboardRoute>} />
-              <Route path="/dashboard/entities" element={<DashboardRoute><Entities /></DashboardRoute>} />
-              <Route path="/dashboard/entity-accounts" element={<DashboardRoute><EntityAccounts /></DashboardRoute>} />
-              <Route path="/dashboard/account-approvals" element={<DashboardRoute><AccountApprovals /></DashboardRoute>} />
-              <Route path="/dashboard/entity-relationships" element={<DashboardRoute><EntityRelationships /></DashboardRoute>} />
-              <Route path="/dashboard/users" element={<DashboardRoute><Users /></DashboardRoute>} />
-              <Route path="/dashboard/pools" element={<DashboardRoute><Pools /></DashboardRoute>} />
               <Route path="/dashboard/transactions" element={<DashboardRoute><Transactions /></DashboardRoute>} />
               <Route path="/dashboard/debit-orders" element={<DashboardRoute><DebitOrders /></DashboardRoute>} />
-              <Route path="/dashboard/items" element={<DashboardRoute><Items /></DashboardRoute>} />
-              <Route path="/dashboard/income-expense-items" element={<DashboardRoute><IncomeExpenseItems /></DashboardRoute>} />
-              <Route path="/dashboard/fees" element={<DashboardRoute><Fees /></DashboardRoute>} />
-              <Route path="/dashboard/operating-journals" element={<DashboardRoute><OperatingJournals /></DashboardRoute>} />
-              <Route path="/dashboard/ledger-entries" element={<DashboardRoute><LedgerEntries /></DashboardRoute>} />
-              <Route path="/dashboard/daily-prices/stock" element={<DashboardRoute><DailyStockPrices /></DashboardRoute>} />
-              <Route path="/dashboard/daily-prices/pools" element={<DashboardRoute><DailyPoolPrices /></DashboardRoute>} />
+              <Route path="/dashboard/loan-applications" element={<DashboardRoute><LoanApplications /></DashboardRoute>} />
+              <Route path="/dashboard/statements" element={<DashboardRoute><Statements /></DashboardRoute>} />
               <Route path="/dashboard/entity-pool-details" element={<DashboardRoute><EntityPoolDetails /></DashboardRoute>} />
               <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
-              <Route path="/dashboard/send-message" element={<DashboardRoute><SendMessage /></DashboardRoute>} />
-              <Route path="/dashboard/message-history" element={<DashboardRoute><MessageHistory /></DashboardRoute>} />
-              <Route path="/dashboard/statements" element={<DashboardRoute><Statements /></DashboardRoute>} />
-              <Route path="/dashboard/mam" element={<DashboardRoute><MamEntityProvider><MamDashboard /></MamEntityProvider></DashboardRoute>} />
-              <Route path="/dashboard/mam/assets" element={<DashboardRoute><MamEntityProvider><MamAssets /></MamEntityProvider></DashboardRoute>} />
-              <Route path="/dashboard/mam/contribution-plans" element={<DashboardRoute><MamEntityProvider><MamContributionPlans /></MamEntityProvider></DashboardRoute>} />
-              <Route path="/dashboard/mam/quotes" element={<DashboardRoute><MamEntityProvider><MamQuotes /></MamEntityProvider></DashboardRoute>} />
-              <Route path="/dashboard/mam/admin" element={<DashboardRoute><MamEntityProvider><MamAdmin /></MamEntityProvider></DashboardRoute>} />
-              <Route path="/dashboard/setup/transaction-types" element={<DashboardRoute><TransactionTypes /></DashboardRoute>} />
+
+              {/* Staff: admin + manager + clerk */}
+              <Route path="/dashboard/account-approvals" element={<StaffRoute><AccountApprovals /></StaffRoute>} />
+
+              {/* Admin only: tenant_admin + super_admin */}
+              <Route path="/dashboard/entities" element={<AdminRoute><Entities /></AdminRoute>} />
+              <Route path="/dashboard/entity-accounts" element={<AdminRoute><EntityAccounts /></AdminRoute>} />
+              <Route path="/dashboard/entity-relationships" element={<AdminRoute><EntityRelationships /></AdminRoute>} />
+              <Route path="/dashboard/users" element={<AdminRoute><Users /></AdminRoute>} />
+              <Route path="/dashboard/pools" element={<AdminRoute><Pools /></AdminRoute>} />
+              <Route path="/dashboard/items" element={<AdminRoute><Items /></AdminRoute>} />
+              <Route path="/dashboard/income-expense-items" element={<AdminRoute><IncomeExpenseItems /></AdminRoute>} />
+              <Route path="/dashboard/fees" element={<AdminRoute><Fees /></AdminRoute>} />
+              <Route path="/dashboard/operating-journals" element={<AdminRoute><OperatingJournals /></AdminRoute>} />
+              <Route path="/dashboard/ledger-entries" element={<AdminRoute><LedgerEntries /></AdminRoute>} />
+              <Route path="/dashboard/daily-prices/stock" element={<AdminRoute><DailyStockPrices /></AdminRoute>} />
+              <Route path="/dashboard/daily-prices/pools" element={<AdminRoute><DailyPoolPrices /></AdminRoute>} />
+              <Route path="/dashboard/send-message" element={<AdminRoute><SendMessage /></AdminRoute>} />
+              <Route path="/dashboard/message-history" element={<AdminRoute><MessageHistory /></AdminRoute>} />
+
+              {/* Tenant setup: tenant_admin + super_admin */}
+              <Route path="/dashboard/setup/document-requirements" element={<AdminRoute><DocumentRequirements /></AdminRoute>} />
+              <Route path="/dashboard/setup/terms-conditions" element={<AdminRoute><TermsConditions /></AdminRoute>} />
+              <Route path="/dashboard/setup/communications" element={<AdminRoute><Communications /></AdminRoute>} />
+              <Route path="/dashboard/setup/tenant-configuration" element={<AdminRoute><TenantConfiguration /></AdminRoute>} />
+              <Route path="/dashboard/setup/data-import" element={<AdminRoute><DataImport /></AdminRoute>} />
+              <Route path="/dashboard/setup/loan-settings" element={<AdminRoute><LoanSettings /></AdminRoute>} />
+              <Route path="/dashboard/setup/budget-categories" element={<AdminRoute><BudgetCategories /></AdminRoute>} />
+              <Route path="/dashboard/setup/gl-accounts" element={<AdminRoute><GLAccounts /></AdminRoute>} />
+
+              {/* Super admin only: global setup + MAM */}
+              <Route path="/dashboard/setup/entity-categories" element={<SuperAdminRoute><EntityCategories /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/document-types" element={<SuperAdminRoute><DocumentTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/relationship-types" element={<SuperAdminRoute><RelationshipTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/titles" element={<SuperAdminRoute><Titles /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/system-settings" element={<SuperAdminRoute><SystemSettings /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/email-settings" element={<SuperAdminRoute><EmailSettings /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/countries" element={<SuperAdminRoute><Countries /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/banks" element={<SuperAdminRoute><Banks /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/bank-account-types" element={<SuperAdminRoute><BankAccountTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/entity-account-types" element={<SuperAdminRoute><EntityAccountTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/tax-types" element={<SuperAdminRoute><TaxTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/transaction-types" element={<SuperAdminRoute><TransactionTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/system-email-templates" element={<SuperAdminRoute><SystemEmailTemplates /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/permissions" element={<SuperAdminRoute><Permissions /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/api-providers" element={<SuperAdminRoute><ApiProviders /></SuperAdminRoute>} />
+
+              {/* MAM: super_admin only for now */}
+              <Route path="/dashboard/mam" element={<SuperAdminRoute><MamEntityProvider><MamDashboard /></MamEntityProvider></SuperAdminRoute>} />
+              <Route path="/dashboard/mam/assets" element={<SuperAdminRoute><MamEntityProvider><MamAssets /></MamEntityProvider></SuperAdminRoute>} />
+              <Route path="/dashboard/mam/contribution-plans" element={<SuperAdminRoute><MamEntityProvider><MamContributionPlans /></MamEntityProvider></SuperAdminRoute>} />
+              <Route path="/dashboard/mam/quotes" element={<SuperAdminRoute><MamEntityProvider><MamQuotes /></MamEntityProvider></SuperAdminRoute>} />
+              <Route path="/dashboard/mam/admin" element={<SuperAdminRoute><MamEntityProvider><MamAdmin /></MamEntityProvider></SuperAdminRoute>} />
+
               <Route path="/dashboard/settings" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
-              <Route path="/dashboard/setup/entity-categories" element={<DashboardRoute><EntityCategories /></DashboardRoute>} />
-              <Route path="/dashboard/setup/document-types" element={<DashboardRoute><DocumentTypes /></DashboardRoute>} />
-              <Route path="/dashboard/setup/relationship-types" element={<DashboardRoute><RelationshipTypes /></DashboardRoute>} />
-              <Route path="/dashboard/setup/document-requirements" element={<DashboardRoute><DocumentRequirements /></DashboardRoute>} />
-              <Route path="/dashboard/setup/titles" element={<DashboardRoute><Titles /></DashboardRoute>} />
-              <Route path="/dashboard/setup/terms-conditions" element={<DashboardRoute><TermsConditions /></DashboardRoute>} />
-              <Route path="/dashboard/setup/system-settings" element={<DashboardRoute><SystemSettings /></DashboardRoute>} />
-              <Route path="/dashboard/setup/email-settings" element={<DashboardRoute><EmailSettings /></DashboardRoute>} />
-              <Route path="/dashboard/setup/communications" element={<DashboardRoute><Communications /></DashboardRoute>} />
-              <Route path="/dashboard/setup/countries" element={<DashboardRoute><Countries /></DashboardRoute>} />
-              <Route path="/dashboard/setup/banks" element={<DashboardRoute><Banks /></DashboardRoute>} />
-              <Route path="/dashboard/setup/bank-account-types" element={<DashboardRoute><BankAccountTypes /></DashboardRoute>} />
-              <Route path="/dashboard/setup/entity-account-types" element={<DashboardRoute><EntityAccountTypes /></DashboardRoute>} />
-              <Route path="/dashboard/setup/tenant-configuration" element={<DashboardRoute><TenantConfiguration /></DashboardRoute>} />
-              <Route path="/dashboard/setup/tax-types" element={<DashboardRoute><TaxTypes /></DashboardRoute>} />
-              <Route path="/dashboard/setup/data-import" element={<DashboardRoute><DataImport /></DashboardRoute>} />
-              <Route path="/dashboard/loan-applications" element={<DashboardRoute><LoanApplications /></DashboardRoute>} />
-              <Route path="/dashboard/setup/loan-settings" element={<DashboardRoute><LoanSettings /></DashboardRoute>} />
-              <Route path="/dashboard/setup/budget-categories" element={<DashboardRoute><BudgetCategories /></DashboardRoute>} />
-              <Route path="/dashboard/setup/gl-accounts" element={<DashboardRoute><GLAccounts /></DashboardRoute>} />
-              <Route path="/dashboard/setup/permissions" element={<DashboardRoute><Permissions /></DashboardRoute>} />
-              <Route path="/dashboard/setup/api-providers" element={<DashboardRoute><ApiProviders /></DashboardRoute>} />
-              <Route path="/dashboard/setup/system-email-templates" element={<DashboardRoute><SystemEmailTemplates /></DashboardRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TenantProvider>
