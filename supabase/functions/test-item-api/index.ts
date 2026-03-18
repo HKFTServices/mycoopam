@@ -20,11 +20,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const metalsApiKey = Deno.env.get("METALS_API_KEY");
+    if (!metalsApiKey) {
+      return new Response(JSON.stringify({ error: "METALS_API_KEY not configured" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -36,7 +43,7 @@ Deno.serve(async (req) => {
     // Fetch item
     const { data: item, error: itemError } = await supabase
       .from("items")
-      .select("api_code, api_key, api_link")
+      .select("api_code, item_code")
       .eq("id", item_id)
       .single();
 
@@ -47,9 +54,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!item.api_link && !item.api_code) {
+    if (!item.api_code) {
       return new Response(
-        JSON.stringify({ error: "Item has no API link or code configured" }),
+        JSON.stringify({ error: "Item has no API code configured" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -57,57 +64,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build the API request URL based on the provider
-    let url = item.api_link || "";
-    const headers: Record<string, string> = {};
+    const symbol = item.api_code.toUpperCase();
+    const url = `https://metals-api.com/api/latest?access_key=${metalsApiKey}&base=ZAR&symbols=${symbol}`;
 
-    if (url.includes("gold-api.com")) {
-      // gold-api.com: https://api.gold-api.com/price/XAU (returns USD price)
-      // No auth needed for free tier price endpoint
-      if (item.api_code) {
-        url = `https://api.gold-api.com/price/${item.api_code}`;
-      }
-      if (item.api_key) {
-        headers["x-api-key"] = item.api_key;
-      }
-    } else if (url.includes("goldapi.io")) {
-      // goldapi.io: https://www.goldapi.io/api/XAU/ZAR
-      // Auth: x-access-token header
-      if (item.api_code) {
-        url = `https://www.goldapi.io/api/${item.api_code}/ZAR`;
-      }
-      if (item.api_key) {
-        headers["x-access-token"] = item.api_key;
-      }
-    } else if (url.includes("coingecko")) {
-      // CoinGecko: no key needed for free tier
-      if (item.api_code) {
-        url = `https://api.coingecko.com/api/v3/simple/price?ids=${item.api_code}&vs_currencies=zar`;
-      }
-    } else {
-      // Generic: pass api_key as Authorization Bearer if present
-      if (item.api_key) {
-        headers["Authorization"] = `Bearer ${item.api_key}`;
-      }
-    }
+    console.log(`Testing metals-api for ${symbol}`);
 
-    console.log(`Testing API: ${url}`);
+    const apiResponse = await fetch(url);
+    const data = await apiResponse.json();
 
-    const apiResponse = await fetch(url, { headers });
-    const responseText = await apiResponse.text();
-    let result: unknown;
-
-    try {
-      result = JSON.parse(responseText);
-    } catch {
-      result = responseText;
+    let priceInZar: number | null = null;
+    if (data.success && data.rates && data.rates[symbol]) {
+      const rate = data.rates[symbol];
+      priceInZar = rate !== 0 ? 1 / rate : null;
     }
 
     return new Response(
       JSON.stringify({
         status: apiResponse.status,
-        url,
-        result,
+        symbol,
+        api_response: data,
+        price_in_zar: priceInZar,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

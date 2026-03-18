@@ -34,8 +34,8 @@ type Item = {
   price_formula: string | null;
   calculate_price_with_factor: number | null;
   api_code: string | null;
-  api_key: string | null;
-  api_link: string | null;
+  api_key: string | null;  // legacy, not used in UI
+  api_link: string | null; // legacy, not used in UI
   is_stock_item: boolean;
   is_active: boolean;
   tax_type_id: string | null;
@@ -59,8 +59,6 @@ const defaultForm = {
   calculate_price_with_factor: "" as string,
   price_formula: "",
   api_code: "",
-  api_key: "",
-  api_link: "",
   is_stock_item: false,
   is_active: true,
   tax_type_id: "",
@@ -135,8 +133,6 @@ const Items = () => {
         calculate_price_with_factor: values.calculate_price_with_factor !== "" ? parseFloat(values.calculate_price_with_factor) : null,
         price_formula: values.price_formula || null,
         api_code: values.api_code || null,
-        api_key: values.api_key || null,
-        api_link: values.api_link || null,
         is_stock_item: values.is_stock_item,
         is_active: values.is_active,
         tax_type_id: values.tax_type_id === "__none__" ? null : (values.tax_type_id || null),
@@ -191,8 +187,6 @@ const Items = () => {
       calculate_price_with_factor: item.calculate_price_with_factor != null ? String(item.calculate_price_with_factor) : "",
       price_formula: (item as any).price_formula ?? "",
       api_code: item.api_code ?? "",
-      api_key: (item as any).api_key ?? "",
-      api_link: item.api_link ?? "",
       is_stock_item: item.is_stock_item,
       is_active: item.is_active,
       tax_type_id: item.tax_type_id ?? "",
@@ -212,8 +206,8 @@ const Items = () => {
   const otherItems = items.filter((i) => !editing || i.id !== editing.id);
 
   const testApi = async (item: Item) => {
-    if (!item.api_code && !item.api_link) {
-      toast.error("No API code or link configured for this item");
+    if (!item.api_code) {
+      toast.error("No API code configured for this item");
       return;
     }
     setTestingItemId(item.id);
@@ -270,7 +264,7 @@ const Items = () => {
                 <TableHead>Margin %</TableHead>
                 <TableHead>Fixed Price</TableHead>
                 <TableHead>API Code</TableHead>
-                <TableHead>API Link</TableHead>
+                
                 <TableHead>Formula</TableHead>
                 
                 <TableHead>Stock</TableHead>
@@ -283,9 +277,9 @@ const Items = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">No items found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">No items found.</TableCell></TableRow>
               ) : (
                 filtered.map((item) => {
                   const taxType = taxTypes.find((t) => t.id === item.tax_type_id);
@@ -308,7 +302,7 @@ const Items = () => {
                       <TableCell>{item.margin_percentage}%</TableCell>
                       <TableCell>{item.use_fixed_price != null ? item.use_fixed_price.toFixed(2) : "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{item.api_code ?? "—"}</TableCell>
-                      <TableCell className="text-xs max-w-[150px] truncate">{item.api_link ?? "—"}</TableCell>
+                      
                       <TableCell className="font-mono text-xs max-w-[200px] truncate">{(item as any).price_formula ?? "—"}</TableCell>
                       <TableCell>{item.is_stock_item ? "Yes" : "No"}</TableCell>
                       <TableCell>{item.show_item_price_on_statement ? "Yes" : "No"}</TableCell>
@@ -325,7 +319,7 @@ const Items = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {(item.api_code || item.api_link) && (
+                          {(item.api_code) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -412,21 +406,11 @@ const Items = () => {
                   <Input type="number" step="0.01" value={form.use_fixed_price} onChange={(e) => setForm({ ...form, use_fixed_price: e.target.value })} placeholder="Leave empty for calculated" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU)</Label>
-                  <Input value={form.api_code} onChange={(e) => setForm({ ...form, api_code: e.target.value })} placeholder="e.g. XAU" />
+                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU, XAG, XPT, USD, XRP)</Label>
+                  <Input value={form.api_code} onChange={(e) => setForm({ ...form, api_code: e.target.value.toUpperCase() })} placeholder="e.g. XAU" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Key</Label>
-                  <Input type="password" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} placeholder="Enter API key" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Link</Label>
-                  <Input value={form.api_link} onChange={(e) => setForm({ ...form, api_link: e.target.value })} placeholder="https://..." />
-                </div>
-              </div>
 
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Price Formula (use API code as variable, e.g. XAU * 1.05 / 10 + 50)</Label>

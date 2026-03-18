@@ -10,8 +10,6 @@ interface ItemRow {
   id: string;
   item_code: string;
   api_code: string | null;
-  api_key: string | null;
-  api_link: string | null;
   use_fixed_price: number | null;
   calculate_price_with_item_id: string | null;
   calculate_price_with_factor: number | null;
@@ -24,14 +22,12 @@ interface ItemRow {
 /**
  * Safe arithmetic expression evaluator.
  * Supports: +, -, *, /, parentheses, and decimal numbers.
- * Variables must be substituted before calling this.
  */
 function evaluateExpression(expr: string): number {
-  // Tokenize: numbers, operators, parentheses
   const tokens: string[] = [];
   let i = 0;
   const s = expr.replace(/\s+/g, "");
-  
+
   while (i < s.length) {
     if ((s[i] >= "0" && s[i] <= "9") || s[i] === ".") {
       let num = "";
@@ -70,12 +66,11 @@ function evaluateExpression(expr: string): number {
 
   function parseFactor(): number {
     if (tokens[pos] === "(") {
-      pos++; // skip (
+      pos++;
       const result = parseExpr();
-      pos++; // skip )
+      pos++;
       return result;
     }
-    // Handle unary minus
     if (tokens[pos] === "-") {
       pos++;
       return -parseFactor();
@@ -83,8 +78,7 @@ function evaluateExpression(expr: string): number {
     return parseFloat(tokens[pos++]);
   }
 
-  const result = parseExpr();
-  return result;
+  return parseExpr();
 }
 
 /**
@@ -93,11 +87,9 @@ function evaluateExpression(expr: string): number {
  */
 function evalFormula(formula: string, apiPrices: Record<string, number>): number | null {
   let expr = formula;
-  // Replace all known API code variables with their values
   for (const [code, price] of Object.entries(apiPrices)) {
     expr = expr.replace(new RegExp(`\\b${code}\\b`, "g"), price.toString());
   }
-  // Check if there are still unresolved variables (letters remaining)
   if (/[a-zA-Z]/.test(expr)) {
     console.error(`Unresolved variables in formula: ${formula} -> ${expr}`);
     return null;
@@ -110,43 +102,47 @@ function evalFormula(formula: string, apiPrices: Record<string, number>): number
   }
 }
 
-async function fetchApiPrice(
-  apiLink: string,
-  apiCode: string,
-  apiKey: string | null
-): Promise<number | null> {
-  let url = apiLink;
-  const headers: Record<string, string> = {};
+// Metal symbols need 1/rate to convert from "per ZAR" to "ZAR per unit"
+const METAL_SYMBOLS = new Set(["XAU", "XAG", "XPT", "XPD", "XRH", "XCU"]);
 
-  if (url.includes("gold-api.com")) {
-    url = `https://api.gold-api.com/price/${apiCode}`;
-    if (apiKey) headers["x-api-key"] = apiKey;
-  } else if (url.includes("goldapi.io")) {
-    url = `https://www.goldapi.io/api/${apiCode}/ZAR`;
-    if (apiKey) headers["x-access-token"] = apiKey;
-  } else if (url.includes("coingecko")) {
-    url = `https://api.coingecko.com/api/v3/simple/price?ids=${apiCode}&vs_currencies=zar`;
-  } else {
-    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+/**
+ * Fetch all prices from metals-api.com in a single call.
+ * Base=ZAR so metal rates need 1/rate, currency rates are direct.
+ */
+async function fetchMetalsApiPrices(
+  symbols: string[],
+  apiKey: string
+): Promise<Record<string, number>> {
+  if (symbols.length === 0) return {};
+
+  const url = `https://metals-api.com/api/latest?access_key=${apiKey}&base=ZAR&symbols=${symbols.join(",")}`;
+  console.log(`Fetching metals-api prices for: ${symbols.join(", ")}`);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.error(`metals-api HTTP error: ${res.status}`);
+    const text = await res.text();
+    console.error(`Response: ${text}`);
+    return {};
   }
 
-  try {
-    console.log(`Fetching price for ${apiCode} from ${url}`);
-    const res = await fetch(url, { headers });
-    if (!res.ok) {
-      console.error(`API error for ${apiCode}: ${res.status}`);
-      return null;
+  const data = await res.json();
+  if (!data.success) {
+    console.error(`metals-api error:`, data.error);
+    return {};
+  }
+
+  const prices: Record<string, number> = {};
+  for (const [symbol, rate] of Object.entries(data.rates as Record<string, number>)) {
+    if (rate && rate !== 0) {
+      // For metals: rate = amount of metal per 1 ZAR, so price in ZAR = 1/rate
+      // For currencies: rate = amount of currency per 1 ZAR, so ZAR per 1 unit = 1/rate
+      // metals-api with non-USD base: we always need 1/rate to get "ZAR per 1 unit"
+      prices[symbol] = 1 / rate;
     }
-    const data = await res.json();
-
-    if (url.includes("goldapi.io")) return data.price ?? null;
-    if (url.includes("gold-api.com")) return data.price ?? null;
-    if (url.includes("coingecko")) return data[apiCode]?.zar ?? null;
-    return data.price ?? null;
-  } catch (err) {
-    console.error(`Fetch error for ${apiCode}:`, err);
-    return null;
   }
+
+  return prices;
 }
 
 Deno.serve(async (req) => {
@@ -171,6 +167,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    const metalsApiKey = Deno.env.get("METALS_API_KEY");
+    if (!metalsApiKey) {
+      return new Response(JSON.stringify({ error: "METALS_API_KEY not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -178,7 +182,7 @@ Deno.serve(async (req) => {
     // Fetch all active stock items
     const { data: items, error: itemsError } = await supabase
       .from("items")
-      .select("id, item_code, api_code, api_key, api_link, use_fixed_price, calculate_price_with_item_id, calculate_price_with_factor, calculation_type, margin_percentage, tax_type_id, price_formula")
+      .select("id, item_code, api_code, use_fixed_price, calculate_price_with_item_id, calculate_price_with_factor, calculation_type, margin_percentage, tax_type_id, price_formula")
       .eq("tenant_id", tenant_id)
       .eq("is_deleted", false)
       .eq("is_active", true)
@@ -197,25 +201,22 @@ Deno.serve(async (req) => {
       taxMap[t.id] = Number(t.percentage) / 100;
     });
 
-    // Collect unique API codes and their configs to fetch prices
-    const apiConfigs: Record<string, { apiLink: string; apiKey: string | null }> = {};
+    // Collect unique API codes to fetch
+    const apiCodes = new Set<string>();
     for (const item of (items || []) as ItemRow[]) {
-      if (item.api_code && item.api_link) {
-        if (!apiConfigs[item.api_code]) {
-          apiConfigs[item.api_code] = { apiLink: item.api_link, apiKey: item.api_key };
-        }
+      if (item.api_code) {
+        apiCodes.add(item.api_code.toUpperCase());
+      }
+      // Also extract any codes referenced in formulas
+      if (item.price_formula) {
+        const matches = item.price_formula.match(/\b[A-Z]{2,10}\b/g);
+        if (matches) matches.forEach((m) => apiCodes.add(m));
       }
     }
 
-    // Fetch all unique API prices in parallel
-    const rawApiPrices: Record<string, number> = {};
-    const fetchPromises = Object.entries(apiConfigs).map(async ([code, config]) => {
-      const price = await fetchApiPrice(config.apiLink, code, config.apiKey);
-      if (price != null) rawApiPrices[code] = price;
-    });
-    await Promise.all(fetchPromises);
-
-    console.log("Raw API prices:", rawApiPrices);
+    // Single API call to metals-api for all symbols
+    const rawApiPrices = await fetchMetalsApiPrices([...apiCodes], metalsApiKey);
+    console.log("Metals-API prices (ZAR per unit):", rawApiPrices);
 
     // Calculate cost prices for all items
     const results: Record<string, {
@@ -234,18 +235,20 @@ Deno.serve(async (req) => {
       let apiPriceRaw: number | null = null;
       let formulaUsed: string | null = null;
 
-      if (item.price_formula && item.api_code && rawApiPrices[item.api_code] != null) {
-        // Formula-based pricing: evaluate the formula with live API prices
-        apiPriceRaw = rawApiPrices[item.api_code];
+      const code = item.api_code?.toUpperCase();
+
+      if (item.price_formula && code && rawApiPrices[code] != null) {
+        // Formula-based pricing
+        apiPriceRaw = rawApiPrices[code];
         const evaluated = evalFormula(item.price_formula, rawApiPrices);
         if (evaluated != null) {
           costExclVat = evaluated;
           pricingSource = "Formula";
           formulaUsed = item.price_formula;
         }
-      } else if (item.api_code && rawApiPrices[item.api_code] != null) {
-        // API with factor (legacy/simple)
-        apiPriceRaw = rawApiPrices[item.api_code];
+      } else if (code && rawApiPrices[code] != null) {
+        // Direct API price with optional factor
+        apiPriceRaw = rawApiPrices[code];
         const factor = item.calculate_price_with_factor ?? 1;
         costExclVat = apiPriceRaw * factor;
         pricingSource = "API";
