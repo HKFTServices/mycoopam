@@ -45,6 +45,51 @@ const getPoolColor = (poolName: string, idx: number): string => {
   return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 };
 
+const translations = {
+  en: {
+    membership: "Membership",
+    selectDate: "Select date",
+    noHoldings: "No pool holdings found for this entity.",
+    poolAllocation: "Pool Allocation",
+    totalValue: "Total Value",
+    osLoan: "O/s Loan",
+    netValue: "Net Value",
+    poolBreakdown: "Pool Breakdown",
+    pool: "Pool",
+    units: "Units",
+    unitPrice: "Unit Price",
+    value: "Value",
+    total: "Total",
+    notes: "Notes",
+    unitPrices: "Unit Prices",
+    stockPrices: "Stock Prices",
+    termsConditions: "Terms & Conditions",
+    on: "on",
+  },
+  af: {
+    membership: "Lidmaatskap",
+    selectDate: "Kies datum",
+    noHoldings: "Geen poelbesit gevind vir hierdie entiteit nie.",
+    poolAllocation: "Poeltoewysing",
+    totalValue: "Totale Waarde",
+    osLoan: "Uitst. Lening",
+    netValue: "Netto Waarde",
+    poolBreakdown: "Poelopsomming",
+    pool: "Poel",
+    units: "Eenhede",
+    unitPrice: "Eenheidprys",
+    value: "Waarde",
+    total: "Totaal",
+    notes: "Notas",
+    unitPrices: "Eenheidpryse",
+    stockPrices: "Voorraadpryse",
+    termsConditions: "Bepalings & Voorwaardes",
+    on: "op",
+  },
+} as const;
+
+type Lang = keyof typeof translations;
+const t = (lang: Lang, key: keyof typeof translations.en) => translations[lang]?.[key] ?? translations.en[key];
 const EntityPoolDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -75,7 +120,7 @@ const EntityPoolDetails = () => {
       if (!entityId) return null;
       const { data, error } = await (supabase as any)
         .from("entities")
-        .select("id, name, last_name, identity_number, registration_number, entity_categories (name)")
+        .select("id, name, last_name, identity_number, registration_number, language_code, entity_categories (name)")
         .eq("id", entityId)
         .single();
       if (error) throw error;
@@ -237,6 +282,7 @@ const EntityPoolDetails = () => {
   const entityFullName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
   const regOrId = entity?.registration_number || entity?.identity_number || "";
   const categoryName = entity?.entity_categories?.name || "";
+  const lang: Lang = (entity?.language_code === "af" ? "af" : "en");
 
   const membershipAccount = entityAccounts.find((a: any) => a.entity_account_types?.account_type === 1);
 
@@ -287,7 +333,7 @@ const EntityPoolDetails = () => {
         {/* Membership number */}
         {membershipAccount && (
           <div className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm">
-            <span className="text-muted-foreground">Membership:</span>
+            <span className="text-muted-foreground">{t(lang, "membership")}:</span>
             <code className="font-mono font-medium">{membershipAccount.account_number ?? "N/A"}</code>
           </div>
         )}
@@ -297,7 +343,7 @@ const EntityPoolDetails = () => {
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !effectiveDate && "text-muted-foreground")}>
               <CalendarIcon className="h-4 w-4 mr-2" />
-              {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : "Select date"}
+              {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : t(lang, "selectDate")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="center">
@@ -321,7 +367,7 @@ const EntityPoolDetails = () => {
       ) : poolData.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No pool holdings found for this entity.
+            {t(lang, "noHoldings")}
           </CardContent>
         </Card>
       ) : (
@@ -329,7 +375,7 @@ const EntityPoolDetails = () => {
           {/* Pie Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Pool Allocation</CardTitle>
+              <CardTitle className="text-lg">{t(lang, "poolAllocation")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
@@ -365,17 +411,17 @@ const EntityPoolDetails = () => {
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-6 space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-sm text-muted-foreground">{t(lang, "totalValue")}</p>
                   <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
                 </div>
                 {loanOutstanding > 0 && (
                   <>
                     <div className="border-t border-border pt-3">
-                      <p className="text-sm text-muted-foreground">O/s Loan</p>
+                      <p className="text-sm text-muted-foreground">{t(lang, "osLoan")}</p>
                       <p className="text-xl font-semibold text-destructive">{formatCurrency(loanOutstanding, sym)}</p>
                     </div>
                     <div className="border-t border-border pt-3">
-                      <p className="text-sm text-muted-foreground">Net Value</p>
+                      <p className="text-sm text-muted-foreground">{t(lang, "netValue")}</p>
                       <p className={`text-3xl font-bold tracking-tight ${netValue < 0 ? "text-destructive" : ""}`}>{formatCurrency(netValue, sym)}</p>
                     </div>
                   </>
@@ -390,16 +436,16 @@ const EntityPoolDetails = () => {
       {summaryPools.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Pool Breakdown {effectiveDate && <span className="text-sm font-normal text-muted-foreground">on {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}</span>}</CardTitle>
+            <CardTitle className="text-lg">{t(lang, "poolBreakdown")} {effectiveDate && <span className="text-sm font-normal text-muted-foreground">{t(lang, "on")} {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}</span>}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Pool</TableHead>
-                  <TableHead className="text-right">Units</TableHead>
-                  <TableHead className="text-right">Unit Price</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
+                  <TableHead>{t(lang, "pool")}</TableHead>
+                  <TableHead className="text-right">{t(lang, "units")}</TableHead>
+                  <TableHead className="text-right">{t(lang, "unitPrice")}</TableHead>
+                  <TableHead className="text-right">{t(lang, "value")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -423,7 +469,7 @@ const EntityPoolDetails = () => {
                   );
                 })}
                 <TableRow className="bg-muted/30 font-bold">
-                  <TableCell>Total</TableCell>
+                  <TableCell>{t(lang, "total")}</TableCell>
                   <TableCell className="text-right font-mono">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
@@ -437,7 +483,7 @@ const EntityPoolDetails = () => {
       {/* Notes section — compact inline prices & T&C */}
       {poolData.length > 0 && (
         <div className="space-y-1.5 border-t border-border pt-4 mt-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t(lang, "notes")}</p>
 
           {/* Below-summary pools with statement descriptions */}
           {belowSummaryPools.map((p) => (
@@ -451,6 +497,7 @@ const EntityPoolDetails = () => {
             poolPrices={poolPrices}
             exposedPoolIds={poolData.map((p) => p.poolId)}
             currencySymbol={sym}
+            label={t(lang, "unitPrices")}
           />
 
           {effectiveDate && currentTenant && (
@@ -459,6 +506,7 @@ const EntityPoolDetails = () => {
               poolIds={poolData.map((p) => p.poolId)}
               effectiveDate={effectiveDate}
               currencySymbol={sym}
+              label={t(lang, "stockPrices")}
             />
           )}
 
@@ -466,6 +514,8 @@ const EntityPoolDetails = () => {
             <PoolTermsConditions
               tenantId={currentTenant.id}
               poolIds={poolData.map((p) => p.poolId)}
+              lang={lang}
+              label={t(lang, "termsConditions")}
             />
           )}
         </div>

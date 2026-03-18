@@ -7,9 +7,10 @@ interface PoolItemsPricesProps {
   poolIds: string[];
   effectiveDate: string;
   currencySymbol: string;
+  label?: string;
 }
 
-const PoolItemsPrices = ({ tenantId, poolIds, effectiveDate, currencySymbol }: PoolItemsPricesProps) => {
+const PoolItemsPrices = ({ tenantId, poolIds, effectiveDate, currencySymbol, label = "Stock Prices" }: PoolItemsPricesProps) => {
   const { data: items = [] } = useQuery({
     queryKey: ["pool_items", tenantId, poolIds],
     queryFn: async () => {
@@ -55,7 +56,7 @@ const PoolItemsPrices = ({ tenantId, poolIds, effectiveDate, currencySymbol }: P
 
   return (
     <div className="text-sm text-muted-foreground">
-      <span className="font-medium text-foreground mr-2">Stock Prices:</span>
+      <span className="font-medium text-foreground mr-2">{label}:</span>
       {items.map((item: any, idx: number) => {
         const price = priceByItem[item.id];
         return (
