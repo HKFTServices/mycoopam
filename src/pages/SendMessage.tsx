@@ -498,6 +498,7 @@ export default function SendMessage() {
           recipients: selectedRecipients,
           attachment_type: attachmentType || null,
           created_by: user?.id,
+          custom_fields: { agm_venue: agmVenue, agm_date: agmDate, agm_time: agmTime },
         },
       });
       if (error) throw error;
