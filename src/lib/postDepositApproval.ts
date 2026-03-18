@@ -869,7 +869,31 @@ export async function postDepositApproval(
     // BK entries removed — CFT child entries are the source of truth
   }
 
-  // ─── 8. Send confirmation email (fire-and-forget) ───
+  // ─── 8. If debit order deposit, approve the linked debit order mandate ───
+  if (primaryFull.payment_method === "debit_order") {
+    // Find the pending debit order for this entity account (created alongside the transaction)
+    const { data: pendingDO } = await (supabase as any)
+      .from("debit_orders")
+      .select("id")
+      .eq("entity_account_id", entityAccountId)
+      .eq("tenant_id", tenantId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (pendingDO?.[0]) {
+      await (supabase as any)
+        .from("debit_orders")
+        .update({
+          status: "approved",
+          approved_by: approvedBy,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", pendingDO[0].id);
+    }
+  }
+
+  // ─── 9. Send confirmation email (fire-and-forget) ───
   const emailEvent = "transaction_confirmation";
   // Resolve account number for email context
   const { data: acctForEmail } = await (supabase as any)
@@ -886,7 +910,7 @@ export async function postDepositApproval(
       transaction_date: txnDate,
       account_number: acctForEmail?.account_number || "",
       pool_name: meta.pool_name || poolMap[primaryFull.pool_id]?.name || "",
-      transaction_type: isStockDeposit ? "Stock Deposit" : "Deposit",
+      transaction_type: isStockDeposit ? "Stock Deposit" : primaryFull.payment_method === "debit_order" ? "Deposit (Debit Order)" : "Deposit",
       reference: primaryFull.payment_method?.replace(/_/g, " ") || "",
     },
   });

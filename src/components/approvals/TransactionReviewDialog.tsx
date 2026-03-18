@@ -115,6 +115,7 @@ const TransactionReviewDialog = ({
   const stockLines: { description: string; item_code: string; quantity: number; costPrice: number; lineValue: number }[] = meta.stock_lines || [];
   const courier: { fee?: number } | null = meta.courier || null;
   const isStockDeposit = meta.transaction_kind === "stock_deposit";
+  const isDebitOrderDeposit = primaryTxn?.payment_method === "debit_order";
   const useCourier = isStockDeposit && courier && (courier.fee ?? 0) > 0;
 
   // Initialize courierFeeActual from meta when group loads; restore saved courier step if applicable
@@ -370,13 +371,22 @@ const TransactionReviewDialog = ({
       {renderPoolAllocations()}
       {renderDateChangeNote()}
       {renderPOP()}
-      {/* Funds Confirmation */}
-      <div className="flex items-center gap-2 py-1">
-        <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
-        <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
-          I confirm the funds have been received and verified in the bank account.
-        </label>
-      </div>
+      {/* Funds Confirmation — not needed for debit order deposits */}
+      {isDebitOrderDeposit ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-2">
+          <Banknote className="h-4 w-4 text-primary shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            This is a <strong>debit order</strong> deposit. No bank confirmation is required — approve the application and load the debit order mandate.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 py-1">
+          <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
+          <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
+            I confirm the funds have been received and verified in the bank account.
+          </label>
+        </div>
+      )}
     </>
   );
 
@@ -925,6 +935,7 @@ const TransactionReviewDialog = ({
 
     if (!isStockDeposit) {
       // Original single-page footer
+      const debitOrderOrFundsOk = isDebitOrderDeposit || fundsConfirmed;
       return (
         <>
           <Button variant="destructive" onClick={() => setShowDecline(true)}>
@@ -933,14 +944,14 @@ const TransactionReviewDialog = ({
           <Button
             onClick={handleApprove}
             disabled={
-              isApproving || !fundsConfirmed ||
+              isApproving || !debitOrderOrFundsOk ||
               (dateChanged && !changeNote.trim()) ||
               (dateChanged && missingPrices.length > 0)
             }
           >
             {isApproving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
             <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-            {dateChanged ? "Approve with Date Change" : "Approve"}
+            {isDebitOrderDeposit ? "Approve & Load Debit Order" : dateChanged ? "Approve with Date Change" : "Approve"}
           </Button>
         </>
       );
