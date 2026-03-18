@@ -384,9 +384,8 @@ const DebitOrderSignUpDialog = ({
   const resetForm = () => {
     setStep("details");
     setMonthlyAmount("");
-    setDebitDay("1");
     setFrequency("monthly");
-    setStartDate(formatLocalDate());
+    setStartDate(getFirstOfNextMonth());
     setAllocations([]);
     setSignatureData(null);
     setNotes("");
