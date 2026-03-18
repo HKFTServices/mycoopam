@@ -1046,6 +1046,76 @@ const TenantConfiguration = () => {
             legalEntityId={form.legal_entity_id}
           />
         </TabsContent>
+
+        {/* ── Theme ── */}
+        <TabsContent value="theme">
+          <Card>
+            <CardHeader><CardTitle className="text-lg">Theme Customization</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Override the default deep blue &amp; gold theme. Use HSL values like <code className="bg-muted px-1 rounded text-xs">222 60% 28%</code>. Leave blank to use the default.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label>Primary Color (HSL)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={form.theme_primary_hsl}
+                      onChange={(e) => setForm({ ...form, theme_primary_hsl: e.target.value })}
+                      placeholder="222 60% 28%"
+                    />
+                    {form.theme_primary_hsl && (
+                      <div className="h-8 w-8 rounded-md border shrink-0" style={{ backgroundColor: `hsl(${form.theme_primary_hsl})` }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Buttons, links, and primary actions</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Accent Color (HSL)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={form.theme_accent_hsl}
+                      onChange={(e) => setForm({ ...form, theme_accent_hsl: e.target.value })}
+                      placeholder="45 80% 52%"
+                    />
+                    {form.theme_accent_hsl && (
+                      <div className="h-8 w-8 rounded-md border shrink-0" style={{ backgroundColor: `hsl(${form.theme_accent_hsl})` }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Highlights and accent elements</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sidebar Color (HSL)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={form.theme_sidebar_hsl}
+                      onChange={(e) => setForm({ ...form, theme_sidebar_hsl: e.target.value })}
+                      placeholder="222 60% 14%"
+                    />
+                    {form.theme_sidebar_hsl && (
+                      <div className="h-8 w-8 rounded-md border shrink-0" style={{ backgroundColor: `hsl(${form.theme_sidebar_hsl})` }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Sidebar background color</p>
+                </div>
+              </div>
+              <div className="rounded-lg border p-4 bg-muted/30">
+                <p className="text-xs font-medium mb-2">Preview</p>
+                <div className="flex gap-3 items-center">
+                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_primary_hsl || "222 60% 28%"})` }}>
+                    Primary
+                  </div>
+                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium" style={{ backgroundColor: `hsl(${form.theme_accent_hsl || "45 80% 52%"})` }}>
+                    Accent
+                  </div>
+                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_sidebar_hsl || "222 60% 14%"})` }}>
+                    Sidebar
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <div className="flex justify-end">
