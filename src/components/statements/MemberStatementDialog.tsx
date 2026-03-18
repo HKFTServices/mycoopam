@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, FileText, Loader2 } from "lucide-react";
+import { CalendarIcon, FileText, Loader2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears, startOfQuarter, endOfQuarter, subQuarters } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
