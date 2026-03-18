@@ -480,13 +480,6 @@ const Communications = () => {
                       {APPLICATION_EVENTS.find((e) => e.value === t.application_event)?.label || t.application_event}
                     </TableCell>
                     <TableCell>{channelIcons(t)}</TableCell>
-                    <TableCell>
-                      {hasAfVersion(t) ? (
-                        <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">AF ✓</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">—</Badge>
-                      )}
-                    </TableCell>
                     <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
