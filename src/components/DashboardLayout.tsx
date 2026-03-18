@@ -110,8 +110,9 @@ const tenantSetupNavItems = [
   { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
   { label: "Message Templates", icon: Mail, path: "/dashboard/setup/communications" },
   { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
-  { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings" },
-  { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
+  { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings", subItems: [
+    { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
+  ] },
   { label: "Data Import", icon: Package, path: "/dashboard/setup/data-import" },
   { label: "Legacy Income/Expense", icon: Archive, path: "/dashboard/income-expense-items" },
 ];
@@ -269,23 +270,47 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return "User";
   })();
 
-  const renderNavItem = (item: { label: string; icon: React.ElementType; path: string }) => {
+  const renderNavItem = (item: { label: string; icon: React.ElementType; path: string; subItems?: { label: string; icon: React.ElementType; path: string }[] }) => {
     const isActive = location.pathname === item.path;
+    const hasActiveChild = item.subItems?.some(sub => location.pathname === sub.path);
     return (
-      <Link
-        key={item.path}
-        to={item.path}
-        onClick={() => setSidebarOpen(false)}
-        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-          isActive
-            ? "bg-accent text-accent-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-        }`}
-      >
-        <item.icon className="h-4.5 w-4.5 shrink-0" />
-        <span>{item.label}</span>
-        {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
-      </Link>
+      <div key={item.path}>
+        <Link
+          to={item.path}
+          onClick={() => setSidebarOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            isActive || hasActiveChild
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <item.icon className="h-4.5 w-4.5 shrink-0" />
+          <span>{item.label}</span>
+          {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+        </Link>
+        {item.subItems && (isActive || hasActiveChild) && (
+          <div className="ml-5 pl-3 border-l border-border space-y-0.5 mt-0.5">
+            {item.subItems.map(sub => {
+              const subActive = location.pathname === sub.path;
+              return (
+                <Link
+                  key={sub.path}
+                  to={sub.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                    subActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <sub.icon className="h-3.5 w-3.5 shrink-0" />
+                  <span>{sub.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
