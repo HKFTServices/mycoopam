@@ -379,23 +379,12 @@ const TransactionReviewDialog = ({
       {renderPoolAllocations()}
       {renderDateChangeNote()}
       {renderPOP()}
-      {/* Stock-specific: confirm stock value rather than cash funds */}
-      <div
-        className={`rounded-xl border-2 p-4 flex items-start gap-3 cursor-pointer transition-colors ${
-          fundsConfirmed ? "border-primary bg-primary/5" : "border-border bg-muted/20"
-        }`}
-        onClick={() => setFundsConfirmed((v) => !v)}
-      >
-        <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} className="mt-0.5" />
-        <div className="space-y-0.5">
-          <label htmlFor="funds-confirmed" className="text-sm font-semibold flex items-center gap-1.5 cursor-pointer">
-            <Package className="h-4 w-4 text-primary" />
-            Confirm Stock Value Verified
-          </label>
-          <p className="text-[11px] text-muted-foreground">
-            I confirm that the stock items and their valuations have been reviewed and are correct.
-          </p>
-        </div>
+      {/* Stock-specific: confirm stock value */}
+      <div className="flex items-center gap-2 py-1">
+        <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
+        <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
+          I confirm the stock items and their valuations have been reviewed and are correct.
+        </label>
       </div>
     </>
   );
