@@ -409,7 +409,7 @@ const EntityPoolDetails = () => {
                     <TableRow key={p.poolId}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: getPoolColor(p.poolName, idx) }} />
                           {p.iconUrl ? (
                             <img src={p.iconUrl} alt={p.poolName} className="h-6 w-6 rounded object-cover shrink-0" />
                           ) : null}
