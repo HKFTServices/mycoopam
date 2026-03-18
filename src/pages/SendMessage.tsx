@@ -439,6 +439,9 @@ export default function SendMessage() {
       "{{account_number}}": previewMergeData.account_number || "",
       "{{entity_account_name}}": previewMergeData.entity_account_name || "",
       "{{email_signature}}": previewMergeData.email_signature || "",
+      "{{agm_venue}}": agmVenue || "",
+      "{{agm_date}}": agmDate || "",
+      "{{agm_time}}": agmTime || "",
     };
     for (const [key, val] of Object.entries(replacements)) {
       html = html.replaceAll(key, val);
