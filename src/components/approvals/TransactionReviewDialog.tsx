@@ -58,7 +58,7 @@ const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // Step definitions for stock deposit workflow
-type StepId = "review" | "courier" | "stock_received" | "approve";
+type StepId = "review" | "courier" | "stock_received" | "receipt" | "approve";
 
 interface Step {
   id: StepId;
