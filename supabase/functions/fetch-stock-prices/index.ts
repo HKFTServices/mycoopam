@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { tenant_id } = await req.json();
+    const { tenant_id, price_date } = await req.json();
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id is required" }), {
         status: 400,
