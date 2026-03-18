@@ -302,23 +302,23 @@ const EntityPoolDetails = () => {
           {/* Summary Cards */}
           <div className="space-y-4">
             <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-6">
-                <p className="text-sm text-muted-foreground">Total Value</p>
-                <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
-              </CardContent>
-            </Card>
-            {loanOutstanding > 0 && (
-              <Card className="border-destructive/30 bg-destructive/5">
-                <CardContent className="py-6">
-                  <p className="text-sm text-muted-foreground">O/s Loan</p>
-                  <p className="text-2xl font-bold tracking-tight text-destructive">- {formatCurrency(loanOutstanding, sym)}</p>
-                </CardContent>
-              </Card>
-            )}
-            <Card className="border-primary/30 bg-primary/10">
-              <CardContent className="py-6">
-                <p className="text-sm text-muted-foreground">Net Value</p>
-                <p className="text-3xl font-bold tracking-tight">{formatCurrency(netValue, sym)}</p>
+              <CardContent className="py-6 space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
+                </div>
+                {loanOutstanding > 0 && (
+                  <>
+                    <div className="border-t border-border pt-3">
+                      <p className="text-sm text-muted-foreground">O/s Loan</p>
+                      <p className="text-xl font-semibold text-destructive">- {formatCurrency(loanOutstanding, sym)}</p>
+                    </div>
+                    <div className="border-t border-border pt-3">
+                      <p className="text-sm text-muted-foreground">Net Value</p>
+                      <p className="text-3xl font-bold tracking-tight">{formatCurrency(netValue, sym)}</p>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
