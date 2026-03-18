@@ -119,6 +119,7 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/t/:slug" element={<TenantLanding />} />
               <Route path="/register-tenant" element={<RegisterTenant />} />
+              <Route path="/setup-tenant" element={<TenantSetupWizard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
