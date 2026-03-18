@@ -496,7 +496,7 @@ const EntityPoolDetails = () => {
                           {p.iconUrl ? (
                             <img src={p.iconUrl} alt={p.poolName} className="h-6 w-6 rounded object-cover shrink-0" />
                           ) : null}
-                          <span className="font-medium">{p.poolName}</span>
+                          <span className="font-medium">{translatePoolName(p.poolName, lang)}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
