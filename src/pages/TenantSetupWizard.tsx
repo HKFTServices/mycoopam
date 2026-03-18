@@ -128,7 +128,7 @@ export default function TenantSetupWizard() {
           <CardHeader className="text-center space-y-2">
             <div className="mx-auto h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
               {done ? (
-                <CheckCircle2 className="h-7 w-7 text-green-600" />
+                <CheckCircle2 className="h-7 w-7 text-primary" />
               ) : (
                 <Building2 className="h-7 w-7 text-primary" />
               )}
