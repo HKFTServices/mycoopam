@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, ArrowLeft, CalendarIcon } from "lucide-react";
+import { Loader2, ArrowLeft, CalendarIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
@@ -26,10 +28,27 @@ const COLORS = [
 ];
 
 const EntityPoolDetails = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { currentTenant } = useTenant();
   const entityId = searchParams.get("entityId");
+
+  // Fetch all entities linked to the current user
+  const { data: userLinkedEntities = [] } = useQuery({
+    queryKey: ["user_linked_entities_pool", user?.id, currentTenant?.id],
+    queryFn: async () => {
+      if (!user || !currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id, entities (id, name, last_name, entity_categories (name))")
+        .eq("user_id", user.id)
+        .eq("tenant_id", currentTenant.id);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.entities).filter(Boolean);
+    },
+    enabled: !!user && !!currentTenant,
+  });
 
   // Fetch entity info
   const { data: entity } = useQuery({
@@ -54,7 +73,7 @@ const EntityPoolDetails = () => {
       if (!entityId || !currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, account_number, entity_account_types (name)")
+        .select("id, account_number, entity_account_types (name, account_type)")
         .eq("entity_id", entityId)
         .eq("tenant_id", currentTenant.id);
       if (error) throw error;
@@ -194,20 +213,60 @@ const EntityPoolDetails = () => {
   const regOrId = entity?.registration_number || entity?.identity_number || "";
   const categoryName = entity?.entity_categories?.name || "";
 
+  const membershipAccount = entityAccounts.find((a: any) => a.entity_account_types?.account_type === 1);
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+      {/* Header — centered */}
+      <div className="flex flex-col items-center gap-2 text-center">
+        <Button variant="ghost" size="icon" className="self-start" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
+
+        {/* Entity name dropdown */}
+        {userLinkedEntities.length > 1 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="text-2xl font-bold tracking-tight gap-1 h-auto py-1">
+                {entityFullName}
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              {userLinkedEntities.map((e: any) => {
+                const name = [e.name, e.last_name].filter(Boolean).join(" ");
+                return (
+                  <DropdownMenuItem
+                    key={e.id}
+                    className={cn(e.id === entityId && "bg-accent")}
+                    onClick={() => setSearchParams({ entityId: e.id })}
+                  >
+                    <span>{name}</span>
+                    {e.entity_categories?.name && (
+                      <span className="ml-2 text-xs text-muted-foreground">({e.entity_categories.name})</span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
           <h1 className="text-2xl font-bold tracking-tight">{entityFullName}</h1>
-          <p className="text-muted-foreground text-sm">
-            {categoryName && <span className="font-medium text-foreground">{categoryName} </span>}
-            {regOrId && <>({regOrId})</>}
-          </p>
-        </div>
+        )}
+
+        <p className="text-muted-foreground text-sm">
+          {categoryName && <span className="font-medium text-foreground">{categoryName} </span>}
+          {regOrId && <>({regOrId})</>}
+        </p>
+
+        {/* Membership number */}
+        {membershipAccount && (
+          <div className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm">
+            <span className="text-muted-foreground">Membership:</span>
+            <code className="font-mono font-medium">{membershipAccount.account_number ?? "N/A"}</code>
+          </div>
+        )}
+
         {/* Date Picker */}
         <Popover>
           <PopoverTrigger asChild>
@@ -216,7 +275,7 @@ const EntityPoolDetails = () => {
               {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : "Select date"}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
+          <PopoverContent className="w-auto p-0" align="center">
             <Calendar
               mode="single"
               selected={selectedDate ?? (availableDates[0] ? new Date(availableDates[0] + "T00:00:00") : undefined)}
@@ -230,16 +289,6 @@ const EntityPoolDetails = () => {
             />
           </PopoverContent>
         </Popover>
-      </div>
-
-      {/* Account Numbers */}
-      <div className="flex flex-wrap gap-2">
-        {entityAccounts.map((a: any) => (
-          <div key={a.id} className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm">
-            <span className="text-muted-foreground">{a.entity_account_types?.name}:</span>
-            <code className="font-mono font-medium">{a.account_number ?? "N/A"}</code>
-          </div>
-        ))}
       </div>
 
       {loadingPrices ? (
