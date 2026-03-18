@@ -418,25 +418,26 @@ const EntityPoolDetails = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Summary value card — shown first on mobile for immediate context */}
+        <div className="flex flex-col-reverse gap-4 sm:gap-6 lg:grid lg:grid-cols-2">
           {/* Pie Chart */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{t(lang, "poolAllocation")}</CardTitle>
+            <CardHeader className="pb-2 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg">{t(lang, "poolAllocation")}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
+            <CardContent className="px-2 sm:px-6">
+              <ResponsiveContainer width="100%" height={280} className="sm:!h-[350px]">
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={100}
+                    innerRadius={45}
+                    outerRadius={80}
                     paddingAngle={2}
                     dataKey="value"
                     label={({ name, percent, x, y, textAnchor }) => (
-                      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" className="text-xs fill-foreground">
+                      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" className="text-[10px] sm:text-xs fill-foreground">
                         {`${name} (${(percent * 100).toFixed(0)}%)`}
                       </text>
                     )}
@@ -447,7 +448,7 @@ const EntityPoolDetails = () => {
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value, sym)} />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -456,20 +457,20 @@ const EntityPoolDetails = () => {
           {/* Summary Cards */}
           <div className="space-y-4">
             <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-6 space-y-3">
+              <CardContent className="py-4 sm:py-6 space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">{t(lang, "totalValue")}</p>
-                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t(lang, "totalValue")}</p>
+                  <p className="text-2xl sm:text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
                 </div>
                 {loanOutstanding > 0 && (
                   <>
                     <div className="border-t border-border pt-3">
-                      <p className="text-sm text-muted-foreground">{t(lang, "osLoan")}</p>
-                      <p className="text-xl font-semibold text-destructive">{formatCurrency(loanOutstanding, sym)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">{t(lang, "osLoan")}</p>
+                      <p className="text-lg sm:text-xl font-semibold text-destructive">{formatCurrency(loanOutstanding, sym)}</p>
                     </div>
                     <div className="border-t border-border pt-3">
-                      <p className="text-sm text-muted-foreground">{t(lang, "netValue")}</p>
-                      <p className={`text-3xl font-bold tracking-tight ${netValue < 0 ? "text-destructive" : ""}`}>{formatCurrency(netValue, sym)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">{t(lang, "netValue")}</p>
+                      <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${netValue < 0 ? "text-destructive" : ""}`}>{formatCurrency(netValue, sym)}</p>
                     </div>
                   </>
                 )}
