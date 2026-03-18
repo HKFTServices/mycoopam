@@ -518,8 +518,8 @@ const EntityPoolDetails = () => {
                 })}
                 <TableRow className="bg-muted/30 font-bold">
                   <TableCell>{t(lang, "total")}</TableCell>
-                  <TableCell className="text-right font-mono">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-mono hidden sm:table-cell">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
+                  <TableCell className="hidden sm:table-cell" />
                   <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
                 </TableRow>
               </TableBody>
