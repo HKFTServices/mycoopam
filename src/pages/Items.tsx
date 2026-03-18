@@ -132,6 +132,7 @@ const Items = () => {
 
   const poolMap = Object.fromEntries(pools.map((p) => [p.id, p.name]));
   const poolIconMap = Object.fromEntries(pools.map((p) => [p.id, p.icon_url]));
+  const providerMap = Object.fromEntries(apiProviders.map((p) => [p.id, p.name]));
 
   const saveMutation = useMutation({
     mutationFn: async (values: typeof form & { id?: string }) => {
