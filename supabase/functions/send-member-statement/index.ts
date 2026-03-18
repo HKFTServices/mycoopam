@@ -244,6 +244,9 @@ async function generateStatementPdf(data: {
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
+  poolUnitPrices?: { poolName: string; sellPrice: number }[];
+  stockItemPrices?: { description: string; price: number | null }[];
+  termsConditionsText?: string;
 }): Promise<ArrayBuffer> {
   const sym = data.currencySymbol;
   const entity = data.entity;
