@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       }
 
       // Start sending first batch in background (non-blocking)
-      sendBatchBackground(adminClient, campaignId, tenant_id, template_id, 1);
+      sendBatchBackground(adminClient, campaignId, tenant_id, template_id, 1, cf);
 
       return new Response(JSON.stringify({ success: true, campaign_id: campaignId }), {
         status: 200,
