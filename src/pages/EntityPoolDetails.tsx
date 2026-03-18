@@ -45,6 +45,51 @@ const getPoolColor = (poolName: string, idx: number): string => {
   return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 };
 
+const translations = {
+  en: {
+    membership: "Membership",
+    selectDate: "Select date",
+    noHoldings: "No pool holdings found for this entity.",
+    poolAllocation: "Pool Allocation",
+    totalValue: "Total Value",
+    osLoan: "O/s Loan",
+    netValue: "Net Value",
+    poolBreakdown: "Pool Breakdown",
+    pool: "Pool",
+    units: "Units",
+    unitPrice: "Unit Price",
+    value: "Value",
+    total: "Total",
+    notes: "Notes",
+    unitPrices: "Unit Prices",
+    stockPrices: "Stock Prices",
+    termsConditions: "Terms & Conditions",
+    on: "on",
+  },
+  af: {
+    membership: "Lidmaatskap",
+    selectDate: "Kies datum",
+    noHoldings: "Geen poelbesit gevind vir hierdie entiteit nie.",
+    poolAllocation: "Poeltoewysing",
+    totalValue: "Totale Waarde",
+    osLoan: "Uitst. Lening",
+    netValue: "Netto Waarde",
+    poolBreakdown: "Poelopsomming",
+    pool: "Poel",
+    units: "Eenhede",
+    unitPrice: "Eenheidprys",
+    value: "Waarde",
+    total: "Totaal",
+    notes: "Notas",
+    unitPrices: "Eenheidpryse",
+    stockPrices: "Voorraadpryse",
+    termsConditions: "Bepalings & Voorwaardes",
+    on: "op",
+  },
+} as const;
+
+type Lang = keyof typeof translations;
+const t = (lang: Lang, key: keyof typeof translations.en) => translations[lang]?.[key] ?? translations.en[key];
 const EntityPoolDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
