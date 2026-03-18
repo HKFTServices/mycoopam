@@ -15,7 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight } from "lucide-react";
+import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
