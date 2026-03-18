@@ -44,14 +44,17 @@ type StockItemDetail = {
   quantity: number;
   costPrice: number;
   buyPrice: number;
+  sellPrice: number;
   totalCost: number;
   totalBuy: number;
+  totalSell: number;
 };
 
 type PoolRow = {
   pool: Pool;
   totalStockCost: number;
   totalStockBuy: number;
+  totalStockSell: number;
   cashControl: number;
   vatControl: number;
   loanControl: number;
