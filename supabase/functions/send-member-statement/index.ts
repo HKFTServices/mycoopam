@@ -174,17 +174,18 @@ function drawTable(doc: any, opts: TableOptions): number {
 
 /* ─── Section heading ─────────────────────────────────────────────────────── */
 
-function drawSectionTitle(doc: any, title: string, y: number, period?: string): number {
+function drawSectionTitle(doc: any, title: string, y: number, period?: string, periodBold = false): number {
   if (y > 265) { doc.addPage(); y = 15; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text(title, 15, y);
   if (period) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...TEXT_GREY);
-    doc.text(period, 15 + doc.getTextWidth(title) + 3, y);
+    const titleWidth = doc.getTextWidth(title);
+    doc.setFont("helvetica", periodBold ? "bold" : "normal");
+    doc.setFontSize(periodBold ? 9.5 : 7);
+    doc.setTextColor(...(periodBold ? NAVY : TEXT_GREY));
+    doc.text(period, 15 + titleWidth + 3, y);
   }
   doc.setDrawColor(200, 208, 218);
   doc.line(15, y + 1.5, 195, y + 1.5);
@@ -390,7 +391,7 @@ async function generateStatementPdf(data: {
   y += 18;
 
   // ── Portfolio Summary ──
-  y = drawSectionTitle(doc, "Portfolio Summary", y, `${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)}`);
+  y = drawSectionTitle(doc, "Portfolio Summary", y, `${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)}`, true);
 
   // Summary cards
   const summaryCards = [
@@ -404,7 +405,7 @@ async function generateStatementPdf(data: {
   y = drawSummaryCards(doc, summaryCards, y);
   y += 2;
 
-  // Summary table
+  // Summary table with grouped date headers
   if (activePools.length > 0) {
     const summaryRows = activePools.map(([, p]) => {
       const openVal = p.openUnits * p.openPrice;
@@ -421,16 +422,30 @@ async function generateStatementPdf(data: {
         `${change >= 0 ? "+" : ""}${fmtCurrency(change, sym)}`,
       ];
     });
+
+    // Draw grouped header row (date labels spanning 3 cols each)
+    const marginLeft = 15;
+    const groupHeaderHeight = 5.5;
+    doc.setFillColor(42, 79, 122); // slightly lighter navy
+    doc.rect(marginLeft, y, 180, groupHeaderHeight, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(...WHITE);
+    // Pool col = 28, Open block = 20+22+22 = 64, Close block = 20+22+22 = 64, Change = 24
+    doc.text(fmtDate(data.fromDate), marginLeft + 28 + 32, y + groupHeaderHeight / 2 + 1, { align: "center" });
+    doc.text(fmtDate(data.toDate), marginLeft + 28 + 64 + 32, y + groupHeaderHeight / 2 + 1, { align: "center" });
+    y += groupHeaderHeight;
+
     y = drawTable(doc, {
       startY: y,
       columns: [
         { header: "Pool", width: 28, align: "left" },
-        { header: "Open Units", width: 20, align: "right" },
-        { header: "Open Price", width: 22, align: "right" },
-        { header: "Open Value", width: 22, align: "right" },
-        { header: "Close Units", width: 20, align: "right" },
-        { header: "Close Price", width: 22, align: "right" },
-        { header: "Close Value", width: 22, align: "right" },
+        { header: "Units", width: 20, align: "right" },
+        { header: "Price", width: 22, align: "right" },
+        { header: "Value", width: 22, align: "right" },
+        { header: "Units", width: 20, align: "right" },
+        { header: "Price", width: 22, align: "right" },
+        { header: "Value", width: 22, align: "right" },
         { header: "Change", width: 24, align: "right" },
       ],
       rows: summaryRows,
