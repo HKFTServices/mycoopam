@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     }
 
     // Single API call to metals-api for all symbols
-    const rawApiPrices = await fetchMetalsApiPrices([...apiCodes], metalsApiKey);
+    const rawApiPrices = await fetchMetalsApiPrices([...apiCodes], metalsApiKey, price_date);
     console.log("Metals-API prices (ZAR per unit):", rawApiPrices);
 
     // Calculate cost prices for all items
