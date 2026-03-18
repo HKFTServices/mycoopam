@@ -343,7 +343,7 @@ const EntityPoolDetails = () => {
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !effectiveDate && "text-muted-foreground")}>
               <CalendarIcon className="h-4 w-4 mr-2" />
-              {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : "Select date"}
+              {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : t(lang, "selectDate")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="center">
