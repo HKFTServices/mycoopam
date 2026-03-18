@@ -14,8 +14,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Package, Building2, ClipboardCheck, ShieldCheck, Loader2, AlertTriangle,
   Check, ShoppingCart, TrendingDown, SlidersHorizontal, FileText, Mail,
-  Download, Truck, CheckCircle2, ChevronDown, ChevronUp, Receipt,
+  Download, Truck, CheckCircle2, ChevronDown, ChevronUp, Receipt, PenTool,
 } from "lucide-react";
+import StockReceiptPanel from "@/components/stock/StockReceiptPanel";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
