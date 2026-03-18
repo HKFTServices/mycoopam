@@ -715,8 +715,9 @@ const Memberships = () => {
                         {g.accounts.length > 0 ? (
                           <div className="space-y-1.5">
                             {g.accounts.map((a: AccountRow) => {
-                              const isActive = a.status === "active" || a.status === "approved";
+                              const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
                               const isPending = a.status === "pending_activation" || a.status === "pending";
+                              const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
                               return (
                                 <div key={a.id} className="flex items-center gap-1.5 text-sm">
                                   <span className={`font-medium ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
@@ -733,7 +734,9 @@ const Memberships = () => {
                                       <code className="font-mono text-xs">{a.accountNumber}</code>
                                       <span className="text-muted-foreground">)</span>
                                       {!isActive && !isPending && a.status && (
-                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status)}</Badge>
+                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">
+                                          {isDeactivated ? "Inactive" : statusLabel(a.status)}
+                                        </Badge>
                                       )}
                                       {isPending && (
                                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status ?? "Pending")}</Badge>
