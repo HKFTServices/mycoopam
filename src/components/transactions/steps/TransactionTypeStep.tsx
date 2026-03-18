@@ -42,6 +42,15 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string }> = 
   },
 };
 
+const ICON_MAP: Record<string, string> = {
+  DEPOSIT_FUNDS: "💰",
+  DEPOSIT_STOCK: "📦",
+  WITHDRAW_FUNDS: "🏧",
+  WITHDRAW_STOCK: "📤",
+  SWITCH: "🔄",
+  TRANSFER: "↔️",
+};
+
 const DESC_MAP: Record<string, string> = {
   DEPOSIT_FUNDS: "Add money to your investment pools",
   DEPOSIT_STOCK: "Transfer stock items into your account",
