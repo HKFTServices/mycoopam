@@ -453,10 +453,15 @@ export default function Statements() {
 
     // Fetch unit prices, stock item prices, and T&C in parallel
     const [itemsRes, stockPricesRes, termsRes] = await Promise.all([
-      (supabase as any).from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId!).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds).order("description"),
+      exposedPoolIds.length > 0
+        ? (supabase as any).from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId!).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds).order("description")
+        : Promise.resolve({ data: [] }),
       (supabase as any).from("daily_stock_prices").select("item_id, cost_incl_vat, price_date").eq("tenant_id", tenantId!).eq("price_date", toStr).order("price_date", { ascending: false }),
       (supabase as any).from("terms_conditions").select("content").eq("tenant_id", tenantId!).eq("condition_type", "pool").eq("is_active", true).eq("language_code", "en").order("effective_from", { ascending: false }).limit(1),
     ]);
+
+    console.log("[Statement] exposedPoolIds:", exposedPoolIds, "dedupEnd keys:", Object.keys(dedupEnd));
+    console.log("[Statement] itemsRes:", itemsRes.data?.length, "stockPricesRes:", stockPricesRes.data?.length, "termsRes:", termsRes.data?.length);
 
     // Pool unit prices
     const poolUnitPrices = exposedPoolIds.map(pid => {
@@ -476,6 +481,7 @@ export default function Statements() {
 
     // T&C
     const termsConditionsHtml = termsRes.data?.[0]?.content || "";
+    console.log("[Statement] poolUnitPrices:", poolUnitPrices.length, "stockItemPrices:", stockItemPrices.length, "termsConditionsHtml length:", termsConditionsHtml.length);
 
     const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => { const d = Number(tx.debit || 0), c = Number(tx.credit || 0), v = Number(tx.value || 0); return d !== 0 || c !== 0 || v !== 0; });
     const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({ transaction_date: tx.transaction_date, entry_type: tx.entry_type || "", description: tx.description || "", pool_name: tx.pools?.name || "", debit: Number(tx.debit || 0), credit: Number(tx.credit || 0) }));
