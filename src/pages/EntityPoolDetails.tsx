@@ -299,14 +299,26 @@ const EntityPoolDetails = () => {
             </CardContent>
           </Card>
 
-          {/* Summary Card */}
+          {/* Summary Cards */}
           <div className="space-y-4">
             <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
-                </div>
+              <CardContent className="py-6">
+                <p className="text-sm text-muted-foreground">Total Value</p>
+                <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
+              </CardContent>
+            </Card>
+            {loanOutstanding > 0 && (
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardContent className="py-6">
+                  <p className="text-sm text-muted-foreground">O/s Loan</p>
+                  <p className="text-2xl font-bold tracking-tight text-destructive">- {formatCurrency(loanOutstanding, sym)}</p>
+                </CardContent>
+              </Card>
+            )}
+            <Card className="border-primary/30 bg-primary/10">
+              <CardContent className="py-6">
+                <p className="text-sm text-muted-foreground">Net Value</p>
+                <p className="text-3xl font-bold tracking-tight">{formatCurrency(netValue, sym)}</p>
               </CardContent>
             </Card>
           </div>
