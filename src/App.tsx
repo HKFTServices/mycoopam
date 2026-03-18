@@ -56,6 +56,7 @@ import NotFound from "./pages/NotFound";
 import TenantLanding from "./pages/TenantLanding";
 import SendMessage from "./pages/SendMessage";
 import MessageHistory from "./pages/MessageHistory";
+import Statements from "./pages/Statements";
 import MamDashboard from "./pages/mam/MamDashboard";
 import MamAssets from "./pages/mam/MamAssets";
 import MamContributionPlans from "./pages/mam/MamContributionPlans";
@@ -112,6 +113,7 @@ const App = () => (
               <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
               <Route path="/dashboard/send-message" element={<DashboardRoute><SendMessage /></DashboardRoute>} />
               <Route path="/dashboard/message-history" element={<DashboardRoute><MessageHistory /></DashboardRoute>} />
+              <Route path="/dashboard/statements" element={<DashboardRoute><Statements /></DashboardRoute>} />
               <Route path="/dashboard/mam" element={<DashboardRoute><MamEntityProvider><MamDashboard /></MamEntityProvider></DashboardRoute>} />
               <Route path="/dashboard/mam/assets" element={<DashboardRoute><MamEntityProvider><MamAssets /></MamEntityProvider></DashboardRoute>} />
               <Route path="/dashboard/mam/contribution-plans" element={<DashboardRoute><MamEntityProvider><MamContributionPlans /></MamEntityProvider></DashboardRoute>} />
