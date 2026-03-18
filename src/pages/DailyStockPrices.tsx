@@ -33,6 +33,7 @@ type Item = {
   description: string;
   pool_id: string;
   margin_percentage: number;
+  sell_margin_percentage: number;
   use_fixed_price: number | null;
   api_code: string | null;
   api_link: string | null;
@@ -52,6 +53,8 @@ type FetchedPrice = {
   cost_incl_vat: number;
   buy_price_excl_vat: number;
   buy_price_incl_vat: number;
+  sell_price_excl_vat: number;
+  sell_price_incl_vat: number;
   pricing_source: string;
   api_price_raw: number | null;
 };
@@ -203,26 +206,34 @@ const DailyStockPrices = () => {
       let costInclVat = 0;
       let buyPriceExclVat = 0;
       let buyPriceInclVat = 0;
+      let sellPriceExclVat = 0;
+      let sellPriceInclVat = 0;
       let pricingSource = "Manual";
 
       if (fetched) {
-        // Use live fetched prices
         costExclVat = fetched.cost_excl_vat;
         costInclVat = fetched.cost_incl_vat;
         buyPriceExclVat = fetched.buy_price_excl_vat;
         buyPriceInclVat = fetched.buy_price_incl_vat;
+        sellPriceExclVat = fetched.sell_price_excl_vat ?? costExclVat * (1 - item.sell_margin_percentage / 100);
+        sellPriceInclVat = fetched.sell_price_incl_vat ?? sellPriceExclVat * (1 + vatRate);
         pricingSource = fetched.pricing_source;
       } else if (existing) {
         costExclVat = Number(existing.cost_excl_vat || 0);
         costInclVat = Number(existing.cost_incl_vat || 0);
         buyPriceExclVat = Number(existing.buy_price_excl_vat || 0);
         buyPriceInclVat = Number(existing.buy_price_incl_vat || 0);
+        // Recalculate sell price from cost and sell margin
+        sellPriceExclVat = costExclVat * (1 - item.sell_margin_percentage / 100);
+        sellPriceInclVat = sellPriceExclVat * (1 + vatRate);
         pricingSource = item.api_link ? "API" : item.use_fixed_price != null ? "Fixed" : item.calculate_price_with_item_id ? "Formula" : "Manual";
       } else if (item.use_fixed_price != null) {
         costExclVat = item.use_fixed_price;
         costInclVat = costExclVat * (1 + vatRate);
         buyPriceExclVat = costExclVat * (1 + item.margin_percentage / 100);
         buyPriceInclVat = buyPriceExclVat * (1 + vatRate);
+        sellPriceExclVat = costExclVat * (1 - item.sell_margin_percentage / 100);
+        sellPriceInclVat = sellPriceExclVat * (1 + vatRate);
         pricingSource = "Fixed";
       }
 
@@ -232,6 +243,8 @@ const DailyStockPrices = () => {
         costInclVat,
         buyPriceExclVat,
         buyPriceInclVat,
+        sellPriceExclVat,
+        sellPriceInclVat,
         pricingSource,
         taxName: tax ? `${tax.name} (${tax.percentage}%)` : "—",
         poolName: poolMap[item.pool_id] ?? "—",
@@ -380,25 +393,28 @@ const DailyStockPrices = () => {
                 <TableHead>Description</TableHead>
                 <TableHead>Pool</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead>Margin %</TableHead>
+                <TableHead>Buy Margin %</TableHead>
+                <TableHead>Sell Margin %</TableHead>
                 <TableHead>Tax</TableHead>
                 <TableHead className="text-right">Cost Excl VAT</TableHead>
                 <TableHead className="text-right">Cost Incl VAT</TableHead>
                 <TableHead className="text-right">Buy Excl VAT</TableHead>
                 <TableHead className="text-right">Buy Incl VAT</TableHead>
+                <TableHead className="text-right">Sell Excl VAT</TableHead>
+                <TableHead className="text-right">Sell Incl VAT</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                   <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               ) : priceRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     No active stock items found.
                   </TableCell>
                 </TableRow>
@@ -424,6 +440,7 @@ const DailyStockPrices = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{row.margin_percentage}%</TableCell>
+                    <TableCell>{row.sell_margin_percentage}%</TableCell>
                     <TableCell className="text-xs">{row.taxName}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrency(row.costExclVat, currencySymbol)}
@@ -436,6 +453,12 @@ const DailyStockPrices = () => {
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
                       {formatCurrency(row.buyPriceInclVat, currencySymbol)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      {formatCurrency(row.sellPriceExclVat, currencySymbol)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      {formatCurrency(row.sellPriceInclVat, currencySymbol)}
                     </TableCell>
                     <TableCell>
                       {row.hasExisting ? (
