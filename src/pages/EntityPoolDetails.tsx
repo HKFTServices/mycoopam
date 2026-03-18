@@ -411,7 +411,7 @@ const EntityPoolDetails = () => {
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-6 space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-sm text-muted-foreground">{t(lang, "totalValue")}</p>
                   <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
                 </div>
                 {loanOutstanding > 0 && (
