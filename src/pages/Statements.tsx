@@ -900,7 +900,7 @@ export default function Statements() {
                   Email PDF {selectedCount > 1 ? `(${selectedCount})` : ""}
                 </Button>
               </>
-            )
+            )}
           </div>
         </CardContent>
       </Card>
