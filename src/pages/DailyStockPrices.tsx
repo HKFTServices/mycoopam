@@ -53,6 +53,8 @@ type FetchedPrice = {
   cost_incl_vat: number;
   buy_price_excl_vat: number;
   buy_price_incl_vat: number;
+  sell_price_excl_vat: number;
+  sell_price_incl_vat: number;
   pricing_source: string;
   api_price_raw: number | null;
 };
