@@ -399,6 +399,14 @@ const EntityPoolDetails = () => {
             />
           </PopoverContent>
         </Popover>
+
+        {/* Statement download button */}
+        {entityId && currentTenant && entityAccounts.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => setStatementOpen(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            Statement
+          </Button>
+        )}
       </div>
 
       {loadingPrices ? (
