@@ -90,6 +90,43 @@ const translations = {
 
 type Lang = keyof typeof translations;
 const t = (lang: Lang, key: keyof typeof translations.en) => translations[lang]?.[key] ?? translations.en[key];
+
+// Translate well-known pool names and statement descriptions
+const POOL_NAME_AF: Record<string, string> = {
+  "gold": "Goud",
+  "silver": "Silwer",
+  "member account": "Lidmaatskaprekening",
+  "reserve": "Reserwe",
+  "admin": "Admin",
+};
+
+const translatePoolName = (name: string, lang: Lang): string => {
+  if (lang !== "af") return name;
+  const lower = name.toLowerCase().trim();
+  // Check exact match first
+  if (POOL_NAME_AF[lower]) return POOL_NAME_AF[lower];
+  // Check if name contains a known term (e.g. "Gold Pool" → "Goud Poel")
+  for (const [en, af] of Object.entries(POOL_NAME_AF)) {
+    if (lower.includes(en)) return name.replace(new RegExp(en, "i"), af);
+  }
+  return name;
+};
+
+const translateStatementDesc = (desc: string, poolName: string, lang: Lang): string => {
+  if (lang !== "af") return desc || poolName;
+  if (!desc) return translatePoolName(poolName, lang);
+  // Simple keyword replacements for common statement description terms
+  return desc
+    .replace(/\bExposure to the\b/gi, "Blootstelling aan die")
+    .replace(/\bExposure to\b/gi, "Blootstelling aan")
+    .replace(/\bPool\b/gi, "Poel")
+    .replace(/\bGold\b/gi, "Goud")
+    .replace(/\bSilver\b/gi, "Silwer")
+    .replace(/\bReserve\b/gi, "Reserwe")
+    .replace(/\bMember\b/gi, "Lidmaatskap")
+    .replace(/\bAccount\b/gi, "Rekening");
+};
+
 const EntityPoolDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
