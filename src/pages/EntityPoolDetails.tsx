@@ -118,7 +118,7 @@ const EntityPoolDetails = () => {
       if (!currentTenant || !effectiveDate) return [];
       const { data, error } = await (supabase as any)
         .from("daily_pool_prices")
-        .select("pool_id, unit_price_buy, unit_price_sell, total_units, total_stock, cash_control, vat_control, loan_control, pools (name, icon_url)")
+        .select("pool_id, unit_price_buy, unit_price_sell, total_units, total_stock, cash_control, vat_control, loan_control, pools (name, icon_url, pool_statement_display_type, pool_statement_description)")
         .eq("tenant_id", currentTenant.id)
         .eq("totals_date", effectiveDate);
       if (error) throw error;
@@ -178,25 +178,29 @@ const EntityPoolDetails = () => {
   const entityAccountIds = new Set(entityAccounts.map((a: any) => a.id));
 
   const poolData = useMemo(() => {
-    const priceByPool: Record<string, { buy: number; sell: number; name: string; iconUrl: string | null }> = {};
+    const priceByPool: Record<string, { buy: number; sell: number; name: string; iconUrl: string | null; displayType: string; statementDesc: string }> = {};
     for (const pp of poolPrices) {
+      const displayType = pp.pools?.pool_statement_display_type ?? "display_in_summary";
       priceByPool[pp.pool_id] = {
         buy: Number(pp.unit_price_buy),
         sell: Number(pp.unit_price_sell),
         name: pp.pools?.name ?? "Unknown Pool",
         iconUrl: pp.pools?.icon_url ?? null,
+        displayType,
+        statementDesc: pp.pools?.pool_statement_description ?? "",
       };
     }
 
-    const poolMap: Record<string, { poolName: string; units: number; value: number; iconUrl: string | null }> = {};
+    const poolMap: Record<string, { poolName: string; units: number; value: number; iconUrl: string | null; displayType: string; statementDesc: string }> = {};
     for (const row of accountPoolUnits) {
       if (!entityAccountIds.has(row.entity_account_id)) continue;
       const poolId = row.pool_id;
       const units = Number(row.total_units);
       const price = priceByPool[poolId];
       if (!price) continue;
+      if (price.displayType === "do_not_display") continue;
       if (!poolMap[poolId]) {
-        poolMap[poolId] = { poolName: price.name, units: 0, value: 0, iconUrl: price.iconUrl };
+        poolMap[poolId] = { poolName: price.name, units: 0, value: 0, iconUrl: price.iconUrl, displayType: price.displayType, statementDesc: price.statementDesc };
       }
       poolMap[poolId].units += units;
       poolMap[poolId].value += units * price.sell;
@@ -204,10 +208,13 @@ const EntityPoolDetails = () => {
     return Object.entries(poolMap).map(([poolId, v]) => ({ poolId, ...v }));
   }, [accountPoolUnits, poolPrices, entityAccountIds]);
 
-  const totalValue = poolData.reduce((s, p) => s + p.value, 0);
+  const summaryPools = poolData.filter((p) => p.displayType === "display_in_summary");
+  const belowSummaryPools = poolData.filter((p) => p.displayType === "display_below_summary");
+
+  const totalValue = summaryPools.reduce((s, p) => s + p.value, 0);
   const netValue = totalValue - loanOutstanding;
 
-  const pieData = poolData.map((p) => ({
+  const pieData = summaryPools.map((p) => ({
     name: p.poolName,
     value: Math.round(p.value * 100) / 100,
   }));
@@ -365,7 +372,7 @@ const EntityPoolDetails = () => {
       )}
 
       {/* Detailed Pool Breakdown */}
-      {poolData.length > 0 && (
+      {summaryPools.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Pool Breakdown</CardTitle>
@@ -381,7 +388,7 @@ const EntityPoolDetails = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {poolData.map((p, idx) => {
+                {summaryPools.map((p, idx) => {
                   const price = poolPrices.find((pp: any) => pp.pool_id === p.poolId);
                   return (
                     <TableRow key={p.poolId}>
@@ -402,7 +409,7 @@ const EntityPoolDetails = () => {
                 })}
                 <TableRow className="bg-muted/30 font-bold">
                   <TableCell>Total</TableCell>
-                  <TableCell className="text-right font-mono">{poolData.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
+                  <TableCell className="text-right font-mono">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
                 </TableRow>
@@ -416,6 +423,14 @@ const EntityPoolDetails = () => {
       {poolData.length > 0 && (
         <div className="space-y-1.5 border-t border-border pt-4 mt-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</p>
+
+          {/* Below-summary pools with statement descriptions */}
+          {belowSummaryPools.map((p) => (
+            <div key={p.poolId} className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground mr-2">{p.statementDesc || p.poolName}:</span>
+              <span className="font-mono">{formatCurrency(p.value, sym)}</span>
+            </div>
+          ))}
 
           <PoolUnitPrices
             poolPrices={poolPrices}
