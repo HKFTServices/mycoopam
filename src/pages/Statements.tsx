@@ -142,7 +142,7 @@ export default function Statements() {
     try {
       const [
         entityRes, accountsRes, tenantConfigRes, unitTxRes, cashflowTxRes, stockTxRes,
-        loanRes, poolPricesStartRes, poolPricesEndRes, legacyCftRes, loanTxLegacyRes,
+        loanRes, poolPricesStartRes, poolPricesEndRes, legacyCftRes,
       ] = await Promise.all([
         (supabase as any).from("entities").select("id, name, last_name, identity_number, registration_number, contact_number, email_address, entity_categories (name)").eq("id", selectedEntityId).single(),
         (supabase as any).from("entity_accounts").select("id, account_number, entity_account_types (name, account_type)").eq("entity_id", selectedEntityId).eq("tenant_id", tenantId),
@@ -154,8 +154,20 @@ export default function Statements() {
         (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
         (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
         (supabase as any).rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: selectedEntityId, p_from_date: fromStr, p_to_date: toStr }),
-        // Legacy loan transactions for the entity
-        (supabase as any).rpc("get_loan_transactions", { p_tenant_id: tenantId, p_legacy_entity_id: selectedEntityId }),
+      ]);
+
+      const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === selectedEntityId);
+      const legacyEntityId = loanRow?.legacy_entity_id || loanRow?.client_acct_id;
+
+      // Fetch loan transactions (legacy + modern CFT) in parallel
+      const [loanTxLegacyRes, loanTxCftRes] = await Promise.all([
+        legacyEntityId
+          ? (supabase as any).rpc("get_loan_transactions", { p_tenant_id: tenantId, p_legacy_entity_id: legacyEntityId })
+          : Promise.resolve({ data: [] }),
+        (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)")
+          .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
+          .eq("is_active", true).like("entry_type", "loan_%")
+          .order("transaction_date", { ascending: true }),
       ]);
 
       const legalEntityId = tenantConfigRes.data?.legal_entity_id;
@@ -180,7 +192,6 @@ export default function Statements() {
         return map;
       };
 
-      const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === selectedEntityId);
       const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => {
         const d = Number(tx.debit || 0), c = Number(tx.credit || 0), v = Number(tx.value || 0);
         return d !== 0 || c !== 0 || v !== 0;
@@ -196,12 +207,34 @@ export default function Statements() {
       }));
       const allCashflows = [...currentCft, ...legacyCft].filter((tx) => tx.debit !== 0 || tx.credit !== 0).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 
+      // Merge loan transactions (legacy + modern)
+      const legacyLoanTx = (loanTxLegacyRes.data ?? []).map((tx: any) => ({
+        transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
+        entry_type: tx.entry_type_id || "",
+        entry_type_name: tx.entry_type_name || "",
+        debit: Number(tx.debit || 0),
+        credit: Number(tx.credit || 0),
+      }));
+      const modernLoanTx = (loanTxCftRes.data ?? []).map((tx: any) => ({
+        transaction_date: tx.transaction_date,
+        entry_type: tx.entry_type || "",
+        entry_type_name: "",
+        debit: Number(tx.debit || 0),
+        credit: Number(tx.credit || 0),
+      }));
+      const allLoanTx = [...legacyLoanTx, ...modernLoanTx]
+        .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
+        .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+      // Filter loan transactions to period
+      const periodLoanTx = allLoanTx.filter((tx) => tx.transaction_date >= fromStr && tx.transaction_date <= toStr);
+
       const statementData: StatementData = {
         fromDate: fromStr, toDate: toStr, currencySymbol,
         entity: entityRes.data, entityAccounts: accountsRes.data ?? [], memberAddress: memberAddr,
         tenantConfig: tenantConfigRes.data, legalEntity: tenantConfigRes.data?.entities, legalAddress,
         unitTransactions: filteredUnitTx, cashflowTransactions: allCashflows, stockTransactions: stockTxRes.data ?? [],
         loanOutstanding: Number(loanRow?.outstanding ?? 0), loanPayout: Number(loanRow?.total_payout ?? 0), loanRepaid: Number(loanRow?.total_repaid ?? 0),
+        loanTransactions: periodLoanTx,
         openingUnits, closingUnits, poolPricesStart: dedup(poolPricesStartRes.data), poolPricesEnd: dedup(poolPricesEndRes.data),
       };
 
