@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { template, transporter, fromHeader, tenantName, signature } = await resolveSmtpAndTemplate(
+      const { template, transporter, fromHeader, tenantName, legalEntityName, signature } = await resolveSmtpAndTemplate(
         adminClient,
         tenant_id,
         template_id,
