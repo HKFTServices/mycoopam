@@ -1980,7 +1980,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              Submit Transaction
+              {isDebitOrderDeposit ? "Submit Transaction & Debit Order" : "Submit Transaction"}
             </Button>
           )}
         </DialogFooter>
