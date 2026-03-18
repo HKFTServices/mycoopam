@@ -282,7 +282,8 @@ const Items = () => {
                 <TableHead>Description</TableHead>
                 <TableHead>Pool</TableHead>
                 <TableHead>Tax Type</TableHead>
-                <TableHead>Margin %</TableHead>
+                <TableHead>Buy Margin %</TableHead>
+                <TableHead>Sell Margin %</TableHead>
                 <TableHead>Fixed Price</TableHead>
                 <TableHead>API Provider</TableHead>
                 <TableHead>API Code</TableHead>
