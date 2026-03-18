@@ -375,7 +375,7 @@ const EntityPoolDetails = () => {
           {/* Pie Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Pool Allocation</CardTitle>
+              <CardTitle className="text-lg">{t(lang, "poolAllocation")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
