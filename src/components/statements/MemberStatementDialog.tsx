@@ -148,6 +148,35 @@ export default function MemberStatementDialog({
 
       const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
 
+      // Filter out zero-value unit transactions
+      const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => {
+        const debit = Number(tx.debit || 0);
+        const credit = Number(tx.credit || 0);
+        const value = Number(tx.value || 0);
+        return debit !== 0 || credit !== 0 || value !== 0;
+      });
+
+      // Merge current cashflow transactions with legacy CFT data
+      const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({
+        transaction_date: tx.transaction_date,
+        entry_type: tx.entry_type || "",
+        description: tx.description || "",
+        pool_name: tx.pools?.name || "",
+        debit: Number(tx.debit || 0),
+        credit: Number(tx.credit || 0),
+      }));
+      const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
+        transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
+        entry_type: tx.entry_type || "",
+        description: tx.description || "",
+        pool_name: tx.pool_name || "",
+        debit: Number(tx.debit || 0),
+        credit: Number(tx.credit || 0),
+      }));
+      const allCashflows = [...currentCft, ...legacyCft]
+        .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
+        .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+
       const statementData: StatementData = {
         fromDate: fromStr,
         toDate: toStr,
@@ -158,8 +187,8 @@ export default function MemberStatementDialog({
         tenantConfig: tenantConfigRes.data,
         legalEntity: tenantConfigRes.data?.entities,
         legalAddress,
-        unitTransactions: unitTxRes.data ?? [],
-        cashflowTransactions: cashflowTxRes.data ?? [],
+        unitTransactions: filteredUnitTx,
+        cashflowTransactions: allCashflows,
         stockTransactions: stockTxRes.data ?? [],
         loanOutstanding: Number(loanRow?.outstanding ?? 0),
         loanPayout: Number(loanRow?.total_payout ?? 0),
