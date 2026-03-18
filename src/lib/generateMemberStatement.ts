@@ -164,9 +164,10 @@ export function generateMemberStatement(data: StatementData): string {
   const cashRows = data.cashflowTransactions.map((tx: any) => {
     const debit = Number(tx.debit || 0);
     const credit = Number(tx.credit || 0);
+    const typeLabel = tx.description || cleanEntryType(tx.entry_type || "", debit, credit);
     return `<tr>
       <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.description || tx.entry_type || ""}</td>
+      <td>${typeLabel}</td>
       <td>${tx.pool_name || ""}</td>
       <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
       <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
