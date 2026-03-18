@@ -104,7 +104,8 @@ Deno.serve(async (req) => {
 
     // ── CREATE CAMPAIGN & START SENDING ──
     if (action === "create") {
-      const { campaign_name, audience_type, recipients, attachment_type, created_by } = body;
+      const { campaign_name, audience_type, recipients, attachment_type, created_by, custom_fields } = body;
+      const cf = custom_fields || {};
 
       // Create campaign
       const { data: campaign, error: campErr } = await adminClient
