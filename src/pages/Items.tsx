@@ -280,8 +280,8 @@ const Items = () => {
                 <TableHead>Tax Type</TableHead>
                 <TableHead>Margin %</TableHead>
                 <TableHead>Fixed Price</TableHead>
+                <TableHead>API Provider</TableHead>
                 <TableHead>API Code</TableHead>
-                
                 <TableHead>Formula</TableHead>
                 
                 <TableHead>Stock</TableHead>
