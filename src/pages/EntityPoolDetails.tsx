@@ -118,7 +118,7 @@ const EntityPoolDetails = () => {
       if (!currentTenant || !effectiveDate) return [];
       const { data, error } = await (supabase as any)
         .from("daily_pool_prices")
-        .select("pool_id, unit_price_buy, unit_price_sell, total_units, total_stock, cash_control, vat_control, loan_control, pools (name, icon_url)")
+        .select("pool_id, unit_price_buy, unit_price_sell, total_units, total_stock, cash_control, vat_control, loan_control, pools (name, icon_url, pool_statement_display_type, pool_statement_description)")
         .eq("tenant_id", currentTenant.id)
         .eq("totals_date", effectiveDate);
       if (error) throw error;
