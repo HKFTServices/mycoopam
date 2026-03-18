@@ -121,8 +121,8 @@ const tenantSetupNavItems = [
 ];
 
 const messagesNavItems = [
-  { label: "Send Message", icon: SendHorizontal, path: "/dashboard/send-message" },
-  { label: "Message History", icon: History, path: "/dashboard/message-history" },
+  { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
+  { label: "Campaign History", icon: History, path: "/dashboard/message-history" },
 ];
 
 const statementsNavItem = { label: "Statements", icon: FileText, path: "/dashboard/statements" };
@@ -420,7 +420,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </>
             )}
 
-            {/* Messages - admin only */}
+            {/* Campaigns - admin only */}
             {isAdmin && (
               <>
                 <button
@@ -428,7 +428,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                   <MessageSquare className="h-4.5 w-4.5 shrink-0" />
-                  <span>Messages</span>
+                  <span>Campaigns</span>
                   {messagesOpen ? (
                     <ChevronDown className="ml-auto h-4 w-4" />
                   ) : (
