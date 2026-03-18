@@ -5674,6 +5674,23 @@ export type Database = {
           unit_price_sell: number
         }[]
       }
+      get_legacy_cft_for_entity: {
+        Args: {
+          p_entity_id: string
+          p_from_date?: string
+          p_tenant_id: string
+          p_to_date?: string
+        }
+        Returns: {
+          credit: number
+          debit: number
+          description: string
+          entry_type: string
+          legacy_id: string
+          pool_name: string
+          transaction_date: string
+        }[]
+      }
       get_loan_outstanding: {
         Args: { p_tenant_id: string }
         Returns: {
