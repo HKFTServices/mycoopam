@@ -1474,12 +1474,60 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
         if (error) throw error;
       }
 
+      // ── Create debit order if payment method is debit_order ──
+      if (isDeposit && paymentMethod === "debit_order" && doSignatureData && selectedAccount) {
+        // Build pool allocations from the deposit pool splits
+        const doPoolAllocations = splitSummaries.map(s => ({
+          pool_id: s.poolId,
+          pool_name: s.poolName,
+          percentage: s.percentage,
+          amount: s.netAmount,
+        }));
+
+        const doPayload = {
+          tenant_id: currentTenant.id,
+          entity_id: selectedAccount.entity_id,
+          entity_account_id: selectedAccountId,
+          monthly_amount: amountNum,
+          debit_day: 1,
+          frequency: doFrequency,
+          start_date: doStartDate,
+          pool_allocations: doPoolAllocations,
+          bank_name: doBankName,
+          branch_code: doBranchCode,
+          account_name: doAccountName,
+          account_number: doBankAccountNumber,
+          account_type: doBankAccountType,
+          signature_data: doSignatureData,
+          signed_at: new Date().toISOString(),
+          notes: JSON.stringify({
+            loan_instalment: effectiveLoanRepayment,
+            admin_fees: depositFees.totalFee,
+            fee_breakdown: depositFees.breakdown,
+            net_to_pools: depositNetAvailable,
+            user_notes: doNotes,
+          }),
+          status: "pending",
+          created_by: user.id,
+        };
+
+        const { error: doError } = await (supabase as any)
+          .from("debit_orders")
+          .insert(doPayload);
+        if (doError) throw doError;
+      }
 
     },
     onSuccess: () => {
-      toast.success("Transaction submitted for approval");
+      const msg = isDeposit && paymentMethod === "debit_order"
+        ? "Transaction & debit order submitted for approval"
+        : "Transaction submitted for approval";
+      toast.success(msg);
       queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["debit_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error(err.message || "Failed to submit"),
