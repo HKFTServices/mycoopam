@@ -716,7 +716,28 @@ export default function SendMessage() {
             </CardContent>
           </Card>
 
-          {selectedTemplate && (
+          {templateHasAgmFields && (
+            <Card>
+              <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CalendarIcon className="h-4 w-4" /> AGM Details</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Venue</Label>
+                  <Input value={agmVenue} onChange={(e) => setAgmVenue(e.target.value)} placeholder="e.g. Town Hall, 123 Main St" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input type="date" value={agmDate} onChange={(e) => setAgmDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Time</Label>
+                    <Input type="time" value={agmTime} onChange={(e) => setAgmTime(e.target.value)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
