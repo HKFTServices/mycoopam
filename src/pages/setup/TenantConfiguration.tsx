@@ -736,6 +736,7 @@ const TenantConfiguration = () => {
           <TabsTrigger value="gl" className="gap-1.5"><BookOpen className="h-4 w-4" />GL Entries</TabsTrigger>
           <TabsTrigger value="vault" className="gap-1.5"><Vault className="h-4 w-4" />Vault &amp; Invoice</TabsTrigger>
           <TabsTrigger value="signature" className="gap-1.5"><FileSignature className="h-4 w-4" />Email Signature</TabsTrigger>
+          <TabsTrigger value="theme" className="gap-1.5"><Palette className="h-4 w-4" />Theme</TabsTrigger>
         </TabsList>
 
         {/* ── General ── */}
