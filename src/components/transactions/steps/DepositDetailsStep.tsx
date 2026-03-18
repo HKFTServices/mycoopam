@@ -190,7 +190,7 @@ const DepositDetailsStep = ({
       </div>
 
       {/* Amount */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label className="flex items-center gap-1.5">
           <Wallet className="h-3.5 w-3.5 text-primary" />
           Gross Deposit Amount (R)
