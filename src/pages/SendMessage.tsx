@@ -123,10 +123,30 @@ export default function SendMessage() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, account_number, entity_id, entity_account_type_id, entities!entity_accounts_entity_id_fkey(id, name, last_name, email_address, contact_number, title_id, titles!entities_title_id_fkey(name))")
+        .select("id, account_number, entity_id, entity_account_type_id, entities!entity_accounts_entity_id_fkey(id, name, last_name, email_address, contact_number, title_id)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true);
-      return data || [];
+      if (!data) return [];
+      // Fetch titles separately to resolve title names
+      const titleIds = [...new Set(data.map((ea: any) => ea.entities?.title_id).filter(Boolean))];
+      let titleMap: Record<string, string> = {};
+      if (titleIds.length > 0) {
+        const { data: titles } = await (supabase as any)
+          .from("titles")
+          .select("id, name")
+          .in("id", titleIds);
+        if (titles) {
+          titleMap = Object.fromEntries(titles.map((t: any) => [t.id, t.name]));
+        }
+      }
+      // Attach title name to each entity
+      return data.map((ea: any) => ({
+        ...ea,
+        entities: ea.entities ? {
+          ...ea.entities,
+          titles: ea.entities.title_id ? { name: titleMap[ea.entities.title_id] || "" } : null,
+        } : null,
+      }));
     },
     enabled: !!tenantId,
   });
