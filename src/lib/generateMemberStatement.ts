@@ -25,6 +25,12 @@ export interface StatementData {
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
+  /** Pool unit prices (buy/sell) for exposed pools at end date */
+  poolUnitPrices?: { poolName: string; sellPrice: number }[];
+  /** Stock item prices for items with show_item_price_on_statement */
+  stockItemPrices?: { description: string; price: number | null }[];
+  /** Terms & conditions HTML content */
+  termsConditionsHtml?: string;
 }
 
 /** Clean up raw legacy entry type labels like "Entry 1963" into readable descriptions */
@@ -404,6 +410,26 @@ export function generateMemberStatement(data: StatementData): string {
     </tbody>
   </table>
   ${belowSummaryHtml}
+
+  ${(data.poolUnitPrices && data.poolUnitPrices.length > 0) || (data.stockItemPrices && data.stockItemPrices.length > 0) || data.termsConditionsHtml ? `
+  <div style="margin-top:10px;border-top:1px solid #e0e4ea;padding-top:8px;">
+    <p style="font-size:7pt;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 4px 0;">Notes</p>
+    ${data.poolUnitPrices && data.poolUnitPrices.length > 0 ? `
+    <div style="font-size:8pt;color:#444;margin-bottom:4px;">
+      <span style="font-weight:600;color:#1a1a1a;margin-right:6px;">Unit Prices:</span>
+      ${data.poolUnitPrices.map((p, i) => `${p.poolName} <span style="font-family:monospace">${fmtNum(p.sellPrice, sym)}</span>${i < data.poolUnitPrices!.length - 1 ? ' · ' : ''}`).join('')}
+    </div>` : ''}
+    ${data.stockItemPrices && data.stockItemPrices.length > 0 ? `
+    <div style="font-size:8pt;color:#444;margin-bottom:4px;">
+      <span style="font-weight:600;color:#1a1a1a;margin-right:6px;">Stock Prices:</span>
+      ${data.stockItemPrices.map((p, i) => `${p.description} <span style="font-family:monospace">${p.price != null ? fmtNum(p.price, sym) : '—'}</span>${i < data.stockItemPrices!.length - 1 ? ' · ' : ''}`).join('')}
+    </div>` : ''}
+    ${data.termsConditionsHtml ? `
+    <div style="margin-top:4px;">
+      <p style="font-size:7pt;font-weight:600;color:#888;margin:0 0 2px 0;">Terms &amp; Conditions</p>
+      <div style="font-size:7pt;color:#666;line-height:1.5;">${data.termsConditionsHtml}</div>
+    </div>` : ''}
+  </div>` : ''}
 </div>
 
 <!-- UNIT MOVEMENTS -->

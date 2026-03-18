@@ -244,6 +244,9 @@ async function generateStatementPdf(data: {
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
+  poolUnitPrices?: { poolName: string; sellPrice: number }[];
+  stockItemPrices?: { description: string; price: number | null }[];
+  termsConditionsText?: string;
 }): Promise<ArrayBuffer> {
   const sym = data.currencySymbol;
   const entity = data.entity;
@@ -486,9 +489,70 @@ async function generateStatementPdf(data: {
       y += 4;
     }
   }
-  y += 6;
 
-  // ── Unit Movements ──
+  // ── Notes section: unit prices, stock prices, T&C ──
+  const hasNotes = (data.poolUnitPrices && data.poolUnitPrices.length > 0) || (data.stockItemPrices && data.stockItemPrices.length > 0) || data.termsConditionsText;
+  if (hasNotes) {
+    y += 3;
+    if (y > 265) { doc.addPage(); y = 15; }
+    // Separator line
+    doc.setDrawColor(...BORDER);
+    doc.line(15, y, 195, y);
+    y += 3;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text("NOTES", 15, y);
+    y += 4;
+
+    // Unit prices
+    if (data.poolUnitPrices && data.poolUnitPrices.length > 0) {
+      if (y > 275) { doc.addPage(); y = 15; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT_DARK);
+      doc.text("Unit Prices:", 15, y);
+      doc.setFont("helvetica", "normal");
+      const priceText = data.poolUnitPrices.map(p => `${p.poolName} ${fmtCurrency(p.sellPrice, sym)}`).join("  ·  ");
+      doc.text(priceText, 15 + doc.getTextWidth("Unit Prices: ") + 1, y, { maxWidth: 160 });
+      y += 4;
+    }
+
+    // Stock item prices
+    if (data.stockItemPrices && data.stockItemPrices.length > 0) {
+      if (y > 275) { doc.addPage(); y = 15; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT_DARK);
+      doc.text("Stock Prices:", 15, y);
+      doc.setFont("helvetica", "normal");
+      const stockText = data.stockItemPrices.map(p => `${p.description} ${p.price != null ? fmtCurrency(p.price, sym) : "—"}`).join("  ·  ");
+      doc.text(stockText, 15 + doc.getTextWidth("Stock Prices: ") + 1, y, { maxWidth: 160 });
+      y += 4;
+    }
+
+    // T&C
+    if (data.termsConditionsText) {
+      if (y > 265) { doc.addPage(); y = 15; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6);
+      doc.setTextColor(...TEXT_GREY);
+      doc.text("Terms & Conditions", 15, y);
+      y += 3;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6);
+      doc.setTextColor(102, 102, 102);
+      const lines = doc.splitTextToSize(data.termsConditionsText, 170);
+      for (const line of lines) {
+        if (y > 278) { doc.addPage(); y = 15; }
+        doc.text(line, 15, y);
+        y += 3;
+      }
+    }
+  }
+
+  y += 6;
   y = drawSectionTitle(doc, "Unit Movements", y);
   if (data.unitTransactions.length > 0) {
     const unitRows = data.unitTransactions.map((tx: any) => {
@@ -717,6 +781,39 @@ async function fetchStatementData(
       return map;
     };
 
+    const dedupEnd = dedup(poolPricesEndRes.data);
+    const exposedPoolIds = Object.keys(dedupEnd).filter(pid => {
+      const dt = dedupEnd[pid]?.pools?.pool_statement_display_type;
+      return dt !== "do_not_display";
+    });
+
+    // Fetch unit prices, stock items, and T&C
+    const [itemsRes, stockPricesRes, termsRes] = await Promise.all([
+      adminClient.from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds.length > 0 ? exposedPoolIds : ["__none__"]).order("description"),
+      adminClient.from("daily_stock_prices").select("item_id, cost_incl_vat, price_date").eq("tenant_id", tenantId).eq("price_date", toStr),
+      adminClient.from("terms_conditions").select("content").eq("tenant_id", tenantId).eq("condition_type", "pool").eq("is_active", true).eq("language_code", "en").order("effective_from", { ascending: false }).limit(1),
+    ]);
+
+    // Pool unit prices
+    const poolUnitPrices = exposedPoolIds.map(pid => {
+      const pp = dedupEnd[pid];
+      return { poolName: pp?.pools?.name || "Unknown", sellPrice: Number(pp?.unit_price_sell || 0) };
+    }).filter(p => p.sellPrice > 0);
+
+    // Stock item prices
+    const stockPriceMap: Record<string, number> = {};
+    for (const sp of (stockPricesRes.data ?? [])) {
+      stockPriceMap[sp.item_id] = Number(sp.cost_incl_vat);
+    }
+    const stockItemPrices = (itemsRes.data ?? []).map((item: any) => ({
+      description: item.description,
+      price: stockPriceMap[item.id] ?? null,
+    }));
+
+    // T&C - strip HTML for PDF
+    const termsHtml = termsRes.data?.[0]?.content || "";
+    const termsConditionsText = termsHtml.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
     const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
 
     const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => {
@@ -765,7 +862,10 @@ async function fetchStatementData(
       openingUnits,
       closingUnits,
       poolPricesStart: dedup(poolPricesStartRes.data),
-      poolPricesEnd: dedup(poolPricesEndRes.data),
+      poolPricesEnd: dedupEnd,
+      poolUnitPrices,
+      stockItemPrices,
+      termsConditionsText,
     };
   } catch (err: any) {
     console.error("[send-member-statement] Data fetch failed:", err.message);
