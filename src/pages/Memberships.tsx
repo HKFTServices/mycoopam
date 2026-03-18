@@ -348,7 +348,7 @@ const Memberships = () => {
   const accountValueMap: Record<string, number> = useMemo(() => {
     const priceByPool: Record<string, number> = {};
     for (const pp of latestPoolPrices) {
-      priceByPool[pp.pool_id] = Number(pp.unit_price_buy);
+      priceByPool[pp.pool_id] = Number(pp.unit_price_sell);
     }
     const values: Record<string, number> = {};
     for (const row of accountPoolUnits) {

@@ -290,10 +290,8 @@ const EntityPoolDetails = () => {
                 <TableRow>
                   <TableHead>Pool</TableHead>
                   <TableHead className="text-right">Units</TableHead>
-                  <TableHead className="text-right">Buy Price</TableHead>
-                  <TableHead className="text-right">Buy Value</TableHead>
-                  <TableHead className="text-right">Sell Price</TableHead>
-                  <TableHead className="text-right">Sell Value</TableHead>
+                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -311,10 +309,8 @@ const EntityPoolDetails = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{formatCurrency(price ? Number(price.unit_price_buy) : 0, sym)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.buyValue, sym)}</TableCell>
                       <TableCell className="text-right font-mono text-sm">{formatCurrency(price ? Number(price.unit_price_sell) : 0, sym)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.sellValue, sym)}</TableCell>
+                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.value, sym)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -322,9 +318,7 @@ const EntityPoolDetails = () => {
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right font-mono">{poolData.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
                   <TableCell />
-                  <TableCell className="text-right font-mono">{formatCurrency(totalBuyValue, sym)}</TableCell>
-                  <TableCell />
-                  <TableCell className="text-right font-mono">{formatCurrency(totalSellValue, sym)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
