@@ -65,7 +65,9 @@ import {
 const mainNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Memberships", icon: Briefcase, path: "/dashboard/memberships" },
-  { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions" },
+  { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions", subItems: [
+    { label: "Debit Orders", icon: CreditCard, path: "/dashboard/debit-orders" },
+  ] },
 ];
 
 const adminOnlyNavItems = [

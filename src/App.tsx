@@ -66,6 +66,7 @@ import RegisterTenant from "./pages/RegisterTenant";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
+import DebitOrders from "./pages/DebitOrders";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,7 @@ const App = () => (
               <Route path="/dashboard/users" element={<DashboardRoute><Users /></DashboardRoute>} />
               <Route path="/dashboard/pools" element={<DashboardRoute><Pools /></DashboardRoute>} />
               <Route path="/dashboard/transactions" element={<DashboardRoute><Transactions /></DashboardRoute>} />
+              <Route path="/dashboard/debit-orders" element={<DashboardRoute><DebitOrders /></DashboardRoute>} />
               <Route path="/dashboard/items" element={<DashboardRoute><Items /></DashboardRoute>} />
               <Route path="/dashboard/income-expense-items" element={<DashboardRoute><IncomeExpenseItems /></DashboardRoute>} />
               <Route path="/dashboard/fees" element={<DashboardRoute><Fees /></DashboardRoute>} />
