@@ -15,6 +15,9 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import PoolUnitPrices from "@/components/pools/PoolUnitPrices";
+import PoolItemsPrices from "@/components/pools/PoolItemsPrices";
+import PoolTermsConditions from "@/components/pools/PoolTermsConditions";
 
 const COLORS = [
   "hsl(152, 68%, 36%)",
@@ -407,6 +410,33 @@ const EntityPoolDetails = () => {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Unit Prices for exposed pools */}
+      {poolData.length > 0 && (
+        <PoolUnitPrices
+          poolPrices={poolPrices}
+          exposedPoolIds={poolData.map((p) => p.poolId)}
+          currencySymbol={sym}
+        />
+      )}
+
+      {/* Items & Prices for exposed pools */}
+      {poolData.length > 0 && effectiveDate && currentTenant && (
+        <PoolItemsPrices
+          tenantId={currentTenant.id}
+          poolIds={poolData.map((p) => p.poolId)}
+          effectiveDate={effectiveDate}
+          currencySymbol={sym}
+        />
+      )}
+
+      {/* Pool Terms & Conditions */}
+      {poolData.length > 0 && currentTenant && (
+        <PoolTermsConditions
+          tenantId={currentTenant.id}
+          poolIds={poolData.map((p) => p.poolId)}
+        />
       )}
     </div>
   );
