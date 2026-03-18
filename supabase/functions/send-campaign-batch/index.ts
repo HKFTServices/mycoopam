@@ -186,13 +186,17 @@ async function resolveSmtpAndTemplate(
     .eq("id", templateId)
     .single();
 
-  // Resolve tenant name
+  // Resolve tenant name and legal entity name
   let tenantName = "";
+  let legalEntityName = "";
   const { data: tenant } = await adminClient.from("tenants").select("name").eq("id", tenantId).single();
   tenantName = tenant?.name || "";
   if (tenantConfig.legal_entity_id) {
     const { data: le } = await adminClient.from("entities").select("name").eq("id", tenantConfig.legal_entity_id).single();
-    if (le?.name) tenantName = le.name;
+    if (le?.name) {
+      legalEntityName = le.name;
+      tenantName = le.name;
+    }
   }
 
   const requestedPort = tenantConfig.smtp_port || 587;
