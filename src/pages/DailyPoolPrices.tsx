@@ -259,9 +259,10 @@ const DailyPoolPrices = () => {
     return pools.map((pool) => {
       const poolItemIds = itemsByPool[pool.id] || [];
       const stockItems: StockItemDetail[] = poolItemIds.map((itemId) => {
-        const details = itemDetailsMap[itemId] || { item_code: "?", description: "?" };
+        const details = itemDetailsMap[itemId] || { item_code: "?", description: "?", sell_margin_percentage: 0 };
         const prices = stockPriceMap[itemId] || { cost: 0, buy: 0 };
         const quantity = qtys[itemId] || 0;
+        const sellPrice = prices.cost * (1 - details.sell_margin_percentage / 100);
         return {
           itemId,
           itemCode: details.item_code,
@@ -269,8 +270,10 @@ const DailyPoolPrices = () => {
           quantity,
           costPrice: prices.cost,
           buyPrice: prices.buy,
+          sellPrice,
           totalCost: prices.cost * quantity,
           totalBuy: prices.buy * quantity,
+          totalSell: sellPrice * quantity,
         };
       });
 
