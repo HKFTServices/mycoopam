@@ -375,6 +375,9 @@ async function sendBatchBackground(
           tenant_name: tenantName,
           legal_entity_name: legalEntityName,
           email_signature: signature,
+          agm_venue: customFields.agm_venue || "",
+          agm_date: customFields.agm_date || "",
+          agm_time: customFields.agm_time || "",
         });
 
         const info = await transporter.sendMail({
