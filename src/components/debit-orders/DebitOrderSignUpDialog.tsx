@@ -434,14 +434,7 @@ const DebitOrderSignUpDialog = ({
                 </div>
                 <div>
                   <Label>Debit Day</Label>
-                  <Select value={debitDay} onValueChange={setDebitDay}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 28 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input value="1st" disabled className="bg-muted" />
                 </div>
                 <div>
                   <Label>Frequency</Label>
@@ -455,8 +448,8 @@ const DebitOrderSignUpDialog = ({
                   </Select>
                 </div>
                 <div>
-                  <Label>Start Date</Label>
-                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <Label>Start Date (1st of month)</Label>
+                  <Input type="month" value={startDate.substring(0, 7)} onChange={(e) => setStartDate(e.target.value + "-01")} min={getFirstOfNextMonth().substring(0, 7)} />
                 </div>
               </div>
             </div>
