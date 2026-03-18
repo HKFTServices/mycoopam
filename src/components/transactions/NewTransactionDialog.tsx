@@ -1830,7 +1830,32 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
             />
           )}
 
-          {step === "review" && (
+          {step === "debit_order" && isDebitOrderDeposit && selectedAccount && (
+            <DebitOrderStep
+              entityId={selectedAccount.entity_id}
+              bankName={doBankName}
+              onBankNameChange={setDoBankName}
+              branchCode={doBranchCode}
+              onBranchCodeChange={setDoBranchCode}
+              accountName={doAccountName}
+              onAccountNameChange={setDoAccountName}
+              bankAccountNumber={doBankAccountNumber}
+              onBankAccountNumberChange={setDoBankAccountNumber}
+              bankAccountType={doBankAccountType}
+              onBankAccountTypeChange={setDoBankAccountType}
+              frequency={doFrequency}
+              onFrequencyChange={setDoFrequency}
+              startDate={doStartDate}
+              onStartDateChange={setDoStartDate}
+              debitOrderNotes={doNotes}
+              onDebitOrderNotesChange={setDoNotes}
+              signatureData={doSignatureData}
+              onSignatureDataChange={setDoSignatureData}
+              grossAmount={amountNum}
+              formatCurrency={formatCurrency}
+            />
+          )}
+
             <ReviewStep
               accountLabel={selectedAccountLabel}
               txnTypeName={selectedTxnType?.name || ""}
