@@ -15,6 +15,9 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import PoolUnitPrices from "@/components/pools/PoolUnitPrices";
+import PoolItemsPrices from "@/components/pools/PoolItemsPrices";
+import PoolTermsConditions from "@/components/pools/PoolTermsConditions";
 
 const COLORS = [
   "hsl(152, 68%, 36%)",
