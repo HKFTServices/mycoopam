@@ -722,13 +722,16 @@ export default function SendMessage() {
                 <Select value={templateId} onValueChange={setTemplateId}>
                   <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
                   <SelectContent>
-                    {templates.map((t: any) => (
+                    {uniqueTemplates.map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>
-                        {t.name} ({t.language_code.toUpperCase()})
+                        {t.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Each recipient will receive the template in their preferred language (EN/AF).
+                </p>
               </div>
 
               <div className="space-y-2">
