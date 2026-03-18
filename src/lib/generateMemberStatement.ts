@@ -149,7 +149,7 @@ export function generateMemberStatement(data: StatementData): string {
     const credit = Number(tx.credit || 0);
     return `<tr>
       <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.stock_transaction_type === "deposit" ? "Stock Deposit" : tx.stock_transaction_type === "withdrawal" ? "Stock Withdrawal" : (tx.stock_transaction_type || "")}</td>
+      <td>${Number(tx.debit || 0) > 0 ? "Stock Deposit" : Number(tx.credit || 0) > 0 ? "Stock Withdrawal" : (tx.stock_transaction_type || "")}</td>
       <td>${tx.items?.description || ""}</td>
       <td>${tx.pools?.name || ""}</td>
       <td class="num">${debit > 0 ? debit.toFixed(4) : ""}</td>
