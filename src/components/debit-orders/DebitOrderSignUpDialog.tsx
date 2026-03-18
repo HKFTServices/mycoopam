@@ -27,6 +27,7 @@ interface DebitOrderSignUpDialogProps {
   entityName: string;
   entityAccountId: string;
   accountNumber?: string;
+  existingOrder?: any; // When provided, dialog operates in edit mode
 }
 
 interface PoolAllocation {
@@ -39,7 +40,7 @@ interface PoolAllocation {
 type Step = "details" | "preview";
 
 const DebitOrderSignUpDialog = ({
-  open, onOpenChange, entityId, entityName, entityAccountId, accountNumber,
+  open, onOpenChange, entityId, entityName, entityAccountId, accountNumber, existingOrder,
 }: DebitOrderSignUpDialogProps) => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
@@ -69,6 +70,30 @@ const DebitOrderSignUpDialog = ({
 
   // Signature
   const [signatureData, setSignatureData] = useState<string | null>(null);
+  const isEditMode = !!existingOrder;
+
+  // Pre-fill from existingOrder when editing
+  useEffect(() => {
+    if (!existingOrder || !open) return;
+    setMonthlyAmount(String(existingOrder.monthly_amount ?? ""));
+    setFrequency(existingOrder.frequency ?? "monthly");
+    setStartDate(existingOrder.start_date ?? getFirstOfNextMonth());
+    setBankName(existingOrder.bank_name ?? "");
+    setBranchCode(existingOrder.branch_code ?? "");
+    setAccountName(existingOrder.account_name ?? "");
+    setBankAccountNumber(existingOrder.account_number ?? "");
+    setBankAccountType(existingOrder.account_type ?? "savings");
+    setSignatureData(existingOrder.signature_data ?? null);
+    const savedNotes = (() => { try { return JSON.parse(existingOrder.notes); } catch { return null; } })();
+    setNotes(savedNotes?.user_notes ?? "");
+    setManualLoanInstalment(savedNotes?.loan_instalment != null ? String(savedNotes.loan_instalment) : "");
+    const savedPools = Array.isArray(existingOrder.pool_allocations) ? existingOrder.pool_allocations : [];
+    if (savedPools.length > 0) {
+      setAllocations(savedPools.map((p: any) => ({
+        poolId: p.pool_id, poolName: p.pool_name, percentage: p.percentage, amount: p.amount,
+      })));
+    }
+  }, [existingOrder, open]);
 
   // Fetch tenant config
   const { data: tenantConfig } = useQuery({
@@ -339,44 +364,59 @@ const DebitOrderSignUpDialog = ({
       if (!currentTenant || !user) throw new Error("Not authenticated");
       if (!signatureData) throw new Error("Please sign the mandate form");
 
-      const { error } = await (supabase as any)
-        .from("debit_orders")
-        .insert({
-          tenant_id: currentTenant.id,
-          entity_id: entityId,
-          entity_account_id: entityAccountId,
-          monthly_amount: totalAmount,
-          debit_day: parseInt(debitDay),
-          frequency,
-          start_date: startDate,
-          pool_allocations: computedAllocations.filter(a => a.percentage > 0).map(a => ({
-            pool_id: a.poolId,
-            pool_name: a.poolName,
-            percentage: a.percentage,
-            amount: a.amount,
-          })),
-          bank_name: bankName,
-          branch_code: branchCode,
-          account_name: accountName,
-          account_number: bankAccountNumber,
-          account_type: bankAccountType,
-          signature_data: signatureData,
-          signed_at: new Date().toISOString(),
-          status: "pending",
-          created_by: user.id,
-          notes: JSON.stringify({
-            loan_instalment: loanInstalment,
-            admin_fees: feeCalc.totalFee,
-            fee_breakdown: feeCalc.breakdown,
-            net_to_pools: afterFees,
-            user_notes: notes,
-          }),
-        });
-      if (error) throw error;
+      const payload = {
+        monthly_amount: totalAmount,
+        debit_day: parseInt(debitDay),
+        frequency,
+        start_date: startDate,
+        pool_allocations: computedAllocations.filter(a => a.percentage > 0).map(a => ({
+          pool_id: a.poolId,
+          pool_name: a.poolName,
+          percentage: a.percentage,
+          amount: a.amount,
+        })),
+        bank_name: bankName,
+        branch_code: branchCode,
+        account_name: accountName,
+        account_number: bankAccountNumber,
+        account_type: bankAccountType,
+        signature_data: signatureData,
+        signed_at: new Date().toISOString(),
+        notes: JSON.stringify({
+          loan_instalment: loanInstalment,
+          admin_fees: feeCalc.totalFee,
+          fee_breakdown: feeCalc.breakdown,
+          net_to_pools: afterFees,
+          user_notes: notes,
+        }),
+      };
+
+      if (isEditMode) {
+        // Update existing — reset status to pending for re-approval
+        const { error } = await (supabase as any)
+          .from("debit_orders")
+          .update({ ...payload, status: "pending", approved_by: null, approved_at: null })
+          .eq("id", existingOrder.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("debit_orders")
+          .insert({
+            ...payload,
+            tenant_id: currentTenant.id,
+            entity_id: entityId,
+            entity_account_id: entityAccountId,
+            status: "pending",
+            created_by: user.id,
+          });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Debit order mandate submitted for approval");
+      toast.success(isEditMode ? "Debit order updated — sent for re-approval" : "Debit order mandate submitted for approval");
       queryClient.invalidateQueries({ queryKey: ["debit_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
       resetForm();
       onOpenChange(false);
     },
@@ -417,10 +457,10 @@ const DebitOrderSignUpDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Debit Order Sign Up
+            {isEditMode ? "Edit Debit Order" : "Debit Order Sign Up"}
           </DialogTitle>
           <DialogDescription>
-            Set up a recurring debit order for {entityName}
+            {isEditMode ? "Update the debit order details — changes require re-approval" : `Set up a recurring debit order for ${entityName}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -799,7 +839,7 @@ const DebitOrderSignUpDialog = ({
                 onClick={() => submitMutation.mutate()}
               >
                 {submitMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-                Submit Debit Order for Approval
+                {isEditMode ? "Update & Re-submit for Approval" : "Submit Debit Order for Approval"}
               </Button>
             </div>
           </div>

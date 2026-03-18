@@ -11,11 +11,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, CreditCard, Eye } from "lucide-react";
+import { Loader2, CreditCard, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { toast } from "sonner";
+import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -31,6 +32,7 @@ const DebitOrders = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [viewOrder, setViewOrder] = useState<any>(null);
+  const [editOrder, setEditOrder] = useState<any>(null);
 
   const { data: userRoles = [] } = useQuery({
     queryKey: ["user_roles_do", user?.id],
@@ -194,9 +196,14 @@ const DebitOrders = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => setViewOrder(d)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setViewOrder(d)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setEditOrder(d)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -308,6 +315,19 @@ const DebitOrders = () => {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Edit dialog */}
+      {editOrder && (
+        <DebitOrderSignUpDialog
+          open={!!editOrder}
+          onOpenChange={(o) => { if (!o) setEditOrder(null); }}
+          entityId={editOrder.entity_id}
+          entityName={[editOrder.entities?.name, editOrder.entities?.last_name].filter(Boolean).join(" ")}
+          entityAccountId={editOrder.entity_account_id}
+          accountNumber={editOrder.entity_accounts?.account_number}
+          existingOrder={editOrder}
+        />
+      )}
     </div>
   );
 };
