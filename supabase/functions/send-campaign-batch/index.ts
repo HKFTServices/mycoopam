@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { template, transporter, fromHeader, tenantName, signature } = await resolveSmtpAndTemplate(
+      const { template, transporter, fromHeader, tenantName, legalEntityName, signature } = await resolveSmtpAndTemplate(
         adminClient,
         tenant_id,
         template_id,
@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
         user_surname: profile.last_name || "User",
         email_address: profile.email,
         tenant_name: tenantName,
+        legal_entity_name: legalEntityName,
         email_signature: signature,
       });
 
@@ -186,13 +187,17 @@ async function resolveSmtpAndTemplate(
     .eq("id", templateId)
     .single();
 
-  // Resolve tenant name
+  // Resolve tenant name and legal entity name
   let tenantName = "";
+  let legalEntityName = "";
   const { data: tenant } = await adminClient.from("tenants").select("name").eq("id", tenantId).single();
   tenantName = tenant?.name || "";
   if (tenantConfig.legal_entity_id) {
     const { data: le } = await adminClient.from("entities").select("name").eq("id", tenantConfig.legal_entity_id).single();
-    if (le?.name) tenantName = le.name;
+    if (le?.name) {
+      legalEntityName = le.name;
+      tenantName = le.name;
+    }
   }
 
   const requestedPort = tenantConfig.smtp_port || 587;
@@ -218,7 +223,7 @@ async function resolveSmtpAndTemplate(
     ? (tenantConfig.email_signature_af || tenantConfig.email_signature_en || "")
     : (tenantConfig.email_signature_en || "");
 
-  return { template, transporter, fromHeader, tenantName, signature };
+  return { template, transporter, fromHeader, tenantName, legalEntityName, signature };
 }
 
 function renderTemplate(
@@ -230,6 +235,7 @@ function renderTemplate(
 
   const replacements: Record<string, string> = {
     "{{entity_name}}": vars.entity_name || "",
+    "{{legal_entity_name}}": vars.legal_entity_name || "",
     "{{user_name}}": vars.user_name || "",
     "{{user_surname}}": vars.user_surname || "",
     "{{first_name}}": vars.entity_name || "",
@@ -296,7 +302,7 @@ async function sendBatchBackground(
       return;
     }
 
-    const { template, transporter, fromHeader, tenantName, signature } = await resolveSmtpAndTemplate(
+    const { template, transporter, fromHeader, tenantName, legalEntityName, signature } = await resolveSmtpAndTemplate(
       adminClient,
       tenantId,
       templateId,
@@ -358,6 +364,7 @@ async function sendBatchBackground(
           user_surname: userSurname,
           email_address: recipient.recipient_email,
           tenant_name: tenantName,
+          legal_entity_name: legalEntityName,
           email_signature: signature,
         });
 
