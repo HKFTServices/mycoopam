@@ -142,7 +142,7 @@ export default function Statements() {
     try {
       const [
         entityRes, accountsRes, tenantConfigRes, unitTxRes, cashflowTxRes, stockTxRes,
-        loanRes, poolPricesStartRes, poolPricesEndRes, legacyCftRes,
+        loanRes, poolPricesStartRes, poolPricesEndRes, legacyCftRes, loanTxLegacyRes,
       ] = await Promise.all([
         (supabase as any).from("entities").select("id, name, last_name, identity_number, registration_number, contact_number, email_address, entity_categories (name)").eq("id", selectedEntityId).single(),
         (supabase as any).from("entity_accounts").select("id, account_number, entity_account_types (name, account_type)").eq("entity_id", selectedEntityId).eq("tenant_id", tenantId),
@@ -154,6 +154,8 @@ export default function Statements() {
         (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
         (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
         (supabase as any).rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: selectedEntityId, p_from_date: fromStr, p_to_date: toStr }),
+        // Legacy loan transactions for the entity
+        (supabase as any).rpc("get_loan_transactions", { p_tenant_id: tenantId, p_legacy_entity_id: selectedEntityId }),
       ]);
 
       const legalEntityId = tenantConfigRes.data?.legal_entity_id;
