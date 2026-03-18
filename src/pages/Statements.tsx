@@ -846,9 +846,9 @@ export default function Statements() {
               </>
             )}
             {docType === "cgt" && (
-              <Button disabled={busy || selectedCount === 0} onClick={() => toast({ title: "Coming Soon", description: "CGT Certificate generation is under development." })}>
-                <FileText className="h-4 w-4 mr-2" />
-                Generate CGT Certificate
+              <Button onClick={handleViewCgt} disabled={busy || selectedCount === 0}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                View CGT Certificate {selectedCount > 1 ? `(${selectedCount})` : ""}
               </Button>
             )}
           </div>
