@@ -4703,6 +4703,9 @@ export type Database = {
           stock_control_gl_account_id: string | null
           supplier_invoice_prefix: string
           tenant_id: string
+          theme_accent_hsl: string | null
+          theme_primary_hsl: string | null
+          theme_sidebar_hsl: string | null
           updated_at: string
           use_default_security: boolean
           vat_gl_account_id: string | null
@@ -4765,6 +4768,9 @@ export type Database = {
           stock_control_gl_account_id?: string | null
           supplier_invoice_prefix?: string
           tenant_id: string
+          theme_accent_hsl?: string | null
+          theme_primary_hsl?: string | null
+          theme_sidebar_hsl?: string | null
           updated_at?: string
           use_default_security?: boolean
           vat_gl_account_id?: string | null
@@ -4827,6 +4833,9 @@ export type Database = {
           stock_control_gl_account_id?: string | null
           supplier_invoice_prefix?: string
           tenant_id?: string
+          theme_accent_hsl?: string | null
+          theme_primary_hsl?: string | null
+          theme_sidebar_hsl?: string | null
           updated_at?: string
           use_default_security?: boolean
           vat_gl_account_id?: string | null
