@@ -883,11 +883,19 @@ Deno.serve(async (req) => {
               notes: `Legacy UT import: Type=${rawTxTypeName}, EntryID=${record.type_transaction_entry_id || record.Type_TransactionEntryID}`,
             };
 
-            results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_insert" : "insert", name: `${entityAccountLabel} | ${rawTxTypeName} | Pool:${record.pool_id || record.PoolID} | Units:${units} | Val:${value}`, mapped_fields: row });
-            if (!isDryRun) {
-              const { data: ins, error: insErr } = await adminClient.from("unit_transactions").insert(row).select("id").single();
-              if (insErr) { results.errors.push(`UT ${legacyId}: ${insErr.message}`); continue; }
-              newId = ins.id;
+            // Dedup: skip if legacy_id already exists
+            const { data: existingUT } = await adminClient.from("unit_transactions")
+              .select("id").eq("tenant_id", tenant_id).eq("legacy_id", String(legacyId)).maybeSingle();
+            if (existingUT) {
+              results.simulation.push({ legacy_id: legacyId, action: "skip_duplicate", name: `${entityAccountLabel} | ${rawTxTypeName} | Already exists` });
+              newId = existingUT.id;
+            } else {
+              results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_insert" : "insert", name: `${entityAccountLabel} | ${rawTxTypeName} | Pool:${record.pool_id || record.PoolID} | Units:${units} | Val:${value}`, mapped_fields: row });
+              if (!isDryRun) {
+                const { data: ins, error: insErr } = await adminClient.from("unit_transactions").insert(row).select("id").single();
+                if (insErr) { results.errors.push(`UT ${legacyId}: ${insErr.message}`); continue; }
+                newId = ins.id;
+              }
             }
 
           } else if (table_name === "stock_transactions") {
