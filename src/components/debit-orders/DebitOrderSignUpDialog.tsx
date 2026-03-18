@@ -70,6 +70,30 @@ const DebitOrderSignUpDialog = ({
 
   // Signature
   const [signatureData, setSignatureData] = useState<string | null>(null);
+  const isEditMode = !!existingOrder;
+
+  // Pre-fill from existingOrder when editing
+  useEffect(() => {
+    if (!existingOrder || !open) return;
+    setMonthlyAmount(String(existingOrder.monthly_amount ?? ""));
+    setFrequency(existingOrder.frequency ?? "monthly");
+    setStartDate(existingOrder.start_date ?? getFirstOfNextMonth());
+    setBankName(existingOrder.bank_name ?? "");
+    setBranchCode(existingOrder.branch_code ?? "");
+    setAccountName(existingOrder.account_name ?? "");
+    setBankAccountNumber(existingOrder.account_number ?? "");
+    setBankAccountType(existingOrder.account_type ?? "savings");
+    setSignatureData(existingOrder.signature_data ?? null);
+    const savedNotes = (() => { try { return JSON.parse(existingOrder.notes); } catch { return null; } })();
+    setNotes(savedNotes?.user_notes ?? "");
+    setManualLoanInstalment(savedNotes?.loan_instalment != null ? String(savedNotes.loan_instalment) : "");
+    const savedPools = Array.isArray(existingOrder.pool_allocations) ? existingOrder.pool_allocations : [];
+    if (savedPools.length > 0) {
+      setAllocations(savedPools.map((p: any) => ({
+        poolId: p.pool_id, poolName: p.pool_name, percentage: p.percentage, amount: p.amount,
+      })));
+    }
+  }, [existingOrder, open]);
 
   // Fetch tenant config
   const { data: tenantConfig } = useQuery({
