@@ -1,7 +1,17 @@
 /**
- * Generates a print-ready HTML CGT (Capital Gains Tax) Certificate
- * showing cost base, market value, and capital gain/loss per pool
- * for the South African tax year (1 Mar – 28 Feb).
+ * Generates a print-ready HTML CGT (Capital Gains Tax) Certificate – IT3(c)
+ * Based on SARS source codes 6506 (Profit) and 6507 (Loss).
+ *
+ * Calculation logic:
+ *   1. Total Cost Base = sum of (units × unit_price) for ALL unit purchases
+ *      up to start of the tax year → gives total units held & total cost.
+ *   2. Cost Per Unit (CPU) = Total Cost Base / Total Units Held at start.
+ *   3. Redemptions during the year: units sold (credits) and their actual
+ *      proceeds (value field on each withdrawal transaction).
+ *   4. Base Cost of redeemed units = CPU × redeemed units.
+ *   5. Net Gain/Loss = Total Proceeds − Base Cost of redeemed units.
+ *
+ * South African tax year: 1 March – 28/29 February.
  */
 import { formatCurrency } from "@/lib/formatCurrency";
 
@@ -16,17 +26,13 @@ export interface CgtCertificateData {
   tenantConfig: any;
   legalEntity: any;
   legalAddress: any;
-  /** Unit transactions within the tax year */
+  /** Unit transactions (redemptions/withdrawals) within the tax year */
   unitTransactions: any[];
-  /** Units held at start of period (cost base) */
-  openingUnits: any[];
-  /** Units held at end of period (market value) */
-  closingUnits: any[];
-  /** Pool prices at start of period */
-  poolPricesStart: Record<string, any>;
-  /** Pool prices at end of period */
-  poolPricesEnd: Record<string, any>;
+  /** All unit purchase transactions from inception up to start of tax year */
+  allPurchasesBeforeStart: any[];
 }
+
+/* ────────────── helpers ────────────── */
 
 const fmtDate = (d: string) => {
   if (!d) return "";
@@ -35,6 +41,8 @@ const fmtDate = (d: string) => {
 };
 
 const fmtNum = (n: number, sym: string) => formatCurrency(n, sym);
+
+/* ────────────── main ────────────── */
 
 export function generateCgtCertificate(data: CgtCertificateData): string {
   const sym = data.currencySymbol;
@@ -48,7 +56,7 @@ export function generateCgtCertificate(data: CgtCertificateData): string {
     ? [data.memberAddress.street_address, data.memberAddress.suburb, data.memberAddress.city, data.memberAddress.province, data.memberAddress.postal_code].filter(Boolean).join(", ")
     : "";
 
-  // Tenant details
+  // Tenant / co-op details
   const tc = data.tenantConfig;
   const le = data.legalEntity;
   const coopName = le?.name || "";
@@ -62,149 +70,145 @@ export function generateCgtCertificate(data: CgtCertificateData): string {
     ? [data.legalAddress.street_address, data.legalAddress.suburb, data.legalAddress.city, data.legalAddress.province, data.legalAddress.postal_code].filter(Boolean).join(", ")
     : "";
 
-  // Build pool summary: cost base (opening) vs market value (closing)
-  const poolSummary: Record<string, {
-    name: string;
-    openUnits: number; closeUnits: number;
-    openPrice: number; closePrice: number;
-    depositsUnits: number; depositsValue: number;
-    withdrawalsUnits: number; withdrawalsValue: number;
-  }> = {};
+  /* ─── Step 1: Build cost base per pool from ALL purchases up to start ─── */
+  const poolCostBase: Record<string, { name: string; totalUnits: number; totalCost: number }> = {};
 
-  for (const row of data.openingUnits) {
-    const poolId = row.pool_id;
-    const priceInfo = data.poolPricesStart[poolId];
-    if (!poolSummary[poolId]) {
-      poolSummary[poolId] = {
-        name: priceInfo?.pools?.name || "Unknown",
-        openUnits: 0, closeUnits: 0,
-        openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0,
-        depositsUnits: 0, depositsValue: 0,
-        withdrawalsUnits: 0, withdrawalsValue: 0,
-      };
+  for (const tx of data.allPurchasesBeforeStart) {
+    const poolId = tx.pool_id;
+    const units = Number(tx.debit || 0); // purchases = debit
+    const value = Math.abs(Number(tx.value || 0));
+    if (units <= 0) continue;
+    if (!poolCostBase[poolId]) {
+      poolCostBase[poolId] = { name: tx.pools?.name || "Unknown", totalUnits: 0, totalCost: 0 };
     }
-    poolSummary[poolId].openUnits += Number(row.total_units);
+    poolCostBase[poolId].totalUnits += units;
+    poolCostBase[poolId].totalCost += value;
   }
 
-  for (const row of data.closingUnits) {
-    const poolId = row.pool_id;
-    const priceInfo = data.poolPricesEnd[poolId];
-    if (!poolSummary[poolId]) {
-      poolSummary[poolId] = {
-        name: priceInfo?.pools?.name || "Unknown",
-        openUnits: 0, closeUnits: 0,
-        openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0),
-        depositsUnits: 0, depositsValue: 0,
-        withdrawalsUnits: 0, withdrawalsValue: 0,
-      };
-    }
-    poolSummary[poolId].closeUnits += Number(row.total_units);
-    poolSummary[poolId].closePrice = Number(priceInfo?.unit_price_sell || 0);
-  }
+  /* ─── Step 2: Aggregate redemptions per pool during the tax year ─── */
+  const poolRedemptions: Record<string, { name: string; redeemedUnits: number; totalProceeds: number }> = {};
 
-  // Aggregate deposits and withdrawals from unit transactions
   for (const tx of data.unitTransactions) {
     const poolId = tx.pool_id;
-    if (!poolSummary[poolId]) continue;
-    const debit = Number(tx.debit || 0);
-    const credit = Number(tx.credit || 0);
+    const units = Number(tx.credit || 0); // redemptions = credit
     const value = Math.abs(Number(tx.value || 0));
-    if (debit > 0) {
-      poolSummary[poolId].depositsUnits += debit;
-      poolSummary[poolId].depositsValue += value;
+    if (units <= 0) continue;
+    if (!poolRedemptions[poolId]) {
+      poolRedemptions[poolId] = { name: tx.pools?.name || "Unknown", redeemedUnits: 0, totalProceeds: 0 };
     }
-    if (credit > 0) {
-      poolSummary[poolId].withdrawalsUnits += credit;
-      poolSummary[poolId].withdrawalsValue += value;
-    }
+    poolRedemptions[poolId].redeemedUnits += units;
+    poolRedemptions[poolId].totalProceeds += value;
   }
 
-  // Filter to pools with any activity
-  const activePools = Object.entries(poolSummary).filter(([, p]) => {
-    const openVal = Math.abs(p.openUnits * p.openPrice);
-    const closeVal = Math.abs(p.closeUnits * p.closePrice);
-    return openVal > 0.001 || closeVal > 0.001 || p.depositsUnits > 0 || p.withdrawalsUnits > 0;
-  });
+  /* ─── Step 3: Calculate gain/loss per pool ─── */
+  interface PoolResult {
+    name: string;
+    redeemedUnits: number;
+    baseCost: number;
+    proceeds: number;
+    gainLoss: number;
+    sourceCode: string;
+  }
 
-  // Calculate totals
-  let totalCostBase = 0;
-  let totalMarketValue = 0;
+  const results: PoolResult[] = [];
+  let totalBaseCost = 0;
+  let totalProceeds = 0;
 
-  const poolRows = activePools.map(([, p]) => {
-    const costBase = p.openUnits * p.openPrice + p.depositsValue;
-    const marketValue = p.closeUnits * p.closePrice;
-    const gain = marketValue - costBase;
-    totalCostBase += costBase;
-    totalMarketValue += marketValue;
+  for (const [poolId, redemption] of Object.entries(poolRedemptions)) {
+    const costInfo = poolCostBase[poolId];
+    const cpu = costInfo && costInfo.totalUnits > 0
+      ? costInfo.totalCost / costInfo.totalUnits
+      : 0;
+    const baseCost = cpu * redemption.redeemedUnits;
+    const gainLoss = redemption.totalProceeds - baseCost;
 
-    return `<tr>
-      <td>${p.name}</td>
-      <td class="num">${p.openUnits.toFixed(4)}</td>
-      <td class="num">${fmtNum(p.openPrice, sym)}</td>
-      <td class="num">${fmtNum(p.openUnits * p.openPrice, sym)}</td>
-      <td class="num">${p.depositsUnits > 0 ? p.depositsUnits.toFixed(4) : "—"}</td>
-      <td class="num">${p.depositsValue > 0 ? fmtNum(p.depositsValue, sym) : "—"}</td>
-      <td class="num">${p.withdrawalsUnits > 0 ? p.withdrawalsUnits.toFixed(4) : "—"}</td>
-      <td class="num">${p.withdrawalsValue > 0 ? fmtNum(p.withdrawalsValue, sym) : "—"}</td>
-      <td class="num">${p.closeUnits.toFixed(4)}</td>
-      <td class="num">${fmtNum(p.closePrice, sym)}</td>
-      <td class="num">${fmtNum(marketValue, sym)}</td>
-      <td class="num ${gain < 0 ? 'neg' : gain > 0 ? 'pos' : ''}">${fmtNum(gain, sym)}</td>
-    </tr>`;
-  }).join("");
+    totalBaseCost += baseCost;
+    totalProceeds += redemption.totalProceeds;
 
-  const totalGain = totalMarketValue - totalCostBase;
+    results.push({
+      name: redemption.name,
+      redeemedUnits: redemption.redeemedUnits,
+      baseCost,
+      proceeds: redemption.totalProceeds,
+      gainLoss,
+      sourceCode: gainLoss >= 0 ? "6506" : "6507",
+    });
+  }
+
+  const totalGainLoss = totalProceeds - totalBaseCost;
+
+  /* ─── Build HTML rows ─── */
+  const poolRows = results.map((r) => `
+    <tr>
+      <td class="code">${r.sourceCode}</td>
+      <td>${r.name}</td>
+      <td class="num">${r.redeemedUnits.toFixed(3)}</td>
+      <td class="num">${fmtNum(r.baseCost, sym)}</td>
+      <td class="num">${fmtNum(r.proceeds, sym)}</td>
+      <td class="num ${r.gainLoss < 0 ? 'neg' : r.gainLoss > 0 ? 'pos' : ''}">${fmtNum(r.gainLoss, sym)}</td>
+    </tr>`).join("");
+
   const dateGenerated = new Date().toLocaleDateString("en-ZA", { day: "2-digit", month: "long", year: "numeric" });
 
+  /* ─── Full HTML document ─── */
   return `<!DOCTYPE html>
 <html><head>
-<title>CGT Certificate - ${memberName} - ${data.taxYearLabel}</title>
+<title>IT3(c) CGT Certificate - ${memberName} - ${data.taxYearLabel}</title>
 <style>
-  @page { margin: 15mm; size: A4 landscape; }
+  @page { margin: 15mm; size: A4; }
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; line-height: 1.4; color: #1a1a1a; max-width: 1100px; margin: 0 auto; padding: 16px; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.5; color: #1a1a1a; max-width: 800px; margin: 0 auto; padding: 20px; }
   .print-btn { position: fixed; top: 10px; right: 10px; background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; z-index: 1000; }
   .print-btn:hover { background: #1d4ed8; }
   @media print { .print-btn { display: none; } }
 
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1e3a5f; padding-bottom: 12px; margin-bottom: 16px; }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-left img { max-height: 60px; max-width: 120px; object-fit: contain; }
-  .coop-name { font-size: 14pt; font-weight: bold; color: #1e3a5f; }
-  .coop-details { font-size: 7.5pt; color: #666; line-height: 1.5; }
-  .header-right { text-align: right; font-size: 7.5pt; color: #666; line-height: 1.5; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1e3a5f; padding-bottom: 14px; margin-bottom: 20px; }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-left img { max-height: 70px; max-width: 140px; object-fit: contain; }
+  .coop-name { font-size: 15pt; font-weight: bold; color: #1e3a5f; }
+  .coop-details { font-size: 8pt; color: #555; line-height: 1.6; }
+  .header-right { text-align: right; font-size: 8pt; color: #555; line-height: 1.6; }
 
-  .doc-title { text-align: center; font-size: 16pt; font-weight: bold; color: #1e3a5f; margin: 8px 0 4px; }
-  .doc-subtitle { text-align: center; font-size: 10pt; color: #666; margin-bottom: 16px; }
+  .doc-title { text-align: center; font-size: 18pt; font-weight: bold; color: #1e3a5f; margin: 12px 0 2px; }
+  .doc-subtitle { text-align: center; font-size: 11pt; color: #555; margin-bottom: 4px; }
+  .doc-subtitle2 { text-align: center; font-size: 10pt; color: #555; margin-bottom: 20px; }
 
-  .member-info { display: flex; justify-content: space-between; background: #f5f7fa; border: 1px solid #e0e4ea; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; }
-  .member-info .col { }
-  .member-info .label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
-  .member-info .val { font-weight: 600; font-size: 9pt; }
+  .member-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; background: #f5f7fa; border: 1px solid #e0e4ea; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; }
+  .member-info .item { display: flex; gap: 6px; }
+  .member-info .label { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.4px; color: #888; min-width: 120px; }
+  .member-info .val { font-weight: 600; font-size: 9.5pt; }
 
-  .section { margin-top: 18px; }
-  .section-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #c8d0da; padding-bottom: 4px; margin-bottom: 8px; }
+  .section { margin-top: 24px; }
+  .section-title { font-size: 12pt; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #c8d0da; padding-bottom: 4px; margin-bottom: 10px; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 6px; }
   thead { background: #1e3a5f; color: white; }
-  th { padding: 5px 6px; text-align: left; font-weight: 600; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.3px; }
+  th { padding: 6px 8px; text-align: left; font-weight: 600; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.3px; }
   th.num { text-align: right; }
-  td { padding: 4px 6px; border-bottom: 1px solid #eee; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.code { font-weight: 600; color: #1e3a5f; width: 70px; }
   td.neg { color: #dc2626; font-weight: 600; }
   td.pos { color: #16a34a; font-weight: 600; }
   tr.total { background: #f0f2f5; font-weight: bold; }
   tr.total td { border-top: 2px solid #1e3a5f; border-bottom: none; }
 
-  .summary-cards { display: flex; gap: 12px; margin: 16px 0; }
-  .scard { flex: 1; background: #f5f7fa; border: 1px solid #e0e4ea; border-radius: 6px; padding: 10px 14px; text-align: center; }
-  .scard .lbl { font-size: 7pt; text-transform: uppercase; color: #888; }
-  .scard .amt { font-size: 16pt; font-weight: bold; color: #1e3a5f; }
+  .summary-cards { display: flex; gap: 14px; margin: 20px 0; }
+  .scard { flex: 1; background: #f5f7fa; border: 1px solid #e0e4ea; border-radius: 6px; padding: 12px 16px; text-align: center; }
+  .scard .lbl { font-size: 7.5pt; text-transform: uppercase; color: #888; }
+  .scard .amt { font-size: 18pt; font-weight: bold; color: #1e3a5f; }
   .scard .amt.neg { color: #dc2626; }
   .scard .amt.pos { color: #16a34a; }
 
+  .explanations { margin-top: 24px; }
+  .explanations h3 { font-size: 10pt; font-weight: bold; color: #1e3a5f; margin-bottom: 6px; }
+  .explanations ol, .explanations ul { margin: 0 0 10px 20px; font-size: 8.5pt; color: #444; line-height: 1.7; }
+  .source-codes { list-style: none; padding: 0; margin: 0 0 0 4px; }
+  .source-codes li { padding: 2px 0; }
+  .source-codes li strong { color: #1e3a5f; }
+
   .disclaimer { margin-top: 20px; padding: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 7.5pt; color: #92400e; line-height: 1.5; }
-  .footer { margin-top: 20px; border-top: 1px solid #c8d0da; padding-top: 8px; font-size: 7pt; color: #888; text-align: center; line-height: 1.6; }
+  .footer { margin-top: 24px; border-top: 1px solid #c8d0da; padding-top: 8px; font-size: 7pt; color: #888; text-align: center; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -229,92 +233,88 @@ export function generateCgtCertificate(data: CgtCertificateData): string {
   </div>
 </div>
 
-<div class="doc-title">Capital Gains Tax Certificate</div>
-<div class="doc-subtitle">Tax Year: ${data.taxYearLabel} (${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)})</div>
+<!-- TITLE -->
+<div class="doc-title">Capital Gains Tax Certificate IT3(c)</div>
+<div class="doc-subtitle">Kapitaalwinsbelastingsertifikaat</div>
+<div class="doc-subtitle2">For the year ended ${fmtDate(data.toDate)} / Vir die jaar geëindig ${fmtDate(data.toDate)}</div>
 
 <!-- MEMBER INFO -->
 <div class="member-info">
-  <div class="col">
-    <div class="label">Member</div>
-    <div class="val">${memberName}</div>
-    ${category ? `<div style="font-size:7.5pt;color:#666">${category}</div>` : ""}
-  </div>
-  <div class="col">
-    <div class="label">ID / Reg No</div>
-    <div class="val">${memberId}</div>
-  </div>
-  <div class="col">
-    <div class="label">Account No</div>
-    <div class="val">${accountNumber}</div>
-  </div>
-  <div class="col">
-    <div class="label">Address</div>
-    <div class="val" style="font-size:7.5pt;max-width:200px">${memberAddr || "—"}</div>
-  </div>
+  <div class="item"><span class="label">Member / Lid</span><span class="val">${memberName}</span></div>
+  <div class="item"><span class="label">ID / Reg No</span><span class="val">${memberId}</span></div>
+  <div class="item"><span class="label">Account No / Rekeningnr</span><span class="val">${accountNumber}</span></div>
+  <div class="item"><span class="label">Category</span><span class="val">${category || "—"}</span></div>
+  <div class="item" style="grid-column: span 2"><span class="label">Address / Adres</span><span class="val" style="font-size:8.5pt">${memberAddr || "—"}</span></div>
 </div>
 
 <!-- SUMMARY CARDS -->
 <div class="summary-cards">
   <div class="scard">
-    <div class="lbl">Total Cost Base</div>
-    <div class="amt">${fmtNum(totalCostBase, sym)}</div>
+    <div class="lbl">Total Base Cost / Totale Basiskoste</div>
+    <div class="amt">${fmtNum(totalBaseCost, sym)}</div>
   </div>
   <div class="scard">
-    <div class="lbl">Market Value at ${fmtDate(data.toDate)}</div>
-    <div class="amt">${fmtNum(totalMarketValue, sym)}</div>
+    <div class="lbl">Total Proceeds / Totale Opbrengs</div>
+    <div class="amt">${fmtNum(totalProceeds, sym)}</div>
   </div>
   <div class="scard">
-    <div class="lbl">Unrealised Capital ${totalGain >= 0 ? "Gain" : "Loss"}</div>
-    <div class="amt ${totalGain < 0 ? 'neg' : 'pos'}">${totalGain >= 0 ? '+' : ''}${fmtNum(totalGain, sym)}</div>
+    <div class="lbl">Net ${totalGainLoss >= 0 ? "Gain / Wins" : "Loss / Verlies"}</div>
+    <div class="amt ${totalGainLoss < 0 ? 'neg' : 'pos'}">${totalGainLoss >= 0 ? '+' : ''}${fmtNum(totalGainLoss, sym)}</div>
   </div>
 </div>
 
-<!-- POOL DETAIL TABLE -->
+<!-- REALISED GAINS/LOSSES TABLE -->
 <div class="section">
-  <div class="section-title">Pool Holdings Detail</div>
-  ${activePools.length > 0 ? `
+  <div class="section-title">Realised Gains / Losses — Gerealiseerde Winste / Verliese</div>
+  ${results.length > 0 ? `
   <table>
     <thead>
       <tr>
-        <th>Pool</th>
-        <th class="num">Open Units</th>
-        <th class="num">Open Price</th>
-        <th class="num">Open Value</th>
-        <th class="num">Bought Units</th>
-        <th class="num">Bought Value</th>
-        <th class="num">Sold Units</th>
-        <th class="num">Sold Value</th>
-        <th class="num">Close Units</th>
-        <th class="num">Close Price</th>
-        <th class="num">Market Value</th>
-        <th class="num">Gain / Loss</th>
+        <th>Source Code</th>
+        <th>Asset Description / Beskrywing</th>
+        <th class="num">Units / Eenhede</th>
+        <th class="num">Base Cost / Basiskoste</th>
+        <th class="num">Proceeds / Opbrengs</th>
+        <th class="num">Net Gain/Loss</th>
       </tr>
     </thead>
     <tbody>
       ${poolRows}
       <tr class="total">
-        <td colspan="3">Total</td>
-        <td class="num">${fmtNum(activePools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0), sym)}</td>
         <td></td>
-        <td class="num">${fmtNum(activePools.reduce((s, [, p]) => s + p.depositsValue, 0), sym)}</td>
-        <td></td>
-        <td class="num">${fmtNum(activePools.reduce((s, [, p]) => s + p.withdrawalsValue, 0), sym)}</td>
-        <td></td>
-        <td></td>
-        <td class="num">${fmtNum(totalMarketValue, sym)}</td>
-        <td class="num ${totalGain < 0 ? 'neg' : 'pos'}">${fmtNum(totalGain, sym)}</td>
+        <td>Total / Totaal</td>
+        <td class="num">${results.reduce((s, r) => s + r.redeemedUnits, 0).toFixed(3)}</td>
+        <td class="num">${fmtNum(totalBaseCost, sym)}</td>
+        <td class="num">${fmtNum(totalProceeds, sym)}</td>
+        <td class="num ${totalGainLoss < 0 ? 'neg' : 'pos'}">${fmtNum(totalGainLoss, sym)}</td>
       </tr>
     </tbody>
-  </table>` : `<p style="text-align:center;color:#888;font-style:italic;padding:12px;">No pool holdings found for this tax year.</p>`}
+  </table>` : `<p style="text-align:center;color:#888;font-style:italic;padding:16px;">No redemptions were made during this tax year.<br/>Geen herwinnings is gedurende hierdie belastingjaar gemaak nie.</p>`}
+</div>
+
+<!-- EXPLANATIONS -->
+<div class="explanations">
+  <h3>Explanations / Verduidelikings</h3>
+  <ol>
+    <li>Base cost is the weighted average cost price of units held at the start of the tax year, applied to the units redeemed.<br/>
+        <em>Basiskoste is die geweegde gemiddelde kosprys van eenhede gehou aan die begin van die belastingjaar, toegepas op die eenhede wat herwin is.</em></li>
+    <li>Proceeds is the actual amount received for the units redeemed during the tax year.<br/>
+        <em>Opbrengs is die werklike bedrag ontvang vir die eenhede wat gedurende die belastingjaar herwin is.</em></li>
+    <li>Realised gains/losses refer to gains and losses on transactions that have already taken place.<br/>
+        <em>Gerealiseerde winste/verliese verwys na winste en verliese op transaksies wat reeds plaasgevind het.</em></li>
+  </ol>
+  <h3>Source Codes / Bronkodes</h3>
+  <ul class="source-codes">
+    <li><strong>6506</strong> — Capital Gain / Kapitaalwins</li>
+    <li><strong>6507</strong> — Capital Loss / Kapitaalverlies</li>
+  </ul>
 </div>
 
 <!-- DISCLAIMER -->
 <div class="disclaimer">
-  <strong>Important:</strong> This certificate is provided for informational purposes only and should not be considered as tax advice.
-  Capital gains/losses shown are based on the difference between cost base (opening value plus additional investments) and
-  closing market value as at the end of the tax year. Actual CGT liability depends on your personal tax circumstances,
-  including the annual exclusion, inclusion rates, and whether gains are realised or unrealised. Please consult your tax
-  advisor or SARS for definitive guidance.
+  <strong>Important / Belangrik:</strong> This certificate is provided for informational purposes only and should not be considered as tax advice.
+  Actual CGT liability depends on your personal tax circumstances, including the annual exclusion (R40,000), inclusion rates, and marginal tax rate.
+  Please consult your tax advisor or SARS for definitive guidance.
 </div>
 
 <!-- FOOTER -->
