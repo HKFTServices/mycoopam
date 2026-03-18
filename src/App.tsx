@@ -66,6 +66,7 @@ import RegisterTenant from "./pages/RegisterTenant";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
+import DebitOrders from "./pages/DebitOrders";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 
 const queryClient = new QueryClient();
