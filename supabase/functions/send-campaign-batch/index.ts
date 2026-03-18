@@ -222,7 +222,7 @@ async function resolveSmtpAndTemplate(
     ? (tenantConfig.email_signature_af || tenantConfig.email_signature_en || "")
     : (tenantConfig.email_signature_en || "");
 
-  return { template, transporter, fromHeader, tenantName, signature };
+  return { template, transporter, fromHeader, tenantName, legalEntityName, signature };
 }
 
 function renderTemplate(
