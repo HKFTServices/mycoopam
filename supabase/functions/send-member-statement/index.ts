@@ -887,7 +887,7 @@ Deno.serve(async (req) => {
       html: emailBody,
       attachments: [{
         filename: pdfFilename,
-        content: Buffer.from(pdfBuffer),
+        content: new Uint8Array(pdfBuffer),
         contentType: "application/pdf",
       }],
     });
