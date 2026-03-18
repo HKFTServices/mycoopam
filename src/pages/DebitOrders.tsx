@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, CreditCard, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const statusColor = (s: string) => {
   switch (s) {
-    case "approved": return "default";
+    case "loaded": return "default";
     case "pending": return "secondary";
     case "declined": return "destructive";
     default: return "outline";
@@ -27,6 +29,7 @@ const statusColor = (s: string) => {
 const DebitOrders = () => {
   const { currentTenant } = useTenant();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [viewOrder, setViewOrder] = useState<any>(null);
 
   const { data: userRoles = [] } = useQuery({
@@ -51,9 +54,7 @@ const DebitOrders = () => {
         .eq("tenant_id", currentTenant.id)
         .order("created_at", { ascending: false });
 
-      // Non-admins only see their own via entity link
       if (!isAdmin) {
-        // Get user's entity IDs
         const { data: rels } = await (supabase as any)
           .from("user_entity_relationships")
           .select("entity_id")
@@ -79,6 +80,21 @@ const DebitOrders = () => {
     enabled: !!currentTenant,
   });
   const sym = tenantConfig?.currency_symbol ?? "R";
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, newActive }: { id: string; newActive: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("debit_orders")
+        .update({ is_active: newActive })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { newActive }) => {
+      toast.success(newActive ? "Debit order activated" : "Debit order deactivated");
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const parseNotes = (notesStr: string | null) => {
     if (!notesStr) return null;
@@ -111,6 +127,7 @@ const DebitOrders = () => {
                 <TableHead>Frequency</TableHead>
                 <TableHead>Start Date</TableHead>
                 <TableHead>Status</TableHead>
+                {isAdmin && <TableHead className="text-center">Active</TableHead>}
                 <TableHead>Pool Allocations</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
@@ -118,7 +135,7 @@ const DebitOrders = () => {
             <TableBody>
               {debitOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={isAdmin ? 9 : 8} className="text-center text-muted-foreground py-8">
                     No debit orders found
                   </TableCell>
                 </TableRow>
@@ -126,8 +143,9 @@ const DebitOrders = () => {
                 debitOrders.map((d: any) => {
                   const pools = Array.isArray(d.pool_allocations) ? d.pool_allocations : [];
                   const notes = parseNotes(d.notes);
+                  const isLoaded = d.status === "loaded";
                   return (
-                    <TableRow key={d.id}>
+                    <TableRow key={d.id} className={!d.is_active && isLoaded ? "opacity-50" : ""}>
                       <TableCell className="font-medium">
                         {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
                       </TableCell>
@@ -142,6 +160,20 @@ const DebitOrders = () => {
                       <TableCell>
                         <Badge variant={statusColor(d.status)}>{d.status}</Badge>
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-center">
+                          {isLoaded ? (
+                            <Switch
+                              checked={d.is_active}
+                              onCheckedChange={(checked) =>
+                                toggleActiveMutation.mutate({ id: d.id, newActive: checked })
+                              }
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {pools.map((p: any, i: number) => (
@@ -197,6 +229,7 @@ const DebitOrders = () => {
                   <div><span className="text-muted-foreground">Debit Day:</span> <strong>{viewOrder.debit_day}</strong></div>
                   <div><span className="text-muted-foreground">Start Date:</span> <strong>{viewOrder.start_date}</strong></div>
                   <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusColor(viewOrder.status)}>{viewOrder.status}</Badge></div>
+                  <div><span className="text-muted-foreground">Active:</span> <Badge variant={viewOrder.is_active ? "default" : "outline"}>{viewOrder.is_active ? "Active" : "Inactive"}</Badge></div>
                   <div><span className="text-muted-foreground">Bank:</span> <strong>{viewOrder.bank_name} ({viewOrder.account_type})</strong></div>
                   <div><span className="text-muted-foreground">Account Name:</span> <strong>{viewOrder.account_name}</strong></div>
                   <div><span className="text-muted-foreground">Account No:</span> <strong className="font-mono">{viewOrder.account_number}</strong></div>
