@@ -139,6 +139,20 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
       setWithdrawalPoolInputs({});
       setLoanRepaymentOnly(false);
       setLoanRepaymentAmount("__reset__");
+      // Reset debit order state
+      setDoBankName("");
+      setDoBranchCode("");
+      setDoAccountName("");
+      setDoBankAccountNumber("");
+      setDoBankAccountType("savings");
+      setDoFrequency("monthly");
+      setDoStartDate(() => {
+        const now = new Date();
+        const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return formatLocalDate(next);
+      });
+      setDoNotes("");
+      setDoSignatureData(null);
     }
   }, [open, defaultPoolId]);
 
