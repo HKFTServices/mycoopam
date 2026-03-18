@@ -140,14 +140,14 @@ const DailyPoolPrices = () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("items")
-        .select("id, pool_id, item_code, description")
+        .select("id, pool_id, item_code, description, sell_margin_percentage")
         .eq("tenant_id", currentTenant.id)
         .eq("is_deleted", false)
         .eq("is_active", true)
         .eq("is_stock_item", true)
         .order("item_code");
       if (error) throw error;
-      return data as { id: string; pool_id: string; item_code: string; description: string }[];
+      return data as { id: string; pool_id: string; item_code: string; description: string; sell_margin_percentage: number }[];
     },
     enabled: !!currentTenant,
   });
