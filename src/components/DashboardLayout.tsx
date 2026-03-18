@@ -121,8 +121,8 @@ const tenantSetupNavItems = [
 ];
 
 const messagesNavItems = [
-  { label: "Send Message", icon: SendHorizontal, path: "/dashboard/send-message" },
-  { label: "Message History", icon: History, path: "/dashboard/message-history" },
+  { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
+  { label: "Campaign History", icon: History, path: "/dashboard/message-history" },
 ];
 
 const statementsNavItem = { label: "Statements", icon: FileText, path: "/dashboard/statements" };
