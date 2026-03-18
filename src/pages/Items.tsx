@@ -133,8 +133,6 @@ const Items = () => {
         calculate_price_with_factor: values.calculate_price_with_factor !== "" ? parseFloat(values.calculate_price_with_factor) : null,
         price_formula: values.price_formula || null,
         api_code: values.api_code || null,
-        api_key: values.api_key || null,
-        api_link: values.api_link || null,
         is_stock_item: values.is_stock_item,
         is_active: values.is_active,
         tax_type_id: values.tax_type_id === "__none__" ? null : (values.tax_type_id || null),
