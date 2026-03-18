@@ -144,6 +144,7 @@ const Items = () => {
         item_code: values.item_code,
         description: values.description,
         margin_percentage: values.margin_percentage,
+        sell_margin_percentage: values.sell_margin_percentage,
         use_fixed_price: values.use_fixed_price !== "" ? parseFloat(values.use_fixed_price) : null,
         calculate_price_with_item_id: values.calculate_price_with_item_id === "__none__" ? null : (values.calculate_price_with_item_id || null),
         calculation_type: values.calculation_type || null,
