@@ -483,7 +483,7 @@ const EntityPoolDetails = () => {
       {/* Notes section — compact inline prices & T&C */}
       {poolData.length > 0 && (
         <div className="space-y-1.5 border-t border-border pt-4 mt-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t(lang, "notes")}</p>
 
           {/* Below-summary pools with statement descriptions */}
           {belowSummaryPools.map((p) => (
