@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer@6.9.10";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,13 +8,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function formatCurrency(value: number, symbol = "R", decimals = 2): string {
-  const isNegative = value < 0;
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+
+function fmtCurrency(value: number, symbol = "R", decimals = 2): string {
+  const isNeg = value < 0;
   const abs = Math.abs(value);
   const fixed = abs.toFixed(decimals);
   const [intPart, decPart] = fixed.split(".");
   const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${isNegative ? "-" : ""}${symbol} ${formatted}.${decPart}`;
+  return `${isNeg ? "-" : ""}${symbol} ${formatted}.${decPart}`;
 }
 
 function fmtDate(d: string): string {
@@ -22,7 +25,205 @@ function fmtDate(d: string): string {
   return dt.toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function generateStatementHtml(data: {
+/* ─── Colours ─────────────────────────────────────────────────────────────── */
+
+const NAVY = [30, 58, 95] as const;     // #1e3a5f
+const WHITE = [255, 255, 255] as const;
+const GREY_BG = [245, 247, 250] as const; // #f5f7fa
+const BORDER = [224, 228, 234] as const;  // #e0e4ea
+const LIGHT_GREY = [238, 238, 238] as const;
+const TEXT_DARK = [26, 26, 26] as const;
+const TEXT_GREY = [136, 136, 136] as const;
+const RED = [220, 38, 38] as const;
+const GREEN = [22, 163, 74] as const;
+const TOTAL_BG = [240, 242, 245] as const;
+
+/* ─── PDF Table Helper ────────────────────────────────────────────────────── */
+
+interface TableColumn {
+  header: string;
+  width: number;
+  align?: "left" | "right";
+}
+
+interface TableOptions {
+  startY: number;
+  columns: TableColumn[];
+  rows: string[][];
+  totalRow?: string[];
+  fontSize?: number;
+  headerFontSize?: number;
+  rowHeight?: number;
+  headerHeight?: number;
+  maxY?: number;
+}
+
+function drawTable(doc: any, opts: TableOptions): number {
+  const {
+    columns,
+    rows,
+    totalRow,
+    fontSize = 7,
+    headerFontSize = 6.5,
+    rowHeight = 5.5,
+    headerHeight = 7,
+    maxY = 275,
+  } = opts;
+  const marginLeft = 15;
+  let y = opts.startY;
+
+  const drawHeader = () => {
+    doc.setFillColor(...NAVY);
+    doc.rect(marginLeft, y, 180, headerHeight, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(headerFontSize);
+    doc.setTextColor(...WHITE);
+    let x = marginLeft + 1.5;
+    for (const col of columns) {
+      const textX = col.align === "right" ? x + col.width - 2 : x;
+      doc.text(col.header.toUpperCase(), textX, y + headerHeight / 2 + 1.2, {
+        align: col.align === "right" ? "right" : "left",
+      });
+      x += col.width;
+    }
+    y += headerHeight;
+  };
+
+  drawHeader();
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(fontSize);
+  doc.setTextColor(...TEXT_DARK);
+
+  for (let i = 0; i < rows.length; i++) {
+    // Page break check
+    if (y + rowHeight > maxY) {
+      doc.addPage();
+      y = 15;
+      drawHeader();
+    }
+
+    const row = rows[i];
+    // Alternating row background
+    if (i % 2 === 1) {
+      doc.setFillColor(250, 250, 252);
+      doc.rect(marginLeft, y, 180, rowHeight, "F");
+    }
+
+    // Bottom border
+    doc.setDrawColor(...LIGHT_GREY);
+    doc.line(marginLeft, y + rowHeight, marginLeft + 180, y + rowHeight);
+
+    let x = marginLeft + 1.5;
+    for (let c = 0; c < columns.length; c++) {
+      const col = columns[c];
+      const text = row[c] || "";
+      const textX = col.align === "right" ? x + col.width - 2 : x;
+
+      // Red for negative values
+      if (col.align === "right" && text.startsWith("-")) {
+        doc.setTextColor(...RED);
+      } else {
+        doc.setTextColor(...TEXT_DARK);
+      }
+
+      doc.text(text, textX, y + rowHeight / 2 + 1.2, {
+        align: col.align === "right" ? "right" : "left",
+      });
+      x += col.width;
+    }
+    y += rowHeight;
+  }
+
+  // Total row
+  if (totalRow) {
+    if (y + rowHeight + 1 > maxY) {
+      doc.addPage();
+      y = 15;
+    }
+    doc.setFillColor(...TOTAL_BG);
+    doc.rect(marginLeft, y, 180, rowHeight + 1, "F");
+    doc.setDrawColor(...NAVY);
+    doc.line(marginLeft, y, marginLeft + 180, y);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(fontSize);
+    let x = marginLeft + 1.5;
+    for (let c = 0; c < columns.length; c++) {
+      const col = columns[c];
+      const text = totalRow[c] || "";
+      const textX = col.align === "right" ? x + col.width - 2 : x;
+
+      if (col.align === "right" && text.startsWith("-")) {
+        doc.setTextColor(...RED);
+      } else {
+        doc.setTextColor(...TEXT_DARK);
+      }
+
+      doc.text(text, textX, y + (rowHeight + 1) / 2 + 1.2, {
+        align: col.align === "right" ? "right" : "left",
+      });
+      x += col.width;
+    }
+    y += rowHeight + 1;
+    doc.setFont("helvetica", "normal");
+  }
+
+  return y;
+}
+
+/* ─── Section heading ─────────────────────────────────────────────────────── */
+
+function drawSectionTitle(doc: any, title: string, y: number, period?: string): number {
+  if (y > 265) { doc.addPage(); y = 15; }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...NAVY);
+  doc.text(title, 15, y);
+  if (period) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text(period, 15 + doc.getTextWidth(title) + 3, y);
+  }
+  doc.setDrawColor(200, 208, 218);
+  doc.line(15, y + 1.5, 195, y + 1.5);
+  return y + 5;
+}
+
+/* ─── Summary card ────────────────────────────────────────────────────────── */
+
+function drawSummaryCards(doc: any, cards: { label: string; value: string; color?: readonly number[] }[], y: number): number {
+  const cardWidth = 180 / cards.length - 2;
+  const marginLeft = 15;
+
+  for (let i = 0; i < cards.length; i++) {
+    const x = marginLeft + i * (cardWidth + 2.5);
+    // Card background
+    doc.setFillColor(...GREY_BG);
+    doc.setDrawColor(...BORDER);
+    doc.roundedRect(x, y, cardWidth, 16, 2, 2, "FD");
+
+    // Label
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text(cards[i].label.toUpperCase(), x + cardWidth / 2, y + 5, { align: "center" });
+
+    // Value
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    const color = cards[i].color ?? NAVY;
+    doc.setTextColor(...color);
+    doc.text(cards[i].value, x + cardWidth / 2, y + 13, { align: "center" });
+  }
+
+  return y + 20;
+}
+
+/* ─── Main PDF Generation ─────────────────────────────────────────────────── */
+
+async function generateStatementPdf(data: {
   fromDate: string;
   toDate: string;
   currencySymbol: string;
@@ -42,7 +243,7 @@ function generateStatementHtml(data: {
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
-}): string {
+}): Promise<ArrayBuffer> {
   const sym = data.currencySymbol;
   const entity = data.entity;
   const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ");
@@ -67,6 +268,7 @@ function generateStatementHtml(data: {
     ? [data.legalAddress.street_address, data.legalAddress.suburb, data.legalAddress.city, data.legalAddress.province, data.legalAddress.postal_code].filter(Boolean).join(", ")
     : "";
 
+  // ── Pool summary calculations ──
   const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number }> = {};
 
   for (const row of data.openingUnits) {
@@ -98,236 +300,326 @@ function generateStatementHtml(data: {
   const closeTotal = activePools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
   const changeTotal = closeTotal - openTotal;
 
-  const summaryRows = activePools.map(([, p]) => {
-    const openVal = p.openUnits * p.openPrice;
-    const closeVal = p.closeUnits * p.closePrice;
-    const change = closeVal - openVal;
-    return `<tr>
-      <td>${p.name}</td>
-      <td class="num">${p.openUnits.toFixed(4)}</td>
-      <td class="num">${formatCurrency(p.openPrice, sym)}</td>
-      <td class="num">${formatCurrency(openVal, sym)}</td>
-      <td class="num">${p.closeUnits.toFixed(4)}</td>
-      <td class="num">${formatCurrency(p.closePrice, sym)}</td>
-      <td class="num">${formatCurrency(closeVal, sym)}</td>
-      <td class="num ${change < 0 ? 'neg' : ''}">${formatCurrency(change, sym)}</td>
-    </tr>`;
-  }).join("");
+  // ── Create PDF document ──
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  let y = 15;
 
-  const unitRows = data.unitTransactions.map((tx: any) => {
-    const debit = Number(tx.debit || 0);
-    const credit = Number(tx.credit || 0);
-    return `<tr>
-      <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.transaction_type || ""}</td>
-      <td>${tx.pools?.name || ""}</td>
-      <td class="num">${debit > 0 ? debit.toFixed(4) : ""}</td>
-      <td class="num">${credit > 0 ? credit.toFixed(4) : ""}</td>
-      <td class="num">${formatCurrency(Number(tx.unit_price || 0), sym)}</td>
-      <td class="num">${formatCurrency(Number(tx.value || 0), sym)}</td>
-      <td>${tx.notes || ""}</td>
-    </tr>`;
-  }).join("");
+  // ── Fetch and embed logo ──
+  let logoImgData: string | null = null;
+  if (logoUrl) {
+    try {
+      const resp = await fetch(logoUrl);
+      if (resp.ok) {
+        const buf = await resp.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const contentType = resp.headers.get("content-type") || "image/png";
+        const ext = contentType.includes("jpeg") || contentType.includes("jpg") ? "JPEG" : "PNG";
+        logoImgData = `data:${contentType};base64,${base64}`;
+        try {
+          doc.addImage(logoImgData, ext, 15, y, 25, 15, undefined, "FAST");
+        } catch {
+          logoImgData = null; // If image fails, skip it
+        }
+      }
+    } catch {
+      // Skip logo on failure
+    }
+  }
 
-  const cashRows = data.cashflowTransactions.map((tx: any) => {
-    const debit = Number(tx.debit || 0);
-    const credit = Number(tx.credit || 0);
-    return `<tr>
-      <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.description || tx.entry_type || ""}</td>
-      <td>${tx.pool_name || ""}</td>
-      <td class="num">${debit > 0 ? formatCurrency(debit, sym) : ""}</td>
-      <td class="num">${credit > 0 ? formatCurrency(credit, sym) : ""}</td>
-    </tr>`;
-  }).join("");
+  // ── Header: Coop name & details ──
+  const headerLeftX = logoImgData ? 43 : 15;
 
-  const cashDebitTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
-  const cashCreditTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(...NAVY);
+  doc.text(coopName, headerLeftX, y + 5);
 
-  const stockRows = data.stockTransactions.map((tx: any) => {
-    const debit = Number(tx.debit || 0);
-    const credit = Number(tx.credit || 0);
-    return `<tr>
-      <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${debit > 0 ? "Stock Deposit" : credit > 0 ? "Stock Withdrawal" : (tx.stock_transaction_type || "")}</td>
-      <td>${tx.items?.description || ""}</td>
-      <td>${tx.pools?.name || ""}</td>
-      <td class="num">${debit > 0 ? debit.toFixed(4) : ""}</td>
-      <td class="num">${credit > 0 ? credit.toFixed(4) : ""}</td>
-      <td class="num">${formatCurrency(Number(tx.total_value || 0), sym)}</td>
-    </tr>`;
-  }).join("");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(102, 102, 102);
+  let detailY = y + 9;
+  if (coopRegNo) { doc.text(`Reg No: ${coopRegNo}`, headerLeftX, detailY); detailY += 3; }
+  if (vatNumber) { doc.text(`VAT: ${vatNumber}`, headerLeftX, detailY); detailY += 3; }
+  if (coopAddr) { doc.text(coopAddr, headerLeftX, detailY, { maxWidth: 90 }); }
 
+  // Right side: phone & email
+  doc.setFontSize(6.5);
+  if (coopPhone) { doc.text(`Tel: ${coopPhone}`, 195, y + 5, { align: "right" }); }
+  if (coopEmail) { doc.text(coopEmail, 195, y + 8, { align: "right" }); }
+
+  // Header line
+  y += 20;
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(0.5);
+  doc.line(15, y, 195, y);
+  y += 5;
+
+  // ── Member info block ──
+  doc.setFillColor(...GREY_BG);
+  doc.setDrawColor(...BORDER);
+  doc.roundedRect(15, y, 180, 14, 2, 2, "FD");
+
+  const infoItems = [
+    { label: "Member", val: memberName, sub: category },
+    { label: "ID / Reg No", val: memberId },
+    { label: "Account No", val: accountNumber },
+    { label: "Address", val: memberAddr || "—" },
+  ];
+
+  const colWidth = 45;
+  for (let i = 0; i < infoItems.length; i++) {
+    const x = 17 + i * colWidth;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text(infoItems[i].label.toUpperCase(), x, y + 4);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...TEXT_DARK);
+    const maxW = i === 3 ? 40 : 38;
+    doc.text(infoItems[i].val, x, y + 8, { maxWidth: maxW });
+
+    if (infoItems[i].sub) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(5.5);
+      doc.setTextColor(102, 102, 102);
+      doc.text(infoItems[i].sub!, x, y + 12);
+    }
+  }
+  y += 18;
+
+  // ── Portfolio Summary ──
+  y = drawSectionTitle(doc, "Portfolio Summary", y, `${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)}`);
+
+  // Summary cards
+  const summaryCards = [
+    { label: "Opening Value", value: fmtCurrency(openTotal, sym) },
+    { label: "Closing Value", value: fmtCurrency(closeTotal, sym) },
+    { label: "Change in Value", value: `${changeTotal >= 0 ? "+" : ""}${fmtCurrency(changeTotal, sym)}`, color: changeTotal < 0 ? RED : GREEN },
+  ];
+  if (data.loanOutstanding > 0) {
+    summaryCards.push({ label: "O/s Loan", value: fmtCurrency(data.loanOutstanding, sym), color: RED });
+  }
+  y = drawSummaryCards(doc, summaryCards, y);
+  y += 2;
+
+  // Summary table
+  if (activePools.length > 0) {
+    const summaryRows = activePools.map(([, p]) => {
+      const openVal = p.openUnits * p.openPrice;
+      const closeVal = p.closeUnits * p.closePrice;
+      const change = closeVal - openVal;
+      return [
+        p.name,
+        p.openUnits.toFixed(4),
+        fmtCurrency(p.openPrice, sym),
+        fmtCurrency(openVal, sym),
+        p.closeUnits.toFixed(4),
+        fmtCurrency(p.closePrice, sym),
+        fmtCurrency(closeVal, sym),
+        `${change >= 0 ? "+" : ""}${fmtCurrency(change, sym)}`,
+      ];
+    });
+    y = drawTable(doc, {
+      startY: y,
+      columns: [
+        { header: "Pool", width: 28, align: "left" },
+        { header: "Open Units", width: 20, align: "right" },
+        { header: "Open Price", width: 22, align: "right" },
+        { header: "Open Value", width: 22, align: "right" },
+        { header: "Close Units", width: 20, align: "right" },
+        { header: "Close Price", width: 22, align: "right" },
+        { header: "Close Value", width: 22, align: "right" },
+        { header: "Change", width: 24, align: "right" },
+      ],
+      rows: summaryRows,
+      totalRow: [
+        "Total", "", "",
+        fmtCurrency(openTotal, sym),
+        "", "",
+        fmtCurrency(closeTotal, sym),
+        `${changeTotal >= 0 ? "+" : ""}${fmtCurrency(changeTotal, sym)}`,
+      ],
+    });
+  }
+  y += 6;
+
+  // ── Unit Movements ──
+  y = drawSectionTitle(doc, "Unit Movements", y);
+  if (data.unitTransactions.length > 0) {
+    const unitRows = data.unitTransactions.map((tx: any) => {
+      const debit = Number(tx.debit || 0);
+      const credit = Number(tx.credit || 0);
+      return [
+        fmtDate(tx.transaction_date),
+        (tx.transaction_type || "").substring(0, 20),
+        tx.pools?.name || "",
+        debit > 0 ? debit.toFixed(4) : "",
+        credit > 0 ? credit.toFixed(4) : "",
+        fmtCurrency(Number(tx.unit_price || 0), sym),
+        fmtCurrency(Number(tx.value || 0), sym),
+      ];
+    });
+    y = drawTable(doc, {
+      startY: y,
+      columns: [
+        { header: "Date", width: 22, align: "left" },
+        { header: "Type", width: 32, align: "left" },
+        { header: "Pool", width: 28, align: "left" },
+        { header: "In (Debit)", width: 22, align: "right" },
+        { header: "Out (Credit)", width: 22, align: "right" },
+        { header: "Unit Price", width: 26, align: "right" },
+        { header: "Value", width: 28, align: "right" },
+      ],
+      rows: unitRows,
+    });
+  } else {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text("No unit movements in this period", 105, y, { align: "center" });
+    y += 5;
+  }
+  y += 6;
+
+  // ── Cash Flows ──
+  y = drawSectionTitle(doc, "Cash Flows", y);
+  if (data.cashflowTransactions.length > 0) {
+    const cashDebitTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
+    const cashCreditTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
+    const cashRows = data.cashflowTransactions.map((tx: any) => {
+      const debit = Number(tx.debit || 0);
+      const credit = Number(tx.credit || 0);
+      return [
+        fmtDate(tx.transaction_date),
+        (tx.description || tx.entry_type || "").substring(0, 35),
+        tx.pool_name || "",
+        debit > 0 ? fmtCurrency(debit, sym) : "",
+        credit > 0 ? fmtCurrency(credit, sym) : "",
+      ];
+    });
+    y = drawTable(doc, {
+      startY: y,
+      columns: [
+        { header: "Date", width: 22, align: "left" },
+        { header: "Type", width: 60, align: "left" },
+        { header: "Pool", width: 38, align: "left" },
+        { header: "Debit", width: 30, align: "right" },
+        { header: "Credit", width: 30, align: "right" },
+      ],
+      rows: cashRows,
+      totalRow: [
+        "Total", "", "",
+        fmtCurrency(cashDebitTotal, sym),
+        fmtCurrency(cashCreditTotal, sym),
+      ],
+    });
+  } else {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text("No cash flows in this period", 105, y, { align: "center" });
+    y += 5;
+  }
+  y += 6;
+
+  // ── Stock Flows ──
+  y = drawSectionTitle(doc, "Stock Flows", y);
+  if (data.stockTransactions.length > 0) {
+    const stockRows = data.stockTransactions.map((tx: any) => {
+      const debit = Number(tx.debit || 0);
+      const credit = Number(tx.credit || 0);
+      return [
+        fmtDate(tx.transaction_date),
+        debit > 0 ? "Stock Deposit" : credit > 0 ? "Stock Withdrawal" : (tx.stock_transaction_type || ""),
+        (tx.items?.description || "").substring(0, 25),
+        tx.pools?.name || "",
+        debit > 0 ? debit.toFixed(4) : "",
+        credit > 0 ? credit.toFixed(4) : "",
+        fmtCurrency(Number(tx.total_value || 0), sym),
+      ];
+    });
+    y = drawTable(doc, {
+      startY: y,
+      columns: [
+        { header: "Date", width: 22, align: "left" },
+        { header: "Type", width: 30, align: "left" },
+        { header: "Item", width: 36, align: "left" },
+        { header: "Pool", width: 28, align: "left" },
+        { header: "In", width: 20, align: "right" },
+        { header: "Out", width: 20, align: "right" },
+        { header: "Value", width: 24, align: "right" },
+      ],
+      rows: stockRows,
+    });
+  } else {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_GREY);
+    doc.text("No stock flows in this period", 105, y, { align: "center" });
+    y += 5;
+  }
+  y += 6;
+
+  // ── Loans & Grants ──
   const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0;
+  if (hasLoanData) {
+    y = drawSectionTitle(doc, "Loans & Grants", y);
+    y = drawTable(doc, {
+      startY: y,
+      columns: [
+        { header: "Description", width: 120, align: "left" },
+        { header: "Amount", width: 60, align: "right" },
+      ],
+      rows: [
+        ["Total Disbursed", fmtCurrency(data.loanPayout, sym)],
+        ["Total Repaid", fmtCurrency(data.loanRepaid, sym)],
+      ],
+      totalRow: ["Outstanding Balance", fmtCurrency(data.loanOutstanding, sym)],
+    });
+  }
 
-  return `<!DOCTYPE html>
-<html><head>
-<title>Member Statement - ${memberName}</title>
-<style>
-  @page { margin: 15mm; size: A4; }
-  * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; line-height: 1.4; color: #1a1a1a; max-width: 780px; margin: 0 auto; padding: 16px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1e3a5f; padding-bottom: 12px; margin-bottom: 16px; }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-left img { max-height: 60px; max-width: 120px; object-fit: contain; }
-  .coop-name { font-size: 14pt; font-weight: bold; color: #1e3a5f; }
-  .coop-details { font-size: 7.5pt; color: #666; line-height: 1.5; }
-  .header-right { text-align: right; font-size: 7.5pt; color: #666; line-height: 1.5; }
-  .member-info { display: flex; justify-content: space-between; background: #f5f7fa; border: 1px solid #e0e4ea; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; }
-  .member-info .label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
-  .member-info .val { font-weight: 600; font-size: 9pt; }
-  .section { margin-top: 18px; }
-  .section-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #c8d0da; padding-bottom: 4px; margin-bottom: 8px; }
-  .period { font-size: 8pt; color: #888; font-weight: normal; margin-left: 8px; }
-  table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 4px; }
-  thead { background: #1e3a5f; color: white; }
-  th { padding: 5px 6px; text-align: left; font-weight: 600; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3px; }
-  th.num { text-align: right; }
-  td { padding: 4px 6px; border-bottom: 1px solid #eee; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  td.neg { color: #dc2626; }
-  tr.total { background: #f0f2f5; font-weight: bold; }
-  tr.total td { border-top: 2px solid #1e3a5f; border-bottom: none; }
-  .summary-cards { display: flex; gap: 12px; margin-bottom: 6px; }
-  .scard { flex: 1; background: #f5f7fa; border: 1px solid #e0e4ea; border-radius: 6px; padding: 8px 12px; text-align: center; }
-  .scard .lbl { font-size: 7pt; text-transform: uppercase; color: #888; }
-  .scard .amt { font-size: 14pt; font-weight: bold; color: #1e3a5f; }
-  .scard .amt.neg { color: #dc2626; }
-  .scard .amt.pos { color: #16a34a; }
-  .footer { margin-top: 20px; border-top: 1px solid #c8d0da; padding-top: 8px; font-size: 7pt; color: #888; text-align: center; line-height: 1.6; }
-  .empty-msg { padding: 12px; text-align: center; color: #888; font-style: italic; }
-</style>
-</head>
-<body>
-<div class="header">
-  <div class="header-left">
-    ${logoUrl ? `<img src="${logoUrl}" alt="Logo" />` : ""}
-    <div>
-      <div class="coop-name">${coopName}</div>
-      <div class="coop-details">
-        ${coopRegNo ? `Reg No: ${coopRegNo}<br/>` : ""}
-        ${vatNumber ? `VAT: ${vatNumber}<br/>` : ""}
-        ${coopAddr ? `${coopAddr}<br/>` : ""}
-      </div>
-    </div>
-  </div>
-  <div class="header-right">
-    ${coopPhone ? `Tel: ${coopPhone}<br/>` : ""}
-    ${coopEmail ? `${coopEmail}<br/>` : ""}
-  </div>
-</div>
+  // ── Footer ──
+  const addFooter = (pageNum: number, totalPages: number) => {
+    const fy = 285;
+    doc.setDrawColor(200, 208, 218);
+    doc.line(15, fy - 3, 195, fy - 3);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...TEXT_GREY);
 
-<div class="member-info">
-  <div class="col">
-    <div class="label">Member</div>
-    <div class="val">${memberName}</div>
-    ${category ? `<div style="font-size:7.5pt;color:#666">${category}</div>` : ""}
-  </div>
-  <div class="col">
-    <div class="label">ID / Reg No</div>
-    <div class="val">${memberId}</div>
-  </div>
-  <div class="col">
-    <div class="label">Account No</div>
-    <div class="val">${accountNumber}</div>
-  </div>
-  <div class="col">
-    <div class="label">Address</div>
-    <div class="val" style="font-size:7.5pt;max-width:200px">${memberAddr || "—"}</div>
-  </div>
-</div>
+    const footerParts = [coopName];
+    if (coopRegNo) footerParts.push(`Reg No: ${coopRegNo}`);
+    if (vatNumber) footerParts.push(`VAT: ${vatNumber}`);
+    doc.text(footerParts.join(" | "), 105, fy, { align: "center" });
 
-<div class="section">
-  <div class="section-title">Portfolio Summary <span class="period">${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)}</span></div>
-  <div class="summary-cards">
-    <div class="scard">
-      <div class="lbl">Opening Value</div>
-      <div class="amt">${formatCurrency(openTotal, sym)}</div>
-    </div>
-    <div class="scard">
-      <div class="lbl">Closing Value</div>
-      <div class="amt">${formatCurrency(closeTotal, sym)}</div>
-    </div>
-    <div class="scard">
-      <div class="lbl">Change in Value</div>
-      <div class="amt ${changeTotal < 0 ? 'neg' : 'pos'}">${changeTotal >= 0 ? '+' : ''}${formatCurrency(changeTotal, sym)}</div>
-    </div>
-    ${data.loanOutstanding > 0 ? `<div class="scard">
-      <div class="lbl">O/s Loan</div>
-      <div class="amt neg">${formatCurrency(data.loanOutstanding, sym)}</div>
-    </div>` : ""}
-  </div>
+    if (coopAddr) {
+      doc.text(coopAddr, 105, fy + 3, { align: "center", maxWidth: 170 });
+    }
 
-  <table>
-    <thead><tr>
-      <th>Pool</th><th class="num">Open Units</th><th class="num">Open Price</th><th class="num">Open Value</th>
-      <th class="num">Close Units</th><th class="num">Close Price</th><th class="num">Close Value</th><th class="num">Change</th>
-    </tr></thead>
-    <tbody>
-      ${summaryRows || '<tr><td colspan="8" class="empty-msg">No pool data for this period</td></tr>'}
-      ${summaryRows ? `<tr class="total">
-        <td>Total</td><td></td><td></td><td class="num">${formatCurrency(openTotal, sym)}</td>
-        <td></td><td></td><td class="num">${formatCurrency(closeTotal, sym)}</td>
-        <td class="num ${changeTotal < 0 ? 'neg' : ''}">${changeTotal >= 0 ? '+' : ''}${formatCurrency(changeTotal, sym)}</td>
-      </tr>` : ""}
-    </tbody>
-  </table>
-</div>
+    if (directors) {
+      const dirY = coopAddr ? fy + 6 : fy + 3;
+      doc.text(`Directors: ${directors}`, 105, dirY, { align: "center", maxWidth: 170 });
+    }
 
-<div class="section">
-  <div class="section-title">Unit Movements</div>
-  ${data.unitTransactions.length > 0 ? `<table>
-    <thead><tr><th>Date</th><th>Type</th><th>Pool</th><th class="num">In (Debit)</th><th class="num">Out (Credit)</th><th class="num">Unit Price</th><th class="num">Value</th><th>Notes</th></tr></thead>
-    <tbody>${unitRows}</tbody>
-  </table>` : '<div class="empty-msg">No unit movements in this period</div>'}
-</div>
+    const genDate = new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+    doc.text(`Statement generated on ${genDate}  •  Page ${pageNum} of ${totalPages}`, 105, 293, { align: "center" });
+  };
 
-<div class="section">
-  <div class="section-title">Cash Flows</div>
-  ${data.cashflowTransactions.length > 0 ? `<table>
-    <thead><tr><th>Date</th><th>Type</th><th>Pool</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
-    <tbody>
-      ${cashRows}
-      <tr class="total">
-        <td colspan="3">Total</td>
-        <td class="num">${formatCurrency(cashDebitTotal, sym)}</td>
-        <td class="num">${formatCurrency(cashCreditTotal, sym)}</td>
-      </tr>
-    </tbody>
-  </table>` : '<div class="empty-msg">No cash flows in this period</div>'}
-</div>
+  // Add footer to all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(i, totalPages);
+  }
 
-<div class="section">
-  <div class="section-title">Stock Flows</div>
-  ${data.stockTransactions.length > 0 ? `<table>
-    <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Pool</th><th class="num">In</th><th class="num">Out</th><th class="num">Value</th></tr></thead>
-    <tbody>${stockRows}</tbody>
-  </table>` : '<div class="empty-msg">No stock flows in this period</div>'}
-</div>
-
-${hasLoanData ? `<div class="section">
-  <div class="section-title">Loans & Grants</div>
-  <table>
-    <thead><tr><th>Description</th><th class="num">Amount</th></tr></thead>
-    <tbody>
-      <tr><td>Total Disbursed</td><td class="num">${formatCurrency(data.loanPayout, sym)}</td></tr>
-      <tr><td>Total Repaid</td><td class="num">${formatCurrency(data.loanRepaid, sym)}</td></tr>
-      <tr class="total"><td>Outstanding Balance</td><td class="num ${data.loanOutstanding > 0 ? 'neg' : ''}">${formatCurrency(data.loanOutstanding, sym)}</td></tr>
-    </tbody>
-  </table>
-</div>` : ""}
-
-<div class="footer">
-  ${coopName}${coopRegNo ? ` | Reg No: ${coopRegNo}` : ""}${vatNumber ? ` | VAT: ${vatNumber}` : ""}<br/>
-  ${coopAddr ? `${coopAddr}<br/>` : ""}
-  ${directors ? `Directors: ${directors}<br/>` : ""}
-  Statement generated on ${new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
-</div>
-
-</body></html>`;
+  return doc.output("arraybuffer");
 }
 
-async function generateStatementForEntity(
+/* ─── Data fetching (shared) ──────────────────────────────────────────────── */
+
+async function fetchStatementData(
   adminClient: any,
   tenantId: string,
   entityId: string,
@@ -335,7 +627,7 @@ async function generateStatementForEntity(
   fromStr: string,
   toStr: string,
   currencySymbol: string,
-): Promise<string | null> {
+): Promise<any | null> {
   try {
     const dayBeforeFrom = new Date(new Date(fromStr + "T00:00:00").getTime() - 86400000);
     const dayBeforeFromStr = dayBeforeFrom.toISOString().split("T")[0];
@@ -407,7 +699,7 @@ async function generateStatementForEntity(
       .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
       .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 
-    return generateStatementHtml({
+    return {
       fromDate: fromStr,
       toDate: toStr,
       currencySymbol,
@@ -427,12 +719,14 @@ async function generateStatementForEntity(
       closingUnits,
       poolPricesStart: dedup(poolPricesStartRes.data),
       poolPricesEnd: dedup(poolPricesEndRes.data),
-    });
+    };
   } catch (err: any) {
-    console.error("[send-member-statement] Statement generation failed:", err.message);
+    console.error("[send-member-statement] Data fetch failed:", err.message);
     return null;
   }
 }
+
+/* ─── Main handler ────────────────────────────────────────────────────────── */
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -451,7 +745,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify the caller's JWT
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -465,7 +758,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { tenant_id, entity_id, from_date, to_date } = await req.json();
+    const { tenant_id, entity_id, from_date, to_date, mode } = await req.json();
+    // mode: "email" (default) | "download" (return PDF base64)
 
     if (!tenant_id || !entity_id || !from_date || !to_date) {
       return new Response(JSON.stringify({ error: "tenant_id, entity_id, from_date, and to_date are required" }), {
@@ -491,13 +785,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get tenant config for currency symbol and SMTP
+    // Get tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
       .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, currency_symbol, legal_entity_id, email_signature_en, email_signature_af")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
+    const currSym = tenantConfig?.currency_symbol || "R";
+
+    // Fetch statement data
+    const statementData = await fetchStatementData(
+      adminClient, tenant_id, entity_id, entityAccountIds, from_date, to_date, currSym,
+    );
+
+    if (!statementData) {
+      return new Response(JSON.stringify({ error: "Failed to generate statement data" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Generate PDF
+    const pdfBuffer = await generateStatementPdf(statementData);
+    const memberName = [statementData.entity?.name, statementData.entity?.last_name].filter(Boolean).join(" ");
+
+    // ── Download mode: return PDF as base64 ──
+    if (mode === "download") {
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+      return new Response(
+        JSON.stringify({ success: true, pdf_base64: base64, filename: `Statement_${memberName.replace(/\s+/g, "_")}_${from_date}_to_${to_date}.pdf` }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ── Email mode (default) ──
     if (!tenantConfig?.smtp_host || !tenantConfig?.smtp_from_email) {
       return new Response(JSON.stringify({ error: "SMTP not configured" }), {
         status: 400,
@@ -505,21 +827,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const currSym = tenantConfig.currency_symbol || "R";
-
-    // Generate statement HTML
-    const statementHtml = await generateStatementForEntity(
-      adminClient, tenant_id, entity_id, entityAccountIds, from_date, to_date, currSym,
-    );
-
-    if (!statementHtml) {
-      return new Response(JSON.stringify({ error: "Failed to generate statement" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Get entity email address
+    // Get entity email
     const { data: entityData } = await adminClient
       .from("entities")
       .select("email_address, name, last_name")
@@ -527,8 +835,6 @@ Deno.serve(async (req) => {
       .single();
 
     const entityEmail = entityData?.email_address;
-    const memberName = [entityData?.name, entityData?.last_name].filter(Boolean).join(" ");
-
     if (!entityEmail) {
       return new Response(JSON.stringify({ error: "No email address found for this member" }), {
         status: 400,
@@ -544,18 +850,15 @@ Deno.serve(async (req) => {
       if (le?.name) tenantName = le.name;
     }
 
-    // Build email body
     const subject = `Member Statement — ${memberName} (${fmtDate(from_date)} to ${fmtDate(to_date)})`;
     const emailBody = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
         <h2 style="color:#1e3a5f;">Member Statement</h2>
         <p>Dear ${entityData?.name || "Member"},</p>
-        <p>Please find your member statement for the period <strong>${fmtDate(from_date)}</strong> to <strong>${fmtDate(to_date)}</strong> attached to this email.</p>
-        <p>You can open the attached HTML file in any browser and use "Print → Save as PDF" to save a PDF copy.</p>
+        <p>Please find your member statement for the period <strong>${fmtDate(from_date)}</strong> to <strong>${fmtDate(to_date)}</strong> attached as a PDF.</p>
         <p style="color:#666;font-size:13px;margin-top:24px;">Kind regards,<br/>${tenantName}</p>
       </div>`;
 
-    // Setup SMTP transport
     const requestedPort = tenantConfig.smtp_port || 587;
     const usePort = requestedPort === 465 ? 587 : requestedPort;
 
@@ -575,20 +878,21 @@ Deno.serve(async (req) => {
       ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
       : effectiveFromEmail;
 
-    // Send email with statement attachment
+    const pdfFilename = `Statement_${memberName.replace(/\s+/g, "_")}_${from_date}_to_${to_date}.pdf`;
+
     const info = await transporter.sendMail({
       from: fromHeader,
       to: entityEmail,
       subject,
       html: emailBody,
       attachments: [{
-        filename: `Statement_${memberName.replace(/\s+/g, "_")}_${from_date}_to_${to_date}.html`,
-        content: statementHtml,
-        contentType: "text/html",
+        filename: pdfFilename,
+        content: Buffer.from(pdfBuffer),
+        contentType: "application/pdf",
       }],
     });
 
-    // Log to email_logs
+    // Log
     try {
       await adminClient.from("email_logs").insert({
         tenant_id,
@@ -603,7 +907,7 @@ Deno.serve(async (req) => {
       console.warn("[send-member-statement] Failed to log email:", logErr.message);
     }
 
-    console.log(`[send-member-statement] Statement emailed to ${entityEmail} (${info.messageId})`);
+    console.log(`[send-member-statement] PDF emailed to ${entityEmail} (${info.messageId})`);
 
     return new Response(
       JSON.stringify({ success: true, recipient: entityEmail, message_id: info.messageId }),
