@@ -59,8 +59,6 @@ const defaultForm = {
   calculate_price_with_factor: "" as string,
   price_formula: "",
   api_code: "",
-  api_key: "",
-  api_link: "",
   is_stock_item: false,
   is_active: true,
   tax_type_id: "",
