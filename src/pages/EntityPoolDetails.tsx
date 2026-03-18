@@ -417,7 +417,7 @@ const EntityPoolDetails = () => {
                 {loanOutstanding > 0 && (
                   <>
                     <div className="border-t border-border pt-3">
-                      <p className="text-sm text-muted-foreground">O/s Loan</p>
+                      <p className="text-sm text-muted-foreground">{t(lang, "osLoan")}</p>
                       <p className="text-xl font-semibold text-destructive">{formatCurrency(loanOutstanding, sym)}</p>
                     </div>
                     <div className="border-t border-border pt-3">
