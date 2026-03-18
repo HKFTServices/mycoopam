@@ -40,7 +40,7 @@ interface PoolAllocation {
 type Step = "details" | "preview";
 
 const DebitOrderSignUpDialog = ({
-  open, onOpenChange, entityId, entityName, entityAccountId, accountNumber,
+  open, onOpenChange, entityId, entityName, entityAccountId, accountNumber, existingOrder,
 }: DebitOrderSignUpDialogProps) => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
