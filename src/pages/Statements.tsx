@@ -130,6 +130,11 @@ export default function Statements() {
   const [specificMemberId, setSpecificMemberId] = useState("");
   const [valuationDate, setValuationDate] = useState(() => new Date().toISOString().split("T")[0]);
 
+  // Email delivery options (admin only)
+  const [ccAdmin, setCcAdmin] = useState(false);
+  const [emailDelivery, setEmailDelivery] = useState<"members" | "single">("members");
+  const [singleEmailAddress, setSingleEmailAddress] = useState("");
+
   // Target entities (built from audience for admin, or from linked entities for member)
   const [targetEntities, setTargetEntities] = useState<TargetEntity[]>([]);
   const [recipientSearch, setRecipientSearch] = useState("");
@@ -502,9 +507,15 @@ export default function Statements() {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setEmailing(true);
     try {
+      const adminEmail = isAdmin && ccAdmin ? user?.email : undefined;
+      const overrideEmail = isAdmin && emailDelivery === "single" && singleEmailAddress ? singleEmailAddress : undefined;
       for (const entityId of effectiveEntityIds) {
         const { error } = await supabase.functions.invoke("send-member-statement", {
-          body: { tenant_id: tenantId, entity_id: entityId, from_date: fromStr, to_date: toStr },
+          body: {
+            tenant_id: tenantId, entity_id: entityId, from_date: fromStr, to_date: toStr,
+            ...(adminEmail ? { cc_email: adminEmail } : {}),
+            ...(overrideEmail ? { override_recipient_email: overrideEmail } : {}),
+          },
         });
         if (error) throw error;
       }
@@ -723,6 +734,33 @@ export default function Statements() {
                 ? "Select entity(ies) to determine inception date"
                 : `${format(dates.from, "dd MMM yyyy")} — ${format(dates.to, "dd MMM yyyy")}`}
             </p>
+          )}
+
+          {/* Email delivery options (admin only) */}
+          {isAdmin && docType === "statement" && (
+            <div className="space-y-3 border rounded-md p-3 bg-muted/20 max-w-lg">
+              <p className="text-sm font-medium">Email Options</p>
+              <div className="flex items-center gap-2">
+                <Checkbox id="cc-admin" checked={ccAdmin} onCheckedChange={(v) => setCcAdmin(!!v)} />
+                <label htmlFor="cc-admin" className="text-sm cursor-pointer">CC Admin ({user?.email})</label>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="emailDelivery" value="members" checked={emailDelivery === "members"} onChange={() => setEmailDelivery("members")} className="accent-primary" />
+                    Send to each member's email
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="emailDelivery" value="single" checked={emailDelivery === "single"} onChange={() => setEmailDelivery("single")} className="accent-primary" />
+                    Send all to one email
+                  </label>
+                </div>
+                {emailDelivery === "single" && (
+                  <Input type="email" placeholder="Enter email address..." value={singleEmailAddress}
+                    onChange={(e) => setSingleEmailAddress(e.target.value)} className="max-w-sm" />
+                )}
+              </div>
+            </div>
           )}
 
           {/* Actions */}
