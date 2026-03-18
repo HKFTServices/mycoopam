@@ -20,9 +20,11 @@ import SwitchDetailsStep from "./steps/SwitchDetailsStep";
 import TransferDetailsStep from "./steps/TransferDetailsStep";
 import StockDepositDetailsStep from "./steps/StockDepositDetailsStep";
 import StockWithdrawalDetailsStep from "./steps/StockWithdrawalDetailsStep";
+import DebitOrderStep from "./steps/DebitOrderStep";
 import ReviewStep from "./steps/ReviewStep";
 import type { StockLineItem } from "./steps/StockDepositDetailsStep";
 import type { StockWithdrawalLineItem } from "./steps/StockWithdrawalDetailsStep";
+import { formatLocalDate } from "@/lib/formatDate";
 
 const ALL_TXN_CODES = [
   "DEPOSIT_FUNDS", "DEPOSIT_STOCK", "WITHDRAW_FUNDS", "WITHDRAW_STOCK",
@@ -35,14 +37,16 @@ const SWITCH_CODES = ["SWITCH"];
 const STOCK_ONLY_CODES = ["DEPOSIT_STOCK", "WITHDRAW_STOCK"];
 const TRANSFER_CODES = ["TRANSFER"];
 
-type Step = "type" | "account" | "pool" | "details" | "review";
-const STEPS: Step[] = ["account", "type", "pool", "details", "review"];
+type Step = "type" | "account" | "pool" | "details" | "debit_order" | "review";
+const BASE_STEPS: Step[] = ["account", "type", "pool", "details", "review"];
+const DEBIT_ORDER_STEPS: Step[] = ["account", "type", "pool", "details", "debit_order", "review"];
 
 const STEP_META: Record<Step, { label: string; icon: typeof User }> = {
   type: { label: "Type", icon: ListChecks },
   account: { label: "Account", icon: User },
   pool: { label: "Pools", icon: TrendingUp },
   details: { label: "Details", icon: FileText },
+  debit_order: { label: "Mandate", icon: FileText },
   review: { label: "Review", icon: Search },
 };
 
@@ -94,6 +98,20 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
   // Loan repayment state
   const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
   const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
+  // Debit order state
+  const [doBankName, setDoBankName] = useState("");
+  const [doBranchCode, setDoBranchCode] = useState("");
+  const [doAccountName, setDoAccountName] = useState("");
+  const [doBankAccountNumber, setDoBankAccountNumber] = useState("");
+  const [doBankAccountType, setDoBankAccountType] = useState("savings");
+  const [doFrequency, setDoFrequency] = useState("monthly");
+  const [doStartDate, setDoStartDate] = useState(() => {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return formatLocalDate(next);
+  });
+  const [doNotes, setDoNotes] = useState("");
+  const [doSignatureData, setDoSignatureData] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -121,6 +139,20 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
       setWithdrawalPoolInputs({});
       setLoanRepaymentOnly(false);
       setLoanRepaymentAmount("__reset__");
+      // Reset debit order state
+      setDoBankName("");
+      setDoBranchCode("");
+      setDoAccountName("");
+      setDoBankAccountNumber("");
+      setDoBankAccountType("savings");
+      setDoFrequency("monthly");
+      setDoStartDate(() => {
+        const now = new Date();
+        const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return formatLocalDate(next);
+      });
+      setDoNotes("");
+      setDoSignatureData(null);
     }
   }, [open, defaultPoolId]);
 
@@ -1442,12 +1474,60 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
         if (error) throw error;
       }
 
+      // ── Create debit order if payment method is debit_order ──
+      if (isDeposit && paymentMethod === "debit_order" && doSignatureData && selectedAccount) {
+        // Build pool allocations from the deposit pool splits
+        const doPoolAllocations = splitSummaries.map(s => ({
+          pool_id: s.poolId,
+          pool_name: s.poolName,
+          percentage: s.percentage,
+          amount: s.netAmount,
+        }));
+
+        const doPayload = {
+          tenant_id: currentTenant.id,
+          entity_id: selectedAccount.entity_id,
+          entity_account_id: selectedAccountId,
+          monthly_amount: amountNum,
+          debit_day: 1,
+          frequency: doFrequency,
+          start_date: doStartDate,
+          pool_allocations: doPoolAllocations,
+          bank_name: doBankName,
+          branch_code: doBranchCode,
+          account_name: doAccountName,
+          account_number: doBankAccountNumber,
+          account_type: doBankAccountType,
+          signature_data: doSignatureData,
+          signed_at: new Date().toISOString(),
+          notes: JSON.stringify({
+            loan_instalment: effectiveLoanRepayment,
+            admin_fees: depositFees.totalFee,
+            fee_breakdown: depositFees.breakdown,
+            net_to_pools: depositNetAvailable,
+            user_notes: doNotes,
+          }),
+          status: "pending",
+          created_by: user.id,
+        };
+
+        const { error: doError } = await (supabase as any)
+          .from("debit_orders")
+          .insert(doPayload);
+        if (doError) throw doError;
+      }
 
     },
     onSuccess: () => {
-      toast.success("Transaction submitted for approval");
+      const msg = isDeposit && paymentMethod === "debit_order"
+        ? "Transaction & debit order submitted for approval"
+        : "Transaction submitted for approval";
+      toast.success(msg);
       queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["debit_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error(err.message || "Failed to submit"),
@@ -1495,12 +1575,19 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
     ? stockWithdrawalValid
     : (amountNum >= minimumDeposit && !!selectedAccountId);
 
+  // Dynamic steps based on whether debit order payment method is selected for a deposit
+  const isDebitOrderDeposit = isDeposit && paymentMethod === "debit_order";
+  const STEPS = isDebitOrderDeposit ? DEBIT_ORDER_STEPS : BASE_STEPS;
+
+  const canProceedFromDebitOrder = !!(doBankName && doBankAccountNumber && doAccountName && doSignatureData);
+
   const canProceed = () => {
     switch (step) {
       case "account": return canProceedFromAccount;
       case "type": return canProceedFromType;
       case "pool": return canProceedToDetails;
       case "details": return canProceedToReview;
+      case "debit_order": return canProceedFromDebitOrder;
       default: return false;
     }
   };
@@ -1791,6 +1878,32 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
             />
           )}
 
+          {step === "debit_order" && isDebitOrderDeposit && selectedAccount && (
+            <DebitOrderStep
+              entityId={selectedAccount.entity_id}
+              bankName={doBankName}
+              onBankNameChange={setDoBankName}
+              branchCode={doBranchCode}
+              onBranchCodeChange={setDoBranchCode}
+              accountName={doAccountName}
+              onAccountNameChange={setDoAccountName}
+              bankAccountNumber={doBankAccountNumber}
+              onBankAccountNumberChange={setDoBankAccountNumber}
+              bankAccountType={doBankAccountType}
+              onBankAccountTypeChange={setDoBankAccountType}
+              frequency={doFrequency}
+              onFrequencyChange={setDoFrequency}
+              startDate={doStartDate}
+              onStartDateChange={setDoStartDate}
+              debitOrderNotes={doNotes}
+              onDebitOrderNotesChange={setDoNotes}
+              signatureData={doSignatureData}
+              onSignatureDataChange={setDoSignatureData}
+              grossAmount={amountNum}
+              formatCurrency={formatCurrency}
+            />
+          )}
+
           {step === "review" && (
             <ReviewStep
               accountLabel={selectedAccountLabel}
@@ -1867,7 +1980,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              Submit Transaction
+              {isDebitOrderDeposit ? "Submit Transaction & Debit Order" : "Submit Transaction"}
             </Button>
           )}
         </DialogFooter>
