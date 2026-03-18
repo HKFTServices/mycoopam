@@ -234,7 +234,6 @@ export function generateMemberStatement(data: StatementData): string {
   <div class="header-right">
     ${coopPhone ? `Tel: ${coopPhone}<br/>` : ""}
     ${coopEmail ? `${coopEmail}<br/>` : ""}
-    ${directors ? `<br/><strong>Directors:</strong><br/>${directors.replace(/,/g, "<br/>")}` : ""}
   </div>
 </div>
 
