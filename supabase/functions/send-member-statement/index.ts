@@ -270,13 +270,15 @@ async function generateStatementPdf(data: {
     : "";
 
   // ── Pool summary calculations ──
-  const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number }> = {};
+  const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number; displayType: string; statementDesc: string }> = {};
 
   for (const row of data.openingUnits) {
     const poolId = row.pool_id;
     const priceInfo = data.poolPricesStart[poolId];
+    const displayType = priceInfo?.pools?.pool_statement_display_type ?? "display_in_summary";
+    if (displayType === "do_not_display") continue;
     if (!poolSummary[poolId]) {
-      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0 };
+      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0, displayType, statementDesc: priceInfo?.pools?.pool_statement_description || "" };
     }
     poolSummary[poolId].openUnits += Number(row.total_units);
   }
@@ -284,11 +286,16 @@ async function generateStatementPdf(data: {
   for (const row of data.closingUnits) {
     const poolId = row.pool_id;
     const priceInfo = data.poolPricesEnd[poolId];
+    const displayType = priceInfo?.pools?.pool_statement_display_type ?? "display_in_summary";
+    if (displayType === "do_not_display") continue;
     if (!poolSummary[poolId]) {
-      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0) };
+      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0), displayType, statementDesc: priceInfo?.pools?.pool_statement_description || "" };
     }
     poolSummary[poolId].closeUnits += Number(row.total_units);
     poolSummary[poolId].closePrice = Number(priceInfo?.unit_price_sell || 0);
+    if (!poolSummary[poolId].statementDesc) {
+      poolSummary[poolId].statementDesc = priceInfo?.pools?.pool_statement_description || "";
+    }
   }
 
   const activePools = Object.entries(poolSummary).filter(([, p]) => {
@@ -297,8 +304,12 @@ async function generateStatementPdf(data: {
     return openVal > 0.001 || closeVal > 0.001;
   });
 
-  const openTotal = activePools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
-  const closeTotal = activePools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
+  // Split by display type
+  const summaryPools = activePools.filter(([, p]) => p.displayType === "display_in_summary");
+  const belowSummaryPools = activePools.filter(([, p]) => p.displayType === "display_below_summary");
+
+  const openTotal = summaryPools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
+  const closeTotal = summaryPools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
   const changeTotal = closeTotal - openTotal;
 
   // ── Create PDF document ──
@@ -406,8 +417,8 @@ async function generateStatementPdf(data: {
   y += 2;
 
   // Summary table with grouped date headers
-  if (activePools.length > 0) {
-    const summaryRows = activePools.map(([, p]) => {
+  if (summaryPools.length > 0) {
+    const summaryRows = summaryPools.map(([, p]) => {
       const openVal = p.openUnits * p.openPrice;
       const closeVal = p.closeUnits * p.closePrice;
       const change = closeVal - openVal;
@@ -426,12 +437,11 @@ async function generateStatementPdf(data: {
     // Draw grouped header row (date labels spanning 3 cols each)
     const marginLeft = 15;
     const groupHeaderHeight = 5.5;
-    doc.setFillColor(42, 79, 122); // slightly lighter navy
+    doc.setFillColor(42, 79, 122);
     doc.rect(marginLeft, y, 180, groupHeaderHeight, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6);
     doc.setTextColor(...WHITE);
-    // Pool col = 28, Open block = 20+22+22 = 64, Close block = 20+22+22 = 64, Change = 24
     doc.text(fmtDate(data.fromDate), marginLeft + 28 + 32, y + groupHeaderHeight / 2 + 1, { align: "center" });
     doc.text(fmtDate(data.toDate), marginLeft + 28 + 64 + 32, y + groupHeaderHeight / 2 + 1, { align: "center" });
     y += groupHeaderHeight;
@@ -457,6 +467,24 @@ async function generateStatementPdf(data: {
         `${changeTotal >= 0 ? "+" : ""}${fmtCurrency(changeTotal, sym)}`,
       ],
     });
+  }
+
+  // Below-summary pools as text notes
+  if (belowSummaryPools.length > 0) {
+    y += 3;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    for (const [, p] of belowSummaryPools) {
+      if (y > 275) { doc.addPage(); y = 15; }
+      const closeVal = p.closeUnits * p.closePrice;
+      const label = p.statementDesc || p.name;
+      doc.setTextColor(...TEXT_DARK);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 15, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(fmtCurrency(closeVal, sym), 15 + doc.getTextWidth(`${label}: `), y);
+      y += 4;
+    }
   }
   y += 6;
 
@@ -662,8 +690,8 @@ async function fetchStatementData(
       adminClient.from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).eq("is_bank", true).order("transaction_date", { ascending: true }),
       adminClient.from("stock_transactions").select("id, transaction_date, transaction_type, stock_transaction_type, debit, credit, cost_price, total_value, notes, items (description), pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
       adminClient.rpc("get_loan_outstanding", { p_tenant_id: tenantId }),
-      adminClient.from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
-      adminClient.from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
+      adminClient.from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
+      adminClient.from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
       adminClient.rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: entityId, p_from_date: fromStr, p_to_date: toStr }),
     ]);
 
