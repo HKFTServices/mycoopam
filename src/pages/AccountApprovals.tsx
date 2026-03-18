@@ -1409,13 +1409,13 @@ const AccountApprovals = () => {
                               <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
                                 onClick={async () => {
                                   const { error } = await (supabase as any).from("debit_orders").update({
-                                    status: "approved", approved_by: currentUser?.id, approved_at: new Date().toISOString(),
+                                    status: "loaded", approved_by: currentUser?.id, approved_at: new Date().toISOString(), is_active: true,
                                   }).eq("id", d.id);
                                   if (error) { toast.error(error.message); return; }
-                                  toast.success("Debit order approved");
+                                  toast.success("Debit order confirmed as loaded");
                                   queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
                                 }}>
-                                <CheckCircle className="h-3.5 w-3.5" /> Approve
+                                <CheckCircle className="h-3.5 w-3.5" /> Confirm Loaded
                               </Button>
                               <Button size="sm" variant="destructive" className="h-7 text-xs gap-1"
                                 onClick={async () => {
