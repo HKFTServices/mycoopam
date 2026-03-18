@@ -719,7 +719,7 @@ const Memberships = () => {
                               const isPending = a.status === "pending_activation" || a.status === "pending";
                               return (
                                 <div key={a.id} className="flex items-center gap-1.5 text-sm">
-                                  <span className="font-medium">{a.accountTypeName}</span>
+                                  <span className={`font-medium ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
                                   {a.accountNumber ? (
                                     <>
                                       <span className="text-muted-foreground">(</span>
@@ -732,6 +732,12 @@ const Memberships = () => {
                                       )}
                                       <code className="font-mono text-xs">{a.accountNumber}</code>
                                       <span className="text-muted-foreground">)</span>
+                                      {!isActive && !isPending && a.status && (
+                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status)}</Badge>
+                                      )}
+                                      {isPending && (
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status ?? "Pending")}</Badge>
+                                      )}
                                     </>
                                   ) : (
                                     <span className="text-xs text-muted-foreground italic">
