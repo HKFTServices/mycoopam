@@ -8,6 +8,9 @@ type Tenant = Tables<"tenants">;
 interface TenantBranding {
   legalEntityName: string | null;
   logoUrl: string | null;
+  themePrimaryHsl: string | null;
+  themeAccentHsl: string | null;
+  themeSidebarHsl: string | null;
 }
 
 interface TenantContextType {
