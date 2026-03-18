@@ -200,6 +200,7 @@ const Items = () => {
       item_code: item.item_code,
       description: item.description,
       margin_percentage: item.margin_percentage,
+      sell_margin_percentage: (item as any).sell_margin_percentage ?? 0,
       use_fixed_price: item.use_fixed_price != null ? String(item.use_fixed_price) : "",
       calculate_price_with_item_id: item.calculate_price_with_item_id ?? "",
       calculation_type: item.calculation_type ?? "",
