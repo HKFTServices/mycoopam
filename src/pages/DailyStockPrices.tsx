@@ -160,7 +160,7 @@ const DailyStockPrices = () => {
       const token = sessionData?.session?.access_token;
       
       const res = await supabase.functions.invoke("fetch-stock-prices", {
-        body: { tenant_id: currentTenant.id },
+        body: { tenant_id: currentTenant.id, price_date: format(priceDate, "yyyy-MM-dd") },
       });
 
       if (res.error) throw res.error;

@@ -105,16 +105,23 @@ function evalFormula(formula: string, apiPrices: Record<string, number>): number
 
 /**
  * Fetch all prices from metals-api.com in a single call.
- * Base=ZAR so metal rates need 1/rate, currency rates are direct.
+ * Uses /latest for today or /YYYY-MM-DD for historical dates.
+ * Base=ZAR so rates are already in ZAR.
  */
 async function fetchMetalsApiPrices(
   symbols: string[],
-  apiKey: string
+  apiKey: string,
+  priceDate?: string
 ): Promise<Record<string, number>> {
   if (symbols.length === 0) return {};
 
-  const url = `https://metals-api.com/api/latest?access_key=${apiKey}&base=ZAR&symbols=${symbols.join(",")}`;
-  console.log(`Fetching metals-api prices for: ${symbols.join(", ")}`);
+  // Determine if we need historical or latest
+  const today = new Date().toISOString().slice(0, 10);
+  const isHistorical = priceDate && priceDate !== today;
+  const endpoint = isHistorical ? priceDate : "latest";
+  
+  const url = `https://metals-api.com/api/${endpoint}?access_key=${apiKey}&base=ZAR&symbols=${symbols.join(",")}`;
+  console.log(`Fetching metals-api ${isHistorical ? "historical" : "latest"} prices for: ${symbols.join(", ")}${isHistorical ? ` (date: ${priceDate})` : ""}`);
 
   const res = await fetch(url);
   if (!res.ok) {
@@ -146,7 +153,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { tenant_id } = await req.json();
+    const { tenant_id, price_date } = await req.json();
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id is required" }), {
         status: 400,
@@ -210,7 +217,7 @@ Deno.serve(async (req) => {
     }
 
     // Single API call to metals-api for all symbols
-    const rawApiPrices = await fetchMetalsApiPrices([...apiCodes], metalsApiKey);
+    const rawApiPrices = await fetchMetalsApiPrices([...apiCodes], metalsApiKey, price_date);
     console.log("Metals-API prices (ZAR per unit):", rawApiPrices);
 
     // Calculate cost prices for all items
