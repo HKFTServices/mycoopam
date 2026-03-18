@@ -25,6 +25,12 @@ export interface StatementData {
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
+  /** Pool unit prices (buy/sell) for exposed pools at end date */
+  poolUnitPrices?: { poolName: string; sellPrice: number }[];
+  /** Stock item prices for items with show_item_price_on_statement */
+  stockItemPrices?: { description: string; price: number | null }[];
+  /** Terms & conditions HTML content */
+  termsConditionsHtml?: string;
 }
 
 /** Clean up raw legacy entry type labels like "Entry 1963" into readable descriptions */
