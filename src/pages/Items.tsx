@@ -417,13 +417,25 @@ const Items = () => {
             <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
               <Label className="text-sm font-semibold">Pricing Configuration</Label>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Fixed Price (overrides calculation)</Label>
                   <Input type="number" step="0.01" value={form.use_fixed_price} onChange={(e) => setForm({ ...form, use_fixed_price: e.target.value })} placeholder="Leave empty for calculated" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU, XAG, XPT, USD, XRP)</Label>
+                  <Label className="text-xs text-muted-foreground">API Provider</Label>
+                  <Select value={form.api_provider_id} onValueChange={(v) => setForm({ ...form, api_provider_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {apiProviders.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU, XAG, XPT)</Label>
                   <Input value={form.api_code} onChange={(e) => setForm({ ...form, api_code: e.target.value.toUpperCase() })} placeholder="e.g. XAU" />
                 </div>
               </div>
