@@ -91,6 +91,14 @@ const PURCHASE_STEPS: StepDef[] = [
     type: "vault",
   },
   {
+    id: "receipt",
+    label: "Stock Receipt",
+    description: "Both parties sign the electronic stock receipt",
+    icon: PenTool,
+    advancesTo: "receipt_signed",
+    type: "receipt",
+  },
+  {
     id: "approved",
     label: "Post Ledger",
     description: "Approve and post all financial ledger entries",
