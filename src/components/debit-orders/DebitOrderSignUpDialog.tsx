@@ -315,7 +315,8 @@ const DebitOrderSignUpDialog = ({
 
   // ── Waterfall calculation ──
   const totalAmount = parseFloat(monthlyAmount) || 0;
-  const loanInstalment = outstandingLoanInfo?.instalment ?? 0;
+  const suggestedInstalment = outstandingLoanInfo?.instalment ?? 0;
+  const loanInstalment = manualLoanInstalment !== "" ? (parseFloat(manualLoanInstalment) || 0) : suggestedInstalment;
   const afterLoan = Math.max(0, totalAmount - loanInstalment);
   const feeCalc = calculateFees(afterLoan);
   const afterFees = Math.max(0, afterLoan - feeCalc.totalFee);
