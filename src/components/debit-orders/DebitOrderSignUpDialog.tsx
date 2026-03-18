@@ -457,10 +457,10 @@ const DebitOrderSignUpDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Debit Order Sign Up
+            {isEditMode ? "Edit Debit Order" : "Debit Order Sign Up"}
           </DialogTitle>
           <DialogDescription>
-            Set up a recurring debit order for {entityName}
+            {isEditMode ? "Update the debit order details — changes require re-approval" : `Set up a recurring debit order for ${entityName}`}
           </DialogDescription>
         </DialogHeader>
 
