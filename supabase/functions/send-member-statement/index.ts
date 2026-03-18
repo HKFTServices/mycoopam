@@ -451,6 +451,10 @@ async function generateStatementPdf(data: {
     const unitRows = data.unitTransactions.map((tx: any) => {
       const debit = Number(tx.debit || 0);
       const credit = Number(tx.credit || 0);
+      const rawValue = Number(tx.value || 0);
+      // Redemptions (credit/out) show value as negative in red
+      const isRedemption = credit > 0 && debit === 0;
+      const displayValue = isRedemption && rawValue > 0 ? -rawValue : rawValue;
       return [
         fmtDate(tx.transaction_date),
         (tx.transaction_type || "").substring(0, 20),
@@ -458,7 +462,7 @@ async function generateStatementPdf(data: {
         debit > 0 ? debit.toFixed(4) : "",
         credit > 0 ? credit.toFixed(4) : "",
         fmtCurrency(Number(tx.unit_price || 0), sym),
-        fmtCurrency(Number(tx.value || 0), sym),
+        fmtCurrency(displayValue, sym),
       ];
     });
     y = drawTable(doc, {
