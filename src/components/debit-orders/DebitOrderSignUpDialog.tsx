@@ -274,9 +274,9 @@ const DebitOrderSignUpDialog = ({
     enabled: !!currentTenant && open,
   });
 
-  // Auto-fill bank details when data loads
+  // Auto-fill bank details when data loads (only if fields are empty and not editing)
   useEffect(() => {
-    if (existingBank) {
+    if (existingBank && !isEditMode && !bankName && !bankAccountNumber) {
       setBankName(existingBank.banks?.name ?? "");
       setBranchCode(existingBank.banks?.branch_code ?? "");
       setAccountName(existingBank.account_holder ?? "");
