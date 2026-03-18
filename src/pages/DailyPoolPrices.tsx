@@ -559,9 +559,10 @@ const DailyPoolPrices = () => {
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Qty</TableCell>
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Cost Price</TableCell>
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Buy Price</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Cost</TableCell>
+                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Sell Price</TableCell>
                             <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Buy</TableCell>
-                            <TableCell colSpan={3} />
+                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Sell</TableCell>
+                            <TableCell colSpan={2} />
                           </TableRow>
                           {row.stockItems.map((si) => (
                             <TableRow key={si.itemId} className="bg-muted/20">
