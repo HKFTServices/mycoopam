@@ -34,8 +34,8 @@ type Item = {
   price_formula: string | null;
   calculate_price_with_factor: number | null;
   api_code: string | null;
-  api_key: string | null;
-  api_link: string | null;
+  api_key: string | null;  // legacy, not used in UI
+  api_link: string | null; // legacy, not used in UI
   is_stock_item: boolean;
   is_active: boolean;
   tax_type_id: string | null;
