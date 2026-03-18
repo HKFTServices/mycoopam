@@ -247,6 +247,9 @@ function renderTemplate(
     "{{phone_number}}": vars.phone_number || "",
     "{{account_number}}": vars.account_number || "",
     "{{entity_account_name}}": vars.entity_account_name || "",
+    "{{agm_venue}}": vars.agm_venue || "",
+    "{{agm_date}}": vars.agm_date || "",
+    "{{agm_time}}": vars.agm_time || "",
   };
 
   for (const [key, val] of Object.entries(replacements)) {
