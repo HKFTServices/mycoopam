@@ -20,9 +20,11 @@ import SwitchDetailsStep from "./steps/SwitchDetailsStep";
 import TransferDetailsStep from "./steps/TransferDetailsStep";
 import StockDepositDetailsStep from "./steps/StockDepositDetailsStep";
 import StockWithdrawalDetailsStep from "./steps/StockWithdrawalDetailsStep";
+import DebitOrderStep from "./steps/DebitOrderStep";
 import ReviewStep from "./steps/ReviewStep";
 import type { StockLineItem } from "./steps/StockDepositDetailsStep";
 import type { StockWithdrawalLineItem } from "./steps/StockWithdrawalDetailsStep";
+import { formatLocalDate } from "@/lib/formatDate";
 
 const ALL_TXN_CODES = [
   "DEPOSIT_FUNDS", "DEPOSIT_STOCK", "WITHDRAW_FUNDS", "WITHDRAW_STOCK",
