@@ -28,6 +28,7 @@ type Item = {
   item_code: string;
   description: string;
   margin_percentage: number;
+  sell_margin_percentage: number;
   use_fixed_price: number | null;
   calculate_price_with_item_id: string | null;
   calculation_type: string | null;
