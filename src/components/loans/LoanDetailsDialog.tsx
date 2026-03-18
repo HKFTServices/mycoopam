@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Banknote, ArrowDownRight, ArrowUpRight, AlertTriangle, Percent } from "lucide-react";
+import { Banknote, ArrowDownRight, ArrowUpRight, AlertTriangle, Percent, Loader2 } from "lucide-react";
 
 interface LoanSummary {
   legacy_entity_id: string;
@@ -34,12 +34,24 @@ interface Props {
   totalOutstanding: number;
 }
 
+type MergedTx = {
+  transaction_date: string;
+  entry_type: string;
+  entry_type_name: string;
+  debit: number;
+  credit: number;
+  source: "legacy" | "cft";
+  description?: string;
+  pool_name?: string;
+};
+
 const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding }: Props) => {
   const { currentTenant } = useTenant();
   const [selectedEntity, setSelectedEntity] = useState<LoanSummary | null>(null);
 
-  const { data: transactions = [], isLoading: txnLoading } = useQuery({
-    queryKey: ["loan_transactions", currentTenant?.id, selectedEntity?.legacy_entity_id],
+  // Legacy bookkeeping loan transactions
+  const { data: legacyTransactions = [], isLoading: legacyLoading } = useQuery({
+    queryKey: ["loan_transactions_legacy", currentTenant?.id, selectedEntity?.legacy_entity_id],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("get_loan_transactions", {
         p_tenant_id: currentTenant!.id,
@@ -51,29 +63,102 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
     enabled: !!currentTenant?.id && !!selectedEntity?.legacy_entity_id,
   });
 
+  // Modern CFT loan transactions for the entity
+  const { data: cftTransactions = [], isLoading: cftLoading } = useQuery({
+    queryKey: ["loan_transactions_cft", currentTenant?.id, selectedEntity?.entity_id],
+    queryFn: async () => {
+      if (!selectedEntity?.entity_id) return [];
+      // First get entity account IDs
+      const { data: accounts } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id")
+        .eq("entity_id", selectedEntity.entity_id)
+        .eq("tenant_id", currentTenant!.id);
+      if (!accounts || accounts.length === 0) return [];
+      const accountIds = accounts.map((a: any) => a.id);
+
+      const { data, error } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)")
+        .eq("tenant_id", currentTenant!.id)
+        .in("entity_account_id", accountIds)
+        .eq("is_active", true)
+        .like("entry_type", "loan_%")
+        .order("transaction_date", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant?.id && !!selectedEntity?.entity_id,
+  });
+
+  // Merge and sort all transactions
+  const allTransactions: MergedTx[] = (() => {
+    const legacy: MergedTx[] = legacyTransactions.map((txn: any) => ({
+      transaction_date: txn.transaction_date,
+      entry_type: txn.entry_type,
+      entry_type_name: txn.entry_type_name,
+      debit: Number(txn.debit || 0),
+      credit: Number(txn.credit || 0),
+      source: "legacy" as const,
+    }));
+
+    const entryTypeLabels: Record<string, string> = {
+      loan_capital: "Loan Capital",
+      loan_fee: "Loan Fee",
+      loan_loading: "Loan Loading",
+      loan_repayment: "Loan Repayment",
+      loan_interest: "Loan Interest",
+      loan_writeoff: "Loan Write-off",
+    };
+
+    const cft: MergedTx[] = cftTransactions.map((txn: any) => ({
+      transaction_date: txn.transaction_date,
+      entry_type: txn.entry_type,
+      entry_type_name: entryTypeLabels[txn.entry_type] || txn.entry_type?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+      debit: Number(txn.debit || 0),
+      credit: Number(txn.credit || 0),
+      source: "cft" as const,
+      description: txn.description,
+      pool_name: txn.pools?.name,
+    }));
+
+    return [...legacy, ...cft].sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+  })();
+
+  const txnLoading = legacyLoading || cftLoading;
+
+  // Calculate running balance
+  let runningBalance = 0;
+  const transactionsWithBalance = allTransactions.map((tx) => {
+    runningBalance += tx.debit - tx.credit;
+    return { ...tx, balance: runningBalance };
+  });
+
   const entityName = (s: LoanSummary) => {
     if (s.entity_name && s.entity_last_name) return `${s.entity_name} ${s.entity_last_name}`;
     return s.entity_name || `Entity #${s.legacy_entity_id}`;
   };
 
   const entryTypeColor = (type: string) => {
-    switch (type) {
-      case "1962": return "text-blue-600 dark:text-blue-400";
-      case "1980": return "text-orange-600 dark:text-orange-400";
-      case "1978": return "text-emerald-600 dark:text-emerald-400";
-      case "2002": return "text-red-600 dark:text-red-400";
-      default: return "text-muted-foreground";
-    }
+    // Legacy numeric codes
+    if (type === "1962") return "text-blue-600 dark:text-blue-400";
+    if (type === "1980") return "text-orange-600 dark:text-orange-400";
+    if (type === "1978") return "text-emerald-600 dark:text-emerald-400";
+    if (type === "2002") return "text-red-600 dark:text-red-400";
+    // Modern entry types
+    if (type === "loan_capital") return "text-blue-600 dark:text-blue-400";
+    if (type === "loan_fee" || type === "loan_loading" || type === "loan_interest") return "text-orange-600 dark:text-orange-400";
+    if (type === "loan_repayment") return "text-emerald-600 dark:text-emerald-400";
+    if (type === "loan_writeoff") return "text-red-600 dark:text-red-400";
+    return "text-muted-foreground";
   };
 
   const entryTypeIcon = (type: string) => {
-    switch (type) {
-      case "1962": return <Banknote className="h-3.5 w-3.5" />;
-      case "1980": return <Percent className="h-3.5 w-3.5" />;
-      case "1978": return <ArrowUpRight className="h-3.5 w-3.5" />;
-      case "2002": return <AlertTriangle className="h-3.5 w-3.5" />;
-      default: return <ArrowDownRight className="h-3.5 w-3.5" />;
-    }
+    if (type === "1962" || type === "loan_capital") return <Banknote className="h-3.5 w-3.5" />;
+    if (type === "1980" || type === "loan_fee" || type === "loan_loading" || type === "loan_interest") return <Percent className="h-3.5 w-3.5" />;
+    if (type === "1978" || type === "loan_repayment") return <ArrowUpRight className="h-3.5 w-3.5" />;
+    if (type === "2002" || type === "loan_writeoff") return <AlertTriangle className="h-3.5 w-3.5" />;
+    return <ArrowDownRight className="h-3.5 w-3.5" />;
   };
 
   const formatDate = (d: string | null) => {
@@ -87,14 +172,14 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setSelectedEntity(null); }}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
+      <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {selectedEntity ? `Loan Detail — ${entityName(selectedEntity)}` : "Loans Outstanding"}
           </DialogTitle>
           <DialogDescription>
             {selectedEntity
-              ? "Transaction history for this entity's loan"
+              ? `Transaction history for this entity's loan — ${transactionsWithBalance.length} transactions`
               : `Total outstanding: ${formatCurrency(totalOutstanding)} across ${activeLoans.length} entities`}
           </DialogDescription>
         </DialogHeader>
@@ -180,21 +265,26 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                   <TableRow>
                     <TableHead className="w-[100px]">Date</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Description</TableHead>
                     <TableHead className="text-right">Debit</TableHead>
                     <TableHead className="text-right">Credit</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {txnLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading…</TableCell>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1" />
+                        Loading…
+                      </TableCell>
                     </TableRow>
-                  ) : transactions.length === 0 ? (
+                  ) : transactionsWithBalance.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No transactions found</TableCell>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No loan transactions found</TableCell>
                     </TableRow>
                   ) : (
-                    transactions.map((txn: any, idx: number) => (
+                    transactionsWithBalance.map((txn, idx) => (
                       <TableRow key={idx}>
                         <TableCell className="text-xs">{formatDate(txn.transaction_date)}</TableCell>
                         <TableCell>
@@ -203,11 +293,17 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                             {txn.entry_type_name}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right text-xs">
-                          {Number(txn.debit) > 0 ? formatCurrency(Number(txn.debit)) : "-"}
+                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                          {txn.description || txn.pool_name || "-"}
                         </TableCell>
                         <TableCell className="text-right text-xs">
-                          {Number(txn.credit) > 0 ? formatCurrency(Number(txn.credit)) : "-"}
+                          {txn.debit > 0 ? formatCurrency(txn.debit) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {txn.credit > 0 ? formatCurrency(txn.credit) : "-"}
+                        </TableCell>
+                        <TableCell className={`text-right text-xs font-medium ${txn.balance > 0.01 ? 'text-red-600 dark:text-red-400' : txn.balance < -0.01 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                          {formatCurrency(txn.balance)}
                         </TableCell>
                       </TableRow>
                     ))
