@@ -77,7 +77,7 @@ const TransferDetailsStep = ({
   const netTransferAmount = useAllUnits ? Math.max(0, allUnitsValue - totalFee) : amountNum;
   const grossRedemption = netTransferAmount + totalFee;
   const grossUnitsRedeemed = unitPriceSell > 0 ? grossRedemption / unitPriceSell : 0;
-  const netUnitsReceived = unitPriceSell > 0 ? netTransferAmount / unitPriceSell : 0;
+  const netUnitsReceived = unitPriceBuy > 0 ? netTransferAmount / unitPriceBuy : 0;
   const maxValue = currentHolding * unitPriceSell;
 
   const bothValid = accountValidation === "valid" && idValidation === "valid";
