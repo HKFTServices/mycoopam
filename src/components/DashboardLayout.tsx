@@ -315,7 +315,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -662,7 +662,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         )}
 
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto">{children}</main>
       </div>
 
       {myEntity?.entity_id && (
