@@ -174,17 +174,18 @@ function drawTable(doc: any, opts: TableOptions): number {
 
 /* ─── Section heading ─────────────────────────────────────────────────────── */
 
-function drawSectionTitle(doc: any, title: string, y: number, period?: string): number {
+function drawSectionTitle(doc: any, title: string, y: number, period?: string, periodBold = false): number {
   if (y > 265) { doc.addPage(); y = 15; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
   doc.text(title, 15, y);
   if (period) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...TEXT_GREY);
-    doc.text(period, 15 + doc.getTextWidth(title) + 3, y);
+    const titleWidth = doc.getTextWidth(title);
+    doc.setFont("helvetica", periodBold ? "bold" : "normal");
+    doc.setFontSize(periodBold ? 9.5 : 7);
+    doc.setTextColor(...(periodBold ? NAVY : TEXT_GREY));
+    doc.text(period, 15 + titleWidth + 3, y);
   }
   doc.setDrawColor(200, 208, 218);
   doc.line(15, y + 1.5, 195, y + 1.5);
