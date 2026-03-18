@@ -469,9 +469,9 @@ const Communications = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : englishTemplates.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No custom templates yet. Import a system template to get started.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No custom templates yet. Import a system template to get started.</TableCell></TableRow>
               ) : (
                 englishTemplates.map((t) => (
                   <TableRow key={t.id}>
