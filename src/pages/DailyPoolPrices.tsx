@@ -571,9 +571,10 @@ const DailyPoolPrices = () => {
                               <TableCell className="text-right font-mono text-xs">{si.quantity.toFixed(4)}</TableCell>
                               <TableCell className="text-right font-mono text-xs">{formatCurrency(si.costPrice, sym)}</TableCell>
                               <TableCell className="text-right font-mono text-xs">{formatCurrency(si.buyPrice, sym)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalCost, sym)}</TableCell>
+                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.sellPrice, sym)}</TableCell>
                               <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalBuy, sym)}</TableCell>
-                              <TableCell colSpan={3} />
+                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalSell, sym)}</TableCell>
+                              <TableCell colSpan={2} />
                             </TableRow>
                           ))}
                           <TableRow className="bg-muted/30 border-b-2">
