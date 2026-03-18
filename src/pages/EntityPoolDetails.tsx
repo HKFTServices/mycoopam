@@ -10,7 +10,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, ArrowLeft, CalendarIcon, ChevronDown } from "lucide-react";
+import { Loader2, ArrowLeft, CalendarIcon, ChevronDown, FileText } from "lucide-react";
+import MemberStatementDialog from "@/components/statements/MemberStatementDialog";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
@@ -184,6 +185,7 @@ const EntityPoolDetails = () => {
 
   // Date picker — default to latest available date
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   // Fetch available dates
   const { data: availableDates = [] } = useQuery({
@@ -397,6 +399,14 @@ const EntityPoolDetails = () => {
             />
           </PopoverContent>
         </Popover>
+
+        {/* Statement download button */}
+        {entityId && currentTenant && entityAccounts.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => setStatementOpen(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            Statement
+          </Button>
+        )}
       </div>
 
       {loadingPrices ? (
@@ -556,6 +566,17 @@ const EntityPoolDetails = () => {
             />
           )}
         </div>
+      )}
+      {/* Statement Dialog */}
+      {entityId && currentTenant && (
+        <MemberStatementDialog
+          open={statementOpen}
+          onOpenChange={setStatementOpen}
+          entityId={entityId}
+          entityAccountIds={entityAccounts.map((a: any) => a.id)}
+          tenantId={currentTenant.id}
+          currencySymbol={sym}
+        />
       )}
     </div>
   );
