@@ -311,11 +311,11 @@ const EntityPoolDetails = () => {
                   <>
                     <div className="border-t border-border pt-3">
                       <p className="text-sm text-muted-foreground">O/s Loan</p>
-                      <p className="text-xl font-semibold text-destructive">- {formatCurrency(loanOutstanding, sym)}</p>
+                      <p className="text-xl font-semibold text-destructive">{formatCurrency(loanOutstanding, sym)}</p>
                     </div>
                     <div className="border-t border-border pt-3">
                       <p className="text-sm text-muted-foreground">Net Value</p>
-                      <p className="text-3xl font-bold tracking-tight">{formatCurrency(netValue, sym)}</p>
+                      <p className={`text-3xl font-bold tracking-tight ${netValue < 0 ? "text-destructive" : ""}`}>{formatCurrency(netValue, sym)}</p>
                     </div>
                   </>
                 )}
