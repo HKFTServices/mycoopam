@@ -393,12 +393,15 @@ const DailyStockPrices = () => {
                 <TableHead>Description</TableHead>
                 <TableHead>Pool</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead>Margin %</TableHead>
+                <TableHead>Buy Margin %</TableHead>
+                <TableHead>Sell Margin %</TableHead>
                 <TableHead>Tax</TableHead>
                 <TableHead className="text-right">Cost Excl VAT</TableHead>
                 <TableHead className="text-right">Cost Incl VAT</TableHead>
                 <TableHead className="text-right">Buy Excl VAT</TableHead>
                 <TableHead className="text-right">Buy Incl VAT</TableHead>
+                <TableHead className="text-right">Sell Excl VAT</TableHead>
+                <TableHead className="text-right">Sell Incl VAT</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
