@@ -119,6 +119,17 @@ const Items = () => {
     enabled: !!currentTenant,
   });
 
+  const { data: apiProviders = [] } = useQuery({
+    queryKey: ["api_providers_list"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("api_providers").select("id, name, is_active")
+        .eq("is_active", true).order("name");
+      if (error) throw error;
+      return data as ApiProvider[];
+    },
+  });
+
   const poolMap = Object.fromEntries(pools.map((p) => [p.id, p.name]));
   const poolIconMap = Object.fromEntries(pools.map((p) => [p.id, p.icon_url]));
 
