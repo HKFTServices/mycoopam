@@ -479,12 +479,14 @@ export default function Statements() {
     const acctIds = (accts ?? []).map((a: any) => a.id);
     if (acctIds.length === 0) return "";
 
-    const [entityRes, tenantConfigRes, unitTxRes, poolPricesStartRes, poolPricesEndRes] = await Promise.all([
+    // Fetch entity, tenant config, redemptions during year, and ALL purchases up to start of year
+    const [entityRes, tenantConfigRes, redemptionTxRes, allPurchasesRes] = await Promise.all([
       (supabase as any).from("entities").select("id, name, last_name, identity_number, registration_number, contact_number, email_address, entity_categories (name)").eq("id", entityId).single(),
       (supabase as any).from("tenant_configuration").select("logo_url, directors, vat_number, registration_date, currency_symbol, legal_entity_id, entities:legal_entity_id (name, registration_number, contact_number, email_address)").eq("tenant_id", tenantId).maybeSingle(),
-      (supabase as any).from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
-      (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
-      (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
+      // Redemptions (withdrawals) during the tax year – credit > 0
+      (supabase as any).from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).gt("credit", 0).order("transaction_date", { ascending: true }),
+      // ALL purchase transactions (debit > 0) from inception up to start of year to build cost base
+      (supabase as any).from("unit_transactions").select("id, transaction_date, pool_id, debit, credit, value, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).lt("transaction_date", fromStr).eq("is_active", true).gt("debit", 0),
     ]);
 
     const legalEntityId = tenantConfigRes.data?.legal_entity_id;
@@ -494,23 +496,14 @@ export default function Statements() {
       legalAddress = addrData;
     }
     const { data: memberAddr } = await (supabase as any).from("addresses").select("street_address, suburb, city, province, postal_code").eq("entity_id", entityId).eq("tenant_id", tenantId).eq("is_primary", true).maybeSingle();
-    const { data: openingUnitsData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId, p_up_to_date: format(new Date(dates.from.getTime() - 86400000), "yyyy-MM-dd") });
-    const { data: closingUnitsData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId, p_up_to_date: toStr });
-
-    const accountSet = new Set(acctIds);
-    const openingUnits = (openingUnitsData ?? []).filter((r: any) => accountSet.has(r.entity_account_id));
-    const closingUnits = (closingUnitsData ?? []).filter((r: any) => accountSet.has(r.entity_account_id));
-    const dedup = (rows: any[]) => { const map: Record<string, any> = {}; for (const r of rows ?? []) { if (!map[r.pool_id]) map[r.pool_id] = r; } return map; };
-
-    const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => { const d = Number(tx.debit || 0), c = Number(tx.credit || 0), v = Number(tx.value || 0); return d !== 0 || c !== 0 || v !== 0; });
 
     return generateCgtCertificate({
       taxYearLabel: getTaxYearLabel(),
       fromDate: fromStr, toDate: toStr, currencySymbol,
       entity: entityRes.data, entityAccounts: accts ?? [], memberAddress: memberAddr,
       tenantConfig: tenantConfigRes.data, legalEntity: tenantConfigRes.data?.entities, legalAddress,
-      unitTransactions: filteredUnitTx,
-      openingUnits, closingUnits, poolPricesStart: dedup(poolPricesStartRes.data), poolPricesEnd: dedup(poolPricesEndRes.data),
+      unitTransactions: redemptionTxRes.data ?? [],
+      allPurchasesBeforeStart: allPurchasesRes.data ?? [],
     });
   };
 
