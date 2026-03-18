@@ -525,7 +525,7 @@ const EntityPoolDetails = () => {
           {/* Below-summary pools with statement descriptions */}
           {belowSummaryPools.map((p) => (
             <div key={p.poolId} className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground mr-2">{p.statementDesc || p.poolName}:</span>
+              <span className="font-medium text-foreground mr-2">{translateStatementDesc(p.statementDesc, p.poolName, lang)}:</span>
               <span className="font-mono">{formatCurrency(p.value, sym)}</span>
             </div>
           ))}
