@@ -64,6 +64,7 @@ import MamContributionPlans from "./pages/mam/MamContributionPlans";
 import MamQuotes from "./pages/mam/MamQuotes";
 import MamAdmin from "./pages/mam/MamAdmin";
 import RegisterTenant from "./pages/RegisterTenant";
+import TenantSetupWizard from "./pages/TenantSetupWizard";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
