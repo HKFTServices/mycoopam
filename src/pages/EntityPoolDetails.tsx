@@ -90,6 +90,43 @@ const translations = {
 
 type Lang = keyof typeof translations;
 const t = (lang: Lang, key: keyof typeof translations.en) => translations[lang]?.[key] ?? translations.en[key];
+
+// Translate well-known pool names and statement descriptions
+const POOL_NAME_AF: Record<string, string> = {
+  "gold": "Goud",
+  "silver": "Silwer",
+  "member account": "Lidmaatskaprekening",
+  "reserve": "Reserwe",
+  "admin": "Admin",
+};
+
+const translatePoolName = (name: string, lang: Lang): string => {
+  if (lang !== "af") return name;
+  const lower = name.toLowerCase().trim();
+  // Check exact match first
+  if (POOL_NAME_AF[lower]) return POOL_NAME_AF[lower];
+  // Check if name contains a known term (e.g. "Gold Pool" → "Goud Poel")
+  for (const [en, af] of Object.entries(POOL_NAME_AF)) {
+    if (lower.includes(en)) return name.replace(new RegExp(en, "i"), af);
+  }
+  return name;
+};
+
+const translateStatementDesc = (desc: string, poolName: string, lang: Lang): string => {
+  if (lang !== "af") return desc || poolName;
+  if (!desc) return translatePoolName(poolName, lang);
+  // Simple keyword replacements for common statement description terms
+  return desc
+    .replace(/\bExposure to the\b/gi, "Blootstelling aan die")
+    .replace(/\bExposure to\b/gi, "Blootstelling aan")
+    .replace(/\bPool\b/gi, "Poel")
+    .replace(/\bGold\b/gi, "Goud")
+    .replace(/\bSilver\b/gi, "Silwer")
+    .replace(/\bReserve\b/gi, "Reserwe")
+    .replace(/\bMember\b/gi, "Lidmaatskap")
+    .replace(/\bAccount\b/gi, "Rekening");
+};
+
 const EntityPoolDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -275,7 +312,7 @@ const EntityPoolDetails = () => {
   const netValue = totalValue - loanOutstanding;
 
   const pieData = summaryPools.map((p) => ({
-    name: p.poolName,
+    name: translatePoolName(p.poolName, lang),
     value: Math.round(p.value * 100) / 100,
   }));
 
@@ -459,7 +496,7 @@ const EntityPoolDetails = () => {
                           {p.iconUrl ? (
                             <img src={p.iconUrl} alt={p.poolName} className="h-6 w-6 rounded object-cover shrink-0" />
                           ) : null}
-                          <span className="font-medium">{p.poolName}</span>
+                          <span className="font-medium">{translatePoolName(p.poolName, lang)}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
@@ -488,7 +525,7 @@ const EntityPoolDetails = () => {
           {/* Below-summary pools with statement descriptions */}
           {belowSummaryPools.map((p) => (
             <div key={p.poolId} className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground mr-2">{p.statementDesc || p.poolName}:</span>
+              <span className="font-medium text-foreground mr-2">{translateStatementDesc(p.statementDesc, p.poolName, lang)}:</span>
               <span className="font-mono">{formatCurrency(p.value, sym)}</span>
             </div>
           ))}
