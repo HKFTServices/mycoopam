@@ -187,8 +187,6 @@ const Items = () => {
       calculate_price_with_factor: item.calculate_price_with_factor != null ? String(item.calculate_price_with_factor) : "",
       price_formula: (item as any).price_formula ?? "",
       api_code: item.api_code ?? "",
-      api_key: (item as any).api_key ?? "",
-      api_link: item.api_link ?? "",
       is_stock_item: item.is_stock_item,
       is_active: item.is_active,
       tax_type_id: item.tax_type_id ?? "",
