@@ -1758,6 +1758,7 @@ export type Database = {
           margin_percentage: number
           pool_id: string
           price_formula: string | null
+          sell_margin_percentage: number
           show_item_price_on_statement: boolean
           tax_type_id: string | null
           tenant_id: string
@@ -1786,6 +1787,7 @@ export type Database = {
           margin_percentage?: number
           pool_id: string
           price_formula?: string | null
+          sell_margin_percentage?: number
           show_item_price_on_statement?: boolean
           tax_type_id?: string | null
           tenant_id: string
@@ -1814,6 +1816,7 @@ export type Database = {
           margin_percentage?: number
           pool_id?: string
           price_formula?: string | null
+          sell_margin_percentage?: number
           show_item_price_on_statement?: boolean
           tax_type_id?: string | null
           tenant_id?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.items ADD COLUMN IF NOT EXISTS sell_margin_percentage numeric DEFAULT 0 NOT NULL;
