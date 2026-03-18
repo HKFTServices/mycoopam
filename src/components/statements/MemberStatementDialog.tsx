@@ -286,6 +286,48 @@ export default function MemberStatementDialog({
           <Button
             variant="secondary"
             onClick={async () => {
+              setDownloading(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("send-member-statement", {
+                  body: {
+                    tenant_id: tenantId,
+                    entity_id: entityId,
+                    from_date: fromStr,
+                    to_date: toStr,
+                    mode: "download",
+                  },
+                });
+                if (error) throw error;
+                if (!data?.pdf_base64) throw new Error("No PDF returned");
+                // Convert base64 to blob and download
+                const byteChars = atob(data.pdf_base64);
+                const byteArray = new Uint8Array(byteChars.length);
+                for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+                const blob = new Blob([byteArray], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = data.filename || "statement.pdf";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast({ title: "PDF Downloaded", description: "The statement PDF has been downloaded." });
+              } catch (err: any) {
+                console.error("Download PDF error:", err);
+                toast({ title: "Error", description: err.message || "Failed to download PDF", variant: "destructive" });
+              } finally {
+                setDownloading(false);
+              }
+            }}
+            disabled={downloading || emailing || loading}
+          >
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+            Download PDF
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={async () => {
               setEmailing(true);
               try {
                 const { error } = await supabase.functions.invoke("send-member-statement", {
@@ -297,7 +339,7 @@ export default function MemberStatementDialog({
                   },
                 });
                 if (error) throw error;
-                toast({ title: "Statement Emailed", description: "The statement has been sent to the member's email address." });
+                toast({ title: "Statement Emailed", description: "The PDF statement has been sent to the member's email address." });
                 onOpenChange(false);
               } catch (err: any) {
                 console.error("Email statement error:", err);
@@ -306,14 +348,14 @@ export default function MemberStatementDialog({
                 setEmailing(false);
               }
             }}
-            disabled={emailing || loading}
+            disabled={emailing || loading || downloading}
           >
             {emailing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
-            Email Statement
+            Email PDF
           </Button>
-          <Button onClick={handleGenerate} disabled={loading || emailing}>
+          <Button onClick={handleGenerate} disabled={loading || emailing || downloading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-            Generate Statement
+            View HTML
           </Button>
         </DialogFooter>
       </DialogContent>
