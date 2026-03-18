@@ -20,11 +20,40 @@ export interface StatementData {
   loanOutstanding: number;
   loanPayout: number;
   loanRepaid: number;
+  loanTransactions?: any[];
   openingUnits: any[];
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
   poolPricesEnd: Record<string, any>;
 }
+
+/** Clean up raw legacy entry type labels like "Entry 1963" into readable descriptions */
+const cleanEntryType = (entryType: string, debit: number, credit: number): string => {
+  if (!entryType) return "Transaction";
+  // If it's a proper modern entry type, format it nicely
+  const entryTypeLabels: Record<string, string> = {
+    pool_allocation: "Deposit",
+    pool_redemption: "Withdrawal",
+    bank_deposit: "Bank Deposit",
+    bank_withdrawal: "Bank Withdrawal",
+    fee: "Fee",
+    stock_deposit: "Stock Deposit",
+    stock_withdrawal: "Stock Withdrawal",
+    stock_control: "Stock Control",
+    journal: "Journal",
+    bank: "Bank",
+    bank_contra: "Bank Contra",
+  };
+  if (entryTypeLabels[entryType]) return entryTypeLabels[entryType];
+  // Legacy "Entry XXXX" pattern — derive label from debit/credit direction
+  if (/^Entry\s+\d+$/i.test(entryType)) {
+    if (debit > 0 && credit === 0) return "Deposit";
+    if (credit > 0 && debit === 0) return "Withdrawal";
+    return "Transaction";
+  }
+  // Fallback: title-case the entry_type
+  return entryType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 const fmtDate = (d: string) => {
   if (!d) return "";
