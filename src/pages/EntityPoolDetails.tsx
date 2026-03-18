@@ -412,31 +412,33 @@ const EntityPoolDetails = () => {
         </Card>
       )}
 
-      {/* Unit Prices for exposed pools */}
+      {/* Notes section — compact inline prices & T&C */}
       {poolData.length > 0 && (
-        <PoolUnitPrices
-          poolPrices={poolPrices}
-          exposedPoolIds={poolData.map((p) => p.poolId)}
-          currencySymbol={sym}
-        />
-      )}
+        <div className="space-y-1.5 border-t border-border pt-4 mt-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</p>
 
-      {/* Items & Prices for exposed pools */}
-      {poolData.length > 0 && effectiveDate && currentTenant && (
-        <PoolItemsPrices
-          tenantId={currentTenant.id}
-          poolIds={poolData.map((p) => p.poolId)}
-          effectiveDate={effectiveDate}
-          currencySymbol={sym}
-        />
-      )}
+          <PoolUnitPrices
+            poolPrices={poolPrices}
+            exposedPoolIds={poolData.map((p) => p.poolId)}
+            currencySymbol={sym}
+          />
 
-      {/* Pool Terms & Conditions */}
-      {poolData.length > 0 && currentTenant && (
-        <PoolTermsConditions
-          tenantId={currentTenant.id}
-          poolIds={poolData.map((p) => p.poolId)}
-        />
+          {effectiveDate && currentTenant && (
+            <PoolItemsPrices
+              tenantId={currentTenant.id}
+              poolIds={poolData.map((p) => p.poolId)}
+              effectiveDate={effectiveDate}
+              currencySymbol={sym}
+            />
+          )}
+
+          {currentTenant && (
+            <PoolTermsConditions
+              tenantId={currentTenant.id}
+              poolIds={poolData.map((p) => p.poolId)}
+            />
+          )}
+        </div>
       )}
     </div>
   );
