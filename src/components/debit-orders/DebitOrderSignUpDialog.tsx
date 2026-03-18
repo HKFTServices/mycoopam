@@ -364,44 +364,59 @@ const DebitOrderSignUpDialog = ({
       if (!currentTenant || !user) throw new Error("Not authenticated");
       if (!signatureData) throw new Error("Please sign the mandate form");
 
-      const { error } = await (supabase as any)
-        .from("debit_orders")
-        .insert({
-          tenant_id: currentTenant.id,
-          entity_id: entityId,
-          entity_account_id: entityAccountId,
-          monthly_amount: totalAmount,
-          debit_day: parseInt(debitDay),
-          frequency,
-          start_date: startDate,
-          pool_allocations: computedAllocations.filter(a => a.percentage > 0).map(a => ({
-            pool_id: a.poolId,
-            pool_name: a.poolName,
-            percentage: a.percentage,
-            amount: a.amount,
-          })),
-          bank_name: bankName,
-          branch_code: branchCode,
-          account_name: accountName,
-          account_number: bankAccountNumber,
-          account_type: bankAccountType,
-          signature_data: signatureData,
-          signed_at: new Date().toISOString(),
-          status: "pending",
-          created_by: user.id,
-          notes: JSON.stringify({
-            loan_instalment: loanInstalment,
-            admin_fees: feeCalc.totalFee,
-            fee_breakdown: feeCalc.breakdown,
-            net_to_pools: afterFees,
-            user_notes: notes,
-          }),
-        });
-      if (error) throw error;
+      const payload = {
+        monthly_amount: totalAmount,
+        debit_day: parseInt(debitDay),
+        frequency,
+        start_date: startDate,
+        pool_allocations: computedAllocations.filter(a => a.percentage > 0).map(a => ({
+          pool_id: a.poolId,
+          pool_name: a.poolName,
+          percentage: a.percentage,
+          amount: a.amount,
+        })),
+        bank_name: bankName,
+        branch_code: branchCode,
+        account_name: accountName,
+        account_number: bankAccountNumber,
+        account_type: bankAccountType,
+        signature_data: signatureData,
+        signed_at: new Date().toISOString(),
+        notes: JSON.stringify({
+          loan_instalment: loanInstalment,
+          admin_fees: feeCalc.totalFee,
+          fee_breakdown: feeCalc.breakdown,
+          net_to_pools: afterFees,
+          user_notes: notes,
+        }),
+      };
+
+      if (isEditMode) {
+        // Update existing — reset status to pending for re-approval
+        const { error } = await (supabase as any)
+          .from("debit_orders")
+          .update({ ...payload, status: "pending", approved_by: null, approved_at: null })
+          .eq("id", existingOrder.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("debit_orders")
+          .insert({
+            ...payload,
+            tenant_id: currentTenant.id,
+            entity_id: entityId,
+            entity_account_id: entityAccountId,
+            status: "pending",
+            created_by: user.id,
+          });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Debit order mandate submitted for approval");
+      toast.success(isEditMode ? "Debit order updated — sent for re-approval" : "Debit order mandate submitted for approval");
       queryClient.invalidateQueries({ queryKey: ["debit_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
       resetForm();
       onOpenChange(false);
     },
