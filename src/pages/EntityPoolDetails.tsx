@@ -282,6 +282,7 @@ const EntityPoolDetails = () => {
   const entityFullName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
   const regOrId = entity?.registration_number || entity?.identity_number || "";
   const categoryName = entity?.entity_categories?.name || "";
+  const lang: Lang = (entity?.language_code === "af" ? "af" : "en");
 
   const membershipAccount = entityAccounts.find((a: any) => a.entity_account_types?.account_type === 1);
 
