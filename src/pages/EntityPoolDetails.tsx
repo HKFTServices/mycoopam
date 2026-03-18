@@ -240,18 +240,22 @@ const EntityPoolDetails = () => {
               <CardTitle className="text-lg">Pool Allocation</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={110}
-                    paddingAngle={3}
+                    innerRadius={55}
+                    outerRadius={100}
+                    paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    labelLine={false}
+                    label={({ name, percent, x, y, textAnchor }) => (
+                      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" className="text-xs fill-foreground">
+                        {`${name} (${(percent * 100).toFixed(0)}%)`}
+                      </text>
+                    )}
+                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                   >
                     {pieData.map((_, idx) => (
                       <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
