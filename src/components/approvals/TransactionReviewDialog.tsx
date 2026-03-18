@@ -84,6 +84,8 @@ const TransactionReviewDialog = ({
   const [stockReceivedConfirmed, setStockReceivedConfirmed] = useState(false);
   const [stockReceivedNotes, setStockReceivedNotes] = useState("");
   const [savingCourier, setSavingCourier] = useState(false);
+  const [adminSignature, setAdminSignature] = useState<string | null>(null);
+  const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
   // Reset when dialog opens
   useEffect(() => {
