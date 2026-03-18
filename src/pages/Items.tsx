@@ -206,8 +206,8 @@ const Items = () => {
   const otherItems = items.filter((i) => !editing || i.id !== editing.id);
 
   const testApi = async (item: Item) => {
-    if (!item.api_code && !item.api_link) {
-      toast.error("No API code or link configured for this item");
+    if (!item.api_code) {
+      toast.error("No API code configured for this item");
       return;
     }
     setTestingItemId(item.id);
