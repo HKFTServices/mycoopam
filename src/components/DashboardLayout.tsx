@@ -315,7 +315,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
