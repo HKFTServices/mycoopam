@@ -103,6 +103,7 @@ const App = () => (
               <Route path="/dashboard/users" element={<DashboardRoute><Users /></DashboardRoute>} />
               <Route path="/dashboard/pools" element={<DashboardRoute><Pools /></DashboardRoute>} />
               <Route path="/dashboard/transactions" element={<DashboardRoute><Transactions /></DashboardRoute>} />
+              <Route path="/dashboard/debit-orders" element={<DashboardRoute><DebitOrders /></DashboardRoute>} />
               <Route path="/dashboard/items" element={<DashboardRoute><Items /></DashboardRoute>} />
               <Route path="/dashboard/income-expense-items" element={<DashboardRoute><IncomeExpenseItems /></DashboardRoute>} />
               <Route path="/dashboard/fees" element={<DashboardRoute><Fees /></DashboardRoute>} />

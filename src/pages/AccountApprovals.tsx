@@ -1341,6 +1341,106 @@ const AccountApprovals = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ─── Debit Orders Approval Tab ─── */}
+        <TabsContent value="debit-orders">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Frequency</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>Allocations</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingDebitOrders ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></TableCell></TableRow>
+                  ) : pendingDebitOrders.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No pending debit orders</TableCell></TableRow>
+                  ) : (
+                    pendingDebitOrders.map((d: any) => {
+                      const pools = Array.isArray(d.pool_allocations) ? d.pool_allocations : [];
+                      const notes = (() => { try { return JSON.parse(d.notes); } catch { return null; } })();
+                      return (
+                        <TableRow key={d.id}>
+                          <TableCell className="font-medium">
+                            {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{d.entity_accounts?.account_number || "—"}</TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(d.monthly_amount, approvalSym)}</TableCell>
+                          <TableCell className="capitalize">{d.frequency}</TableCell>
+                          <TableCell>{d.start_date}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {notes?.loan_instalment > 0 && (
+                                <Badge variant="outline" className="text-[10px] text-destructive border-destructive">
+                                  Loan: {formatCurrency(notes.loan_instalment, approvalSym)}
+                                </Badge>
+                              )}
+                              {notes?.admin_fees > 0 && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  Fees: {formatCurrency(notes.admin_fees, approvalSym)}
+                                </Badge>
+                              )}
+                              {pools.map((p: any, i: number) => (
+                                <Badge key={i} variant="outline" className="text-[10px]">
+                                  {p.pool_name}: {p.percentage}%
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {d.signature_data && (
+                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                                  onClick={() => {
+                                    const w = window.open("", "_blank");
+                                    if (w) { w.document.write(`<img src="${d.signature_data}" style="max-width:100%"/>`); w.document.title = "Signature"; }
+                                  }}>
+                                  <Eye className="h-3.5 w-3.5" /> Sig
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                                onClick={async () => {
+                                  const { error } = await (supabase as any).from("debit_orders").update({
+                                    status: "approved", approved_by: currentUser?.id, approved_at: new Date().toISOString(),
+                                  }).eq("id", d.id);
+                                  if (error) { toast.error(error.message); return; }
+                                  toast.success("Debit order approved");
+                                  queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
+                                }}>
+                                <CheckCircle className="h-3.5 w-3.5" /> Approve
+                              </Button>
+                              <Button size="sm" variant="destructive" className="h-7 text-xs gap-1"
+                                onClick={async () => {
+                                  const reason = prompt("Decline reason:");
+                                  if (reason === null) return;
+                                  const { error } = await (supabase as any).from("debit_orders").update({
+                                    status: "declined", declined_by: currentUser?.id, declined_at: new Date().toISOString(), declined_reason: reason,
+                                  }).eq("id", d.id);
+                                  if (error) { toast.error(error.message); return; }
+                                  toast.success("Debit order declined");
+                                  queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
+                                }}>
+                                <XCircle className="h-3.5 w-3.5" /> Decline
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Loan Review Dialog */}
