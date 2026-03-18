@@ -45,7 +45,7 @@ type IdValidation = "idle" | "valid" | "invalid";
 
 const TransferDetailsStep = ({
   tenantId, fromAccountId, poolId, poolName,
-  currentHolding, unitPriceSell,
+  currentHolding, unitPriceSell, unitPriceBuy,
   feeBreakdown, totalFee,
   amount, useAllUnits, notes,
   recipientAccountNumber, recipientAccountId, recipientIdNumber,
