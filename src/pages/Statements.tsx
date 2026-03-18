@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { format, subDays, subMonths, subQuarters, startOfQuarter, endOfQuarter } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { generateMemberStatement, type StatementData } from "@/lib/generateMemberStatement";
+import { generateCgtCertificate, type CgtCertificateData } from "@/lib/generateCgtCertificate";
 
 type PresetKey = "custom" | "since_inception" | "last_2_weeks" | "last_30_days" | "last_12_months" | "prev_quarter" | "prev_fin_year";
 
@@ -464,6 +465,69 @@ export default function Statements() {
     });
   };
 
+  // Determine SA tax year label from dates
+  const getTaxYearLabel = () => {
+    const fromYear = new Date(fromStr).getFullYear();
+    const toYear = new Date(toStr).getFullYear();
+    return `${fromYear}/${toYear}`;
+  };
+
+  const generateCgtForEntity = async (entityId: string): Promise<string> => {
+    const { data: accts } = await (supabase as any)
+      .from("entity_accounts").select("id, account_number, entity_account_type_id, entity_account_types (account_type)")
+      .eq("entity_id", entityId).eq("tenant_id", tenantId!).eq("is_approved", true);
+    const acctIds = (accts ?? []).map((a: any) => a.id);
+    if (acctIds.length === 0) return "";
+
+    const [entityRes, tenantConfigRes, unitTxRes, poolPricesStartRes, poolPricesEndRes] = await Promise.all([
+      (supabase as any).from("entities").select("id, name, last_name, identity_number, registration_number, contact_number, email_address, entity_categories (name)").eq("id", entityId).single(),
+      (supabase as any).from("tenant_configuration").select("logo_url, directors, vat_number, registration_date, currency_symbol, legal_entity_id, entities:legal_entity_id (name, registration_number, contact_number, email_address)").eq("tenant_id", tenantId).maybeSingle(),
+      (supabase as any).from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
+      (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
+      (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
+    ]);
+
+    const legalEntityId = tenantConfigRes.data?.legal_entity_id;
+    let legalAddress: any = null;
+    if (legalEntityId) {
+      const { data: addrData } = await (supabase as any).from("addresses").select("street_address, suburb, city, province, postal_code").eq("entity_id", legalEntityId).eq("tenant_id", tenantId).eq("is_primary", true).maybeSingle();
+      legalAddress = addrData;
+    }
+    const { data: memberAddr } = await (supabase as any).from("addresses").select("street_address, suburb, city, province, postal_code").eq("entity_id", entityId).eq("tenant_id", tenantId).eq("is_primary", true).maybeSingle();
+    const { data: openingUnitsData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId, p_up_to_date: format(new Date(dates.from.getTime() - 86400000), "yyyy-MM-dd") });
+    const { data: closingUnitsData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId, p_up_to_date: toStr });
+
+    const accountSet = new Set(acctIds);
+    const openingUnits = (openingUnitsData ?? []).filter((r: any) => accountSet.has(r.entity_account_id));
+    const closingUnits = (closingUnitsData ?? []).filter((r: any) => accountSet.has(r.entity_account_id));
+    const dedup = (rows: any[]) => { const map: Record<string, any> = {}; for (const r of rows ?? []) { if (!map[r.pool_id]) map[r.pool_id] = r; } return map; };
+
+    const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => { const d = Number(tx.debit || 0), c = Number(tx.credit || 0), v = Number(tx.value || 0); return d !== 0 || c !== 0 || v !== 0; });
+
+    return generateCgtCertificate({
+      taxYearLabel: getTaxYearLabel(),
+      fromDate: fromStr, toDate: toStr, currencySymbol,
+      entity: entityRes.data, entityAccounts: accts ?? [], memberAddress: memberAddr,
+      tenantConfig: tenantConfigRes.data, legalEntity: tenantConfigRes.data?.entities, legalAddress,
+      unitTransactions: filteredUnitTx,
+      openingUnits, closingUnits, poolPricesStart: dedup(poolPricesStartRes.data), poolPricesEnd: dedup(poolPricesEndRes.data),
+    });
+  };
+
+  const handleViewCgt = async () => {
+    if (effectiveEntityIds.length === 0 || !tenantId) return;
+    setLoading(true);
+    try {
+      for (const entityId of effectiveEntityIds) {
+        const html = await generateCgtForEntity(entityId);
+        if (html) { const win = window.open("", "_blank"); if (win) { win.document.write(html); win.document.close(); } }
+      }
+    } catch (err: any) {
+      console.error("CGT error:", err);
+      toast({ title: "Error", description: err.message || "Failed to generate CGT certificate", variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
   const handleViewStatement = async () => {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setLoading(true);
@@ -782,9 +846,9 @@ export default function Statements() {
               </>
             )}
             {docType === "cgt" && (
-              <Button disabled={busy || selectedCount === 0} onClick={() => toast({ title: "Coming Soon", description: "CGT Certificate generation is under development." })}>
-                <FileText className="h-4 w-4 mr-2" />
-                Generate CGT Certificate
+              <Button onClick={handleViewCgt} disabled={busy || selectedCount === 0}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                View CGT Certificate {selectedCount > 1 ? `(${selectedCount})` : ""}
               </Button>
             )}
           </div>
