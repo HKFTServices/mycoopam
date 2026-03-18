@@ -52,7 +52,7 @@ interface StepDef {
   icon: any;
   /** Status this step transitions TO when completed */
   advancesTo: string | null;
-  type: "document_send" | "confirm" | "vault" | "final";
+  type: "document_send" | "confirm" | "vault" | "receipt" | "final";
   docType?: string; // for document_send steps
 }
 
