@@ -57,6 +57,7 @@ const APPLICATION_EVENTS: { value: AppEvent; label: string }[] = [
 const MERGE_FIELDS = [
   { tag: "{{account_number}}", label: "Member Number" },
   { tag: "{{entity_name}}", label: "Entity Name" },
+  { tag: "{{legal_entity_name}}", label: "Legal Entity Name" },
   { tag: "{{user_name}}", label: "User Name" },
   { tag: "{{user_surname}}", label: "User Surname" },
   { tag: "{{title}}", label: "Title" },
