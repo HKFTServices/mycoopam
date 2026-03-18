@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
         user_surname: profile.last_name || "User",
         email_address: profile.email,
         tenant_name: tenantName,
+        legal_entity_name: legalEntityName,
         email_signature: signature,
       });
 
