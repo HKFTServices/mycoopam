@@ -621,7 +621,7 @@ const TenantConfiguration = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!currentTenant) throw new Error("No tenant");
-      const { legal_entity_id, administrator_entity_id, share_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id, commission_income_gl_account_id, commission_paid_gl_account_id, pool_allocation_gl_account_id, vat_gl_account_id, stock_control_gl_account_id, ...rest } = form;
+      const { legal_entity_id, administrator_entity_id, share_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id, commission_income_gl_account_id, commission_paid_gl_account_id, pool_allocation_gl_account_id, vat_gl_account_id, stock_control_gl_account_id, theme_primary_hsl, theme_accent_hsl, theme_sidebar_hsl, ...rest } = form;
       const cleanPayload = {
         ...rest,
         registration_date: rest.registration_date || null,
@@ -635,6 +635,9 @@ const TenantConfiguration = () => {
         pool_allocation_gl_account_id: pool_allocation_gl_account_id || null,
         vat_gl_account_id: vat_gl_account_id || null,
         stock_control_gl_account_id: stock_control_gl_account_id || null,
+        theme_primary_hsl: theme_primary_hsl || null,
+        theme_accent_hsl: theme_accent_hsl || null,
+        theme_sidebar_hsl: theme_sidebar_hsl || null,
       };
       if (config?.id) {
         const { error } = await (supabase as any).from("tenant_configuration").update(cleanPayload).eq("id", config.id);
