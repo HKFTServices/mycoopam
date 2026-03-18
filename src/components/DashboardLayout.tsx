@@ -66,6 +66,7 @@ const mainNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Memberships", icon: Briefcase, path: "/dashboard/memberships" },
   { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions", subItems: [
+    { label: "Loan Applications", icon: Banknote, path: "/dashboard/loan-applications" },
     { label: "Debit Orders", icon: CreditCard, path: "/dashboard/debit-orders" },
   ] },
 ];
