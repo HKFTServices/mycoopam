@@ -478,7 +478,9 @@ const DailyPoolPrices = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  poolRows.map((row) => (
+                  poolRows.map((row) => {
+                    const isAdmin = row.pool.name.toLowerCase().includes("admin");
+                    return (
                     <Fragment key={row.pool.id}>
                       {/* Sell Row */}
                       <TableRow
@@ -509,10 +511,10 @@ const DailyPoolPrices = () => {
                           {formatCurrency(row.cashControl, sym)}
                         </TableCell>
                         <TableCell className="text-right font-mono" rowSpan={2}>
-                          {formatCurrency(row.vatControl, sym)}
+                          {isAdmin ? "-" : formatCurrency(row.vatControl, sym)}
                         </TableCell>
                         <TableCell className="text-right font-mono" rowSpan={2}>
-                          {formatCurrency(row.loanControl, sym)}
+                          {isAdmin ? "-" : formatCurrency(row.loanControl, sym)}
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">
                           {formatCurrency(row.memberInterestSell, sym)}
@@ -591,7 +593,8 @@ const DailyPoolPrices = () => {
                         </>
                       )}
                     </Fragment>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
