@@ -17,7 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import SignaturePad from "@/components/ui/signature-pad";
-import { Loader2, FileText, CreditCard } from "lucide-react";
+import { Loader2, FileText, CreditCard, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface DebitOrderSignUpDialogProps {
@@ -70,7 +70,7 @@ const DebitOrderSignUpDialog = ({
       if (!currentTenant) return null;
       const { data } = await (supabase as any)
         .from("tenant_configuration")
-        .select("currency_symbol, legal_entity_id")
+        .select("currency_symbol, legal_entity_id, is_vat_registered, vat_percentage")
         .eq("tenant_id", currentTenant.id)
         .maybeSingle();
       return data;
@@ -110,9 +110,11 @@ const DebitOrderSignUpDialog = ({
   });
 
   const sym = tenantConfig?.currency_symbol ?? "R";
+  const isVatRegistered = tenantConfig?.is_vat_registered ?? false;
+  const vatRate = Number(tenantConfig?.vat_percentage ?? 15);
 
-  // Fetch pools
-  const { data: pools = [] } = useQuery({
+  // Fetch pools — exclude admin pool
+  const { data: allPools = [] } = useQuery({
     queryKey: ["pools_for_debit_order", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
@@ -126,6 +128,11 @@ const DebitOrderSignUpDialog = ({
     },
     enabled: !!currentTenant && open,
   });
+
+  // Filter out admin pool from member-selectable pools
+  const pools = useMemo(() => {
+    return allPools.filter((p: any) => !p.name.toLowerCase().includes("admin"));
+  }, [allPools]);
 
   // Fetch entity details (member info for the form)
   const { data: entityDetails } = useQuery({
@@ -175,6 +182,66 @@ const DebitOrderSignUpDialog = ({
     enabled: !!entityId && !!currentTenant && open,
   });
 
+  // Outstanding loan info for the selected account
+  const { data: outstandingLoanInfo } = useQuery({
+    queryKey: ["outstanding_loan_debit_order", entityAccountId, currentTenant?.id],
+    queryFn: async () => {
+      if (!entityAccountId || !currentTenant) return null;
+      const { data: loans } = await (supabase as any)
+        .from("loan_applications")
+        .select("id, monthly_instalment, total_loan, amount_approved, pool_id")
+        .eq("entity_account_id", entityAccountId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("status", "disbursed")
+        .order("created_at", { ascending: false });
+      if (!loans?.length) return null;
+
+      const { data: cftRows } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("debit, credit")
+        .eq("entity_account_id", entityAccountId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
+
+      const outstanding = (cftRows || []).reduce((sum: number, r: any) =>
+        sum + Number(r.debit) - Number(r.credit), 0);
+
+      if (outstanding <= 0) return null;
+
+      const totalInstalment = loans.reduce((sum: number, l: any) =>
+        sum + (Number(l.monthly_instalment) || 0), 0);
+
+      return { outstanding, instalment: totalInstalment };
+    },
+    enabled: !!entityAccountId && !!currentTenant && open,
+  });
+
+  // Fee rules for deposit transaction type
+  const { data: depositFeeRules = [] } = useQuery({
+    queryKey: ["debit_order_fee_rules", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      // Find the "Deposit Funds" transaction type
+      const { data: txnTypes } = await (supabase as any)
+        .from("transaction_types")
+        .select("id")
+        .eq("tenant_id", currentTenant.id)
+        .eq("code", "DEPOSIT_FUNDS")
+        .limit(1);
+      if (!txnTypes?.length) return [];
+      const depositTypeId = txnTypes[0].id;
+      const { data } = await (supabase as any)
+        .from("transaction_fee_rules")
+        .select("*, transaction_fee_tiers(*), transaction_fee_types!inner(code, name, gl_account_id)")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .eq("transaction_type_id", depositTypeId);
+      return data ?? [];
+    },
+    enabled: !!currentTenant && open,
+  });
+
   // Auto-fill bank details when data loads
   useEffect(() => {
     if (existingBank) {
@@ -199,20 +266,64 @@ const DebitOrderSignUpDialog = ({
     }
   }, [pools]);
 
-  // Recalculate amounts when monthly amount or percentages change
+  // ── Fee calculation (same logic as NewTransactionDialog) ──
+  const calculateFees = (amount: number) => {
+    if (amount <= 0) return { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number }[] };
+    const breakdown: { name: string; amount: number; vat: number }[] = [];
+    let totalFee = 0;
+    let totalVatAmt = 0;
+    for (const rule of depositFeeRules) {
+      let fee = 0;
+      let appliedPct: number | null = null;
+      if (rule.calculation_method === "percentage") {
+        appliedPct = Number(rule.percentage);
+        fee = amount * (appliedPct / 100);
+      } else if (rule.calculation_method === "fixed_amount") {
+        fee = Number(rule.fixed_amount);
+      } else if (rule.calculation_method === "sliding_scale") {
+        const tiers = (rule.transaction_fee_tiers || []).sort((a: any, b: any) => Number(a.min_amount) - Number(b.min_amount));
+        for (const tier of tiers) {
+          if (amount >= Number(tier.min_amount) && amount <= (tier.max_amount ? Number(tier.max_amount) : Infinity)) {
+            appliedPct = Number(tier.percentage);
+            fee = amount * (appliedPct / 100);
+            break;
+          }
+        }
+      }
+      // Only apply debit order fees (exclude cash_deposit specific fees)
+      if (rule.transaction_fee_types?.code?.toUpperCase().includes("CASH_DEPOSIT")) continue;
+      const feeVat = isVatRegistered ? fee * (vatRate / 100) : 0;
+      const feeInclVat = fee + feeVat;
+      totalFee += feeInclVat;
+      totalVatAmt += feeVat;
+      const feeName = rule.transaction_fee_types?.name || rule.transaction_fee_types?.code || "Fee";
+      breakdown.push({
+        name: appliedPct != null ? `${feeName} (${appliedPct}%)` : feeName,
+        amount: feeInclVat,
+        vat: feeVat,
+      });
+    }
+    return { totalFee, totalVat: totalVatAmt, breakdown };
+  };
+
+  // ── Waterfall calculation ──
   const totalAmount = parseFloat(monthlyAmount) || 0;
+  const loanInstalment = outstandingLoanInfo?.instalment ?? 0;
+  const afterLoan = Math.max(0, totalAmount - loanInstalment);
+  const feeCalc = calculateFees(afterLoan);
+  const afterFees = Math.max(0, afterLoan - feeCalc.totalFee);
   const totalPct = allocations.reduce((s, a) => s + a.percentage, 0);
 
   const updateAllocationPct = (idx: number, pct: number) => {
-    setAllocations(prev => prev.map((a, i) => i === idx ? { ...a, percentage: pct, amount: (totalAmount * pct) / 100 } : a));
+    setAllocations(prev => prev.map((a, i) => i === idx ? { ...a, percentage: pct } : a));
   };
 
   const computedAllocations = allocations.map(a => ({
     ...a,
-    amount: (totalAmount * a.percentage) / 100,
+    amount: (afterFees * a.percentage) / 100,
   }));
 
-  const canProceed = totalAmount > 0 && totalPct === 100 && bankName && bankAccountNumber && accountName;
+  const canProceed = totalAmount > 0 && totalPct === 100 && bankName && bankAccountNumber && accountName && afterFees > 0;
 
   // Submit mutation
   const submitMutation = useMutation({
@@ -245,7 +356,13 @@ const DebitOrderSignUpDialog = ({
           signed_at: new Date().toISOString(),
           status: "pending",
           created_by: user.id,
-          notes,
+          notes: JSON.stringify({
+            loan_instalment: loanInstalment,
+            admin_fees: feeCalc.totalFee,
+            fee_breakdown: feeCalc.breakdown,
+            net_to_pools: afterFees,
+            user_notes: notes,
+          }),
         });
       if (error) throw error;
     },
@@ -279,9 +396,6 @@ const DebitOrderSignUpDialog = ({
     ? [entityAddress.street_address, entityAddress.suburb, entityAddress.city, entityAddress.province, entityAddress.postal_code].filter(Boolean).join(", ")
     : "";
   const tenantFullName = tenantEntity?.name ?? currentTenant?.name ?? "";
-  const tenantAddressStr = tenantAddress
-    ? [tenantAddress.street_address, tenantAddress.suburb, tenantAddress.city, tenantAddress.province, tenantAddress.postal_code].filter(Boolean).join(", ")
-    : "";
 
   const today = new Date();
   const dayOfMonth = today.getDate();
@@ -309,7 +423,7 @@ const DebitOrderSignUpDialog = ({
               <h3 className="font-semibold text-sm mb-3">Debit Order Details</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="col-span-2 sm:col-span-1">
-                  <Label>Monthly Amount ({sym})</Label>
+                  <Label>Gross Monthly Amount ({sym})</Label>
                   <Input type="number" min="0" step="0.01" value={monthlyAmount} onChange={(e) => setMonthlyAmount(e.target.value)} placeholder="0.00" />
                 </div>
                 <div>
@@ -343,11 +457,69 @@ const DebitOrderSignUpDialog = ({
 
             <Separator />
 
+            {/* ── Deduction Waterfall ── */}
+            {totalAmount > 0 && (
+              <div className="rounded-md border p-4 space-y-3 bg-muted/30">
+                <h3 className="font-semibold text-sm">Deduction Breakdown</h3>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span>Gross Debit Order Amount</span>
+                    <span className="font-mono font-semibold">{formatCurrency(totalAmount, sym)}</span>
+                  </div>
+
+                  {/* Loan Instalment */}
+                  {loanInstalment > 0 && (
+                    <div className="flex justify-between text-destructive">
+                      <span className="flex items-center gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Less: Loan Instalment
+                      </span>
+                      <span className="font-mono">- {formatCurrency(loanInstalment, sym)}</span>
+                    </div>
+                  )}
+                  {loanInstalment > 0 && (
+                    <div className="flex justify-between border-t pt-1">
+                      <span className="text-muted-foreground">After loan repayment</span>
+                      <span className="font-mono">{formatCurrency(afterLoan, sym)}</span>
+                    </div>
+                  )}
+
+                  {/* Admin Fees */}
+                  {feeCalc.breakdown.length > 0 && (
+                    <>
+                      {feeCalc.breakdown.map((f, i) => (
+                        <div key={i} className="flex justify-between text-muted-foreground">
+                          <span>Less: {f.name}{f.vat > 0 ? ` (incl VAT ${formatCurrency(f.vat, sym)})` : ""}</span>
+                          <span className="font-mono">- {formatCurrency(f.amount, sym)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  <Separator />
+
+                  <div className="flex justify-between font-semibold text-base">
+                    <span>Net Amount to Pools</span>
+                    <span className="font-mono text-primary">{formatCurrency(afterFees, sym)}</span>
+                  </div>
+
+                  {afterFees <= 0 && totalAmount > 0 && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      The gross amount is insufficient to cover deductions. Please increase the amount.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
             {/* Pool Allocations */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Pool Allocation</h3>
               <p className="text-xs text-muted-foreground mb-3">
-                Allocate how your {sym} {totalAmount > 0 ? formatCurrency(totalAmount, sym) : "0.00"} will be split across pools (must total 100%)
+                Allocate how the net {formatCurrency(afterFees, sym)} will be split across pools (must total 100%)
               </p>
               {totalPct !== 100 && totalAmount > 0 && (
                 <p className="text-xs text-destructive mb-2">Total allocation is {totalPct}% — must be exactly 100%</p>
@@ -490,9 +662,44 @@ const DebitOrderSignUpDialog = ({
 
               <p className="text-xs mt-2">
                 <strong>{frequency.charAt(0).toUpperCase() + frequency.slice(1)} amount of {formatCurrency(totalAmount, sym)}</strong>{" "}
-                (amount in words) starting on {debitDay}/{startDate.split("-")[1]}/{startDate.split("-")[0]}{" "}
+                starting on {debitDay}/{startDate.split("-")[1]}/{startDate.split("-")[0]}{" "}
                 (as {frequency} contributions to my member's share in {tenantFullName}.)
               </p>
+
+              {/* Deduction waterfall on mandate */}
+              <div className="mt-3">
+                <p className="text-xs font-semibold mb-1">Allocation Schedule:</p>
+                <table className="w-full border-collapse border border-gray-400 text-xs">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-400 p-1 text-left">Description</th>
+                      <th className="border border-gray-400 p-1 text-right w-28">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-400 p-1 font-semibold">Gross Debit Order</td>
+                      <td className="border border-gray-400 p-1 text-right font-mono">{formatCurrency(totalAmount, sym)}</td>
+                    </tr>
+                    {loanInstalment > 0 && (
+                      <tr>
+                        <td className="border border-gray-400 p-1">Less: Loan Instalment</td>
+                        <td className="border border-gray-400 p-1 text-right font-mono">({formatCurrency(loanInstalment, sym)})</td>
+                      </tr>
+                    )}
+                    {feeCalc.breakdown.map((f, i) => (
+                      <tr key={i}>
+                        <td className="border border-gray-400 p-1">Less: {f.name}</td>
+                        <td className="border border-gray-400 p-1 text-right font-mono">({formatCurrency(f.amount, sym)})</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-400 p-1 font-semibold">Net to Investment Pools</td>
+                      <td className="border border-gray-400 p-1 text-right font-mono font-semibold">{formatCurrency(afterFees, sym)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
               {/* Pool allocation table */}
               <div className="mt-3">
@@ -516,7 +723,7 @@ const DebitOrderSignUpDialog = ({
                     <tr className="font-bold bg-gray-50">
                       <td className="border border-gray-400 p-1">Total</td>
                       <td className="border border-gray-400 p-1 text-right">{totalPct}%</td>
-                      <td className="border border-gray-400 p-1 text-right font-mono">{formatCurrency(totalAmount, sym)}</td>
+                      <td className="border border-gray-400 p-1 text-right font-mono">{formatCurrency(afterFees, sym)}</td>
                     </tr>
                   </tbody>
                 </table>
