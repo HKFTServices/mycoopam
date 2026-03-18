@@ -120,7 +120,7 @@ const EntityPoolDetails = () => {
       if (!entityId) return null;
       const { data, error } = await (supabase as any)
         .from("entities")
-        .select("id, name, last_name, identity_number, registration_number, entity_categories (name)")
+        .select("id, name, last_name, identity_number, registration_number, language_code, entity_categories (name)")
         .eq("id", entityId)
         .single();
       if (error) throw error;
