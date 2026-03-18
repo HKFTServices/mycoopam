@@ -192,8 +192,41 @@ export function generateMemberStatement(data: StatementData): string {
     </tr>`;
   }).join("");
 
-  // Loans section
-  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0;
+  // Loans section - build transaction detail with opening/closing balance
+  const loanTx = data.loanTransactions ?? [];
+  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0 || loanTx.length > 0;
+
+  // Calculate opening loan balance = total outstanding minus period movements
+  // Opening balance = closing balance - (period debits - period credits)
+  const periodLoanDebit = loanTx.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
+  const periodLoanCredit = loanTx.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
+  const loanClosingBalance = data.loanOutstanding;
+  const loanOpeningBalance = loanClosingBalance - (periodLoanDebit - periodLoanCredit);
+
+  const loanEntryTypeLabels: Record<string, string> = {
+    loan_capital: "Loan Payout",
+    loan_fee: "Loan Fee",
+    loan_loading: "Loan Loading",
+    loan_repayment: "Loan Repayment",
+    loan_interest: "Loan Interest",
+    loan_writeoff: "Loan Write-off",
+    loan_control: "Loan Control",
+  };
+
+  let loanRunning = loanOpeningBalance;
+  const loanRows = loanTx.map((tx: any) => {
+    const debit = Number(tx.debit || 0);
+    const credit = Number(tx.credit || 0);
+    loanRunning += debit - credit;
+    const label = tx.entry_type_name || loanEntryTypeLabels[tx.entry_type] || tx.entry_type?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Transaction";
+    return `<tr>
+      <td>${fmtDate(tx.transaction_date)}</td>
+      <td>${label}</td>
+      <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
+      <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
+      <td class="num ${loanRunning > 0 ? 'neg' : ''}">${fmtNum(loanRunning, sym)}</td>
+    </tr>`;
+  }).join("");
 
   return `<!DOCTYPE html>
 <html><head>
