@@ -203,7 +203,7 @@ const DepositDetailsStep = ({
           onChange={handleAmountChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className="text-lg font-bold h-12"
+          className="text-base font-bold h-10"
         />
         {!isFocused && !amount && (
           <p className="text-[10px] text-muted-foreground">Use <span className="font-semibold">.</span> as the decimal separator (e.g. 1 500.50)</p>
