@@ -454,8 +454,8 @@ const Items = () => {
           <DialogHeader>
             <DialogTitle>API Test Result – {apiResult.itemCode}</DialogTitle>
             <DialogDescription>
-              {apiResult.data?.url && (
-                <span className="text-xs font-mono break-all">{apiResult.data.url}</span>
+              {apiResult.data?.symbol && (
+                <span className="text-xs font-mono break-all">Symbol: {apiResult.data.symbol}</span>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -465,11 +465,18 @@ const Items = () => {
                 HTTP {apiResult.data.status}
               </Badge>
             )}
+            {apiResult.data?.price_in_zar != null && (
+              <div className="text-lg font-semibold">
+                Price in ZAR: R {Number(apiResult.data.price_in_zar).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            )}
             <ScrollArea className="h-[300px] rounded border p-3">
               <pre className="text-xs whitespace-pre-wrap font-mono">
-                {apiResult.data?.result
-                  ? JSON.stringify(apiResult.data.result, null, 2)
-                  : apiResult.data?.error || "No data"}
+                {apiResult.data?.api_response
+                  ? JSON.stringify(apiResult.data.api_response, null, 2)
+                  : apiResult.data?.result
+                    ? JSON.stringify(apiResult.data.result, null, 2)
+                    : apiResult.data?.error || "No data"}
               </pre>
             </ScrollArea>
           </div>
