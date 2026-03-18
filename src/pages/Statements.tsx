@@ -886,10 +886,21 @@ export default function Statements() {
               </>
             )}
             {docType === "cgt" && (
-              <Button onClick={handleViewCgt} disabled={busy || selectedCount === 0}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                View CGT Certificate {selectedCount > 1 ? `(${selectedCount})` : ""}
-              </Button>
+              <>
+                <Button onClick={handleViewCgt} disabled={busy || selectedCount === 0}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                  View CGT Certificate {selectedCount > 1 ? `(${selectedCount})` : ""}
+                </Button>
+                <Button variant="secondary" onClick={handleDownloadCgtPdf} disabled={busy || selectedCount === 0}>
+                  {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                  Download PDF {selectedCount > 1 ? `(${selectedCount})` : ""}
+                </Button>
+                <Button variant="secondary" onClick={handleEmailCgtPdf} disabled={busy || selectedCount === 0}>
+                  {emailing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                  Email PDF {selectedCount > 1 ? `(${selectedCount})` : ""}
+                </Button>
+              </>
+            )}
             )}
           </div>
         </CardContent>
