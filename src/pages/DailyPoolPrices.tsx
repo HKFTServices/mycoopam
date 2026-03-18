@@ -234,10 +234,10 @@ const DailyPoolPrices = () => {
   // Build pool rows - use saved data when available, otherwise calculate live
   const poolRows: PoolRow[] = useMemo(() => {
     const itemPoolMap: Record<string, string> = {};
-    const itemDetailsMap: Record<string, { item_code: string; description: string }> = {};
+    const itemDetailsMap: Record<string, { item_code: string; description: string; sell_margin_percentage: number }> = {};
     items.forEach((i) => {
       itemPoolMap[i.id] = i.pool_id;
-      itemDetailsMap[i.id] = { item_code: i.item_code, description: i.description };
+      itemDetailsMap[i.id] = { item_code: i.item_code, description: i.description, sell_margin_percentage: i.sell_margin_percentage ?? 0 };
     });
 
     // Build stock price lookup
