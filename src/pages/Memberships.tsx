@@ -15,7 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight } from "lucide-react";
+import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
@@ -23,6 +23,7 @@ import ApplyReferrerDialog from "@/components/membership/ApplyReferrerDialog";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
+import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -73,6 +74,7 @@ const Memberships = () => {
   const [txnDefaultAccountId, setTxnDefaultAccountId] = useState<string | undefined>(undefined);
   const [referrerDialogEntity, setReferrerDialogEntity] = useState<{ id: string; name: string } | null>(null);
   const [loanApplyEntity, setLoanApplyEntity] = useState<{ entityAccountId: string; entityId: string; entityName: string } | null>(null);
+  const [debitOrderEntity, setDebitOrderEntity] = useState<{ entityId: string; entityName: string; entityAccountId: string; accountNumber?: string } | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch entity account types (for mapping account_type int to id)
@@ -653,6 +655,15 @@ const Memberships = () => {
                                   <Banknote className="h-4 w-4 mr-2" />
                                   Apply for Loan
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved");
+                                  if (activeAcct) {
+                                    setDebitOrderEntity({ entityId: g.entityId, entityName: g.entityName, entityAccountId: activeAcct.id, accountNumber: activeAcct.accountNumber });
+                                  }
+                                }}>
+                                  <CreditCard className="h-4 w-4 mr-2" />
+                                  Debit Order Sign Up
+                                </DropdownMenuItem>
                               </>
                             )}
                             {g.accounts.length === 0 && (
@@ -799,6 +810,16 @@ const Memberships = () => {
           entityAccountId={loanApplyEntity.entityAccountId}
           entityId={loanApplyEntity.entityId}
           entityName={loanApplyEntity.entityName}
+        />
+      )}
+      {debitOrderEntity && (
+        <DebitOrderSignUpDialog
+          open={!!debitOrderEntity}
+          onOpenChange={(open) => { if (!open) setDebitOrderEntity(null); }}
+          entityId={debitOrderEntity.entityId}
+          entityName={debitOrderEntity.entityName}
+          entityAccountId={debitOrderEntity.entityAccountId}
+          accountNumber={debitOrderEntity.accountNumber}
         />
       )}
     </div>
