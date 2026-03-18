@@ -567,6 +567,17 @@ const EntityPoolDetails = () => {
           )}
         </div>
       )}
+      {/* Statement Dialog */}
+      {entityId && currentTenant && (
+        <MemberStatementDialog
+          open={statementOpen}
+          onOpenChange={setStatementOpen}
+          entityId={entityId}
+          entityAccountIds={entityAccounts.map((a: any) => a.id)}
+          tenantId={currentTenant.id}
+          currencySymbol={sym}
+        />
+      )}
     </div>
   );
 };
