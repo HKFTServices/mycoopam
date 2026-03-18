@@ -322,6 +322,7 @@ const Items = () => {
                       </TableCell>
                       <TableCell className="text-xs">{taxType ? `${taxType.name} (${taxType.percentage}%)` : "—"}</TableCell>
                       <TableCell>{item.margin_percentage}%</TableCell>
+                      <TableCell>{(item as any).sell_margin_percentage ?? 0}%</TableCell>
                       <TableCell>{item.use_fixed_price != null ? item.use_fixed_price.toFixed(2) : "—"}</TableCell>
                       <TableCell className="text-xs">{item.api_provider_id ? providerMap[item.api_provider_id] ?? "—" : "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{item.api_code ?? "—"}</TableCell>
