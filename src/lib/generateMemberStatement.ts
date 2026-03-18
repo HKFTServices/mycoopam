@@ -444,14 +444,25 @@ ${hasLoanData ? `<div class="section">
   <table>
     <thead>
       <tr>
-        <th>Description</th>
-        <th class="num">Amount</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th class="num">Debit</th>
+        <th class="num">Credit</th>
+        <th class="num">Balance</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td>Total Disbursed</td><td class="num">${fmtNum(data.loanPayout, sym)}</td></tr>
-      <tr><td>Total Repaid</td><td class="num">${fmtNum(data.loanRepaid, sym)}</td></tr>
-      <tr class="total"><td>Outstanding Balance</td><td class="num ${data.loanOutstanding > 0 ? 'neg' : ''}">${fmtNum(data.loanOutstanding, sym)}</td></tr>
+      <tr style="background:#f5f7fa;font-weight:600">
+        <td colspan="4">Opening Balance</td>
+        <td class="num ${loanOpeningBalance > 0 ? 'neg' : ''}">${fmtNum(loanOpeningBalance, sym)}</td>
+      </tr>
+      ${loanRows || '<tr><td colspan="5" class="empty-msg">No loan movements in this period</td></tr>'}
+      <tr class="total">
+        <td colspan="2">Closing Balance</td>
+        <td class="num">${periodLoanDebit > 0 ? fmtNum(periodLoanDebit, sym) : ""}</td>
+        <td class="num">${periodLoanCredit > 0 ? fmtNum(periodLoanCredit, sym) : ""}</td>
+        <td class="num ${loanClosingBalance > 0 ? 'neg' : ''}">${fmtNum(loanClosingBalance, sym)}</td>
+      </tr>
     </tbody>
   </table>
 </div>` : ""}
