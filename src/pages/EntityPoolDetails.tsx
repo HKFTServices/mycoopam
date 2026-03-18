@@ -107,15 +107,15 @@ const EntityPoolDetails = () => {
 
   // Fetch unit holdings per account per pool
   const { data: accountPoolUnits = [] } = useQuery({
-    queryKey: ["account_pool_units_detail", currentTenant?.id],
+    queryKey: ["account_pool_units_detail", currentTenant?.id, effectiveDate],
     queryFn: async () => {
-      if (!currentTenant) return [];
+      if (!currentTenant || !effectiveDate) return [];
       const { data, error } = await (supabase as any)
-        .rpc("get_account_pool_units", { p_tenant_id: currentTenant.id });
+        .rpc("get_account_pool_units", { p_tenant_id: currentTenant.id, p_up_to_date: effectiveDate });
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!currentTenant,
+    enabled: !!currentTenant && !!effectiveDate,
   });
 
   // Fetch tenant config for currency symbol
