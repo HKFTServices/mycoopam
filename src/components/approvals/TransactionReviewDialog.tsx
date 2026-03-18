@@ -357,6 +357,7 @@ const TransactionReviewDialog = ({
       case "review": return renderReviewStep();
       case "courier": return renderCourierStep();
       case "stock_received": return renderStockReceivedStep();
+      case "receipt": return renderReceiptStep();
       case "approve": return renderFinalApproveStep();
       default: return renderReviewStep();
     }
