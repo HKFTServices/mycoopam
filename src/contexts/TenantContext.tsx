@@ -13,6 +13,14 @@ interface TenantBranding {
   themeSidebarHsl: string | null;
 }
 
+const defaultBranding: TenantBranding = {
+  legalEntityName: null,
+  logoUrl: null,
+  themePrimaryHsl: null,
+  themeAccentHsl: null,
+  themeSidebarHsl: null,
+};
+
 interface TenantContextType {
   tenants: Tenant[];
   currentTenant: Tenant | null;
@@ -26,24 +34,50 @@ const TenantContext = createContext<TenantContextType>({
   currentTenant: null,
   setCurrentTenant: () => {},
   loading: true,
-  branding: { legalEntityName: null, logoUrl: null },
+  branding: defaultBranding,
 });
 
 export const useTenant = () => useContext(TenantContext);
+
+// Apply tenant theme CSS variables to the document root
+const applyTheme = (branding: TenantBranding) => {
+  const root = document.documentElement;
+
+  if (branding.themePrimaryHsl) {
+    root.style.setProperty("--primary", branding.themePrimaryHsl);
+    root.style.setProperty("--ring", branding.themePrimaryHsl);
+  } else {
+    root.style.removeProperty("--primary");
+    root.style.removeProperty("--ring");
+  }
+
+  if (branding.themeAccentHsl) {
+    root.style.setProperty("--accent", branding.themeAccentHsl);
+  } else {
+    root.style.removeProperty("--accent");
+  }
+
+  if (branding.themeSidebarHsl) {
+    root.style.setProperty("--sidebar-background", branding.themeSidebarHsl);
+  } else {
+    root.style.removeProperty("--sidebar-background");
+  }
+};
 
 export const TenantProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
-  const [branding, setBranding] = useState<TenantBranding>({ legalEntityName: null, logoUrl: null });
+  const [branding, setBranding] = useState<TenantBranding>(defaultBranding);
 
   useEffect(() => {
     if (!user) {
       setTenants([]);
       setCurrentTenant(null);
       setLoading(false);
-      setBranding({ legalEntityName: null, logoUrl: null });
+      setBranding(defaultBranding);
+      applyTheme(defaultBranding);
       return;
     }
 
@@ -78,16 +112,17 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     fetchTenants();
   }, [user]);
 
-  // Fetch branding (legal entity name + logo) when tenant changes
+  // Fetch branding (legal entity name + logo + theme) when tenant changes
   useEffect(() => {
     if (!currentTenant) {
-      setBranding({ legalEntityName: null, logoUrl: null });
+      setBranding(defaultBranding);
+      applyTheme(defaultBranding);
       return;
     }
     const fetchBranding = async () => {
-      const { data: config } = await supabase
+      const { data: config } = await (supabase as any)
         .from("tenant_configuration")
-        .select("legal_entity_id, logo_url")
+        .select("legal_entity_id, logo_url, theme_primary_hsl, theme_accent_hsl, theme_sidebar_hsl")
         .eq("tenant_id", currentTenant.id)
         .maybeSingle();
 
@@ -100,7 +135,15 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
           .maybeSingle();
         legalEntityName = entity?.name ?? null;
       }
-      setBranding({ legalEntityName, logoUrl: config?.logo_url ?? null });
+      const newBranding: TenantBranding = {
+        legalEntityName,
+        logoUrl: config?.logo_url ?? null,
+        themePrimaryHsl: config?.theme_primary_hsl ?? null,
+        themeAccentHsl: config?.theme_accent_hsl ?? null,
+        themeSidebarHsl: config?.theme_sidebar_hsl ?? null,
+      };
+      setBranding(newBranding);
+      applyTheme(newBranding);
     };
     fetchBranding();
   }, [currentTenant?.id]);
