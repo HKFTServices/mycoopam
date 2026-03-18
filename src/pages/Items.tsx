@@ -264,7 +264,7 @@ const Items = () => {
                 <TableHead>Margin %</TableHead>
                 <TableHead>Fixed Price</TableHead>
                 <TableHead>API Code</TableHead>
-                <TableHead>API Link</TableHead>
+                
                 <TableHead>Formula</TableHead>
                 
                 <TableHead>Stock</TableHead>
