@@ -389,6 +389,7 @@ const DebitOrderSignUpDialog = ({
     setFrequency("monthly");
     setStartDate(getFirstOfNextMonth());
     setAllocations([]);
+    setManualLoanInstalment("");
     setSignatureData(null);
     setNotes("");
     setBankName("");
