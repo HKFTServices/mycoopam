@@ -469,6 +469,32 @@ const DebitOrderSignUpDialog = ({
                   </div>
 
                   {/* Loan Instalment */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label className="text-xs">Loan Instalment ({sym})</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder={suggestedInstalment > 0 ? String(suggestedInstalment.toFixed(2)) : "0.00"}
+                          value={manualLoanInstalment}
+                          onChange={(e) => setManualLoanInstalment(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      {suggestedInstalment > 0 && manualLoanInstalment !== "" && (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setManualLoanInstalment("")}>
+                          Reset
+                        </Button>
+                      )}
+                    </div>
+                    {suggestedInstalment > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Suggested instalment from active loan(s): {formatCurrency(suggestedInstalment, sym)}
+                      </p>
+                    )}
+                  </div>
                   {loanInstalment > 0 && (
                     <div className="flex justify-between text-destructive">
                       <span className="flex items-center gap-1.5">
