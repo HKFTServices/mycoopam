@@ -58,6 +58,9 @@ export default function SendMessage() {
   const [isSending, setIsSending] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [valuationDate, setValuationDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [agmVenue, setAgmVenue] = useState("");
+  const [agmDate, setAgmDate] = useState("");
+  const [agmTime, setAgmTime] = useState("");
   const tenantId = currentTenant?.id;
 
   // Fetch pools for pool-based audience
