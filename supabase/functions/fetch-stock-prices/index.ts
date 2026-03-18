@@ -102,8 +102,6 @@ function evalFormula(formula: string, apiPrices: Record<string, number>): number
   }
 }
 
-// Metal symbols need 1/rate to convert from "per ZAR" to "ZAR per unit"
-const METAL_SYMBOLS = new Set(["XAU", "XAG", "XPT", "XPD", "XRH", "XCU"]);
 
 /**
  * Fetch all prices from metals-api.com in a single call.
@@ -135,10 +133,7 @@ async function fetchMetalsApiPrices(
   const prices: Record<string, number> = {};
   for (const [symbol, rate] of Object.entries(data.rates as Record<string, number>)) {
     if (rate && rate !== 0) {
-      // For metals: rate = amount of metal per 1 ZAR, so price in ZAR = 1/rate
-      // For currencies: rate = amount of currency per 1 ZAR, so ZAR per 1 unit = 1/rate
-      // metals-api with non-USD base: we always need 1/rate to get "ZAR per 1 unit"
-      prices[symbol] = 1 / rate;
+      prices[symbol] = rate;
     }
   }
 
