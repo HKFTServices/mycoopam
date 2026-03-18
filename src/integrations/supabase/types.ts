@@ -5639,23 +5639,14 @@ export type Database = {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: undefined
       }
-      get_account_pool_units:
-        | {
-            Args: { p_tenant_id: string }
-            Returns: {
-              entity_account_id: string
-              pool_id: string
-              total_units: number
-            }[]
-          }
-        | {
-            Args: { p_tenant_id: string; p_up_to_date?: string }
-            Returns: {
-              entity_account_id: string
-              pool_id: string
-              total_units: number
-            }[]
-          }
+      get_account_pool_units: {
+        Args: { p_tenant_id: string; p_up_to_date?: string }
+        Returns: {
+          entity_account_id: string
+          pool_id: string
+          total_units: number
+        }[]
+      }
       get_cft_control_balances: {
         Args: { p_tenant_id: string }
         Returns: {
@@ -5698,21 +5689,13 @@ export type Database = {
           tx_type: string
         }[]
       }
-      get_pool_units:
-        | {
-            Args: { p_tenant_id: string }
-            Returns: {
-              pool_id: string
-              total_units: number
-            }[]
-          }
-        | {
-            Args: { p_tenant_id: string; p_up_to_date?: string }
-            Returns: {
-              pool_id: string
-              total_units: number
-            }[]
-          }
+      get_pool_units: {
+        Args: { p_tenant_id: string; p_up_to_date?: string }
+        Returns: {
+          pool_id: string
+          total_units: number
+        }[]
+      }
       get_stock_quantities: {
         Args: { p_tenant_id: string }
         Returns: {
