@@ -1856,6 +1856,7 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
             />
           )}
 
+          {step === "review" && (
             <ReviewStep
               accountLabel={selectedAccountLabel}
               txnTypeName={selectedTxnType?.name || ""}
