@@ -436,7 +436,7 @@ const EntityPoolDetails = () => {
       {summaryPools.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Pool Breakdown {effectiveDate && <span className="text-sm font-normal text-muted-foreground">on {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}</span>}</CardTitle>
+            <CardTitle className="text-lg">{t(lang, "poolBreakdown")} {effectiveDate && <span className="text-sm font-normal text-muted-foreground">{t(lang, "on")} {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}</span>}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
