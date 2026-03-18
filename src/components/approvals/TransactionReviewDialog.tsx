@@ -15,8 +15,9 @@ import { Separator } from "@/components/ui/separator";
 import {
   Loader2, CheckCircle, XCircle, CalendarIcon, AlertTriangle, TrendingUp,
   FileText, Eye, Banknote, Package, Truck, Building2, ChevronRight, ChevronLeft,
-  ClipboardCheck, BoxSelect, Save,
+  ClipboardCheck, BoxSelect, Save, PenTool,
 } from "lucide-react";
+import StockReceiptPanel from "@/components/stock/StockReceiptPanel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // Step definitions for stock deposit workflow
-type StepId = "review" | "courier" | "stock_received" | "approve";
+type StepId = "review" | "courier" | "stock_received" | "receipt" | "approve";
 
 interface Step {
   id: StepId;
@@ -83,6 +84,8 @@ const TransactionReviewDialog = ({
   const [stockReceivedConfirmed, setStockReceivedConfirmed] = useState(false);
   const [stockReceivedNotes, setStockReceivedNotes] = useState("");
   const [savingCourier, setSavingCourier] = useState(false);
+  const [adminSignature, setAdminSignature] = useState<string | null>(null);
+  const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
   // Reset when dialog opens
   useEffect(() => {
@@ -97,6 +100,8 @@ const TransactionReviewDialog = ({
       setCourierNotes("");
       setStockReceivedConfirmed(false);
       setStockReceivedNotes("");
+      setAdminSignature(null);
+      setMemberSignature(null);
     }
   }, [open]);
 
@@ -141,6 +146,7 @@ const TransactionReviewDialog = ({
     { id: "review", label: "Review", icon: <FileText className="h-3.5 w-3.5" /> },
     ...(useCourier ? [{ id: "courier" as StepId, label: "Courier Arranged", icon: <Truck className="h-3.5 w-3.5" /> }] : []),
     { id: "stock_received", label: "Stock Received", icon: <BoxSelect className="h-3.5 w-3.5" /> },
+    { id: "receipt", label: "Stock Receipt", icon: <PenTool className="h-3.5 w-3.5" /> },
     { id: "approve", label: "Final Approval", icon: <CheckCircle className="h-3.5 w-3.5" /> },
   ];
 
@@ -318,6 +324,7 @@ const TransactionReviewDialog = ({
   // Validation per step
   const canProceedFromReview = fundsConfirmed && (!overrideDate || (changeNote.trim() && Object.keys(overridePrices).length > 0 && poolIds.every(pid => overridePrices[pid] !== undefined)));
   const canProceedFromCourier = courierFeeActual.trim() !== "" && !isNaN(parseFloat(courierFeeActual));
+  const canProceedFromReceipt = !!adminSignature && !!memberSignature;
   const canApprove = stockReceivedConfirmed;
 
   if (!group) return null;
@@ -350,6 +357,7 @@ const TransactionReviewDialog = ({
       case "review": return renderReviewStep();
       case "courier": return renderCourierStep();
       case "stock_received": return renderStockReceivedStep();
+      case "receipt": return renderReceiptStep();
       case "approve": return renderFinalApproveStep();
       default: return renderReviewStep();
     }
@@ -548,6 +556,30 @@ const TransactionReviewDialog = ({
         </div>
       </div>
     </div>
+  );
+
+  const renderReceiptStep = () => (
+    <StockReceiptPanel
+      receiptType="deposit"
+      transactionDate={primaryTxn?.transaction_date || primaryTxn?.created_at?.split("T")[0] || ""}
+      reference={primaryTxn?.reference}
+      memberName={memberName}
+      accountNumber={accountNumber}
+      stockLines={stockLines.map((line) => ({
+        description: line.description,
+        itemCode: line.item_code,
+        quantity: line.quantity,
+        unitPrice: line.costPrice,
+        lineTotal: line.lineValue,
+      }))}
+      notes={stockReceivedNotes || undefined}
+      adminSignature={adminSignature}
+      memberSignature={memberSignature}
+      onAdminSignatureChange={setAdminSignature}
+      onMemberSignatureChange={setMemberSignature}
+      adminLabel="Authorised Representative (Admin)"
+      memberLabel="Member"
+    />
   );
 
   const renderFinalApproveStep = () => (
@@ -945,7 +977,8 @@ const TransactionReviewDialog = ({
               onClick={handleNext}
               disabled={
                 (currentStep === "review" && !canProceedFromReview) ||
-                (currentStep === "courier" && !canProceedFromCourier)
+                (currentStep === "courier" && !canProceedFromCourier) ||
+                (currentStep === "receipt" && !canProceedFromReceipt)
               }
             >
               Next<ChevronRight className="h-3.5 w-3.5 ml-1" />

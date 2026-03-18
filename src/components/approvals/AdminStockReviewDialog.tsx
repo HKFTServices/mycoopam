@@ -14,8 +14,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Package, Building2, ClipboardCheck, ShieldCheck, Loader2, AlertTriangle,
   Check, ShoppingCart, TrendingDown, SlidersHorizontal, FileText, Mail,
-  Download, Truck, CheckCircle2, ChevronDown, ChevronUp, Receipt,
+  Download, Truck, CheckCircle2, ChevronDown, ChevronUp, Receipt, PenTool,
 } from "lucide-react";
+import StockReceiptPanel from "@/components/stock/StockReceiptPanel";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,10 +39,10 @@ const formatCcy = (v: number) =>
 // ── Step definitions ──────────────────────────────────────────────────────────
 
 const PURCHASE_STATUS_ORDER = [
-  "pending", "order_sent", "invoice_received", "stock_received", "vault_confirmed", "approved",
+  "pending", "order_sent", "invoice_received", "stock_received", "vault_confirmed", "receipt_signed", "approved",
 ];
 const SALE_STATUS_ORDER = [
-  "pending", "quote_sent", "quote_accepted", "invoice_sent", "stock_collected", "stock_delivered", "approved",
+  "pending", "quote_sent", "quote_accepted", "invoice_sent", "stock_collected", "stock_delivered", "receipt_signed", "approved",
 ];
 
 interface StepDef {
@@ -51,7 +52,7 @@ interface StepDef {
   icon: any;
   /** Status this step transitions TO when completed */
   advancesTo: string | null;
-  type: "document_send" | "confirm" | "vault" | "final";
+  type: "document_send" | "confirm" | "vault" | "receipt" | "final";
   docType?: string; // for document_send steps
 }
 
@@ -88,6 +89,14 @@ const PURCHASE_STEPS: StepDef[] = [
     icon: ShieldCheck,
     advancesTo: "vault_confirmed",
     type: "vault",
+  },
+  {
+    id: "receipt",
+    label: "Stock Receipt",
+    description: "Both parties sign the electronic stock receipt",
+    icon: PenTool,
+    advancesTo: "receipt_signed",
+    type: "receipt",
   },
   {
     id: "approved",
@@ -141,6 +150,14 @@ const SALE_STEPS: StepDef[] = [
     icon: Truck,
     advancesTo: "stock_delivered",
     type: "confirm",
+  },
+  {
+    id: "receipt",
+    label: "Stock Receipt",
+    description: "Both parties sign the electronic stock receipt",
+    icon: PenTool,
+    advancesTo: "receipt_signed",
+    type: "receipt",
   },
   {
     id: "approved",
@@ -214,6 +231,8 @@ const AdminStockReviewDialog = ({
   const [showLines, setShowLines] = useState(true);
   const [sendingDoc, setSendingDoc] = useState(false);
   const [docEmailSent, setDocEmailSent] = useState(false);
+  const [adminSignature, setAdminSignature] = useState<string | null>(null);
+  const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
   // Reset all local state when the transaction changes
   useEffect(() => {
@@ -223,6 +242,8 @@ const AdminStockReviewDialog = ({
     setDeclineReason("");
     setShowDecline(false);
     setDocEmailSent(false);
+    setAdminSignature(null);
+    setMemberSignature(null);
   }, [txn?.id]);
 
   const { data: linesData = [], isLoading } = useQuery({
@@ -420,6 +441,52 @@ const AdminStockReviewDialog = ({
           >
             {updatingStatus ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <ShieldCheck className="h-4 w-4 mr-1.5" />}
             Confirm Vault Deposit
+          </Button>
+        </div>
+      );
+    }
+
+    // Receipt / signature step
+    if (currentStep.type === "receipt") {
+      const counterpartyName = txn.counterparty_entity
+        ? [txn.counterparty_entity.name, txn.counterparty_entity.last_name].filter(Boolean).join(" ")
+        : undefined;
+      const receiptLines = (linesData as any[]).map((l: any) => ({
+        description: l.items?.description ?? "—",
+        itemCode: l.items?.item_code,
+        quantity: Number(l.quantity),
+        unitPrice: Number(l.unit_price_excl_vat),
+        lineTotal: Number(l.line_total_incl_vat),
+        adjustmentType: l.adjustment_type,
+      }));
+      const bothSigned = !!adminSignature && !!memberSignature;
+      return (
+        <div className="space-y-3">
+          <StockReceiptPanel
+            receiptType={isPurchase ? "purchase" : "sale"}
+            transactionDate={txn.transaction_date}
+            reference={txn.reference}
+            counterpartyName={counterpartyName}
+            stockLines={receiptLines}
+            vaultReference={txn.vault_reference}
+            notes={txn.vault_notes}
+            adminSignature={adminSignature}
+            memberSignature={memberSignature}
+            onAdminSignatureChange={setAdminSignature}
+            onMemberSignatureChange={setMemberSignature}
+            adminLabel="Authorised Representative (Admin)"
+            memberLabel={isPurchase ? "Supplier Representative" : "Customer Representative"}
+          />
+          <Button
+            disabled={!bothSigned || updatingStatus}
+            onClick={() => {
+              onUpdateStatus(txn.id, currentStep.advancesTo!);
+              setStepConfirmed(false);
+            }}
+            className="gap-1.5"
+          >
+            {updatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            Confirm Signatures & Advance
           </Button>
         </div>
       );
