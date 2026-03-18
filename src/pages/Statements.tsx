@@ -736,6 +736,33 @@ export default function Statements() {
             </p>
           )}
 
+          {/* Email delivery options (admin only) */}
+          {isAdmin && docType === "statement" && (
+            <div className="space-y-3 border rounded-md p-3 bg-muted/20 max-w-lg">
+              <p className="text-sm font-medium">Email Options</p>
+              <div className="flex items-center gap-2">
+                <Checkbox id="cc-admin" checked={ccAdmin} onCheckedChange={(v) => setCcAdmin(!!v)} />
+                <label htmlFor="cc-admin" className="text-sm cursor-pointer">CC Admin ({user?.email})</label>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="emailDelivery" value="members" checked={emailDelivery === "members"} onChange={() => setEmailDelivery("members")} className="accent-primary" />
+                    Send to each member's email
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="emailDelivery" value="single" checked={emailDelivery === "single"} onChange={() => setEmailDelivery("single")} className="accent-primary" />
+                    Send all to one email
+                  </label>
+                </div>
+                {emailDelivery === "single" && (
+                  <Input type="email" placeholder="Enter email address..." value={singleEmailAddress}
+                    onChange={(e) => setSingleEmailAddress(e.target.value)} className="max-w-sm" />
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-2">
             {docType === "statement" && (
