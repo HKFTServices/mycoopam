@@ -408,13 +408,13 @@ const DailyStockPrices = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                   <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               ) : priceRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     No active stock items found.
                   </TableCell>
                 </TableRow>
@@ -440,6 +440,7 @@ const DailyStockPrices = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{row.margin_percentage}%</TableCell>
+                    <TableCell>{row.sell_margin_percentage}%</TableCell>
                     <TableCell className="text-xs">{row.taxName}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrency(row.costExclVat, currencySymbol)}
@@ -452,6 +453,12 @@ const DailyStockPrices = () => {
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
                       {formatCurrency(row.buyPriceInclVat, currencySymbol)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      {formatCurrency(row.sellPriceExclVat, currencySymbol)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      {formatCurrency(row.sellPriceInclVat, currencySymbol)}
                     </TableCell>
                     <TableCell>
                       {row.hasExisting ? (
