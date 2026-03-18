@@ -256,8 +256,9 @@ export function generateMemberStatement(data: StatementData): string {
 
   /* Section headings */
   .section { margin-top: 18px; }
-  .section-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #c8d0da; padding-bottom: 4px; margin-bottom: 8px; }
-  .period { font-size: 8pt; color: #888; font-weight: normal; margin-left: 8px; }
+  .section-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; border-bottom: 1px solid #c8d0da; padding-bottom: 4px; margin-bottom: 8px; display: flex; align-items: baseline; justify-content: flex-start; gap: 8px; }
+  .period { font-size: 9pt; color: #1e3a5f; font-weight: bold; }
+  th.group-header { text-align: center; background: #2a4f7a; color: white; font-size: 7pt; letter-spacing: 0.3px; padding: 3px 4px; }
 
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 4px; }
