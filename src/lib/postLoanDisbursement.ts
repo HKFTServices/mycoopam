@@ -85,8 +85,8 @@ export async function postLoanDisbursement(
     loanControlId = pool?.loan_control_account_id || null;
   }
 
-  // Fallback to admin pool if no pool selected
-  if (!cashControlId || !loanControlId) {
+  // Fallback to admin pool ONLY if no pool was explicitly selected
+  if (!poolId && (!cashControlId || !loanControlId)) {
     const { data: adminPool } = await (supabase as any)
       .from("pools")
       .select("id, cash_control_account_id, loan_control_account_id")
