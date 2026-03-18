@@ -98,6 +98,20 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
   // Loan repayment state
   const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
   const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
+  // Debit order state
+  const [doBankName, setDoBankName] = useState("");
+  const [doBranchCode, setDoBranchCode] = useState("");
+  const [doAccountName, setDoAccountName] = useState("");
+  const [doBankAccountNumber, setDoBankAccountNumber] = useState("");
+  const [doBankAccountType, setDoBankAccountType] = useState("savings");
+  const [doFrequency, setDoFrequency] = useState("monthly");
+  const [doStartDate, setDoStartDate] = useState(() => {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return formatLocalDate(next);
+  });
+  const [doNotes, setDoNotes] = useState("");
+  const [doSignatureData, setDoSignatureData] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
