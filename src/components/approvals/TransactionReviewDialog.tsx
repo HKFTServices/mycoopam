@@ -558,6 +558,30 @@ const TransactionReviewDialog = ({
     </div>
   );
 
+  const renderReceiptStep = () => (
+    <StockReceiptPanel
+      receiptType="deposit"
+      transactionDate={primaryTxn?.transaction_date || primaryTxn?.created_at?.split("T")[0] || ""}
+      reference={primaryTxn?.reference}
+      memberName={memberName}
+      accountNumber={accountNumber}
+      stockLines={stockLines.map((line) => ({
+        description: line.description,
+        itemCode: line.item_code,
+        quantity: line.quantity,
+        unitPrice: line.costPrice,
+        lineTotal: line.lineValue,
+      }))}
+      notes={stockReceivedNotes || undefined}
+      adminSignature={adminSignature}
+      memberSignature={memberSignature}
+      onAdminSignatureChange={setAdminSignature}
+      onMemberSignatureChange={setMemberSignature}
+      adminLabel="Authorised Representative (Admin)"
+      memberLabel="Member"
+    />
+  );
+
   const renderFinalApproveStep = () => (
     <div className="space-y-4">
       {/* Full summary recap */}
