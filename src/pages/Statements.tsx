@@ -453,7 +453,9 @@ export default function Statements() {
 
     // Fetch unit prices, stock item prices, and T&C in parallel
     const [itemsRes, stockPricesRes, termsRes] = await Promise.all([
-      (supabase as any).from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId!).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds).order("description"),
+      exposedPoolIds.length > 0
+        ? (supabase as any).from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId!).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds).order("description")
+        : Promise.resolve({ data: [] }),
       (supabase as any).from("daily_stock_prices").select("item_id, cost_incl_vat, price_date").eq("tenant_id", tenantId!).eq("price_date", toStr).order("price_date", { ascending: false }),
       (supabase as any).from("terms_conditions").select("content").eq("tenant_id", tenantId!).eq("condition_type", "pool").eq("is_active", true).eq("language_code", "en").order("effective_from", { ascending: false }).limit(1),
     ]);
