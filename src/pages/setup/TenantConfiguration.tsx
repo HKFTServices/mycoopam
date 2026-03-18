@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code } from "lucide-react";
+import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
@@ -500,6 +500,9 @@ const TenantConfiguration = () => {
     supplier_invoice_prefix: "SI",
     email_signature_en: "",
     email_signature_af: "",
+    theme_primary_hsl: "",
+    theme_accent_hsl: "",
+    theme_sidebar_hsl: "",
   });
   const [uploading, setUploading] = useState(false);
   const [testEmailOpen, setTestEmailOpen] = useState(false);
@@ -611,6 +614,9 @@ const TenantConfiguration = () => {
         supplier_invoice_prefix: (config as any).supplier_invoice_prefix ?? "SI",
         email_signature_en: (config as any).email_signature_en ?? "",
         email_signature_af: (config as any).email_signature_af ?? "",
+        theme_primary_hsl: (config as any).theme_primary_hsl ?? "",
+        theme_accent_hsl: (config as any).theme_accent_hsl ?? "",
+        theme_sidebar_hsl: (config as any).theme_sidebar_hsl ?? "",
       });
     }
   }, [config]);
@@ -618,7 +624,7 @@ const TenantConfiguration = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!currentTenant) throw new Error("No tenant");
-      const { legal_entity_id, administrator_entity_id, share_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id, commission_income_gl_account_id, commission_paid_gl_account_id, pool_allocation_gl_account_id, vat_gl_account_id, stock_control_gl_account_id, ...rest } = form;
+      const { legal_entity_id, administrator_entity_id, share_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id, commission_income_gl_account_id, commission_paid_gl_account_id, pool_allocation_gl_account_id, vat_gl_account_id, stock_control_gl_account_id, theme_primary_hsl, theme_accent_hsl, theme_sidebar_hsl, ...rest } = form;
       const cleanPayload = {
         ...rest,
         registration_date: rest.registration_date || null,
@@ -632,6 +638,9 @@ const TenantConfiguration = () => {
         pool_allocation_gl_account_id: pool_allocation_gl_account_id || null,
         vat_gl_account_id: vat_gl_account_id || null,
         stock_control_gl_account_id: stock_control_gl_account_id || null,
+        theme_primary_hsl: theme_primary_hsl || null,
+        theme_accent_hsl: theme_accent_hsl || null,
+        theme_sidebar_hsl: theme_sidebar_hsl || null,
       };
       if (config?.id) {
         const { error } = await (supabase as any).from("tenant_configuration").update(cleanPayload).eq("id", config.id);
@@ -730,6 +739,7 @@ const TenantConfiguration = () => {
           <TabsTrigger value="gl" className="gap-1.5"><BookOpen className="h-4 w-4" />GL Entries</TabsTrigger>
           <TabsTrigger value="vault" className="gap-1.5"><Vault className="h-4 w-4" />Vault &amp; Invoice</TabsTrigger>
           <TabsTrigger value="signature" className="gap-1.5"><FileSignature className="h-4 w-4" />Email Signature</TabsTrigger>
+          <TabsTrigger value="theme" className="gap-1.5"><Palette className="h-4 w-4" />Theme</TabsTrigger>
         </TabsList>
 
         {/* ── General ── */}
@@ -1035,6 +1045,76 @@ const TenantConfiguration = () => {
             tenantEntities={tenantEntities}
             legalEntityId={form.legal_entity_id}
           />
+        </TabsContent>
+
+        {/* ── Theme ── */}
+        <TabsContent value="theme">
+          <Card>
+            <CardHeader><CardTitle className="text-lg">Theme Customization</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Override the default deep blue &amp; gold theme. Use HSL values like <code className="bg-muted px-1 rounded text-xs">222 60% 28%</code>. Leave blank to use the default.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label>Primary Color (HSL)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={form.theme_primary_hsl}
+                      onChange={(e) => setForm({ ...form, theme_primary_hsl: e.target.value })}
+                      placeholder="222 60% 28%"
+                    />
+                    {form.theme_primary_hsl && (
+                      <div className="h-8 w-8 rounded-md border shrink-0" style={{ backgroundColor: `hsl(${form.theme_primary_hsl})` }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Buttons, links, and primary actions</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Accent Color (HSL)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={form.theme_accent_hsl}
+                      onChange={(e) => setForm({ ...form, theme_accent_hsl: e.target.value })}
+                      placeholder="45 80% 52%"
+                    />
+                    {form.theme_accent_hsl && (
+                      <div className="h-8 w-8 rounded-md border shrink-0" style={{ backgroundColor: `hsl(${form.theme_accent_hsl})` }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Highlights and accent elements</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sidebar Color (HSL)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={form.theme_sidebar_hsl}
+                      onChange={(e) => setForm({ ...form, theme_sidebar_hsl: e.target.value })}
+                      placeholder="222 60% 14%"
+                    />
+                    {form.theme_sidebar_hsl && (
+                      <div className="h-8 w-8 rounded-md border shrink-0" style={{ backgroundColor: `hsl(${form.theme_sidebar_hsl})` }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Sidebar background color</p>
+                </div>
+              </div>
+              <div className="rounded-lg border p-4 bg-muted/30">
+                <p className="text-xs font-medium mb-2">Preview</p>
+                <div className="flex gap-3 items-center">
+                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_primary_hsl || "222 60% 28%"})` }}>
+                    Primary
+                  </div>
+                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium" style={{ backgroundColor: `hsl(${form.theme_accent_hsl || "45 80% 52%"})` }}>
+                    Accent
+                  </div>
+                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_sidebar_hsl || "222 60% 14%"})` }}>
+                    Sidebar
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
