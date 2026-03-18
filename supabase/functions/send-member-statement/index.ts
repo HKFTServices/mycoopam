@@ -270,13 +270,15 @@ async function generateStatementPdf(data: {
     : "";
 
   // ── Pool summary calculations ──
-  const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number }> = {};
+  const poolSummary: Record<string, { name: string; openUnits: number; closeUnits: number; openPrice: number; closePrice: number; displayType: string; statementDesc: string }> = {};
 
   for (const row of data.openingUnits) {
     const poolId = row.pool_id;
     const priceInfo = data.poolPricesStart[poolId];
+    const displayType = priceInfo?.pools?.pool_statement_display_type ?? "display_in_summary";
+    if (displayType === "do_not_display") continue;
     if (!poolSummary[poolId]) {
-      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0 };
+      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: Number(priceInfo?.unit_price_sell || 0), closePrice: 0, displayType, statementDesc: priceInfo?.pools?.pool_statement_description || "" };
     }
     poolSummary[poolId].openUnits += Number(row.total_units);
   }
@@ -284,11 +286,16 @@ async function generateStatementPdf(data: {
   for (const row of data.closingUnits) {
     const poolId = row.pool_id;
     const priceInfo = data.poolPricesEnd[poolId];
+    const displayType = priceInfo?.pools?.pool_statement_display_type ?? "display_in_summary";
+    if (displayType === "do_not_display") continue;
     if (!poolSummary[poolId]) {
-      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0) };
+      poolSummary[poolId] = { name: priceInfo?.pools?.name || "Unknown", openUnits: 0, closeUnits: 0, openPrice: 0, closePrice: Number(priceInfo?.unit_price_sell || 0), displayType, statementDesc: priceInfo?.pools?.pool_statement_description || "" };
     }
     poolSummary[poolId].closeUnits += Number(row.total_units);
     poolSummary[poolId].closePrice = Number(priceInfo?.unit_price_sell || 0);
+    if (!poolSummary[poolId].statementDesc) {
+      poolSummary[poolId].statementDesc = priceInfo?.pools?.pool_statement_description || "";
+    }
   }
 
   const activePools = Object.entries(poolSummary).filter(([, p]) => {
@@ -297,8 +304,12 @@ async function generateStatementPdf(data: {
     return openVal > 0.001 || closeVal > 0.001;
   });
 
-  const openTotal = activePools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
-  const closeTotal = activePools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
+  // Split by display type
+  const summaryPools = activePools.filter(([, p]) => p.displayType === "display_in_summary");
+  const belowSummaryPools = activePools.filter(([, p]) => p.displayType === "display_below_summary");
+
+  const openTotal = summaryPools.reduce((s, [, p]) => s + p.openUnits * p.openPrice, 0);
+  const closeTotal = summaryPools.reduce((s, [, p]) => s + p.closeUnits * p.closePrice, 0);
   const changeTotal = closeTotal - openTotal;
 
   // ── Create PDF document ──
