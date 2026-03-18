@@ -74,8 +74,7 @@ Deno.serve(async (req) => {
 
     let priceInZar: number | null = null;
     if (data.success && data.rates && data.rates[symbol]) {
-      const rate = data.rates[symbol];
-      priceInZar = rate !== 0 ? 1 / rate : null;
+      priceInZar = data.rates[symbol];
     }
 
     return new Response(
