@@ -418,7 +418,6 @@ const EntityPoolDetails = () => {
           </CardContent>
         </Card>
       ) : (
-        {/* Summary value card — shown first on mobile for immediate context */}
         <div className="flex flex-col-reverse gap-4 sm:gap-6 lg:grid lg:grid-cols-2">
           {/* Pie Chart */}
           <Card>
