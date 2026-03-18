@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
 
     // ── TEST EMAIL ──
     if (action === "test") {
-      const { test_user_id } = body;
+      const { test_user_id, custom_fields } = body;
+      const cf = custom_fields || {};
       const { data: profile } = await adminClient
         .from("profiles")
         .select("first_name, last_name, email, language_code")
@@ -83,6 +84,9 @@ Deno.serve(async (req) => {
         tenant_name: tenantName,
         legal_entity_name: legalEntityName,
         email_signature: signature,
+        agm_venue: cf.agm_venue || "",
+        agm_date: cf.agm_date || "",
+        agm_time: cf.agm_time || "",
       });
 
       await transporter.sendMail({
@@ -100,7 +104,8 @@ Deno.serve(async (req) => {
 
     // ── CREATE CAMPAIGN & START SENDING ──
     if (action === "create") {
-      const { campaign_name, audience_type, recipients, attachment_type, created_by } = body;
+      const { campaign_name, audience_type, recipients, attachment_type, created_by, custom_fields } = body;
+      const cf = custom_fields || {};
 
       // Create campaign
       const { data: campaign, error: campErr } = await adminClient
@@ -142,7 +147,7 @@ Deno.serve(async (req) => {
       }
 
       // Start sending first batch in background (non-blocking)
-      sendBatchBackground(adminClient, campaignId, tenant_id, template_id, 1);
+      sendBatchBackground(adminClient, campaignId, tenant_id, template_id, 1, cf);
 
       return new Response(JSON.stringify({ success: true, campaign_id: campaignId }), {
         status: 200,
@@ -247,6 +252,9 @@ function renderTemplate(
     "{{phone_number}}": vars.phone_number || "",
     "{{account_number}}": vars.account_number || "",
     "{{entity_account_name}}": vars.entity_account_name || "",
+    "{{agm_venue}}": vars.agm_venue || "",
+    "{{agm_date}}": vars.agm_date || "",
+    "{{agm_time}}": vars.agm_time || "",
   };
 
   for (const [key, val] of Object.entries(replacements)) {
@@ -271,7 +279,8 @@ async function sendBatchBackground(
   campaignId: string,
   tenantId: string,
   templateId: string,
-  batchNumber: number
+  batchNumber: number,
+  customFields: Record<string, string> = {}
 ) {
   try {
     // Get pending recipients for this batch
@@ -366,6 +375,9 @@ async function sendBatchBackground(
           tenant_name: tenantName,
           legal_entity_name: legalEntityName,
           email_signature: signature,
+          agm_venue: customFields.agm_venue || "",
+          agm_date: customFields.agm_date || "",
+          agm_time: customFields.agm_time || "",
         });
 
         const info = await transporter.sendMail({
@@ -455,7 +467,7 @@ async function sendBatchBackground(
       // Wait 1 hour then send next batch
       console.log(`[campaign] Batch ${batchNumber} complete. Waiting 1 hour for next batch...`);
       await sleep(60 * 60 * 1000);
-      await sendBatchBackground(adminClient, campaignId, tenantId, templateId, batchNumber + 1);
+      await sendBatchBackground(adminClient, campaignId, tenantId, templateId, batchNumber + 1, customFields);
     } else {
       // All done
       await adminClient

@@ -58,6 +58,9 @@ export default function SendMessage() {
   const [isSending, setIsSending] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [valuationDate, setValuationDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [agmVenue, setAgmVenue] = useState("");
+  const [agmDate, setAgmDate] = useState("");
+  const [agmTime, setAgmTime] = useState("");
   const tenantId = currentTenant?.id;
 
   // Fetch pools for pool-based audience
@@ -380,6 +383,11 @@ export default function SendMessage() {
 
   // Template preview with full merge data from first recipient
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
+  const templateHasAgmFields = useMemo(() => {
+    if (!selectedTemplate) return false;
+    const combined = (selectedTemplate.subject || "") + (selectedTemplate.body_html || "");
+    return combined.includes("{{agm_venue}}") || combined.includes("{{agm_date}}") || combined.includes("{{agm_time}}");
+  }, [selectedTemplate]);
   const firstRecipient = recipients.find((r) => r.selected);
 
   // Resolve full merge data for preview
@@ -431,12 +439,15 @@ export default function SendMessage() {
       "{{account_number}}": previewMergeData.account_number || "",
       "{{entity_account_name}}": previewMergeData.entity_account_name || "",
       "{{email_signature}}": previewMergeData.email_signature || "",
+      "{{agm_venue}}": agmVenue || "",
+      "{{agm_date}}": agmDate || "",
+      "{{agm_time}}": agmTime || "",
     };
     for (const [key, val] of Object.entries(replacements)) {
       html = html.replaceAll(key, val);
     }
     return html;
-  }, [selectedTemplate, firstRecipient, previewMergeData]);
+  }, [selectedTemplate, firstRecipient, previewMergeData, agmVenue, agmDate, agmTime]);
 
   // Send test email
   const handleTestEmail = async () => {
@@ -449,6 +460,7 @@ export default function SendMessage() {
           tenant_id: tenantId,
           template_id: templateId,
           test_user_id: user?.id,
+          custom_fields: { agm_venue: agmVenue, agm_date: agmDate, agm_time: agmTime },
         },
       });
       if (error) throw error;
@@ -486,6 +498,7 @@ export default function SendMessage() {
           recipients: selectedRecipients,
           attachment_type: attachmentType || null,
           created_by: user?.id,
+          custom_fields: { agm_venue: agmVenue, agm_date: agmDate, agm_time: agmTime },
         },
       });
       if (error) throw error;
@@ -702,6 +715,28 @@ export default function SendMessage() {
               </div>
             </CardContent>
           </Card>
+
+          {templateHasAgmFields && (
+            <Card>
+              <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CalendarIcon className="h-4 w-4" /> AGM Details</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Venue</Label>
+                  <Input value={agmVenue} onChange={(e) => setAgmVenue(e.target.value)} placeholder="e.g. Town Hall, 123 Main St" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input type="date" value={agmDate} onChange={(e) => setAgmDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Time</Label>
+                    <Input type="time" value={agmTime} onChange={(e) => setAgmTime(e.target.value)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {selectedTemplate && (
             <Card>

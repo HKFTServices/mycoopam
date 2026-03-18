@@ -66,6 +66,9 @@ const MERGE_FIELDS = [
   { tag: "{{tenant_name}}", label: "Co-op Name" },
   { tag: "{{entity_account_name}}", label: "Entity Account Name" },
   { tag: "{{email_signature}}", label: "Email Signature" },
+  { tag: "{{agm_venue}}", label: "AGM Venue" },
+  { tag: "{{agm_date}}", label: "AGM Date" },
+  { tag: "{{agm_time}}", label: "AGM Time" },
 ];
 
 type CommTemplate = {
