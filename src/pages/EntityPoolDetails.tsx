@@ -372,7 +372,7 @@ const EntityPoolDetails = () => {
       )}
 
       {/* Detailed Pool Breakdown */}
-      {poolData.length > 0 && (
+      {summaryPools.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Pool Breakdown</CardTitle>
@@ -388,7 +388,7 @@ const EntityPoolDetails = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {poolData.map((p, idx) => {
+                {summaryPools.map((p, idx) => {
                   const price = poolPrices.find((pp: any) => pp.pool_id === p.poolId);
                   return (
                     <TableRow key={p.poolId}>
@@ -409,7 +409,7 @@ const EntityPoolDetails = () => {
                 })}
                 <TableRow className="bg-muted/30 font-bold">
                   <TableCell>Total</TableCell>
-                  <TableCell className="text-right font-mono">{poolData.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
+                  <TableCell className="text-right font-mono">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
                 </TableRow>
