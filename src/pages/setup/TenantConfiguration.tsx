@@ -611,6 +611,9 @@ const TenantConfiguration = () => {
         supplier_invoice_prefix: (config as any).supplier_invoice_prefix ?? "SI",
         email_signature_en: (config as any).email_signature_en ?? "",
         email_signature_af: (config as any).email_signature_af ?? "",
+        theme_primary_hsl: (config as any).theme_primary_hsl ?? "",
+        theme_accent_hsl: (config as any).theme_accent_hsl ?? "",
+        theme_sidebar_hsl: (config as any).theme_sidebar_hsl ?? "",
       });
     }
   }, [config]);
