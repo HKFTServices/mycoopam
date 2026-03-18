@@ -117,7 +117,7 @@ export default function SendMessage() {
     enabled: !!tenantId,
   });
 
-  // Fetch entity accounts (members) with entity details for merge fields
+  // Fetch active entity accounts (members) with entity details for merge fields
   const { data: entityAccounts = [] } = useQuery({
     queryKey: ["entity_accounts_for_campaign", tenantId],
     queryFn: async () => {
@@ -125,8 +125,7 @@ export default function SendMessage() {
         .from("entity_accounts")
         .select("id, account_number, entity_id, entity_account_type_id, entities!entity_accounts_entity_id_fkey(id, name, last_name, email_address, contact_number, title_id, titles!entities_title_id_fkey(name))")
         .eq("tenant_id", tenantId)
-        .eq("is_active", true)
-        .eq("is_approved", true);
+        .eq("is_active", true);
       return data || [];
     },
     enabled: !!tenantId,
@@ -236,22 +235,16 @@ export default function SendMessage() {
         selected: true,
       }));
     } else if (audienceType === "all_active_members") {
-      // Members = entity accounts with membership roles
-      const seen = new Set<string>();
-      entityAccounts.forEach((ea: any) => {
-        const entity = ea.entities;
-        if (entity?.email_address && !seen.has(entity.email_address)) {
-          seen.add(entity.email_address);
-          result.push({
-            id: ea.id,
-            email: entity.email_address,
-            name: [entity.name, entity.last_name].filter(Boolean).join(" "),
-            entityId: entity.id,
-            entityAccountId: ea.id,
-            selected: true,
-          });
-        }
-      });
+      result = entityAccounts
+        .filter((ea: any) => ea.entities?.email_address)
+        .map((ea: any) => ({
+          id: ea.id,
+          email: ea.entities.email_address,
+          name: [ea.entities.name, ea.entities.last_name].filter(Boolean).join(" "),
+          entityId: ea.entities.id,
+          entityAccountId: ea.id,
+          selected: true,
+        }));
     } else if (audienceType === "members_with_units") {
       // Members with positive unit value at valuation date
       const priceMap = new Map<string, number>(poolPricesAtDate.map((p: any) => [p.pool_id, Number(p.unit_price_sell) || 0] as [string, number]));
@@ -267,21 +260,16 @@ export default function SendMessage() {
       const accountsWithUnits = new Set(
         Array.from(accountValues.entries()).filter(([, val]) => val > 0).map(([id]) => id)
       );
-      const seen = new Set<string>();
-      entityAccounts.forEach((ea: any) => {
-        const entity = ea.entities;
-        if (accountsWithUnits.has(ea.id) && entity?.email_address && !seen.has(entity.email_address)) {
-          seen.add(entity.email_address);
-          result.push({
-            id: ea.id,
-            email: entity.email_address,
-            name: [entity.name, entity.last_name].filter(Boolean).join(" "),
-            entityId: entity.id,
-            entityAccountId: ea.id,
-            selected: true,
-          });
-        }
-      });
+      result = entityAccounts
+        .filter((ea: any) => accountsWithUnits.has(ea.id) && ea.entities?.email_address)
+        .map((ea: any) => ({
+          id: ea.id,
+          email: ea.entities.email_address,
+          name: [ea.entities.name, ea.entities.last_name].filter(Boolean).join(" "),
+          entityId: ea.entities.id,
+          entityAccountId: ea.id,
+          selected: true,
+        }));
     } else if (audienceType === "members_in_pools" && selectedPoolIds.length > 0) {
       // Members with units in selected pools at valuation date
       const accountsInPools = new Set(
@@ -289,31 +277,25 @@ export default function SendMessage() {
           .filter((h: any) => selectedPoolIds.includes(h.pool_id) && h.total_units > 0)
           .map((h: any) => h.entity_account_id)
       );
-      const seen = new Set<string>();
-      entityAccounts.forEach((ea: any) => {
-        const entity = ea.entities;
-        if (accountsInPools.has(ea.id) && entity?.email_address && !seen.has(entity.email_address)) {
-          seen.add(entity.email_address);
-          result.push({
-            id: ea.id,
-            email: entity.email_address,
-            name: [entity.name, entity.last_name].filter(Boolean).join(" "),
-            entityId: entity.id,
-            entityAccountId: ea.id,
-            selected: true,
-          });
-        }
-      });
+      result = entityAccounts
+        .filter((ea: any) => accountsInPools.has(ea.id) && ea.entities?.email_address)
+        .map((ea: any) => ({
+          id: ea.id,
+          email: ea.entities.email_address,
+          name: [ea.entities.name, ea.entities.last_name].filter(Boolean).join(" "),
+          entityId: ea.entities.id,
+          entityAccountId: ea.id,
+          selected: true,
+        }));
     } else if (audienceType === "members_linked_to_user" && linkedUserId) {
       const linkedEntityIds = new Set(
         userEntityRels.filter((r: any) => r.user_id === linkedUserId).map((r: any) => r.entity_id)
       );
-      // First try entity accounts (active & approved)
-      const seen = new Set<string>();
+      const seenRecipientIds = new Set<string>();
       entityAccounts.forEach((ea: any) => {
         const entity = ea.entities;
-        if (linkedEntityIds.has(ea.entity_id) && entity?.email_address) {
-          seen.add(ea.entity_id);
+        if (linkedEntityIds.has(ea.entity_id) && entity?.email_address && !seenRecipientIds.has(ea.id)) {
+          seenRecipientIds.add(ea.id);
           result.push({
             id: ea.id,
             email: entity.email_address,
@@ -324,10 +306,10 @@ export default function SendMessage() {
           });
         }
       });
-      // Also include entities without active accounts (from allLinkedEntities)
+      // Also include linked entities without active accounts
       allLinkedEntities.forEach((entity: any) => {
-        if (linkedEntityIds.has(entity.id) && entity.email_address && !seen.has(entity.id)) {
-          seen.add(entity.id);
+        if (linkedEntityIds.has(entity.id) && entity.email_address && !seenRecipientIds.has(entity.id)) {
+          seenRecipientIds.add(entity.id);
           result.push({
             id: entity.id,
             email: entity.email_address,
