@@ -235,6 +235,7 @@ function renderTemplate(
 
   const replacements: Record<string, string> = {
     "{{entity_name}}": vars.entity_name || "",
+    "{{legal_entity_name}}": vars.legal_entity_name || "",
     "{{user_name}}": vars.user_name || "",
     "{{user_surname}}": vars.user_surname || "",
     "{{first_name}}": vars.entity_name || "",
