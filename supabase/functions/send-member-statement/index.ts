@@ -391,7 +391,7 @@ async function generateStatementPdf(data: {
   y += 18;
 
   // ── Portfolio Summary ──
-  y = drawSectionTitle(doc, "Portfolio Summary", y, `${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)}`);
+  y = drawSectionTitle(doc, "Portfolio Summary", y, `${fmtDate(data.fromDate)} — ${fmtDate(data.toDate)}`, true);
 
   // Summary cards
   const summaryCards = [
@@ -405,7 +405,7 @@ async function generateStatementPdf(data: {
   y = drawSummaryCards(doc, summaryCards, y);
   y += 2;
 
-  // Summary table
+  // Summary table with grouped date headers
   if (activePools.length > 0) {
     const summaryRows = activePools.map(([, p]) => {
       const openVal = p.openUnits * p.openPrice;
@@ -422,16 +422,30 @@ async function generateStatementPdf(data: {
         `${change >= 0 ? "+" : ""}${fmtCurrency(change, sym)}`,
       ];
     });
+
+    // Draw grouped header row (date labels spanning 3 cols each)
+    const marginLeft = 15;
+    const groupHeaderHeight = 5.5;
+    doc.setFillColor(42, 79, 122); // slightly lighter navy
+    doc.rect(marginLeft, y, 180, groupHeaderHeight, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(...WHITE);
+    // Pool col = 28, Open block = 20+22+22 = 64, Close block = 20+22+22 = 64, Change = 24
+    doc.text(fmtDate(data.fromDate), marginLeft + 28 + 32, y + groupHeaderHeight / 2 + 1, { align: "center" });
+    doc.text(fmtDate(data.toDate), marginLeft + 28 + 64 + 32, y + groupHeaderHeight / 2 + 1, { align: "center" });
+    y += groupHeaderHeight;
+
     y = drawTable(doc, {
       startY: y,
       columns: [
         { header: "Pool", width: 28, align: "left" },
-        { header: "Open Units", width: 20, align: "right" },
-        { header: "Open Price", width: 22, align: "right" },
-        { header: "Open Value", width: 22, align: "right" },
-        { header: "Close Units", width: 20, align: "right" },
-        { header: "Close Price", width: 22, align: "right" },
-        { header: "Close Value", width: 22, align: "right" },
+        { header: "Units", width: 20, align: "right" },
+        { header: "Price", width: 22, align: "right" },
+        { header: "Value", width: 22, align: "right" },
+        { header: "Units", width: 20, align: "right" },
+        { header: "Price", width: 22, align: "right" },
+        { header: "Value", width: 22, align: "right" },
         { header: "Change", width: 24, align: "right" },
       ],
       rows: summaryRows,
