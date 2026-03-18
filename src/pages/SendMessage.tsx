@@ -738,6 +738,7 @@ export default function SendMessage() {
             </Card>
           )}
 
+          {selectedTemplate && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
