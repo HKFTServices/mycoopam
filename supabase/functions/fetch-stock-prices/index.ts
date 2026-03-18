@@ -102,8 +102,6 @@ function evalFormula(formula: string, apiPrices: Record<string, number>): number
   }
 }
 
-// Metal symbols need 1/rate to convert from "per ZAR" to "ZAR per unit"
-const METAL_SYMBOLS = new Set(["XAU", "XAG", "XPT", "XPD", "XRH", "XCU"]);
 
 /**
  * Fetch all prices from metals-api.com in a single call.
