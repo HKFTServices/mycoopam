@@ -140,6 +140,7 @@ const App = () => (
               <Route path="/dashboard/setup/budget-categories" element={<DashboardRoute><BudgetCategories /></DashboardRoute>} />
               <Route path="/dashboard/setup/gl-accounts" element={<DashboardRoute><GLAccounts /></DashboardRoute>} />
               <Route path="/dashboard/setup/permissions" element={<DashboardRoute><Permissions /></DashboardRoute>} />
+              <Route path="/dashboard/setup/api-providers" element={<DashboardRoute><ApiProviders /></DashboardRoute>} />
               <Route path="/dashboard/setup/system-email-templates" element={<DashboardRoute><SystemEmailTemplates /></DashboardRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
