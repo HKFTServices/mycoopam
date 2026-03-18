@@ -28,10 +28,27 @@ const COLORS = [
 ];
 
 const EntityPoolDetails = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { currentTenant } = useTenant();
   const entityId = searchParams.get("entityId");
+
+  // Fetch all entities linked to the current user
+  const { data: userLinkedEntities = [] } = useQuery({
+    queryKey: ["user_linked_entities_pool", user?.id, currentTenant?.id],
+    queryFn: async () => {
+      if (!user || !currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id, entities (id, name, last_name, entity_categories (name))")
+        .eq("user_id", user.id)
+        .eq("tenant_id", currentTenant.id);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.entities).filter(Boolean);
+    },
+    enabled: !!user && !!currentTenant,
+  });
 
   // Fetch entity info
   const { data: entity } = useQuery({
