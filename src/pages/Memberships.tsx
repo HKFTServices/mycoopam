@@ -734,7 +734,9 @@ const Memberships = () => {
                                       <code className="font-mono text-xs">{a.accountNumber}</code>
                                       <span className="text-muted-foreground">)</span>
                                       {!isActive && !isPending && a.status && (
-                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status)}</Badge>
+                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">
+                                          {isDeactivated ? "Inactive" : statusLabel(a.status)}
+                                        </Badge>
                                       )}
                                       {isPending && (
                                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status ?? "Pending")}</Badge>
