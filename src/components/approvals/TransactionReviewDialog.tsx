@@ -935,6 +935,7 @@ const TransactionReviewDialog = ({
 
     if (!isStockDeposit) {
       // Original single-page footer
+      const debitOrderOrFundsOk = isDebitOrderDeposit || fundsConfirmed;
       return (
         <>
           <Button variant="destructive" onClick={() => setShowDecline(true)}>
@@ -943,14 +944,14 @@ const TransactionReviewDialog = ({
           <Button
             onClick={handleApprove}
             disabled={
-              isApproving || !fundsConfirmed ||
+              isApproving || !debitOrderOrFundsOk ||
               (dateChanged && !changeNote.trim()) ||
               (dateChanged && missingPrices.length > 0)
             }
           >
             {isApproving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
             <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-            {dateChanged ? "Approve with Date Change" : "Approve"}
+            {isDebitOrderDeposit ? "Approve & Load Debit Order" : dateChanged ? "Approve with Date Change" : "Approve"}
           </Button>
         </>
       );
