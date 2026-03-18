@@ -80,28 +80,28 @@ const TransactionTypeStep = ({ txnTypes, selectedTxnTypeId, onSelect, accountHas
       <div className="grid grid-cols-2 gap-3">
         {txnTypes.map((t: any) => {
           const code: string = t.code || "";
-          const colors = COLOR_MAP[code] || { bg: "bg-muted", border: "border-border", text: "text-foreground", glow: "" };
+          const colors = COLOR_MAP[code] || { bg: "bg-muted", border: "border-border", text: "text-foreground" };
           const isSelected = selectedTxnTypeId === t.id;
 
           return (
             <button
               key={t.id}
               onClick={() => onSelect(t.id)}
-              className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl border-2 text-center transition-all duration-200 ${colors.bg} ${
+              className={`relative flex flex-col items-center justify-center gap-2 p-5 rounded-xl border text-center transition-all duration-200 ${colors.bg} ${colors.border} ${
                 isSelected
-                  ? `${colors.border} ${colors.text} ring-2 ring-offset-2 ring-offset-background ring-current shadow-lg ${colors.glow} scale-[1.03]`
-                  : `${colors.border}/40 ${colors.text} opacity-70 hover:opacity-100 hover:shadow-md hover:scale-[1.01]`
+                  ? `ring-2 ring-primary shadow-md scale-[1.02]`
+                  : `opacity-80 hover:opacity-100 hover:shadow-sm hover:scale-[1.01]`
               }`}
             >
-              <span className="text-3xl drop-shadow-sm">{ICON_MAP[code] || "📋"}</span>
+              <span className="text-3xl">{ICON_MAP[code] || "📋"}</span>
               <div>
-                <p className="font-bold text-sm leading-tight">{t.name}</p>
-                <p className="text-[10px] opacity-70 mt-1 leading-snug">
+                <p className={`font-semibold text-sm leading-tight ${colors.text}`}>{t.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
                   {DESC_MAP[code] || ""}
                 </p>
               </div>
               {isSelected && (
-                <div className="absolute top-2 right-2 h-3 w-3 rounded-full bg-current animate-scale-in" />
+                <div className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-primary animate-scale-in" />
               )}
             </button>
           );
