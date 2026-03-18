@@ -781,6 +781,39 @@ async function fetchStatementData(
       return map;
     };
 
+    const dedupEnd = dedup(poolPricesEndRes.data);
+    const exposedPoolIds = Object.keys(dedupEnd).filter(pid => {
+      const dt = dedupEnd[pid]?.pools?.pool_statement_display_type;
+      return dt !== "do_not_display";
+    });
+
+    // Fetch unit prices, stock items, and T&C
+    const [itemsRes, stockPricesRes, termsRes] = await Promise.all([
+      adminClient.from("items").select("id, description, pool_id, show_item_price_on_statement").eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false).eq("show_item_price_on_statement", true).in("pool_id", exposedPoolIds.length > 0 ? exposedPoolIds : ["__none__"]).order("description"),
+      adminClient.from("daily_stock_prices").select("item_id, cost_incl_vat, price_date").eq("tenant_id", tenantId).eq("price_date", toStr),
+      adminClient.from("terms_conditions").select("content").eq("tenant_id", tenantId).eq("condition_type", "pool").eq("is_active", true).eq("language_code", "en").order("effective_from", { ascending: false }).limit(1),
+    ]);
+
+    // Pool unit prices
+    const poolUnitPrices = exposedPoolIds.map(pid => {
+      const pp = dedupEnd[pid];
+      return { poolName: pp?.pools?.name || "Unknown", sellPrice: Number(pp?.unit_price_sell || 0) };
+    }).filter(p => p.sellPrice > 0);
+
+    // Stock item prices
+    const stockPriceMap: Record<string, number> = {};
+    for (const sp of (stockPricesRes.data ?? [])) {
+      stockPriceMap[sp.item_id] = Number(sp.cost_incl_vat);
+    }
+    const stockItemPrices = (itemsRes.data ?? []).map((item: any) => ({
+      description: item.description,
+      price: stockPriceMap[item.id] ?? null,
+    }));
+
+    // T&C - strip HTML for PDF
+    const termsHtml = termsRes.data?.[0]?.content || "";
+    const termsConditionsText = termsHtml.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
     const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
 
     const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => {
@@ -829,7 +862,10 @@ async function fetchStatementData(
       openingUnits,
       closingUnits,
       poolPricesStart: dedup(poolPricesStartRes.data),
-      poolPricesEnd: dedup(poolPricesEndRes.data),
+      poolPricesEnd: dedupEnd,
+      poolUnitPrices,
+      stockItemPrices,
+      termsConditionsText,
     };
   } catch (err: any) {
     console.error("[send-member-statement] Data fetch failed:", err.message);
