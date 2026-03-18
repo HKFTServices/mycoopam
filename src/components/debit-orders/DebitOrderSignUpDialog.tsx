@@ -57,6 +57,7 @@ const DebitOrderSignUpDialog = ({
   };
   const [startDate, setStartDate] = useState(getFirstOfNextMonth());
   const [allocations, setAllocations] = useState<PoolAllocation[]>([]);
+  const [manualLoanInstalment, setManualLoanInstalment] = useState("");
   const [notes, setNotes] = useState("");
 
   // Bank details
@@ -314,7 +315,8 @@ const DebitOrderSignUpDialog = ({
 
   // ── Waterfall calculation ──
   const totalAmount = parseFloat(monthlyAmount) || 0;
-  const loanInstalment = outstandingLoanInfo?.instalment ?? 0;
+  const suggestedInstalment = outstandingLoanInfo?.instalment ?? 0;
+  const loanInstalment = manualLoanInstalment !== "" ? (parseFloat(manualLoanInstalment) || 0) : suggestedInstalment;
   const afterLoan = Math.max(0, totalAmount - loanInstalment);
   const feeCalc = calculateFees(afterLoan);
   const afterFees = Math.max(0, afterLoan - feeCalc.totalFee);
@@ -387,6 +389,7 @@ const DebitOrderSignUpDialog = ({
     setFrequency("monthly");
     setStartDate(getFirstOfNextMonth());
     setAllocations([]);
+    setManualLoanInstalment("");
     setSignatureData(null);
     setNotes("");
     setBankName("");
@@ -466,6 +469,32 @@ const DebitOrderSignUpDialog = ({
                   </div>
 
                   {/* Loan Instalment */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label className="text-xs">Loan Instalment ({sym})</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder={suggestedInstalment > 0 ? String(suggestedInstalment.toFixed(2)) : "0.00"}
+                          value={manualLoanInstalment}
+                          onChange={(e) => setManualLoanInstalment(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      {suggestedInstalment > 0 && manualLoanInstalment !== "" && (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setManualLoanInstalment("")}>
+                          Reset
+                        </Button>
+                      )}
+                    </div>
+                    {suggestedInstalment > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Suggested instalment from active loan(s): {formatCurrency(suggestedInstalment, sym)}
+                      </p>
+                    )}
+                  </div>
                   {loanInstalment > 0 && (
                     <div className="flex justify-between text-destructive">
                       <span className="flex items-center gap-1.5">
