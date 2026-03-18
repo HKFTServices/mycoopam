@@ -717,6 +717,7 @@ const Memberships = () => {
                             {g.accounts.map((a: AccountRow) => {
                               const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
                               const isPending = a.status === "pending_activation" || a.status === "pending";
+                              const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
                               return (
                                 <div key={a.id} className="flex items-center gap-1.5 text-sm">
                                   <span className={`font-medium ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
