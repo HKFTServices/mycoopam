@@ -135,6 +135,36 @@ const EntityPoolDetails = () => {
   });
   const sym = tenantConfig?.currency_symbol ?? "R";
 
+  // Fetch loan outstanding for this entity's accounts
+  const { data: cftLoanBalances = [] } = useQuery({
+    queryKey: ["entity_loan_balances", entityId, currentTenant?.id],
+    queryFn: async () => {
+      if (!entityId || !currentTenant) return [];
+      const entityAcctIds = entityAccounts.map((a: any) => a.id);
+      if (entityAcctIds.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("entity_account_id, debit, credit, entry_type")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .like("entry_type", "loan_%")
+        .in("entity_account_id", entityAcctIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!entityId && !!currentTenant && entityAccounts.length > 0,
+  });
+
+  const loanOutstanding = useMemo(() => {
+    const memberDebtTypes = ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"];
+    let total = 0;
+    for (const cft of cftLoanBalances) {
+      if (!memberDebtTypes.includes(cft.entry_type)) continue;
+      total += Number(cft.debit || 0) - Number(cft.credit || 0);
+    }
+    return Math.max(total, 0);
+  }, [cftLoanBalances]);
+
   // Build pool value data for this entity's accounts
   const entityAccountIds = new Set(entityAccounts.map((a: any) => a.id));
 
@@ -166,6 +196,7 @@ const EntityPoolDetails = () => {
   }, [accountPoolUnits, poolPrices, entityAccountIds]);
 
   const totalValue = poolData.reduce((s, p) => s + p.value, 0);
+  const netValue = totalValue - loanOutstanding;
 
   const pieData = poolData.map((p) => ({
     name: p.poolName,
