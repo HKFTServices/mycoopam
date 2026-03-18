@@ -403,6 +403,7 @@ export function generateMemberStatement(data: StatementData): string {
       </tr>` : ""}
     </tbody>
   </table>
+  ${belowSummaryHtml}
 </div>
 
 <!-- UNIT MOVEMENTS -->
