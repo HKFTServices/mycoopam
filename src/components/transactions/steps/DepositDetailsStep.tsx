@@ -123,7 +123,7 @@ const DepositDetailsStep = ({
   const minimumDeposit = totalMembershipDeductions + 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Join Share Notice */}
       {joinShareInfo.needed && (
         <div className="rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-4 space-y-2 animate-fade-in">
@@ -190,7 +190,7 @@ const DepositDetailsStep = ({
       </div>
 
       {/* Amount */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label className="flex items-center gap-1.5">
           <Wallet className="h-3.5 w-3.5 text-primary" />
           Gross Deposit Amount (R)
@@ -203,7 +203,7 @@ const DepositDetailsStep = ({
           onChange={handleAmountChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className="text-lg font-bold h-12"
+          className="text-base font-bold h-10"
         />
         {!isFocused && !amount && (
           <p className="text-[10px] text-muted-foreground">Use <span className="font-semibold">.</span> as the decimal separator (e.g. 1 500.50)</p>
