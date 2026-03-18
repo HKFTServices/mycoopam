@@ -152,6 +152,14 @@ const SALE_STEPS: StepDef[] = [
     type: "confirm",
   },
   {
+    id: "receipt",
+    label: "Stock Receipt",
+    description: "Both parties sign the electronic stock receipt",
+    icon: PenTool,
+    advancesTo: "receipt_signed",
+    type: "receipt",
+  },
+  {
     id: "approved",
     label: "Post Ledger",
     description: "Approve and post all financial ledger entries",
