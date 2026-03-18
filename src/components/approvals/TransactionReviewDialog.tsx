@@ -324,6 +324,7 @@ const TransactionReviewDialog = ({
   // Validation per step
   const canProceedFromReview = fundsConfirmed && (!overrideDate || (changeNote.trim() && Object.keys(overridePrices).length > 0 && poolIds.every(pid => overridePrices[pid] !== undefined)));
   const canProceedFromCourier = courierFeeActual.trim() !== "" && !isNaN(parseFloat(courierFeeActual));
+  const canProceedFromReceipt = !!adminSignature && !!memberSignature;
   const canApprove = stockReceivedConfirmed;
 
   if (!group) return null;
