@@ -467,7 +467,7 @@ async function sendBatchBackground(
       // Wait 1 hour then send next batch
       console.log(`[campaign] Batch ${batchNumber} complete. Waiting 1 hour for next batch...`);
       await sleep(60 * 60 * 1000);
-      await sendBatchBackground(adminClient, campaignId, tenantId, templateId, batchNumber + 1);
+      await sendBatchBackground(adminClient, campaignId, tenantId, templateId, batchNumber + 1, customFields);
     } else {
       // All done
       await adminClient
