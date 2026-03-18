@@ -415,6 +415,7 @@ export default function SendMessage() {
       user_surname: resolvedUser?.last_name || "",
       email_address: firstRecipient.email || "",
       tenant_name: currentTenant?.name || "",
+      legal_entity_name: currentTenant?.name || "",
       title: entity?.titles?.name || "",
       phone_number: entity?.contact_number || "",
       account_number: ea?.account_number || "",
@@ -428,6 +429,7 @@ export default function SendMessage() {
     let html = selectedTemplate.body_html;
     const replacements: Record<string, string> = {
       "{{entity_name}}": previewMergeData.entity_name || "",
+      "{{legal_entity_name}}": previewMergeData.legal_entity_name || "",
       "{{user_name}}": previewMergeData.user_name || "",
       "{{user_surname}}": previewMergeData.user_surname || "",
       "{{first_name}}": previewMergeData.entity_name || "",
@@ -448,6 +450,21 @@ export default function SendMessage() {
     }
     return html;
   }, [selectedTemplate, firstRecipient, previewMergeData, agmVenue, agmDate, agmTime]);
+
+  const previewSubject = useMemo(() => {
+    if (!selectedTemplate?.subject) return "";
+    let subject = selectedTemplate.subject;
+    const allReplacements: Record<string, string> = {
+      ...Object.fromEntries(Object.entries(previewMergeData).map(([k, v]) => [`{{${k}}}`, v || ""])),
+      "{{agm_venue}}": agmVenue || "",
+      "{{agm_date}}": agmDate || "",
+      "{{agm_time}}": agmTime || "",
+    };
+    for (const [key, val] of Object.entries(allReplacements)) {
+      subject = subject.replaceAll(key, val);
+    }
+    return subject;
+  }, [selectedTemplate, previewMergeData, agmVenue, agmDate, agmTime]);
 
   // Send test email
   const handleTestEmail = async () => {
@@ -754,10 +771,14 @@ export default function SendMessage() {
                 <div className="border rounded-md p-1">
                   <div className="bg-muted/30 px-3 py-2 border-b">
                     <p className="text-xs text-muted-foreground">Subject</p>
-                    <p className="text-sm font-medium">{selectedTemplate.subject}</p>
+                    <p className="text-sm font-medium">{previewSubject || selectedTemplate.subject}</p>
+                  </div>
+                  <div className="bg-muted/30 px-3 py-2 border-b">
+                    <p className="text-xs text-muted-foreground">To</p>
+                    <p className="text-sm">{firstRecipient ? `${firstRecipient.name} <${firstRecipient.email}>` : "—"}</p>
                   </div>
                   <div
-                    className="p-3 text-sm max-h-80 overflow-y-auto prose prose-sm max-w-none"
+                    className="p-4 text-sm prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
                 </div>
