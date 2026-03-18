@@ -406,8 +406,8 @@ const Items = () => {
                   <Input type="number" step="0.01" value={form.use_fixed_price} onChange={(e) => setForm({ ...form, use_fixed_price: e.target.value })} placeholder="Leave empty for calculated" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU)</Label>
-                  <Input value={form.api_code} onChange={(e) => setForm({ ...form, api_code: e.target.value })} placeholder="e.g. XAU" />
+                  <Label className="text-xs text-muted-foreground">API Code (e.g. XAU, XAG, XPT, USD, XRP)</Label>
+                  <Input value={form.api_code} onChange={(e) => setForm({ ...form, api_code: e.target.value.toUpperCase() })} placeholder="e.g. XAU" />
                 </div>
               </div>
 
