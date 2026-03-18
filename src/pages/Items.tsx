@@ -319,7 +319,7 @@ const Items = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {(item.api_code || item.api_link) && (
+                          {(item.api_code) && (
                             <Button
                               variant="ghost"
                               size="icon"
