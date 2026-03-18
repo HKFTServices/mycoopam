@@ -451,6 +451,21 @@ export default function SendMessage() {
     return html;
   }, [selectedTemplate, firstRecipient, previewMergeData, agmVenue, agmDate, agmTime]);
 
+  const previewSubject = useMemo(() => {
+    if (!selectedTemplate?.subject) return "";
+    let subject = selectedTemplate.subject;
+    const allReplacements: Record<string, string> = {
+      ...Object.fromEntries(Object.entries(previewMergeData).map(([k, v]) => [`{{${k}}}`, v || ""])),
+      "{{agm_venue}}": agmVenue || "",
+      "{{agm_date}}": agmDate || "",
+      "{{agm_time}}": agmTime || "",
+    };
+    for (const [key, val] of Object.entries(allReplacements)) {
+      subject = subject.replaceAll(key, val);
+    }
+    return subject;
+  }, [selectedTemplate, previewMergeData, agmVenue, agmDate, agmTime]);
+
   // Send test email
   const handleTestEmail = async () => {
     if (!templateId || !tenantId) return;
