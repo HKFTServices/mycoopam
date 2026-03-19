@@ -458,8 +458,8 @@ const Reports = () => {
                     <TableRow key={r.code}>
                       <TableCell className="font-mono text-xs">{r.code}</TableCell>
                       <TableCell>{r.name}</TableCell>
-                      {/* Expense = GL Debit side (contra of CFT Credit) */}
-                      <TableCell className="text-right">{fmtAmt(r.exclVatDebit - r.exclVatCredit)}</TableCell>
+                      {/* Expense must display as a positive amount in the IS */}
+                      <TableCell className="text-right">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</TableCell>
                     </TableRow>
                   ))}
                   {isAggregated.filter(r => r.gl_type === "expense").length === 0 && (
