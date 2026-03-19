@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { formatLocalDate } from "@/lib/formatDate";
+import { generateAdminInvoiceHtml, openInvoicePrintWindow, type AdminInvoiceData } from "@/lib/generateAdminInvoice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -419,6 +420,9 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       toast.success("Month-end journals posted successfully");
+
+      // Auto-generate and open invoice
+      generateAndOpenInvoice();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -430,6 +434,64 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   const totalVaultInvoice = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode === "VAULT_FEES_EXP").reduce((s, l) => s + l.calculatedFee, 0);
   const totalTransactionalAdmin = feeLines.filter(l => l.paymentMethod === "invoice").reduce((s, l) => s + l.adminFee, 0);
   const grandInvoiceTotal = totalAdminFeesBank + totalVaultInvoice + totalTransactionalAdmin;
+
+  const generateAndOpenInvoice = () => {
+    const bankNonVault = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode !== "VAULT_FEES_EXP");
+    const bankVault = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode === "VAULT_FEES_EXP");
+
+    const invoiceData: AdminInvoiceData = {
+      invoiceDate: new Date().toLocaleDateString("en-ZA"),
+      runDate,
+      tenantName: currentTenant?.name ?? "Tenant",
+      legalEntityName: null,
+      logoUrl: null,
+      adminFeesLines: bankNonVault.map(l => ({
+        feeTypeName: l.feeTypeName,
+        poolName: l.poolName,
+        basis: l.basis,
+        poolValue: l.grossAmount,
+        amount: l.calculatedFee,
+      })),
+      vaultFeesLines: bankVault.map(l => ({
+        feeTypeName: l.feeTypeName,
+        poolName: l.poolName,
+        basis: l.basis,
+        poolValue: 0,
+        amount: l.calculatedFee,
+      })),
+      txDetailLines: txDetailLines.map(d => ({
+        date: d.txDate,
+        type: d.txTypeName,
+        member: d.entityName,
+        amount: d.txAmount,
+        adminPct: d.tierPct,
+        adminFee: d.adminFee,
+      })),
+      totalAdminFees: totalAdminFeesBank,
+      totalVaultFees: totalVaultInvoice,
+      totalTransactionalFees: totalTransactionalAdmin,
+      grandTotal: grandInvoiceTotal,
+    };
+
+    // Fetch branding then open
+    (async () => {
+      try {
+        const { data: config } = await (supabase as any)
+          .from("tenant_configuration")
+          .select("legal_entity_id, logo_url")
+          .eq("tenant_id", currentTenant?.id)
+          .maybeSingle();
+        if (config?.logo_url) invoiceData.logoUrl = config.logo_url;
+        if (config?.legal_entity_id) {
+          const { data: entity } = await supabase.from("entities").select("name").eq("id", config.legal_entity_id).maybeSingle();
+          if (entity?.name) invoiceData.legalEntityName = entity.name;
+        }
+      } catch { /* use defaults */ }
+
+      const html = generateAdminInvoiceHtml(invoiceData);
+      openInvoicePrintWindow(html);
+    })();
+  };
 
   const handleClose = () => {
     setCalculated(false);
@@ -637,6 +699,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           <Button variant="outline" onClick={handleClose}>
             {posted ? "Close" : "Cancel"}
           </Button>
+          {posted && (
+            <Button variant="outline" onClick={generateAndOpenInvoice}>
+              <FileText className="h-4 w-4 mr-2" />Print Invoice
+            </Button>
+          )}
           {calculated && !posted && feeLines.filter(l => l.paymentMethod === "journal").length > 0 && (
             <Button onClick={() => postMutation.mutate()} disabled={postMutation.isPending}>
               {postMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> : "Post Journals & Generate Invoice"}
