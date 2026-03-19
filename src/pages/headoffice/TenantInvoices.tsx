@@ -226,7 +226,7 @@ const TenantInvoices = () => {
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {invoices.filter((i: any) => i.status === "paid").length}
