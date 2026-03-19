@@ -200,11 +200,38 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
       const txns = monthTxns ?? [];
       
-      // Rules that have admin fees (either via admin_share_percentage > 0 or sliding_scale with tiers)
-      const rulesWithAdmin = feeRules.filter((r: any) => 
+      // Fetch fee rules directly inside the mutation to avoid closure timing issues
+      const { data: freshRules } = await (supabase as any).from("transaction_fee_rules")
+        .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id)")
+        .eq("tenant_id", currentTenant.id).eq("is_active", true);
+      
+      const allRules = freshRules ?? [];
+      
+      // Fetch tiers separately and group by fee_rule_id
+      const ruleIds = allRules.map((r: any) => r.id);
+      let tiersMap: Record<string, any[]> = {};
+      if (ruleIds.length > 0) {
+        const { data: allTiers } = await (supabase as any).from("transaction_fee_tiers")
+          .select("*")
+          .in("fee_rule_id", ruleIds);
+        for (const tier of allTiers ?? []) {
+          if (!tiersMap[tier.fee_rule_id]) tiersMap[tier.fee_rule_id] = [];
+          tiersMap[tier.fee_rule_id].push(tier);
+        }
+      }
+      
+      // Attach tiers to rules
+      for (const rule of allRules) {
+        rule.transaction_fee_tiers = tiersMap[rule.id] || [];
+      }
+      
+      // Rules that have admin fees
+      const rulesWithAdmin = allRules.filter((r: any) => 
         r.admin_share_percentage > 0 || 
-        (r.calculation_method === "sliding_scale" && r.transaction_fee_tiers?.length > 0)
+        (r.calculation_method === "sliding_scale" && r.transaction_fee_tiers.length > 0)
       );
+      
+      console.log("[EOM] Rules with admin:", rulesWithAdmin.length, "Transactions:", txns.length);
       
       // Get transaction type names
       const { data: txTypes } = await (supabase as any).from("transaction_types").select("id, name").eq("tenant_id", currentTenant.id);
