@@ -516,12 +516,12 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pool % Fees (Bank payable)</span>
-                  <span className="font-medium">{formatCurrency(totalAdminInvoice - totalTransactionalAdmin)}</span>
+                  <span className="text-muted-foreground">Pool % Recovery Fees (Admin Invoice)</span>
+                  <span className="font-medium">{formatCurrency(totalPoolPctInvoice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vault Fees (Invoice by Admin)</span>
-                  <span className="font-medium">{formatCurrency(feeLines.filter(l => l.invoiceByAdmin && l.paymentMethod !== "invoice" && l.paymentMethod !== "bank").reduce((s, l) => s + l.adminFee, 0))}</span>
+                  <span className="text-muted-foreground">Vault Fees (Admin Invoice)</span>
+                  <span className="font-medium">{formatCurrency(totalVaultInvoice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Transactional Admin Fees</span>
