@@ -74,6 +74,7 @@ const LedgerEntries = () => {
   const [payReference, setPayReference] = useState("");
   const [bankForm, setBankForm] = useState({ ...defaultBankForm });
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
+  const [monthEndOpen, setMonthEndOpen] = useState(false);
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────
