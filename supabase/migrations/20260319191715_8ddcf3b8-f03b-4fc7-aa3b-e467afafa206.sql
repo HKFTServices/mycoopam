@@ -1,0 +1,1 @@
+DELETE FROM cashflow_transactions WHERE reference LIKE 'EOM-%' AND tenant_id = '38e204c4-829f-4544-ab53-b2f3f5342662';
