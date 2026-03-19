@@ -1,0 +1,1 @@
+ALTER TABLE public.transaction_fee_tiers ADD COLUMN IF NOT EXISTS admin_percentage numeric NOT NULL DEFAULT 0;
