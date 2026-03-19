@@ -621,9 +621,6 @@ const Fees = () => {
                         {pools.map(p => (
                           <TableHead key={p.id} className="text-center min-w-[120px]">{p.name} (%)</TableHead>
                         ))}
-                        {pools.map(p => (
-                          <TableHead key={`admin-${p.id}`} className="text-center min-w-[110px] bg-muted/30">{p.name} Admin %</TableHead>
-                        ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
