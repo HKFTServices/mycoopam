@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, Pencil, Trash2, Settings2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type GlAccount = {
   id: string;
