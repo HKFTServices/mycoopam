@@ -499,7 +499,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             )}
 
             {!posted && feeLines.length > 0 && feeLines.filter(l => l.paymentMethod === "journal").length === 0 && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
                 <AlertTriangle className="h-4 w-4" />
                 No journal entries to post — only invoice items were calculated.
               </div>
