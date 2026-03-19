@@ -593,11 +593,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pool % Recovery Fees (Admin Invoice)</span>
-                  <span className="font-medium">{formatCurrency(totalPoolPctInvoice)}</span>
+                  <span className="text-muted-foreground">Monthly Admin Fees (% of Portfolio Values)</span>
+                  <span className="font-medium">{formatCurrency(totalAdminFeesBank)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vault Fees (Admin Invoice)</span>
+                  <span className="text-muted-foreground">Vault Fees</span>
                   <span className="font-medium">{formatCurrency(totalVaultInvoice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
