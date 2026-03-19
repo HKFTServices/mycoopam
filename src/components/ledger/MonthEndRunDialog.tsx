@@ -53,9 +53,10 @@ type TxDetailLine = {
 const formatCurrency = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) => {
+export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open: boolean; onOpenChange: (o: boolean) => void; tenantOverride?: { id: string; name: string } | null }) => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
+  const activeTenant = tenantOverride || currentTenant;
   const queryClient = useQueryClient();
   const [runDate, setRunDate] = useState(formatLocalDate());
   const [calculated, setCalculated] = useState(false);
