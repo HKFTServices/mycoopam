@@ -385,6 +385,18 @@ const TenantInvoices = () => {
                 </div>
               </div>
 
+              {/* Print Invoice Button */}
+              {viewInvoice.invoice_html && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => openInvoicePrintWindow(viewInvoice.invoice_html)}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print / View Invoice
+                </Button>
+              )}
+
               {viewInvoice.status !== "paid" && (
                 <>
                   <Separator />
