@@ -332,6 +332,13 @@ const TenantManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Month End Run Dialog */}
+      <MonthEndRunDialog
+        open={!!eomTenant}
+        onOpenChange={(open) => !open && setEomTenant(null)}
+        tenantOverride={eomTenant}
+      />
     </div>
   );
 };
