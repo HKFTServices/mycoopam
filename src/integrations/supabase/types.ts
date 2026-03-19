@@ -2953,11 +2953,13 @@ export type Database = {
       }
       pool_fee_configurations: {
         Row: {
+          admin_share_percentage: number
           created_at: string
           fee_type_id: string
           fixed_amount: number
           frequency: string
           id: string
+          invoice_by_administrator: boolean
           is_active: boolean
           percentage: number
           pool_id: string
@@ -2965,11 +2967,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_share_percentage?: number
           created_at?: string
           fee_type_id: string
           fixed_amount?: number
           frequency?: string
           id?: string
+          invoice_by_administrator?: boolean
           is_active?: boolean
           percentage?: number
           pool_id: string
@@ -2977,11 +2981,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_share_percentage?: number
           created_at?: string
           fee_type_id?: string
           fixed_amount?: number
           frequency?: string
           id?: string
+          invoice_by_administrator?: boolean
           is_active?: boolean
           percentage?: number
           pool_id?: string

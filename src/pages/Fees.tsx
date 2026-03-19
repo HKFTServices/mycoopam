@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, Pencil, Trash2, Settings2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type GlAccount = {
   id: string;
@@ -148,7 +149,7 @@ const Fees = () => {
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   // Pool fee config state
-  const [poolFeeEdits, setPoolFeeEdits] = useState<Record<string, { frequency: string; percentage: number; fixed_amount: number }>>({});
+  const [poolFeeEdits, setPoolFeeEdits] = useState<Record<string, { frequency: string; percentage: number; fixed_amount: number; admin_share_percentage: number; invoice_by_administrator: boolean }>>({});
 
   // Queries
   const { data: feeTypes = [], isLoading: loadingFeeTypes } = useQuery({
@@ -251,13 +252,13 @@ const Fees = () => {
     const key = `${feeTypeId}_${poolId}`;
     if (poolFeeEdits[key]) return poolFeeEdits[key];
     const existing = poolFeeConfigs.find((c: any) => c.fee_type_id === feeTypeId && c.pool_id === poolId);
-    if (existing) return { frequency: existing.frequency, percentage: Number(existing.percentage), fixed_amount: Number(existing.fixed_amount) };
+    if (existing) return { frequency: existing.frequency, percentage: Number(existing.percentage), fixed_amount: Number(existing.fixed_amount), admin_share_percentage: Number(existing.admin_share_percentage || 0), invoice_by_administrator: !!existing.invoice_by_administrator };
     // Defaults based on fee type name
     const ft = feeTypes.find(f => f.id === feeTypeId);
     const name = ft?.name?.toLowerCase() || "";
-    if (name.includes("admin recoveries") || name.includes("monthly admin")) return { frequency: "monthly", percentage: 1, fixed_amount: 0 };
-    if (name.includes("administrator") || name.includes("admin fee")) return { frequency: "monthly", percentage: 0.8, fixed_amount: 0 };
-    return { frequency: "monthly", percentage: 0, fixed_amount: 0 };
+    if (name.includes("admin recoveries") || name.includes("monthly admin")) return { frequency: "monthly", percentage: 1, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
+    if (name.includes("administrator") || name.includes("admin fee")) return { frequency: "monthly", percentage: 0.8, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
+    return { frequency: "monthly", percentage: 0, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
   };
 
   const updatePoolFeeEdit = (feeTypeId: string, poolId: string, field: string, value: any) => {
@@ -290,6 +291,8 @@ const Fees = () => {
         frequency: config.frequency,
         percentage: config.percentage,
         fixed_amount: config.fixed_amount,
+        admin_share_percentage: config.admin_share_percentage,
+        invoice_by_administrator: config.invoice_by_administrator,
       }, { onConflict: "tenant_id,fee_type_id,pool_id" });
       if (error) throw error;
     },
@@ -564,7 +567,6 @@ const Fees = () => {
                          {transactionTypes.map(tt => (
                            <TableHead key={tt.id} className="text-center min-w-[130px]">{tt.name}</TableHead>
                          ))}
-                         <TableHead className="text-center min-w-[120px]">Admin Share %</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -583,14 +585,6 @@ const Fees = () => {
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-center text-sm">
-                            {(() => {
-                              const rules = feeRules.filter(r => r.fee_type_id === ft.id);
-                              const firstWithShare = rules.find(r => (r as any).admin_share_percentage > 0);
-                              const share = firstWithShare ? (firstWithShare as any).admin_share_percentage : 0;
-                              return share > 0 ? `${Number(share).toFixed(0)}%` : "—";
-                            })()}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -599,7 +593,7 @@ const Fees = () => {
               )}
             </CardContent>
             <div className="px-6 pb-5 text-xs text-muted-foreground space-y-1.5 border-t border-border pt-4 mx-6 mb-2">
-              <p><span className="font-semibold">Admin Share %:</span> The percentage of transactional fees the administrator will charge for admin services — i.e. admin fees paid out from whatever is charged on transactions.</p>
+              <p><span className="font-semibold">Admin Share %:</span> Each fee rule has its own administrator share percentage (configured per rule). At month-end, the total admin share of all transactional fees is invoiced to the administrator.</p>
             </div>
           </Card>
 
@@ -625,11 +619,14 @@ const Fees = () => {
                         {pools.map(p => (
                           <TableHead key={p.id} className="text-center min-w-[120px]">{p.name} (%)</TableHead>
                         ))}
+                        {pools.map(p => (
+                          <TableHead key={`admin-${p.id}`} className="text-center min-w-[110px] bg-muted/30">{p.name} Admin %</TableHead>
+                        ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {feeTypes.filter(ft => ft.is_active && (ft as any).based_on === 'pool_value_percentage').map(ft => {
-                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0 };
+                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
                         return (
                           <TableRow key={ft.id}>
                             <TableCell className="sticky left-0 bg-card z-10 font-medium">{ft.name}</TableCell>
@@ -659,6 +656,25 @@ const Fees = () => {
                                       value={config.percentage}
                                       onChange={e => updatePoolFeeEdit(ft.id, p.id, "percentage", parseFloat(e.target.value) || 0)}
                                       onBlur={() => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })}
+                                    />
+                                    <span className="text-xs text-muted-foreground">%</span>
+                                  </div>
+                                </TableCell>
+                              );
+                            })}
+                            {pools.map(p => {
+                              const config = getPoolFeeConfig(ft.id, p.id);
+                              return (
+                                <TableCell key={`admin-${p.id}`} className="text-center p-1 bg-muted/10">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      className="h-8 w-20 text-xs text-center"
+                                      value={config.admin_share_percentage}
+                                      onChange={e => updatePoolFeeEdit(ft.id, p.id, "admin_share_percentage", parseFloat(e.target.value) || 0)}
+                                      onBlur={() => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })}
+                                      disabled={!canEditAdminShare}
                                     />
                                     <span className="text-xs text-muted-foreground">%</span>
                                   </div>
@@ -701,11 +717,12 @@ const Fees = () => {
                         {pools.map(p => (
                           <TableHead key={p.id} className="text-center min-w-[120px]">{p.name} (R)</TableHead>
                         ))}
+                        <TableHead className="text-center min-w-[130px] bg-muted/30">Invoice by Admin</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {feeTypes.filter(ft => ft.is_active && (ft as any).based_on === 'pool_fixed_amounts').map(ft => {
-                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0 };
+                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
                         return (
                           <TableRow key={ft.id}>
                             <TableCell className="sticky left-0 bg-card z-10 font-medium">{ft.name}</TableCell>
@@ -741,6 +758,19 @@ const Fees = () => {
                                 </TableCell>
                               );
                             })}
+                            <TableCell className="text-center p-1 bg-muted/10">
+                              <div className="flex items-center justify-center">
+                                <Checkbox
+                                  checked={firstPoolConfig.invoice_by_administrator}
+                                  onCheckedChange={(checked) => {
+                                    pools.forEach(p => {
+                                      updatePoolFeeEdit(ft.id, p.id, "invoice_by_administrator", !!checked);
+                                    });
+                                    setTimeout(() => pools.forEach(p => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })), 0);
+                                  }}
+                                />
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -752,6 +782,7 @@ const Fees = () => {
             <div className="px-6 pb-5 text-xs text-muted-foreground space-y-1.5 border-t border-border pt-4 mx-6 mb-2">
               <p><span className="font-semibold">Journal & Monthly:</span> The monthly amount is what the pool will contribute towards vault fees. A journal entry reduces the Cash Control account of the specific pool by that amount and increases the Admin Pool accordingly. The total vault fees are then payable via the Bank to the Vault company — paid out of the Admin Pool.</p>
               <p><span className="font-semibold">Bank & Monthly:</span> The sum total of all pool amounts is payable to the Vault company and deducted from the Admin Pool.</p>
+              <p><span className="font-semibold">Invoice by Admin:</span> When ticked, this fee is included on the administrator's monthly invoice to the tenant. The administrator arranges the vault and charges these fees accordingly.</p>
             </div>
           </Card>
 
