@@ -460,7 +460,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           transaction_date: runDate,
           entry_type: "bank",
           is_bank: true,
-          gl_account_id: null,
+          gl_account_id: gl1000Id,
           control_account_id: adminCashControlId,
           debit: 0,
           credit: bankGrandTotal,
