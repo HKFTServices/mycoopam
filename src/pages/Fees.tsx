@@ -485,7 +485,7 @@ const Fees = () => {
 
   const addTier = () => {
     const lastMax = tiers.length > 0 ? (tiers[tiers.length - 1].max_amount ?? 0) : 0;
-    setTiers([...tiers, { min_amount: lastMax + 1, max_amount: null, percentage: 0 }]);
+    setTiers([...tiers, { min_amount: lastMax + 1, max_amount: null, percentage: 0, admin_percentage: 0 }]);
   };
 
   const updateTier = (index: number, field: keyof FeeTier, value: number | null) => {
