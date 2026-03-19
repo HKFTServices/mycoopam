@@ -463,7 +463,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           debit: 0,
           credit: bankGrandTotal,
           vat_amount: 0,
-          amount_excl_vat: 0,
+          amount_excl_vat: bankGrandTotal,
           description: `EOM Bank Payment: Administrator Invoice`,
           reference: `EOM-BANK-${runDate}`,
           notes: `Month-end admin invoice payment`,
