@@ -716,11 +716,12 @@ const Fees = () => {
                         {pools.map(p => (
                           <TableHead key={p.id} className="text-center min-w-[120px]">{p.name} (R)</TableHead>
                         ))}
+                        <TableHead className="text-center min-w-[130px] bg-muted/30">Invoice by Admin</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {feeTypes.filter(ft => ft.is_active && (ft as any).based_on === 'pool_fixed_amounts').map(ft => {
-                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0 };
+                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
                         return (
                           <TableRow key={ft.id}>
                             <TableCell className="sticky left-0 bg-card z-10 font-medium">{ft.name}</TableCell>
@@ -756,6 +757,19 @@ const Fees = () => {
                                 </TableCell>
                               );
                             })}
+                            <TableCell className="text-center p-1 bg-muted/10">
+                              <div className="flex items-center justify-center">
+                                <Checkbox
+                                  checked={firstPoolConfig.invoice_by_administrator}
+                                  onCheckedChange={(checked) => {
+                                    pools.forEach(p => {
+                                      updatePoolFeeEdit(ft.id, p.id, "invoice_by_administrator", !!checked);
+                                    });
+                                    setTimeout(() => pools.forEach(p => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })), 0);
+                                  }}
+                                />
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
