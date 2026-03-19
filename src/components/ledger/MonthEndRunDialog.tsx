@@ -420,6 +420,9 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       toast.success("Month-end journals posted successfully");
+
+      // Auto-generate and open invoice
+      generateAndOpenInvoice();
     },
     onError: (e: Error) => toast.error(e.message),
   });
