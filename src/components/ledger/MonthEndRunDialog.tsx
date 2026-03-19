@@ -40,6 +40,16 @@ type FeeCalcLine = {
   creditControlAccountId: string | null;
 };
 
+type TxDetailLine = {
+  txTypeName: string;
+  txDate: string;
+  txReference: string;
+  txAmount: number;
+  tierPct: number;
+  adminFee: number;
+  entityName: string;
+};
+
 const formatCurrency = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -50,6 +60,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   const [runDate, setRunDate] = useState(formatLocalDate());
   const [calculated, setCalculated] = useState(false);
   const [feeLines, setFeeLines] = useState<FeeCalcLine[]>([]);
+  const [txDetailLines, setTxDetailLines] = useState<TxDetailLine[]>([]);
   const [posted, setPosted] = useState(false);
 
   // ── Queries ──
@@ -181,7 +192,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
       // 3) TRANSACTIONAL FEES - admin share from transactions this month
       const { data: monthTxns } = await (supabase as any).from("transactions")
-        .select("id, amount, fee_amount, transaction_type_id")
+        .select("id, amount, fee_amount, transaction_type_id, transaction_date, reference, entity_account_id")
         .eq("tenant_id", currentTenant.id)
         .eq("status", "approved")
         .gte("transaction_date", monthStart)
@@ -200,6 +211,21 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       const txTypeMap: Record<string, string> = {};
       for (const tt of txTypes ?? []) txTypeMap[tt.id] = tt.name;
 
+      // Get entity names for detail display
+      const entityAccountIds = [...new Set(txns.map((t: any) => t.entity_account_id).filter(Boolean))];
+      let entityNameMap: Record<string, string> = {};
+      if (entityAccountIds.length > 0) {
+        const { data: eaData } = await (supabase as any).from("entity_accounts")
+          .select("id, account_number, entities(name, last_name)")
+          .in("id", entityAccountIds);
+        for (const ea of eaData ?? []) {
+          const ent = (ea as any).entities;
+          entityNameMap[ea.id] = ent ? (ent.last_name ? `${ent.name} ${ent.last_name}` : ent.name) : ea.account_number || "Unknown";
+        }
+      }
+
+      const details: TxDetailLine[] = [];
+
       for (const rule of rulesWithAdmin) {
         const ruleTxns = txns.filter((tx: any) => tx.transaction_type_id === rule.transaction_type_id);
         if (ruleTxns.length === 0) continue;
@@ -208,7 +234,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         const txTypeName = txTypeMap[rule.transaction_type_id] || "Unknown";
 
         if (rule.calculation_method === "sliding_scale" && rule.transaction_fee_tiers?.length > 0) {
-          // Sliding scale: apply each transaction to the matching tier's admin_percentage
           const tiers = [...rule.transaction_fee_tiers].sort((a: any, b: any) => a.min_amount - b.min_amount);
           let totalAdminFee = 0;
           let totalGross = 0;
@@ -216,13 +241,22 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
             totalGross += txAmount;
-            // Find matching tier
             const tier = tiers.find((t: any) => 
               txAmount >= t.min_amount && (t.max_amount === null || txAmount <= t.max_amount)
             );
-            if (tier && tier.admin_percentage > 0) {
-              totalAdminFee += Math.round((txAmount * tier.admin_percentage / 100) * 100) / 100;
-            }
+            const tierPct = tier?.admin_percentage || 0;
+            const txAdminFee = tierPct > 0 ? Math.round((txAmount * tierPct / 100) * 100) / 100 : 0;
+            totalAdminFee += txAdminFee;
+
+            details.push({
+              txTypeName,
+              txDate: tx.transaction_date,
+              txReference: tx.reference || tx.id.substring(0, 8),
+              txAmount,
+              tierPct,
+              adminFee: txAdminFee,
+              entityName: entityNameMap[tx.entity_account_id] || "—",
+            });
           }
 
           if (totalAdminFee > 0) {
@@ -248,12 +282,28 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             });
           }
         } else if (rule.admin_share_percentage > 0) {
-          // Fixed percentage: admin_share_percentage is already the % of gross value
-          const totalGross = ruleTxns.reduce((s: number, tx: any) => s + (Number(tx.amount) || 0), 0);
           const adminPct = Number(rule.admin_share_percentage);
-          const adminFeeTotal = Math.round((totalGross * adminPct / 100) * 100) / 100;
+          let totalGross = 0;
+          let totalAdminFee = 0;
 
-          if (adminFeeTotal > 0) {
+          for (const tx of ruleTxns) {
+            const txAmount = Number(tx.amount) || 0;
+            totalGross += txAmount;
+            const txAdminFee = Math.round((txAmount * adminPct / 100) * 100) / 100;
+            totalAdminFee += txAdminFee;
+
+            details.push({
+              txTypeName,
+              txDate: tx.transaction_date,
+              txReference: tx.reference || tx.id.substring(0, 8),
+              txAmount,
+              tierPct: adminPct,
+              adminFee: txAdminFee,
+              entityName: entityNameMap[tx.entity_account_id] || "—",
+            });
+          }
+
+          if (totalAdminFee > 0) {
             lines.push({
               feeTypeName: `Admin Fee: ${txTypeName}`,
               feeTypeCode: ft?.code || "ADMIN",
@@ -261,9 +311,9 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               basis: `${adminPct}% of ${formatCurrency(totalGross)} (${ruleTxns.length} txns)`,
               grossAmount: totalGross,
               percentage: adminPct,
-              calculatedFee: adminFeeTotal,
+              calculatedFee: totalAdminFee,
               adminPercentage: adminPct,
-              adminFee: adminFeeTotal,
+              adminFee: totalAdminFee,
               paymentMethod: "invoice",
               invoiceByAdmin: true,
               feeTypeId: ft?.id || "",
@@ -277,10 +327,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         }
       }
 
-      return lines;
+      return { lines, details };
     },
-    onSuccess: (lines) => {
+    onSuccess: ({ lines, details }) => {
       setFeeLines(lines);
+      setTxDetailLines(details);
       setCalculated(true);
       toast.success(`Calculated ${lines.length} fee line items`);
     },
@@ -364,6 +415,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   const handleClose = () => {
     setCalculated(false);
     setFeeLines([]);
+    setTxDetailLines([]);
     setPosted(false);
     onOpenChange(false);
   };
@@ -471,7 +523,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             )}
 
             {/* ── SECTION 3: Transactional Admin Fees ── */}
-            {feeLines.filter(l => l.paymentMethod === "invoice").length > 0 && (
+            {(feeLines.filter(l => l.paymentMethod === "invoice").length > 0 || txDetailLines.length > 0) && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -480,6 +532,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
+                  {/* Summary totals */}
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -492,8 +545,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                     </TableHeader>
                     <TableBody>
                       {feeLines.filter(l => l.paymentMethod === "invoice").map((l, i) => (
-                        <TableRow key={`t-${i}`}>
-                          <TableCell className="text-sm font-medium">{l.feeTypeName}</TableCell>
+                        <TableRow key={`t-${i}`} className="bg-muted/20 font-semibold">
+                          <TableCell className="text-sm font-semibold">{l.feeTypeName}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{l.basis}</TableCell>
                           <TableCell className="text-right text-sm">{formatCurrency(l.grossAmount)}</TableCell>
                           <TableCell className="text-right text-sm">{l.adminPercentage}%</TableCell>
@@ -502,6 +555,41 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                       ))}
                     </TableBody>
                   </Table>
+
+                  {/* Transaction detail */}
+                  {txDetailLines.length > 0 && (
+                    <div className="border-t">
+                      <div className="px-4 py-2 bg-muted/10">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction Detail</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Date</TableHead>
+                            <TableHead className="text-xs">Type</TableHead>
+                            <TableHead className="text-xs">Member</TableHead>
+                            <TableHead className="text-xs">Reference</TableHead>
+                            <TableHead className="text-right text-xs">Amount</TableHead>
+                            <TableHead className="text-right text-xs">Admin %</TableHead>
+                            <TableHead className="text-right text-xs">Admin Fee</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {txDetailLines.map((d, i) => (
+                            <TableRow key={`td-${i}`}>
+                              <TableCell className="text-xs">{d.txDate}</TableCell>
+                              <TableCell className="text-xs">{d.txTypeName}</TableCell>
+                              <TableCell className="text-xs">{d.entityName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{d.txReference}</TableCell>
+                              <TableCell className="text-right text-xs">{formatCurrency(d.txAmount)}</TableCell>
+                              <TableCell className="text-right text-xs">{d.tierPct}%</TableCell>
+                              <TableCell className="text-right text-xs font-medium">{formatCurrency(d.adminFee)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
