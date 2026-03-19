@@ -265,9 +265,9 @@ const Reports = () => {
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
   })();
 
-  // Income = GL Credit side (exclVatCredit); Expense = GL Debit side (exclVatDebit)
+  // Income = GL Credit side; Expense = GL Debit side
   const totalIncomeExclVat = isAggregated.filter(r => r.gl_type === "income").reduce((s, r) => s + (r.exclVatCredit - r.exclVatDebit), 0);
-  const totalExpenseExclVat = isAggregated.filter(r => r.gl_type === "expense").reduce((s, r) => s + (r.exclVatCredit - r.exclVatDebit), 0);
+  const totalExpenseExclVat = isAggregated.filter(r => r.gl_type === "expense").reduce((s, r) => s + (r.exclVatDebit - r.exclVatCredit), 0);
   const netProfit = totalIncomeExclVat - totalExpenseExclVat;
 
 
