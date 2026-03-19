@@ -782,6 +782,7 @@ const Fees = () => {
             <div className="px-6 pb-5 text-xs text-muted-foreground space-y-1.5 border-t border-border pt-4 mx-6 mb-2">
               <p><span className="font-semibold">Journal & Monthly:</span> The monthly amount is what the pool will contribute towards vault fees. A journal entry reduces the Cash Control account of the specific pool by that amount and increases the Admin Pool accordingly. The total vault fees are then payable via the Bank to the Vault company — paid out of the Admin Pool.</p>
               <p><span className="font-semibold">Bank & Monthly:</span> The sum total of all pool amounts is payable to the Vault company and deducted from the Admin Pool.</p>
+              <p><span className="font-semibold">Invoice by Admin:</span> When ticked, this fee is included on the administrator's monthly invoice to the tenant. The administrator arranges the vault and charges these fees accordingly.</p>
             </div>
           </Card>
 
