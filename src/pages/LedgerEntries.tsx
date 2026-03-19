@@ -1179,6 +1179,9 @@ const LedgerEntries = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Month End Run Dialog ── */}
+      <MonthEndRunDialog open={monthEndOpen} onOpenChange={setMonthEndOpen} />
     </div>
   );
 };
