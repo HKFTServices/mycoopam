@@ -293,7 +293,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       if (!currentTenant || !user || !adminPool) throw new Error("Missing context");
 
       const adminCashControlId = adminPool.cash_control_account_id;
-      const journalLines = feeLines.filter(l => l.paymentMethod === "journal" && l.calculatedFee > 0);
+      // Post journals for all journal-type lines AND bank-type lines with invoice_by_administrator
+      const journalLines = feeLines.filter(l => (l.paymentMethod === "journal" || (l.paymentMethod === "bank" && l.invoiceByAdmin)) && l.calculatedFee > 0 && l.poolCashControlId);
 
       for (const line of journalLines) {
         // Journal: Debit Admin Cash Control, Credit Pool Cash Control
