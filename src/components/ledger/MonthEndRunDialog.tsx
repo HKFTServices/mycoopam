@@ -43,7 +43,6 @@ type FeeCalcLine = {
 type TxDetailLine = {
   txTypeName: string;
   txDate: string;
-  txReference: string;
   txAmount: number;
   tierPct: number;
   adminFee: number;
