@@ -60,6 +60,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   const [runDate, setRunDate] = useState(formatLocalDate());
   const [calculated, setCalculated] = useState(false);
   const [feeLines, setFeeLines] = useState<FeeCalcLine[]>([]);
+  const [txDetailLines, setTxDetailLines] = useState<TxDetailLine[]>([]);
   const [posted, setPosted] = useState(false);
 
   // ── Queries ──
