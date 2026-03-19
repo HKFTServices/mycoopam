@@ -430,7 +430,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Badge className="text-xs bg-amber-600 hover:bg-amber-600">Transactional</Badge>
+                    <Badge variant="destructive" className="text-xs">Transactional</Badge>
                     Administrator Transactional Fee Share
                   </CardTitle>
                 </CardHeader>
