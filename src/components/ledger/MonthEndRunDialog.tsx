@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { formatLocalDate } from "@/lib/formatDate";
+import { generateAdminInvoiceHtml, openInvoicePrintWindow, type AdminInvoiceData } from "@/lib/generateAdminInvoice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
