@@ -66,61 +66,61 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
   // ── Queries ──
   const { data: pools = [] } = useQuery({
-    queryKey: ["eom_pools", currentTenant?.id],
+    queryKey: ["eom_pools", activeTenant?.id],
     queryFn: async () => {
-      if (!currentTenant) return [];
-      const { data } = await (supabase as any).from("pools").select("id, name, cash_control_account_id").eq("tenant_id", currentTenant.id).eq("is_active", true).order("name");
+      if (!activeTenant) return [];
+      const { data } = await (supabase as any).from("pools").select("id, name, cash_control_account_id").eq("tenant_id", activeTenant.id).eq("is_active", true).order("name");
       return data ?? [];
     },
-    enabled: !!currentTenant && open,
+    enabled: !!activeTenant && open,
   });
 
   const { data: poolFeeConfigs = [] } = useQuery({
-    queryKey: ["eom_pool_fee_configs", currentTenant?.id],
+    queryKey: ["eom_pool_fee_configs", activeTenant?.id],
     queryFn: async () => {
-      if (!currentTenant) return [];
+      if (!activeTenant) return [];
       const { data } = await (supabase as any).from("pool_fee_configurations")
         .select("*, transaction_fee_types(id, name, code, based_on, payment_method, gl_account_id, cash_control_account_id, credit_control_account_id)")
-        .eq("tenant_id", currentTenant.id).eq("is_active", true);
+        .eq("tenant_id", activeTenant.id).eq("is_active", true);
       return data ?? [];
     },
-    enabled: !!currentTenant && open,
+    enabled: !!activeTenant && open,
   });
 
   const { data: feeRules = [] } = useQuery({
-    queryKey: ["eom_fee_rules", currentTenant?.id],
+    queryKey: ["eom_fee_rules", activeTenant?.id],
     queryFn: async () => {
-      if (!currentTenant) return [];
+      if (!activeTenant) return [];
       const { data } = await (supabase as any).from("transaction_fee_rules")
         .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id), transaction_fee_tiers(*)")
-        .eq("tenant_id", currentTenant.id).eq("is_active", true);
+        .eq("tenant_id", activeTenant.id).eq("is_active", true);
       return data ?? [];
     },
-    enabled: !!currentTenant && open,
+    enabled: !!activeTenant && open,
   });
 
   const { data: adminPool } = useQuery({
-    queryKey: ["eom_admin_pool", currentTenant?.id],
+    queryKey: ["eom_admin_pool", activeTenant?.id],
     queryFn: async () => {
-      if (!currentTenant) return null;
+      if (!activeTenant) return null;
       const { data } = await (supabase as any).from("pools").select("id, name, cash_control_account_id")
-        .eq("tenant_id", currentTenant.id).ilike("name", "%admin%").maybeSingle();
+        .eq("tenant_id", activeTenant.id).ilike("name", "%admin%").maybeSingle();
       return data;
     },
-    enabled: !!currentTenant && open,
+    enabled: !!activeTenant && open,
   });
 
   // ── Calculate Fees ──
   const calculateMutation = useMutation({
     mutationFn: async () => {
-      if (!currentTenant) throw new Error("No tenant");
+      if (!activeTenant) throw new Error("No tenant");
 
       const lines: FeeCalcLine[] = [];
       const monthStart = runDate.substring(0, 7) + "-01";
 
       // Pre-fetch pool units and prices (used by multiple sections)
-      const { data: unitData } = await (supabase as any).rpc("get_pool_units", { p_tenant_id: currentTenant.id, p_up_to_date: runDate });
-      const { data: priceData } = await (supabase as any).rpc("get_latest_pool_prices", { p_tenant_id: currentTenant.id });
+      const { data: unitData } = await (supabase as any).rpc("get_pool_units", { p_tenant_id: activeTenant.id, p_up_to_date: runDate });
+      const { data: priceData } = await (supabase as any).rpc("get_latest_pool_prices", { p_tenant_id: activeTenant.id });
 
       // 1) PERCENTAGE OF POOL VALUE fees — journal recoveries (pool → admin)
       // These generate journals regardless of payment_method, AND if payment_method is "bank"
@@ -194,7 +194,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
       // 3) TRANSACTIONAL FEES - admin share from transactions this month
       const { data: monthTxns } = await (supabase as any).from("transactions")
         .select("id, amount, fee_amount, transaction_type_id, transaction_date, notes, entity_account_id")
-        .eq("tenant_id", currentTenant.id)
+        .eq("tenant_id", activeTenant.id)
         .eq("status", "approved")
         .gte("transaction_date", monthStart)
         .lte("transaction_date", runDate);
@@ -204,7 +204,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
       // Fetch fee rules directly inside the mutation to avoid closure timing issues
       const { data: freshRules } = await (supabase as any).from("transaction_fee_rules")
         .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id)")
-        .eq("tenant_id", currentTenant.id)
+        .eq("tenant_id", activeTenant.id)
         .eq("is_active", true);
 
       const allRules = freshRules ?? [];
@@ -231,7 +231,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         (r.calculation_method === "sliding_scale" && r.transaction_fee_tiers.length > 0)
       );
 
-      const { data: txTypes } = await (supabase as any).from("transaction_types").select("id, name").eq("tenant_id", currentTenant.id);
+      const { data: txTypes } = await (supabase as any).from("transaction_types").select("id, name").eq("tenant_id", activeTenant.id);
       const txTypeMap: Record<string, string> = {};
       for (const tt of txTypes ?? []) txTypeMap[tt.id] = tt.name;
 
@@ -362,14 +362,14 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
   // ── Post Journals ──
   const postMutation = useMutation({
     mutationFn: async () => {
-      if (!currentTenant || !user || !adminPool) throw new Error("Missing context");
+      if (!activeTenant || !user || !adminPool) throw new Error("Missing context");
 
       const adminCashControlId = adminPool.cash_control_account_id;
 
       // ── Look up recovery GL accounts by code ──
       const { data: recoveryGls, error: glErr } = await (supabase as any).from("gl_accounts")
         .select("id, code")
-        .eq("tenant_id", currentTenant.id)
+        .eq("tenant_id", activeTenant.id)
         .in("code", ["1000", "2020", "4080"]);
       if (glErr) throw glErr;
 
@@ -395,7 +395,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         // GL 4080 is placed on the CFT debit side so that contra-posting (CFT Dr → GL Cr)
         // produces a GL Credit on the income account = positive income in IS.
         const { data: parent, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
-          tenant_id: currentTenant.id,
+          tenant_id: activeTenant.id,
           transaction_date: runDate,
           entry_type: "journal",
           is_bank: false,
@@ -414,7 +414,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
         // Credit leg: Pool Cash control + GL 2020 (Member Interest — liability, no IS impact)
         const { error: e2 } = await (supabase as any).from("cashflow_transactions").insert({
-          tenant_id: currentTenant.id,
+          tenant_id: activeTenant.id,
           transaction_date: runDate,
           entry_type: "journal",
           is_bank: false,
@@ -457,7 +457,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
         // Single bank entry: Credit Admin Cash control for the total invoice amount
         const { error: eBankEntry } = await (supabase as any).from("cashflow_transactions").insert({
-          tenant_id: currentTenant.id,
+          tenant_id: activeTenant.id,
           transaction_date: runDate,
           entry_type: "bank",
           is_bank: true,
@@ -479,7 +479,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         // a GL Debit on the expense account = positive expense in IS.
         if (adminFeesTotal > 0 && adminGlId) {
           const { error: eAdminGl } = await (supabase as any).from("cashflow_transactions").insert({
-            tenant_id: currentTenant.id,
+            tenant_id: activeTenant.id,
             transaction_date: runDate,
             entry_type: "journal",
             is_bank: false,
@@ -500,7 +500,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         // Standalone expense journal: Vault Fees
         if (vaultFeesTotal > 0 && vaultGlId) {
           const { error: eVaultGl } = await (supabase as any).from("cashflow_transactions").insert({
-            tenant_id: currentTenant.id,
+            tenant_id: activeTenant.id,
             transaction_date: runDate,
             entry_type: "journal",
             is_bank: false,
@@ -549,7 +549,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
     const invoiceData: AdminInvoiceData = {
       invoiceDate: new Date().toLocaleDateString("en-ZA"),
       runDate,
-      tenantName: currentTenant?.name ?? "Tenant",
+      tenantName: activeTenant?.name ?? "Tenant",
       legalEntityName: null,
       logoUrl: null,
       adminFeesLines: bankNonVault.map(l => ({
@@ -586,7 +586,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         const { data: config } = await (supabase as any)
           .from("tenant_configuration")
           .select("legal_entity_id, logo_url")
-          .eq("tenant_id", currentTenant?.id)
+          .eq("tenant_id", activeTenant?.id)
           .maybeSingle();
         if (config?.logo_url) invoiceData.logoUrl = config.logo_url;
         if (config?.legal_entity_id) {
