@@ -410,68 +410,91 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         if (e2) throw e2;
       }
 
-      // ── 2) Post BANK entries (fees payable to administrator) ──
-      // These are expenses: Debit the expense GL account, Credit the Admin Cash control (money out)
+      // ── 2) Post BANK entry (single payment to administrator for total invoice) ──
+      // One parent entry credits Admin Cash (money out), child rows split by GL for income statement
       const bankLines = feeLines.filter(l => l.paymentMethod === "bank" && l.calculatedFee > 0);
       const invoiceLines = feeLines.filter(l => l.paymentMethod === "invoice" && l.adminFee > 0);
 
-      const allBankPostings = [
-        ...bankLines.map(l => ({
-          amount: l.calculatedFee,
-          glAccountId: l.glAccountId,
-          description: `EOM Expense: ${l.feeTypeName} — ${l.poolName}`,
-          basis: l.basis,
-          poolCashControlId: l.poolCashControlId,
-        })),
-        ...invoiceLines.map(l => ({
-          amount: l.adminFee,
-          glAccountId: l.glAccountId,
-          description: `EOM Expense: ${l.feeTypeName}`,
-          basis: l.basis,
-          poolCashControlId: l.poolCashControlId,
-        })),
-      ];
+      // Aggregate into two GL buckets: admin fees vs vault fees
+      const adminFeesTotal = bankLines
+        .filter(l => l.feeTypeCode !== "VAULT_FEES_EXP")
+        .reduce((s, l) => s + l.calculatedFee, 0)
+        + invoiceLines.reduce((s, l) => s + l.adminFee, 0);
 
-      for (const posting of allBankPostings) {
-        // Parent row: Debit the expense GL (money spent on admin fees)
-        const { data: parent, error: e3 } = await (supabase as any).from("cashflow_transactions").insert({
+      const vaultFeesTotal = bankLines
+        .filter(l => l.feeTypeCode === "VAULT_FEES_EXP")
+        .reduce((s, l) => s + l.calculatedFee, 0);
+
+      const grandTotal = adminFeesTotal + vaultFeesTotal;
+
+      if (grandTotal > 0) {
+        // Find distinct GL account IDs for admin fees and vault fees
+        const adminGlId = bankLines.find(l => l.feeTypeCode !== "VAULT_FEES_EXP")?.glAccountId
+          || invoiceLines[0]?.glAccountId || null;
+        const vaultGlId = bankLines.find(l => l.feeTypeCode === "VAULT_FEES_EXP")?.glAccountId || null;
+
+        // Parent: Credit Admin Cash control (bank payment out) for grand total
+        const { data: bankParent, error: eBankParent } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
           entry_type: "bank",
           is_bank: true,
-          gl_account_id: posting.glAccountId || null,
+          gl_account_id: null,
           control_account_id: adminCashControlId,
-          debit: posting.amount,
-          credit: 0,
-          vat_amount: 0,
-          amount_excl_vat: posting.amount,
-          description: posting.description,
-          reference: `EOM-BANK-${runDate}`,
-          notes: `Month-end admin fee: ${posting.basis}`,
-          posted_by: user.id,
-        }).select("id").single();
-        if (e3) throw e3;
-
-        // Child row: Credit the Admin Cash control (bank payment out)
-        const creditControlId = posting.poolCashControlId || adminCashControlId;
-        const { error: e4 } = await (supabase as any).from("cashflow_transactions").insert({
-          tenant_id: currentTenant.id,
-          transaction_date: runDate,
-          entry_type: "bank",
-          is_bank: true,
-          parent_id: parent.id,
-          gl_account_id: posting.glAccountId || null,
-          control_account_id: creditControlId,
           debit: 0,
-          credit: posting.amount,
+          credit: grandTotal,
           vat_amount: 0,
           amount_excl_vat: 0,
-          description: posting.description,
+          description: `EOM Bank Payment: Administrator Invoice`,
           reference: `EOM-BANK-${runDate}`,
-          notes: `Month-end admin fee: ${posting.basis}`,
+          notes: `Month-end admin invoice payment`,
           posted_by: user.id,
-        });
-        if (e4) throw e4;
+        }).select("id").single();
+        if (eBankParent) throw eBankParent;
+
+        // Child 1: Debit Admin Fees GL (monthly + transactional)
+        if (adminFeesTotal > 0 && adminGlId) {
+          const { error: eAdminGl } = await (supabase as any).from("cashflow_transactions").insert({
+            tenant_id: currentTenant.id,
+            transaction_date: runDate,
+            entry_type: "bank",
+            is_bank: true,
+            parent_id: bankParent.id,
+            gl_account_id: adminGlId,
+            control_account_id: adminCashControlId,
+            debit: adminFeesTotal,
+            credit: 0,
+            vat_amount: 0,
+            amount_excl_vat: adminFeesTotal,
+            description: `EOM Expense: Administration Fees`,
+            reference: `EOM-BANK-${runDate}`,
+            notes: `Monthly admin fees + transactional admin fees`,
+            posted_by: user.id,
+          });
+          if (eAdminGl) throw eAdminGl;
+        }
+
+        // Child 2: Debit Vault Fees GL
+        if (vaultFeesTotal > 0 && vaultGlId) {
+          const { error: eVaultGl } = await (supabase as any).from("cashflow_transactions").insert({
+            tenant_id: currentTenant.id,
+            transaction_date: runDate,
+            entry_type: "bank",
+            is_bank: true,
+            parent_id: bankParent.id,
+            gl_account_id: vaultGlId,
+            control_account_id: adminCashControlId,
+            debit: vaultFeesTotal,
+            credit: 0,
+            vat_amount: 0,
+            amount_excl_vat: vaultFeesTotal,
+            description: `EOM Expense: Vault Fees`,
+            reference: `EOM-BANK-${runDate}`,
+            notes: `Monthly vault storage fees`,
+            posted_by: user.id,
+          });
+          if (eVaultGl) throw eVaultGl;
+        }
       }
     },
     onSuccess: () => {
