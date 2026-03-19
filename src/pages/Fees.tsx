@@ -618,11 +618,14 @@ const Fees = () => {
                         {pools.map(p => (
                           <TableHead key={p.id} className="text-center min-w-[120px]">{p.name} (%)</TableHead>
                         ))}
+                        {pools.map(p => (
+                          <TableHead key={`admin-${p.id}`} className="text-center min-w-[110px] bg-muted/30">{p.name} Admin %</TableHead>
+                        ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {feeTypes.filter(ft => ft.is_active && (ft as any).based_on === 'pool_value_percentage').map(ft => {
-                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0 };
+                        const firstPoolConfig = pools.length > 0 ? getPoolFeeConfig(ft.id, pools[0].id) : { frequency: "monthly", percentage: 0, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
                         return (
                           <TableRow key={ft.id}>
                             <TableCell className="sticky left-0 bg-card z-10 font-medium">{ft.name}</TableCell>
@@ -652,6 +655,25 @@ const Fees = () => {
                                       value={config.percentage}
                                       onChange={e => updatePoolFeeEdit(ft.id, p.id, "percentage", parseFloat(e.target.value) || 0)}
                                       onBlur={() => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })}
+                                    />
+                                    <span className="text-xs text-muted-foreground">%</span>
+                                  </div>
+                                </TableCell>
+                              );
+                            })}
+                            {pools.map(p => {
+                              const config = getPoolFeeConfig(ft.id, p.id);
+                              return (
+                                <TableCell key={`admin-${p.id}`} className="text-center p-1 bg-muted/10">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      className="h-8 w-20 text-xs text-center"
+                                      value={config.admin_share_percentage}
+                                      onChange={e => updatePoolFeeEdit(ft.id, p.id, "admin_share_percentage", parseFloat(e.target.value) || 0)}
+                                      onBlur={() => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })}
+                                      disabled={!canEditAdminShare}
                                     />
                                     <span className="text-xs text-muted-foreground">%</span>
                                   </div>
