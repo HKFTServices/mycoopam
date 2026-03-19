@@ -415,6 +415,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   const handleClose = () => {
     setCalculated(false);
     setFeeLines([]);
+    setTxDetailLines([]);
     setPosted(false);
     onOpenChange(false);
   };
