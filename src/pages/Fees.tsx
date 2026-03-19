@@ -593,7 +593,7 @@ const Fees = () => {
               )}
             </CardContent>
             <div className="px-6 pb-5 text-xs text-muted-foreground space-y-1.5 border-t border-border pt-4 mx-6 mb-2">
-              <p><span className="font-semibold">Admin Share %:</span> Each fee rule has its own administrator share percentage (configured per rule). At month-end, the total admin share of all transactional fees is invoiced to the administrator.</p>
+              <p><span className="font-semibold">Administrator %:</span> Each fee rule has its own Administrator % — a separate fee calculated directly on the transaction value (not as a % of the co-op fee). At month-end, the total administrator fees are invoiced to the administrator.</p>
             </div>
           </Card>
 
@@ -1058,18 +1058,18 @@ const Fees = () => {
             )}
 
             <div className="space-y-2">
-              <Label>Administrator Share (%)</Label>
+              <Label>Administrator %</Label>
               <Input
-                type="number" step="1" min="0" max="100"
+                type="number" step="0.01" min="0" max="100"
                 value={ruleForm.admin_share_percentage}
                 onChange={e => setRuleForm({ ...ruleForm, admin_share_percentage: parseFloat(e.target.value) || 0 })}
-                placeholder="e.g. 75"
+                placeholder="e.g. 0.25"
                 disabled={!canEditAdminShare}
               />
               <p className="text-xs text-muted-foreground">
                 {canEditAdminShare
-                  ? "Percentage of the fee payable to the administrator at month-end."
-                  : "You do not have permission to modify the administrator share percentage."}
+                  ? "The administrator's own fee % calculated on the transaction value. E.g. if Switching Fee is 0.5% and Administrator is 0.25%, both are applied to the transaction value independently."
+                  : "You do not have permission to modify the administrator percentage."}
               </p>
             </div>
 
