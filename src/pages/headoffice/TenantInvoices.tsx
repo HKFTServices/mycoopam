@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Eye, CheckCircle2, DollarSign } from "lucide-react";
+import { Loader2, FileText, Eye, CheckCircle2, DollarSign, Printer } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -15,7 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { openInvoicePrintWindow } from "@/lib/generateAdminInvoice";
+import { format } from "date-fns";
 
 const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   draft: "secondary",
@@ -26,7 +26,6 @@ const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "o
 
 const TenantInvoices = () => {
   const queryClient = useQueryClient();
-  const [genMonth, setGenMonth] = useState(() => format(subMonths(new Date(), 1), "yyyy-MM"));
   const [viewInvoice, setViewInvoice] = useState<any>(null);
   const [payRef, setPayRef] = useState("");
 
@@ -41,120 +40,6 @@ const TenantInvoices = () => {
       if (error) throw error;
       return data;
     },
-  });
-
-  // Fetch tenants with fee configs
-  const { data: tenantsWithFees = [] } = useQuery({
-    queryKey: ["ho_tenants_with_fees_for_invoicing"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("tenant_fee_config")
-        .select("*, tenants:tenant_id(id, name)");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Head office settings for invoice numbering
-  const { data: hoSettings } = useQuery({
-    queryKey: ["head_office_settings"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("head_office_settings")
-        .select("*")
-        .limit(1)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Generate invoices for a given month
-  const generateInvoices = useMutation({
-    mutationFn: async (monthStr: string) => {
-      const [year, month] = monthStr.split("-").map(Number);
-      const periodStart = startOfMonth(new Date(year, month - 1));
-      const periodEnd = endOfMonth(periodStart);
-      const dueDate = new Date(year, month, 15); // 15th of next month
-
-      // Get member counts per tenant
-      const { data: memberships } = await supabase
-        .from("tenant_memberships")
-        .select("tenant_id")
-        .eq("is_active", true);
-
-      const memberCountMap: Record<string, number> = {};
-      (memberships ?? []).forEach((m: any) => {
-        memberCountMap[m.tenant_id] = (memberCountMap[m.tenant_id] || 0) + 1;
-      });
-
-      let nextNum = hoSettings?.invoice_next_number || 1;
-      const prefix = hoSettings?.invoice_prefix || "HKFT";
-      const created: string[] = [];
-
-      for (const feeConfig of tenantsWithFees) {
-        // Check if invoice already exists for this period
-        const existing = invoices.find(
-          (inv: any) =>
-            inv.tenant_id === feeConfig.tenant_id &&
-            inv.period_start === format(periodStart, "yyyy-MM-dd")
-        );
-        if (existing) continue;
-
-        const memberCount = memberCountMap[feeConfig.tenant_id] || 0;
-        const memberFeeTotal = memberCount * (feeConfig.per_member_fee || 0);
-        const subtotal = (feeConfig.monthly_admin_fee || 0) + memberFeeTotal + (feeConfig.vault_fee || 0);
-        const vatRate = 15;
-        const vatAmount = subtotal * (vatRate / 100);
-        const total = subtotal + vatAmount;
-
-        const invoiceNumber = `${prefix}-${String(nextNum).padStart(5, "0")}`;
-        nextNum++;
-
-        const { error } = await (supabase as any)
-          .from("tenant_invoices")
-          .insert({
-            tenant_id: feeConfig.tenant_id,
-            invoice_number: invoiceNumber,
-            invoice_date: format(new Date(), "yyyy-MM-dd"),
-            due_date: format(dueDate, "yyyy-MM-dd"),
-            period_start: format(periodStart, "yyyy-MM-dd"),
-            period_end: format(periodEnd, "yyyy-MM-dd"),
-            monthly_admin_fee: feeConfig.monthly_admin_fee || 0,
-            per_member_fee: feeConfig.per_member_fee || 0,
-            member_count: memberCount,
-            member_fee_total: memberFeeTotal,
-            vault_fee: feeConfig.vault_fee || 0,
-            subtotal,
-            vat_rate: vatRate,
-            vat_amount: vatAmount,
-            total,
-            status: "draft",
-          });
-        if (error) throw error;
-        created.push(feeConfig.tenants?.name || feeConfig.tenant_id);
-      }
-
-      // Update next invoice number
-      if (hoSettings && nextNum > hoSettings.invoice_next_number) {
-        await (supabase as any)
-          .from("head_office_settings")
-          .update({ invoice_next_number: nextNum })
-          .eq("id", hoSettings.id);
-      }
-
-      return created;
-    },
-    onSuccess: (created) => {
-      queryClient.invalidateQueries({ queryKey: ["ho_invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["head_office_settings"] });
-      if (created.length === 0) {
-        toast.info("All invoices already exist for this period");
-      } else {
-        toast.success(`Generated ${created.length} invoice(s)`);
-      }
-    },
-    onError: (err: any) => toast.error(err.message),
   });
 
   const markPaid = useMutation({
@@ -174,12 +59,6 @@ const TenantInvoices = () => {
     onError: (err: any) => toast.error(err.message),
   });
 
-  // Generate month options (last 12 months)
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const d = subMonths(new Date(), i);
-    return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy") };
-  });
-
   const totalOutstanding = invoices
     .filter((i: any) => i.status !== "paid")
     .reduce((sum: number, i: any) => sum + Number(i.total || 0), 0);
@@ -196,7 +75,9 @@ const TenantInvoices = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tenant Invoices</h1>
-        <p className="text-muted-foreground">Generate and manage monthly invoices for co-operatives</p>
+        <p className="text-muted-foreground">
+          Invoices are automatically generated when you run End of Month from the Tenant Management page
+        </p>
       </div>
 
       {/* Summary */}
@@ -238,44 +119,6 @@ const TenantInvoices = () => {
         </Card>
       </div>
 
-      {/* Generate Invoices */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate Monthly Invoices</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-end gap-4">
-            <div className="space-y-1.5">
-              <Label>Billing Period</Label>
-              <Select value={genMonth} onValueChange={setGenMonth}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              onClick={() => generateInvoices.mutate(genMonth)}
-              disabled={generateInvoices.isPending}
-            >
-              {generateInvoices.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Plus className="h-4 w-4 mr-2" />
-              )}
-              Generate Invoices
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Generates invoices for all tenants with configured fee plans. Existing invoices for the same period are skipped.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Invoice List */}
       <Card>
         <CardHeader>
@@ -300,7 +143,7 @@ const TenantInvoices = () => {
                   <TableCell className="font-mono text-sm">{inv.invoice_number}</TableCell>
                   <TableCell>{inv.tenants?.name || "—"}</TableCell>
                   <TableCell className="text-sm">
-                    {format(new Date(inv.period_start), "MMM yyyy")}
+                    {inv.period_start ? format(new Date(inv.period_start), "MMM yyyy") : "—"}
                   </TableCell>
                   <TableCell className="text-sm">{format(new Date(inv.invoice_date), "dd MMM yyyy")}</TableCell>
                   <TableCell className="font-medium">{formatCurrency(inv.total)}</TableCell>
@@ -310,16 +153,23 @@ const TenantInvoices = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="ghost" onClick={() => setViewInvoice(inv)}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setViewInvoice(inv)}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      {inv.invoice_html && (
+                        <Button size="sm" variant="ghost" onClick={() => openInvoicePrintWindow(inv.invoice_html)}>
+                          <Printer className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
               {invoices.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No invoices yet. Generate your first batch above.
+                    No invoices yet. Run End of Month from the Tenant Management page to generate invoices.
                   </TableCell>
                 </TableRow>
               )}
@@ -333,7 +183,9 @@ const TenantInvoices = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Invoice {viewInvoice?.invoice_number}</DialogTitle>
-            <DialogDescription>{viewInvoice?.tenants?.name} — {viewInvoice?.period_start && format(new Date(viewInvoice.period_start), "MMMM yyyy")}</DialogDescription>
+            <DialogDescription>
+              {viewInvoice?.tenants?.name} — {viewInvoice?.period_start && format(new Date(viewInvoice.period_start), "MMMM yyyy")}
+            </DialogDescription>
           </DialogHeader>
           {viewInvoice && (
             <div className="space-y-4">
@@ -351,38 +203,42 @@ const TenantInvoices = () => {
               <Separator />
 
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Monthly Admin Fee</span>
-                  <span>{formatCurrency(viewInvoice.monthly_admin_fee)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Member Fee ({viewInvoice.member_count} × {formatCurrency(viewInvoice.per_member_fee)})</span>
-                  <span>{formatCurrency(viewInvoice.member_fee_total)}</span>
-                </div>
+                {Number(viewInvoice.monthly_admin_fee) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Monthly Admin Fees</span>
+                    <span>{formatCurrency(viewInvoice.monthly_admin_fee)}</span>
+                  </div>
+                )}
                 {Number(viewInvoice.transaction_fee_total) > 0 && (
                   <div className="flex justify-between">
-                    <span>Transaction Fees</span>
+                    <span>Transactional Admin Fees</span>
                     <span>{formatCurrency(viewInvoice.transaction_fee_total)}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span>Vault Fee</span>
-                  <span>{formatCurrency(viewInvoice.vault_fee)}</span>
-                </div>
+                {Number(viewInvoice.vault_fee) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Vault Fees</span>
+                    <span>{formatCurrency(viewInvoice.vault_fee)}</span>
+                  </div>
+                )}
                 <Separator />
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(viewInvoice.subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>VAT ({viewInvoice.vat_rate}%)</span>
-                  <span>{formatCurrency(viewInvoice.vat_amount)}</span>
-                </div>
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
                   <span>{formatCurrency(viewInvoice.total)}</span>
                 </div>
               </div>
+
+              {/* Print Invoice Button */}
+              {viewInvoice.invoice_html && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => openInvoicePrintWindow(viewInvoice.invoice_html)}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print / View Invoice
+                </Button>
+              )}
 
               {viewInvoice.status !== "paid" && (
                 <>
