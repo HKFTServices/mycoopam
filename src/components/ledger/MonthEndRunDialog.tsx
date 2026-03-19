@@ -699,6 +699,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           <Button variant="outline" onClick={handleClose}>
             {posted ? "Close" : "Cancel"}
           </Button>
+          {posted && (
+            <Button variant="outline" onClick={generateAndOpenInvoice}>
+              <FileText className="h-4 w-4 mr-2" />Print Invoice
+            </Button>
+          )}
           {calculated && !posted && feeLines.filter(l => l.paymentMethod === "journal").length > 0 && (
             <Button onClick={() => postMutation.mutate()} disabled={postMutation.isPending}>
               {postMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> : "Post Journals & Generate Invoice"}
