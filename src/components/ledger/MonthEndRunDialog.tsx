@@ -535,6 +535,10 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                           <TableCell className="text-right text-sm font-semibold">{formatCurrency(l.calculatedFee)}</TableCell>
                         </TableRow>
                       ))}
+                      <TableRow className="bg-muted/30 font-semibold">
+                        <TableCell colSpan={4} className="text-right text-sm">Subtotal Fees Payable to Administrator</TableCell>
+                        <TableCell className="text-right text-sm">{formatCurrency(feeLines.filter(l => l.paymentMethod === "bank").reduce((s, l) => s + l.calculatedFee, 0))}</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
                 </CardContent>
