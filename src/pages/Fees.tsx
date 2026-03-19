@@ -761,17 +761,21 @@ const Fees = () => {
                               );
                             })}
                             <TableCell className="text-center p-1 bg-muted/10">
-                              <div className="flex items-center justify-center">
-                                <Checkbox
-                                  checked={firstPoolConfig.invoice_by_administrator}
-                                  onCheckedChange={(checked) => {
-                                    pools.forEach(p => {
-                                      updatePoolFeeEdit(ft.id, p.id, "invoice_by_administrator", !!checked);
-                                    });
-                                    setTimeout(() => pools.forEach(p => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })), 0);
-                                  }}
-                                />
-                              </div>
+                              {((ft as any).payment_method || "bank") === "bank" ? (
+                                <div className="flex items-center justify-center">
+                                  <Checkbox
+                                    checked={firstPoolConfig.invoice_by_administrator}
+                                    onCheckedChange={(checked) => {
+                                      pools.forEach(p => {
+                                        updatePoolFeeEdit(ft.id, p.id, "invoice_by_administrator", !!checked);
+                                      });
+                                      setTimeout(() => pools.forEach(p => savePoolFeeConfig.mutate({ feeTypeId: ft.id, poolId: p.id })), 0);
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
