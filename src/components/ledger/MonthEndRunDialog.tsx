@@ -597,6 +597,50 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
       const html = generateAdminInvoiceHtml(invoiceData);
       openInvoicePrintWindow(html);
+
+      // Auto-save invoice to tenant_invoices for Head Office tracking
+      try {
+        const monthStart = runDate.substring(0, 7) + "-01";
+        const periodEnd = runDate;
+        
+        // Fetch head office settings for invoice numbering
+        const { data: hoSettings } = await (supabase as any)
+          .from("head_office_settings")
+          .select("id, invoice_prefix, invoice_next_number")
+          .limit(1)
+          .maybeSingle();
+
+        let invoiceNumber = `EOM-${runDate}`;
+        if (hoSettings) {
+          const prefix = hoSettings.invoice_prefix || "HKFT";
+          invoiceNumber = `${prefix}-${String(hoSettings.invoice_next_number || 1).padStart(5, "0")}`;
+          // Increment next number
+          await (supabase as any)
+            .from("head_office_settings")
+            .update({ invoice_next_number: (hoSettings.invoice_next_number || 1) + 1 })
+            .eq("id", hoSettings.id);
+        }
+
+        await (supabase as any).from("tenant_invoices").insert({
+          tenant_id: activeTenant!.id,
+          invoice_number: invoiceNumber,
+          invoice_date: new Date().toISOString().split("T")[0],
+          due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+          period_start: monthStart,
+          period_end: periodEnd,
+          monthly_admin_fee: invoiceData.totalAdminFees,
+          vault_fee: invoiceData.totalVaultFees,
+          transaction_fee_total: invoiceData.totalTransactionalFees,
+          subtotal: invoiceData.grandTotal,
+          vat_rate: 0,
+          vat_amount: 0,
+          total: invoiceData.grandTotal,
+          status: "sent",
+          invoice_html: html,
+        });
+      } catch (e) {
+        console.error("Failed to save tenant invoice:", e);
+      }
     })();
   };
 
