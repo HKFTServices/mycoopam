@@ -43,7 +43,6 @@ type FeeCalcLine = {
 type TxDetailLine = {
   txTypeName: string;
   txDate: string;
-  txReference: string;
   txAmount: number;
   tierPct: number;
   adminFee: number;
@@ -262,7 +261,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
-            const txReference = tx.notes?.trim() || tx.id.substring(0, 8);
             totalGross += txAmount;
             const tier = tiers.find((t: any) =>
               txAmount >= t.min_amount && (t.max_amount === null || txAmount <= t.max_amount)
@@ -274,7 +272,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             details.push({
               txTypeName,
               txDate: tx.transaction_date,
-              txReference,
               txAmount,
               tierPct,
               adminFee: txAdminFee,
@@ -311,7 +308,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
-            const txReference = tx.notes?.trim() || tx.id.substring(0, 8);
             totalGross += txAmount;
             const txAdminFee = Math.round((txAmount * adminPct / 100) * 100) / 100;
             totalAdminFee += txAdminFee;
@@ -319,7 +315,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             details.push({
               txTypeName,
               txDate: tx.transaction_date,
-              txReference,
               txAmount,
               tierPct: adminPct,
               adminFee: txAdminFee,
@@ -431,10 +426,10 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   // ── Totals ──
   const journalLines = feeLines.filter(l => l.paymentMethod === "journal");
   const totalJournalFees = journalLines.reduce((s, l) => s + l.calculatedFee, 0);
-  const totalPoolPctInvoice = feeLines.filter(l => l.paymentMethod === "journal" && l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
-  const totalVaultInvoice = feeLines.filter(l => l.paymentMethod === "bank" && l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
+  const totalAdminFeesBank = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode !== "VAULT_FEES_EXP").reduce((s, l) => s + l.calculatedFee, 0);
+  const totalVaultInvoice = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode === "VAULT_FEES_EXP").reduce((s, l) => s + l.calculatedFee, 0);
   const totalTransactionalAdmin = feeLines.filter(l => l.paymentMethod === "invoice").reduce((s, l) => s + l.adminFee, 0);
-  const grandInvoiceTotal = totalPoolPctInvoice + totalVaultInvoice + totalTransactionalAdmin;
+  const grandInvoiceTotal = totalAdminFeesBank + totalVaultInvoice + totalTransactionalAdmin;
 
   const handleClose = () => {
     setCalculated(false);
@@ -547,7 +542,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             )}
 
             {/* ── SECTION 3: Transactional Admin Fees ── */}
-            {(feeLines.filter(l => l.paymentMethod === "invoice").length > 0 || txDetailLines.length > 0) && (
+            {txDetailLines.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -556,64 +551,34 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {/* Summary totals */}
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Transaction Type</TableHead>
-                        <TableHead>Basis</TableHead>
-                        <TableHead className="text-right">Gross Value</TableHead>
-                        <TableHead className="text-right">Admin %</TableHead>
-                        <TableHead className="text-right">Admin Fee</TableHead>
+                        <TableHead className="text-xs">Date</TableHead>
+                        <TableHead className="text-xs">Type</TableHead>
+                        <TableHead className="text-xs">Member</TableHead>
+                        <TableHead className="text-right text-xs">Amount</TableHead>
+                        <TableHead className="text-right text-xs">Admin %</TableHead>
+                        <TableHead className="text-right text-xs">Admin Fee</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {feeLines.filter(l => l.paymentMethod === "invoice").map((l, i) => (
-                        <TableRow key={`t-${i}`} className="bg-muted/20 font-semibold">
-                          <TableCell className="text-sm font-semibold">{l.feeTypeName}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{l.basis}</TableCell>
-                          <TableCell className="text-right text-sm">{formatCurrency(l.grossAmount)}</TableCell>
-                          <TableCell className="text-right text-sm">{l.adminPercentage}%</TableCell>
-                          <TableCell className="text-right text-sm font-semibold">{formatCurrency(l.adminFee)}</TableCell>
+                      {txDetailLines.map((d, i) => (
+                        <TableRow key={`td-${i}`}>
+                          <TableCell className="text-xs">{d.txDate}</TableCell>
+                          <TableCell className="text-xs">{d.txTypeName}</TableCell>
+                          <TableCell className="text-xs">{d.entityName}</TableCell>
+                          <TableCell className="text-right text-xs">{formatCurrency(d.txAmount)}</TableCell>
+                          <TableCell className="text-right text-xs">{d.tierPct}%</TableCell>
+                          <TableCell className="text-right text-xs font-medium">{formatCurrency(d.adminFee)}</TableCell>
                         </TableRow>
                       ))}
+                      <TableRow className="bg-muted/30 font-semibold">
+                        <TableCell colSpan={5} className="text-right text-sm">Total Transactional Admin Fees</TableCell>
+                        <TableCell className="text-right text-sm">{formatCurrency(totalTransactionalAdmin)}</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
-
-                  {/* Transaction detail */}
-                  {txDetailLines.length > 0 && (
-                    <div className="border-t">
-                      <div className="px-4 py-2 bg-muted/10">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction Detail</span>
-                      </div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-xs">Date</TableHead>
-                            <TableHead className="text-xs">Type</TableHead>
-                            <TableHead className="text-xs">Member</TableHead>
-                            <TableHead className="text-xs">Reference</TableHead>
-                            <TableHead className="text-right text-xs">Amount</TableHead>
-                            <TableHead className="text-right text-xs">Admin %</TableHead>
-                            <TableHead className="text-right text-xs">Admin Fee</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {txDetailLines.map((d, i) => (
-                            <TableRow key={`td-${i}`}>
-                              <TableCell className="text-xs">{d.txDate}</TableCell>
-                              <TableCell className="text-xs">{d.txTypeName}</TableCell>
-                              <TableCell className="text-xs">{d.entityName}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{d.txReference}</TableCell>
-                              <TableCell className="text-right text-xs">{formatCurrency(d.txAmount)}</TableCell>
-                              <TableCell className="text-right text-xs">{d.tierPct}%</TableCell>
-                              <TableCell className="text-right text-xs font-medium">{formatCurrency(d.adminFee)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )}
@@ -628,11 +593,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pool % Recovery Fees (Admin Invoice)</span>
-                  <span className="font-medium">{formatCurrency(totalPoolPctInvoice)}</span>
+                  <span className="text-muted-foreground">Monthly Admin Fees (% of Portfolio Values)</span>
+                  <span className="font-medium">{formatCurrency(totalAdminFeesBank)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vault Fees (Admin Invoice)</span>
+                  <span className="text-muted-foreground">Vault Fees</span>
                   <span className="font-medium">{formatCurrency(totalVaultInvoice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
