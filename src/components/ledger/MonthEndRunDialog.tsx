@@ -272,7 +272,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             details.push({
               txTypeName,
               txDate: tx.transaction_date,
-              txReference,
               txAmount,
               tierPct,
               adminFee: txAdminFee,
