@@ -566,7 +566,6 @@ const Fees = () => {
                          {transactionTypes.map(tt => (
                            <TableHead key={tt.id} className="text-center min-w-[130px]">{tt.name}</TableHead>
                          ))}
-                         <TableHead className="text-center min-w-[120px]">Admin Share %</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
