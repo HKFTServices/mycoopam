@@ -251,13 +251,13 @@ const Fees = () => {
     const key = `${feeTypeId}_${poolId}`;
     if (poolFeeEdits[key]) return poolFeeEdits[key];
     const existing = poolFeeConfigs.find((c: any) => c.fee_type_id === feeTypeId && c.pool_id === poolId);
-    if (existing) return { frequency: existing.frequency, percentage: Number(existing.percentage), fixed_amount: Number(existing.fixed_amount) };
+    if (existing) return { frequency: existing.frequency, percentage: Number(existing.percentage), fixed_amount: Number(existing.fixed_amount), admin_share_percentage: Number(existing.admin_share_percentage || 0), invoice_by_administrator: !!existing.invoice_by_administrator };
     // Defaults based on fee type name
     const ft = feeTypes.find(f => f.id === feeTypeId);
     const name = ft?.name?.toLowerCase() || "";
-    if (name.includes("admin recoveries") || name.includes("monthly admin")) return { frequency: "monthly", percentage: 1, fixed_amount: 0 };
-    if (name.includes("administrator") || name.includes("admin fee")) return { frequency: "monthly", percentage: 0.8, fixed_amount: 0 };
-    return { frequency: "monthly", percentage: 0, fixed_amount: 0 };
+    if (name.includes("admin recoveries") || name.includes("monthly admin")) return { frequency: "monthly", percentage: 1, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
+    if (name.includes("administrator") || name.includes("admin fee")) return { frequency: "monthly", percentage: 0.8, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
+    return { frequency: "monthly", percentage: 0, fixed_amount: 0, admin_share_percentage: 0, invoice_by_administrator: false };
   };
 
   const updatePoolFeeEdit = (feeTypeId: string, poolId: string, field: string, value: any) => {
