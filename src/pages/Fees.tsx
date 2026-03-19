@@ -148,7 +148,7 @@ const Fees = () => {
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   // Pool fee config state
-  const [poolFeeEdits, setPoolFeeEdits] = useState<Record<string, { frequency: string; percentage: number; fixed_amount: number }>>({});
+  const [poolFeeEdits, setPoolFeeEdits] = useState<Record<string, { frequency: string; percentage: number; fixed_amount: number; admin_share_percentage: number; invoice_by_administrator: boolean }>>({});
 
   // Queries
   const { data: feeTypes = [], isLoading: loadingFeeTypes } = useQuery({
