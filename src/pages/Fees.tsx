@@ -403,6 +403,7 @@ const Fees = () => {
             min_amount: t.min_amount,
             max_amount: t.max_amount,
             percentage: t.percentage,
+            admin_percentage: t.admin_percentage,
           }));
           const { error: tierError } = await (supabase as any).from("transaction_fee_tiers").insert(tierInserts);
           if (tierError) throw tierError;
