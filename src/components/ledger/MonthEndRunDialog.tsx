@@ -415,7 +415,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           debit: 0,
           credit: line.calculatedFee,
           vat_amount: 0,
-          amount_excl_vat: 0,
+          amount_excl_vat: line.calculatedFee,
           description: `EOM: ${line.feeTypeName} — ${line.poolName}`,
           reference: `EOM-${runDate}`,
           notes: `Month-end run: ${line.basis}`,
