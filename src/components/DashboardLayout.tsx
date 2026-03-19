@@ -135,6 +135,12 @@ const mamNavItems = [
   { label: "MAM Admin", icon: Cog, path: "/dashboard/mam/admin" },
 ];
 
+const headOfficeNavItems = [
+  { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
+  { label: "Tenant Management", icon: Users, path: "/dashboard/head-office/tenants" },
+  { label: "Tenant Invoices", icon: FileText, path: "/dashboard/head-office/invoices" },
+];
+
 const dailyPricesNavItems = [
   { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
   { label: "Pool Updates", icon: TrendingUp, path: "/dashboard/daily-prices/pools" },
@@ -152,6 +158,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));
   const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/setup"));
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/setup"));
+  const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/head-office"));
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
@@ -420,7 +427,30 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </>
             )}
 
-            {/* Campaigns - admin only */}
+            {/* Head Office - super_admin only */}
+            {isSuperAdmin && (
+              <>
+                <button
+                  onClick={() => setHeadOfficeOpen(!headOfficeOpen)}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Building2 className="h-4.5 w-4.5 shrink-0" />
+                  <span>Head Office</span>
+                  {headOfficeOpen ? (
+                    <ChevronDown className="ml-auto h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="ml-auto h-4 w-4" />
+                  )}
+                </button>
+                {headOfficeOpen && (
+                  <div className="ml-3 pl-3 border-l border-border space-y-0.5">
+                    {headOfficeNavItems.map(renderNavItem)}
+                  </div>
+                )}
+              </>
+            )}
+
+
             {isAdmin && (
               <>
                 <button

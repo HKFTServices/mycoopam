@@ -1755,6 +1755,81 @@ export type Database = {
           },
         ]
       }
+      head_office_settings: {
+        Row: {
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_branch_code: string | null
+          bank_name: string | null
+          city: string | null
+          company_name: string
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          invoice_next_number: number | null
+          invoice_prefix: string | null
+          logo_url: string | null
+          phone: string | null
+          postal_code: string | null
+          province: string | null
+          registration_number: string | null
+          street_address: string | null
+          updated_at: string
+          vat_number: string | null
+          website: string | null
+        }
+        Insert: {
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_branch_code?: string | null
+          bank_name?: string | null
+          city?: string | null
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          invoice_next_number?: number | null
+          invoice_prefix?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          registration_number?: string | null
+          street_address?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Update: {
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_branch_code?: string | null
+          bank_name?: string | null
+          city?: string | null
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          invoice_next_number?: number | null
+          invoice_prefix?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          registration_number?: string | null
+          street_address?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       income_expense_items: {
         Row: {
           amount: number | null
@@ -5044,6 +5119,142 @@ export type Database = {
             columns: ["vat_gl_account_id"]
             isOneToOne: false
             referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_fee_config: {
+        Row: {
+          created_at: string
+          effective_from: string
+          id: string
+          is_active: boolean
+          monthly_admin_fee: number
+          notes: string | null
+          per_member_fee: number
+          tenant_id: string
+          transaction_fee_percentage: number
+          updated_at: string
+          vault_fee: number
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          id?: string
+          is_active?: boolean
+          monthly_admin_fee?: number
+          notes?: string | null
+          per_member_fee?: number
+          tenant_id: string
+          transaction_fee_percentage?: number
+          updated_at?: string
+          vault_fee?: number
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          id?: string
+          is_active?: boolean
+          monthly_admin_fee?: number
+          notes?: string | null
+          per_member_fee?: number
+          tenant_id?: string
+          transaction_fee_percentage?: number
+          updated_at?: string
+          vault_fee?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_fee_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_invoices: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          member_count: number
+          member_fee_total: number
+          monthly_admin_fee: number
+          notes: string | null
+          paid_at: string | null
+          paid_reference: string | null
+          per_member_fee: number
+          period_end: string
+          period_start: string
+          status: string
+          subtotal: number
+          tenant_id: string
+          total: number
+          transaction_fee_total: number
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+          vault_fee: number
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          member_count?: number
+          member_fee_total?: number
+          monthly_admin_fee?: number
+          notes?: string | null
+          paid_at?: string | null
+          paid_reference?: string | null
+          per_member_fee?: number
+          period_end: string
+          period_start: string
+          status?: string
+          subtotal?: number
+          tenant_id: string
+          total?: number
+          transaction_fee_total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+          vault_fee?: number
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          member_count?: number
+          member_fee_total?: number
+          monthly_admin_fee?: number
+          notes?: string | null
+          paid_at?: string | null
+          paid_reference?: string | null
+          per_member_fee?: number
+          period_end?: string
+          period_start?: string
+          status?: string
+          subtotal?: number
+          tenant_id?: string
+          total?: number
+          transaction_fee_total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+          vault_fee?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

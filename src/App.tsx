@@ -63,6 +63,9 @@ import MamAssets from "./pages/mam/MamAssets";
 import MamContributionPlans from "./pages/mam/MamContributionPlans";
 import MamQuotes from "./pages/mam/MamQuotes";
 import MamAdmin from "./pages/mam/MamAdmin";
+import HeadOfficeSettings from "./pages/headoffice/HeadOfficeSettings";
+import TenantManagement from "./pages/headoffice/TenantManagement";
+import TenantInvoices from "./pages/headoffice/TenantInvoices";
 import RegisterTenant from "./pages/RegisterTenant";
 import TenantSetupWizard from "./pages/TenantSetupWizard";
 import LoanSettings from "./pages/setup/LoanSettings";
@@ -183,6 +186,11 @@ const App = () => (
               <Route path="/dashboard/setup/system-email-templates" element={<SuperAdminRoute><SystemEmailTemplates /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/permissions" element={<SuperAdminRoute><Permissions /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/api-providers" element={<SuperAdminRoute><ApiProviders /></SuperAdminRoute>} />
+
+              {/* Head Office: super_admin only */}
+              <Route path="/dashboard/head-office/settings" element={<SuperAdminRoute><HeadOfficeSettings /></SuperAdminRoute>} />
+              <Route path="/dashboard/head-office/tenants" element={<SuperAdminRoute><TenantManagement /></SuperAdminRoute>} />
+              <Route path="/dashboard/head-office/invoices" element={<SuperAdminRoute><TenantInvoices /></SuperAdminRoute>} />
 
               {/* MAM: super_admin only for now */}
               <Route path="/dashboard/mam" element={<SuperAdminRoute><MamEntityProvider><MamDashboard /></MamEntityProvider></SuperAdminRoute>} />
