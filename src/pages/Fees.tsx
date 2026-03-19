@@ -82,6 +82,7 @@ type FeeTier = {
   min_amount: number;
   max_amount: number | null;
   percentage: number;
+  admin_percentage: number;
 };
 
 const Fees = () => {
