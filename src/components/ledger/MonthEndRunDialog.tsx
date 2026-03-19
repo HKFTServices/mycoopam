@@ -365,20 +365,34 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
       const adminCashControlId = adminPool.cash_control_account_id;
 
-      // ── 1) Post JOURNAL entries (pool recoveries) ──
-      const journalEntries = feeLines.filter(l => l.paymentMethod === "journal" && l.calculatedFee > 0);
+      // ── Look up recovery GL accounts by code ──
+      const { data: recoveryGls, error: glErr } = await (supabase as any).from("gl_accounts")
+        .select("id, code")
+        .eq("tenant_id", currentTenant.id)
+        .in("code", ["2020", "4080"]);
+      if (glErr) throw glErr;
 
-      for (const line of journalEntries) {
-        const debitControlId = line.cashControlAccountId || adminCashControlId;
-        const creditControlId = line.creditControlAccountId || line.poolCashControlId;
+      const gl2020Id = recoveryGls?.find((g: any) => g.code === "2020")?.id;
+      const gl4080Id = recoveryGls?.find((g: any) => g.code === "4080")?.id;
+      if (!gl2020Id || !gl4080Id) throw new Error("Recovery GL accounts (2020 Member Interest / 4080 Recoveries) not found");
 
+      // ── 1) Post RECOVERY JOURNALS (pool → admin cash) ──
+      // All pool-based fees need recovery journals EXCEPT VAULT_FEES_EXP
+      // (vault expense is separate — its recovery is handled by MONTHLY_VAULT_RECOVERY)
+      const recoveryLines = feeLines.filter(l =>
+        l.poolId && l.poolCashControlId && l.calculatedFee > 0 &&
+        l.feeTypeCode !== "VAULT_FEES_EXP"
+      );
+
+      for (const line of recoveryLines) {
+        // Debit: Admin Cash control + GL 2020 (Member Interest)
         const { data: parent, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
           entry_type: "journal",
           is_bank: false,
-          gl_account_id: line.glAccountId,
-          control_account_id: debitControlId,
+          gl_account_id: gl2020Id,
+          control_account_id: adminCashControlId,
           debit: line.calculatedFee,
           credit: 0,
           vat_amount: 0,
@@ -390,14 +404,15 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         }).select("id").single();
         if (e1) throw e1;
 
+        // Credit: Pool Cash control + GL 4080 (Recoveries from Pools)
         const { error: e2 } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
           entry_type: "journal",
           is_bank: false,
           parent_id: parent.id,
-          gl_account_id: line.glAccountId,
-          control_account_id: creditControlId,
+          gl_account_id: gl4080Id,
+          control_account_id: line.poolCashControlId,
           debit: 0,
           credit: line.calculatedFee,
           vat_amount: 0,
