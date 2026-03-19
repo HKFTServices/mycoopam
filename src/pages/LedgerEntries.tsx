@@ -24,8 +24,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX } from "lucide-react";
+import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
+import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
@@ -73,6 +74,7 @@ const LedgerEntries = () => {
   const [payReference, setPayReference] = useState("");
   const [bankForm, setBankForm] = useState({ ...defaultBankForm });
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
+  const [monthEndOpen, setMonthEndOpen] = useState(false);
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────
@@ -670,7 +672,10 @@ const LedgerEntries = () => {
 
         {/* ── Journal Entries ── */}
         <TabsContent value="journal" className="space-y-3">
-          <div className="flex justify-end">
+           <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
+              <CalendarDays className="h-4 w-4 mr-1" /> End of Month Run
+            </Button>
             <Button size="sm" onClick={() => { setJournalForm({ ...defaultJournalForm, tax_type_id: getDefaultTaxTypeId() }); setJournalDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Journal Entry
             </Button>
@@ -1174,6 +1179,9 @@ const LedgerEntries = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Month End Run Dialog ── */}
+      <MonthEndRunDialog open={monthEndOpen} onOpenChange={setMonthEndOpen} />
     </div>
   );
 };
