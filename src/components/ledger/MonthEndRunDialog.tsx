@@ -80,7 +80,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
     queryFn: async () => {
       if (!currentTenant) return [];
       const { data } = await (supabase as any).from("transaction_fee_rules")
-        .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id)")
+        .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id), transaction_fee_tiers(*)")
         .eq("tenant_id", currentTenant.id).eq("is_active", true);
       return data ?? [];
     },
@@ -106,7 +106,13 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       const lines: FeeCalcLine[] = [];
       const monthStart = runDate.substring(0, 7) + "-01";
 
-      // 1) PERCENTAGE OF POOL VALUE fees
+      // Pre-fetch pool units and prices (used by multiple sections)
+      const { data: unitData } = await (supabase as any).rpc("get_pool_units", { p_tenant_id: currentTenant.id, p_up_to_date: runDate });
+      const { data: priceData } = await (supabase as any).rpc("get_latest_pool_prices", { p_tenant_id: currentTenant.id });
+
+      // 1) PERCENTAGE OF POOL VALUE fees — journal recoveries (pool → admin)
+      // These generate journals regardless of payment_method, AND if payment_method is "bank"
+      // they also appear as invoice items payable to the administrator.
       const pctConfigs = poolFeeConfigs.filter((c: any) => c.transaction_fee_types?.based_on === "pool_value_percentage" && (c.percentage > 0));
       
       for (const config of pctConfigs) {
@@ -114,17 +120,15 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         const pool = pools.find((p: any) => p.id === config.pool_id);
         if (!pool || !ft) continue;
 
-        // Get pool value: units * sell price
-        const { data: unitData } = await (supabase as any).rpc("get_pool_units", { p_tenant_id: currentTenant.id, p_up_to_date: runDate });
         const poolUnits = unitData?.find((u: any) => u.pool_id === config.pool_id)?.total_units || 0;
-
-        const { data: priceData } = await (supabase as any).rpc("get_latest_pool_prices", { p_tenant_id: currentTenant.id });
         const poolPrice = priceData?.find((p: any) => p.pool_id === config.pool_id)?.unit_price_sell || 0;
-
         const poolValue = poolUnits * poolPrice;
         const annualPct = config.percentage / 100;
         const monthlyFee = Math.round((poolValue * annualPct / 12) * 100) / 100;
 
+        if (monthlyFee <= 0) continue;
+
+        // Always create a journal line (debit admin cash, credit pool cash)
         lines.push({
           feeTypeName: ft.name,
           feeTypeCode: ft.code,
@@ -135,8 +139,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           calculatedFee: monthlyFee,
           adminPercentage: 0,
           adminFee: ft.payment_method === "bank" ? monthlyFee : 0,
-          paymentMethod: ft.payment_method,
-          invoiceByAdmin: config.invoice_by_administrator || false,
+          paymentMethod: "journal", // Always journal for pool recoveries
+          invoiceByAdmin: ft.payment_method === "bank", // Also invoiceable if bank
           feeTypeId: ft.id,
           poolId: config.pool_id,
           poolCashControlId: pool.cash_control_account_id,
@@ -185,53 +189,92 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
       const txns = monthTxns ?? [];
       
-      // Group by fee rule (transaction_type_id → admin_share_percentage)
-      const rulesWithAdmin = feeRules.filter((r: any) => r.admin_share_percentage > 0);
+      // Rules that have admin fees (either via admin_share_percentage > 0 or sliding_scale with tiers)
+      const rulesWithAdmin = feeRules.filter((r: any) => 
+        r.admin_share_percentage > 0 || 
+        (r.calculation_method === "sliding_scale" && r.transaction_fee_tiers?.length > 0)
+      );
       
-      // Group transactions by transaction type
-      const txByType: Record<string, { totalAmount: number; totalFees: number; count: number }> = {};
-      for (const tx of txns) {
-        const key = tx.transaction_type_id;
-        if (!txByType[key]) txByType[key] = { totalAmount: 0, totalFees: 0, count: 0 };
-        txByType[key].totalAmount += Number(tx.amount) || 0;
-        txByType[key].totalFees += Number(tx.fee_amount) || 0;
-        txByType[key].count += 1;
-      }
-
       // Get transaction type names
       const { data: txTypes } = await (supabase as any).from("transaction_types").select("id, name").eq("tenant_id", currentTenant.id);
       const txTypeMap: Record<string, string> = {};
       for (const tt of txTypes ?? []) txTypeMap[tt.id] = tt.name;
 
       for (const rule of rulesWithAdmin) {
-        const txData = txByType[rule.transaction_type_id];
-        if (!txData || txData.totalAmount === 0) continue;
+        const ruleTxns = txns.filter((tx: any) => tx.transaction_type_id === rule.transaction_type_id);
+        if (ruleTxns.length === 0) continue;
 
         const ft = rule.transaction_fee_types;
-        const adminPct = Number(rule.admin_share_percentage);
-        // Administrator fee is calculated independently on the transaction value
-        const adminFeeTotal = Math.round((txData.totalAmount * adminPct / 100) * 100) / 100;
         const txTypeName = txTypeMap[rule.transaction_type_id] || "Unknown";
 
-        lines.push({
-          feeTypeName: `Admin Fee: ${txTypeName}`,
-          feeTypeCode: ft?.code || "ADMIN",
-          poolName: "—",
-          basis: `${adminPct}% of ${formatCurrency(txData.totalAmount)} (${txData.count} txns)`,
-          grossAmount: txData.totalAmount,
-          percentage: adminPct,
-          calculatedFee: adminFeeTotal,
-          adminPercentage: adminPct,
-          adminFee: adminFeeTotal,
-          paymentMethod: "invoice",
-          invoiceByAdmin: true,
-          feeTypeId: ft?.id || "",
-          poolId: "",
-          poolCashControlId: "",
-          glAccountId: ft?.gl_account_id || "",
-          cashControlAccountId: ft?.cash_control_account_id || "",
-          creditControlAccountId: null,
-        });
+        if (rule.calculation_method === "sliding_scale" && rule.transaction_fee_tiers?.length > 0) {
+          // Sliding scale: apply each transaction to the matching tier's admin_percentage
+          const tiers = [...rule.transaction_fee_tiers].sort((a: any, b: any) => a.min_amount - b.min_amount);
+          let totalAdminFee = 0;
+          let totalGross = 0;
+
+          for (const tx of ruleTxns) {
+            const txAmount = Number(tx.amount) || 0;
+            totalGross += txAmount;
+            // Find matching tier
+            const tier = tiers.find((t: any) => 
+              txAmount >= t.min_amount && (t.max_amount === null || txAmount <= t.max_amount)
+            );
+            if (tier && tier.admin_percentage > 0) {
+              totalAdminFee += Math.round((txAmount * tier.admin_percentage / 100) * 100) / 100;
+            }
+          }
+
+          if (totalAdminFee > 0) {
+            const effectivePct = totalGross > 0 ? Math.round((totalAdminFee / totalGross) * 10000) / 100 : 0;
+            lines.push({
+              feeTypeName: `Admin Fee: ${txTypeName}`,
+              feeTypeCode: ft?.code || "ADMIN",
+              poolName: "—",
+              basis: `Sliding scale on ${formatCurrency(totalGross)} (${ruleTxns.length} txns, eff. ${effectivePct}%)`,
+              grossAmount: totalGross,
+              percentage: effectivePct,
+              calculatedFee: totalAdminFee,
+              adminPercentage: effectivePct,
+              adminFee: totalAdminFee,
+              paymentMethod: "invoice",
+              invoiceByAdmin: true,
+              feeTypeId: ft?.id || "",
+              poolId: "",
+              poolCashControlId: "",
+              glAccountId: ft?.gl_account_id || "",
+              cashControlAccountId: ft?.cash_control_account_id || "",
+              creditControlAccountId: null,
+            });
+          }
+        } else if (rule.admin_share_percentage > 0) {
+          // Fixed percentage: admin_share_percentage is already the % of gross value
+          const totalGross = ruleTxns.reduce((s: number, tx: any) => s + (Number(tx.amount) || 0), 0);
+          const adminPct = Number(rule.admin_share_percentage);
+          const adminFeeTotal = Math.round((totalGross * adminPct / 100) * 100) / 100;
+
+          if (adminFeeTotal > 0) {
+            lines.push({
+              feeTypeName: `Admin Fee: ${txTypeName}`,
+              feeTypeCode: ft?.code || "ADMIN",
+              poolName: "—",
+              basis: `${adminPct}% of ${formatCurrency(totalGross)} (${ruleTxns.length} txns)`,
+              grossAmount: totalGross,
+              percentage: adminPct,
+              calculatedFee: adminFeeTotal,
+              adminPercentage: adminPct,
+              adminFee: adminFeeTotal,
+              paymentMethod: "invoice",
+              invoiceByAdmin: true,
+              feeTypeId: ft?.id || "",
+              poolId: "",
+              poolCashControlId: "",
+              glAccountId: ft?.gl_account_id || "",
+              cashControlAccountId: ft?.cash_control_account_id || "",
+              creditControlAccountId: null,
+            });
+          }
+        }
       }
 
       return lines;
@@ -311,10 +354,12 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   });
 
   // ── Totals ──
-  const totalJournalFees = feeLines.filter(l => l.paymentMethod === "journal").reduce((s, l) => s + l.calculatedFee, 0);
-  const totalAdminInvoice = feeLines.filter(l => l.paymentMethod === "bank" || l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
+  const journalLines = feeLines.filter(l => l.paymentMethod === "journal");
+  const totalJournalFees = journalLines.reduce((s, l) => s + l.calculatedFee, 0);
+  const totalPoolPctInvoice = feeLines.filter(l => l.paymentMethod === "journal" && l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
+  const totalVaultInvoice = feeLines.filter(l => l.paymentMethod === "bank" && l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
   const totalTransactionalAdmin = feeLines.filter(l => l.paymentMethod === "invoice").reduce((s, l) => s + l.adminFee, 0);
-  const grandInvoiceTotal = totalAdminInvoice + totalTransactionalAdmin;
+  const grandInvoiceTotal = totalPoolPctInvoice + totalVaultInvoice + totalTransactionalAdmin;
 
   const handleClose = () => {
     setCalculated(false);
@@ -471,12 +516,12 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pool % Fees (Bank payable)</span>
-                  <span className="font-medium">{formatCurrency(totalAdminInvoice - totalTransactionalAdmin)}</span>
+                  <span className="text-muted-foreground">Pool % Recovery Fees (Admin Invoice)</span>
+                  <span className="font-medium">{formatCurrency(totalPoolPctInvoice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vault Fees (Invoice by Admin)</span>
-                  <span className="font-medium">{formatCurrency(feeLines.filter(l => l.invoiceByAdmin && l.paymentMethod !== "invoice" && l.paymentMethod !== "bank").reduce((s, l) => s + l.adminFee, 0))}</span>
+                  <span className="text-muted-foreground">Vault Fees (Admin Invoice)</span>
+                  <span className="font-medium">{formatCurrency(totalVaultInvoice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Transactional Admin Fees</span>
