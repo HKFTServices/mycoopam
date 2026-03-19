@@ -202,7 +202,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("cashflow_transactions")
-        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, entry_type, gl_accounts(name, code, gl_type)")
+        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, gl_accounts(name, code, gl_type)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .not("entry_type", "eq", "vat")
@@ -232,7 +232,7 @@ const Reports = () => {
   });
 
   // Aggregate Income Statement data
-  // CONVENTION: CFT Debit → GL Credit. Income is credited when CFT debits. Expense is debited when CFT credits.
+  // CONVENTION: Bank and loan entries are straight-posted; other entries are contra-posted.
   const isAggregated = (() => {
     const map: Record<string, { name: string; code: string; gl_type: string; netDebit: number; netCredit: number; exclVatDebit: number; exclVatCredit: number }> = {};
     for (const r of isData) {
@@ -241,10 +241,12 @@ const Reports = () => {
       const type = gl.gl_type as string;
       if (!["income", "expense"].includes(type)) continue;
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0, exclVatDebit: 0, exclVatCredit: 0 };
+
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      if (isLoanEntry) {
-        // Loan entries are already in GL perspective — straight posting
-        map[r.gl_account_id].netDebit  += Number(r.debit || 0);
+      const isStraightPosting = Boolean(r.is_bank) || isLoanEntry;
+
+      if (isStraightPosting) {
+        map[r.gl_account_id].netDebit += Number(r.debit || 0);
         map[r.gl_account_id].netCredit += Number(r.credit || 0);
         if (Number(r.debit || 0) > 0) {
           map[r.gl_account_id].exclVatDebit += Number(r.amount_excl_vat || 0);
@@ -252,9 +254,8 @@ const Reports = () => {
           map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
         }
       } else {
-        // CFT Debit → GL Credit; CFT Credit → GL Debit
         map[r.gl_account_id].netCredit += Number(r.debit || 0);
-        map[r.gl_account_id].netDebit  += Number(r.credit || 0);
+        map[r.gl_account_id].netDebit += Number(r.credit || 0);
         if (Number(r.debit || 0) > 0) {
           map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
         } else {
