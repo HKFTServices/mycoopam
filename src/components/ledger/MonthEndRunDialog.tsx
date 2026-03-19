@@ -80,7 +80,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
     queryFn: async () => {
       if (!currentTenant) return [];
       const { data } = await (supabase as any).from("transaction_fee_rules")
-        .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id)")
+        .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id), transaction_fee_tiers(*)")
         .eq("tenant_id", currentTenant.id).eq("is_active", true);
       return data ?? [];
     },
