@@ -364,15 +364,14 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       if (!currentTenant || !user || !adminPool) throw new Error("Missing context");
 
       const adminCashControlId = adminPool.cash_control_account_id;
-      const journalLines = feeLines.filter(l => l.paymentMethod === "journal" && l.calculatedFee > 0);
 
-      for (const line of journalLines) {
-        // Journal: Debit Admin Cash Control, Credit Pool Cash Control
-        // The fee goes FROM the pool TO the admin pool
+      // ── 1) Post JOURNAL entries (pool recoveries) ──
+      const journalEntries = feeLines.filter(l => l.paymentMethod === "journal" && l.calculatedFee > 0);
+
+      for (const line of journalEntries) {
         const debitControlId = line.cashControlAccountId || adminCashControlId;
         const creditControlId = line.creditControlAccountId || line.poolCashControlId;
 
-        // Parent row (debit side)
         const { data: parent, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
@@ -391,7 +390,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         }).select("id").single();
         if (e1) throw e1;
 
-        // Child row (credit side)
         const { error: e2 } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
@@ -411,6 +409,70 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         });
         if (e2) throw e2;
       }
+
+      // ── 2) Post BANK entries (fees payable to administrator) ──
+      // These are expenses: Debit the expense GL account, Credit the Admin Cash control (money out)
+      const bankLines = feeLines.filter(l => l.paymentMethod === "bank" && l.calculatedFee > 0);
+      const invoiceLines = feeLines.filter(l => l.paymentMethod === "invoice" && l.adminFee > 0);
+
+      const allBankPostings = [
+        ...bankLines.map(l => ({
+          amount: l.calculatedFee,
+          glAccountId: l.glAccountId,
+          description: `EOM Expense: ${l.feeTypeName} — ${l.poolName}`,
+          basis: l.basis,
+          poolCashControlId: l.poolCashControlId,
+        })),
+        ...invoiceLines.map(l => ({
+          amount: l.adminFee,
+          glAccountId: l.glAccountId,
+          description: `EOM Expense: ${l.feeTypeName}`,
+          basis: l.basis,
+          poolCashControlId: l.poolCashControlId,
+        })),
+      ];
+
+      for (const posting of allBankPostings) {
+        // Parent row: Debit the expense GL (money spent on admin fees)
+        const { data: parent, error: e3 } = await (supabase as any).from("cashflow_transactions").insert({
+          tenant_id: currentTenant.id,
+          transaction_date: runDate,
+          entry_type: "bank",
+          is_bank: true,
+          gl_account_id: posting.glAccountId || null,
+          control_account_id: adminCashControlId,
+          debit: posting.amount,
+          credit: 0,
+          vat_amount: 0,
+          amount_excl_vat: posting.amount,
+          description: posting.description,
+          reference: `EOM-BANK-${runDate}`,
+          notes: `Month-end admin fee: ${posting.basis}`,
+          posted_by: user.id,
+        }).select("id").single();
+        if (e3) throw e3;
+
+        // Child row: Credit the Admin Cash control (bank payment out)
+        const creditControlId = posting.poolCashControlId || adminCashControlId;
+        const { error: e4 } = await (supabase as any).from("cashflow_transactions").insert({
+          tenant_id: currentTenant.id,
+          transaction_date: runDate,
+          entry_type: "bank",
+          is_bank: true,
+          parent_id: parent.id,
+          gl_account_id: posting.glAccountId || null,
+          control_account_id: creditControlId,
+          debit: 0,
+          credit: posting.amount,
+          vat_amount: 0,
+          amount_excl_vat: 0,
+          description: posting.description,
+          reference: `EOM-BANK-${runDate}`,
+          notes: `Month-end admin fee: ${posting.basis}`,
+          posted_by: user.id,
+        });
+        if (e4) throw e4;
+      }
     },
     onSuccess: () => {
       setPosted(true);
@@ -419,7 +481,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
-      toast.success("Month-end journals posted successfully");
+      toast.success("Month-end journals & bank entries posted successfully");
 
       // Auto-generate and open invoice
       generateAndOpenInvoice();
