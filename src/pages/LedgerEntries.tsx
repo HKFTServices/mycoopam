@@ -24,8 +24,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX } from "lucide-react";
+import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
+import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
