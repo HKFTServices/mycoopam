@@ -411,27 +411,33 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       }
 
       // ── 2) Post BANK entry (single payment to administrator) ──
-      // Only monthly admin fees & vault fees need bank entries.
-      // Transactional admin fees are already recovered inside admin cash from original transactions
-      // — they only appear on the invoice, NOT as new ledger entries.
+      // The admin cash control account pays out the full invoice amount
+      // (monthly admin fees + transactional admin fees + vault fees).
+      // Transactional fees were already recovered into admin cash during original transactions,
+      // so this bank entry represents the outflow to the administrator.
       const bankLines = feeLines.filter(l => l.paymentMethod === "bank" && l.calculatedFee > 0);
+      const invoiceLines = feeLines.filter(l => l.paymentMethod === "invoice" && l.adminFee > 0);
 
-      // Aggregate into two GL buckets: admin fees vs vault fees
-      const adminFeesTotal = bankLines
+      // GL bucket 1: Administration Fees = monthly admin fees + transactional admin fees
+      const monthlyAdminTotal = bankLines
         .filter(l => l.feeTypeCode !== "VAULT_FEES_EXP")
         .reduce((s, l) => s + l.calculatedFee, 0);
+      const transactionalAdminTotal = invoiceLines.reduce((s, l) => s + l.adminFee, 0);
+      const combinedAdminFeesTotal = monthlyAdminTotal + transactionalAdminTotal;
 
+      // GL bucket 2: Vault Fees
       const vaultFeesTotal = bankLines
         .filter(l => l.feeTypeCode === "VAULT_FEES_EXP")
         .reduce((s, l) => s + l.calculatedFee, 0);
 
-      const bankGrandTotal = adminFeesTotal + vaultFeesTotal;
+      const bankGrandTotal = combinedAdminFeesTotal + vaultFeesTotal;
 
       if (bankGrandTotal > 0) {
-        const adminGlId = bankLines.find(l => l.feeTypeCode !== "VAULT_FEES_EXP")?.glAccountId || null;
+        const adminGlId = bankLines.find(l => l.feeTypeCode !== "VAULT_FEES_EXP")?.glAccountId
+          || invoiceLines[0]?.glAccountId || null;
         const vaultGlId = bankLines.find(l => l.feeTypeCode === "VAULT_FEES_EXP")?.glAccountId || null;
 
-        // Parent: Credit Admin Cash control (bank payment out) for total
+        // Parent: Credit Admin Cash control (bank payment out) for full invoice total
         const { data: bankParent, error: eBankParent } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
@@ -450,8 +456,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         }).select("id").single();
         if (eBankParent) throw eBankParent;
 
-        // Child 1: Debit Admin Fees GL (monthly admin fees only)
-        if (adminFeesTotal > 0 && adminGlId) {
+        // Child 1: Debit Administration Fees GL (monthly + transactional combined)
+        if (combinedAdminFeesTotal > 0 && adminGlId) {
           const { error: eAdminGl } = await (supabase as any).from("cashflow_transactions").insert({
             tenant_id: currentTenant.id,
             transaction_date: runDate,
@@ -460,13 +466,13 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             parent_id: bankParent.id,
             gl_account_id: adminGlId,
             control_account_id: adminCashControlId,
-            debit: adminFeesTotal,
+            debit: combinedAdminFeesTotal,
             credit: 0,
             vat_amount: 0,
-            amount_excl_vat: adminFeesTotal,
+            amount_excl_vat: combinedAdminFeesTotal,
             description: `EOM Expense: Administration Fees`,
             reference: `EOM-BANK-${runDate}`,
-            notes: `Monthly administration fees`,
+            notes: `Monthly + transactional administration fees`,
             posted_by: user.id,
           });
           if (eAdminGl) throw eAdminGl;
