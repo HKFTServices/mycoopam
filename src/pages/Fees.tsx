@@ -290,6 +290,8 @@ const Fees = () => {
         frequency: config.frequency,
         percentage: config.percentage,
         fixed_amount: config.fixed_amount,
+        admin_share_percentage: config.admin_share_percentage,
+        invoice_by_administrator: config.invoice_by_administrator,
       }, { onConflict: "tenant_id,fee_type_id,pool_id" });
       if (error) throw error;
     },
