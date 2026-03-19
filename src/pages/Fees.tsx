@@ -1051,6 +1051,10 @@ const Fees = () => {
                       <Label className="text-xs">Rate (%)</Label>
                       <Input type="number" step="0.01" value={tier.percentage} onChange={e => updateTier(idx, "percentage", parseFloat(e.target.value) || 0)} />
                     </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Admin (%)</Label>
+                      <Input type="number" step="0.01" value={tier.admin_percentage} onChange={e => updateTier(idx, "admin_percentage" as any, parseFloat(e.target.value) || 0)} disabled={!canEditAdminShare} />
+                    </div>
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeTier(idx)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
