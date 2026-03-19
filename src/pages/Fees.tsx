@@ -1058,18 +1058,18 @@ const Fees = () => {
             )}
 
             <div className="space-y-2">
-              <Label>Administrator Share (%)</Label>
+              <Label>Administrator %</Label>
               <Input
-                type="number" step="1" min="0" max="100"
+                type="number" step="0.01" min="0" max="100"
                 value={ruleForm.admin_share_percentage}
                 onChange={e => setRuleForm({ ...ruleForm, admin_share_percentage: parseFloat(e.target.value) || 0 })}
-                placeholder="e.g. 75"
+                placeholder="e.g. 0.25"
                 disabled={!canEditAdminShare}
               />
               <p className="text-xs text-muted-foreground">
                 {canEditAdminShare
-                  ? "Percentage of the fee payable to the administrator at month-end."
-                  : "You do not have permission to modify the administrator share percentage."}
+                  ? "The administrator's own fee % calculated on the transaction value. E.g. if Switching Fee is 0.5% and Administrator is 0.25%, both are applied to the transaction value independently."
+                  : "You do not have permission to modify the administrator percentage."}
               </p>
             </div>
 
