@@ -261,7 +261,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
-            const txReference = tx.notes?.trim() || tx.id.substring(0, 8);
             totalGross += txAmount;
             const tier = tiers.find((t: any) =>
               txAmount >= t.min_amount && (t.max_amount === null || txAmount <= t.max_amount)
