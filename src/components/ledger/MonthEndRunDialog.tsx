@@ -377,10 +377,15 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       if (!gl2020Id || !gl4080Id) throw new Error("Recovery GL accounts (2020 Member Interest / 4080 Recoveries) not found");
 
       // ── 1) Post RECOVERY JOURNALS (pool → admin cash) ──
-      // All pool-based fees (admin % AND vault fixed) need recovery journals.
-      // Transactional admin fees do NOT need recovery — they are already in admin cash from tx processing.
+      // Only true recovery lines should move money from Pool Cash to Admin Cash:
+      // - fee types configured as journals
+      // - vault fees, which are recovered from pools and then paid out via the admin invoice
+      // Monthly administrator bank fees and transactional admin fees must NOT be recovered again.
       const recoveryLines = feeLines.filter(l =>
-        l.poolId && l.poolCashControlId && l.calculatedFee > 0
+        l.poolId &&
+        l.poolCashControlId &&
+        l.calculatedFee > 0 &&
+        (l.paymentMethod === "journal" || l.feeTypeCode === "VAULT_FEES_EXP")
       );
 
       for (const line of recoveryLines) {
