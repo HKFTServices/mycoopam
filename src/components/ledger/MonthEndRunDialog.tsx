@@ -744,14 +744,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             {posted && (
               <div className="flex items-center gap-2 text-sm text-primary bg-primary/10 rounded-lg p-3">
                 <CheckCircle2 className="h-4 w-4" />
-                Journal entries have been posted to the ledger. The invoice amount of {formatCurrency(grandInvoiceTotal)} is payable to the administrator.
-              </div>
-            )}
-
-            {!posted && feeLines.length > 0 && feeLines.filter(l => l.paymentMethod === "journal").length === 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
-                <AlertTriangle className="h-4 w-4" />
-                No journal entries to post — only invoice items were calculated.
+                Journal & bank entries have been posted. The invoice amount of {formatCurrency(grandInvoiceTotal)} is payable to the administrator.
               </div>
             )}
           </div>
@@ -766,9 +759,9 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
               <FileText className="h-4 w-4 mr-2" />Print Invoice
             </Button>
           )}
-          {calculated && !posted && feeLines.filter(l => l.paymentMethod === "journal").length > 0 && (
+          {calculated && !posted && feeLines.length > 0 && (
             <Button onClick={() => postMutation.mutate()} disabled={postMutation.isPending}>
-              {postMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> : "Post Journals & Generate Invoice"}
+              {postMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> : "Post Journals, Bank Entries & Generate Invoice"}
             </Button>
           )}
         </DialogFooter>
