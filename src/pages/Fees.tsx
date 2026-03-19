@@ -473,7 +473,7 @@ const Fees = () => {
         admin_share_percentage: (existingRule as any).admin_share_percentage || 0,
       });
       const ruleTiers = allTiers.filter((t: any) => t.fee_rule_id === existingRule.id);
-      setTiers(ruleTiers.map((t: any) => ({ min_amount: t.min_amount, max_amount: t.max_amount, percentage: t.percentage })));
+      setTiers(ruleTiers.map((t: any) => ({ min_amount: t.min_amount, max_amount: t.max_amount, percentage: t.percentage, admin_percentage: t.admin_percentage || 0 })));
     } else {
       setEditingRuleId(null);
       setRuleForm({ calculation_method: "percentage", fixed_amount: 0, percentage: 0, is_active: true, admin_share_percentage: 0 });
