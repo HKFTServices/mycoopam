@@ -187,6 +187,11 @@ const App = () => (
               <Route path="/dashboard/setup/permissions" element={<SuperAdminRoute><Permissions /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/api-providers" element={<SuperAdminRoute><ApiProviders /></SuperAdminRoute>} />
 
+              {/* Head Office: super_admin only */}
+              <Route path="/dashboard/head-office/settings" element={<SuperAdminRoute><HeadOfficeSettings /></SuperAdminRoute>} />
+              <Route path="/dashboard/head-office/tenants" element={<SuperAdminRoute><TenantManagement /></SuperAdminRoute>} />
+              <Route path="/dashboard/head-office/invoices" element={<SuperAdminRoute><TenantInvoices /></SuperAdminRoute>} />
+
               {/* MAM: super_admin only for now */}
               <Route path="/dashboard/mam" element={<SuperAdminRoute><MamEntityProvider><MamDashboard /></MamEntityProvider></SuperAdminRoute>} />
               <Route path="/dashboard/mam/assets" element={<SuperAdminRoute><MamEntityProvider><MamAssets /></MamEntityProvider></SuperAdminRoute>} />
