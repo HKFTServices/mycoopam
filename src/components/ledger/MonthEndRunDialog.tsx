@@ -369,11 +369,13 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       const { data: recoveryGls, error: glErr } = await (supabase as any).from("gl_accounts")
         .select("id, code")
         .eq("tenant_id", currentTenant.id)
-        .in("code", ["2020", "4080"]);
+        .in("code", ["1000", "2020", "4080"]);
       if (glErr) throw glErr;
 
+      const gl1000Id = recoveryGls?.find((g: any) => g.code === "1000")?.id;
       const gl2020Id = recoveryGls?.find((g: any) => g.code === "2020")?.id;
       const gl4080Id = recoveryGls?.find((g: any) => g.code === "4080")?.id;
+      if (!gl1000Id) throw new Error("Bank GL account (1000) not found");
       if (!gl2020Id || !gl4080Id) throw new Error("Recovery GL accounts (2020 Member Interest / 4080 Recoveries) not found");
 
       // ── 1) Post RECOVERY JOURNALS (pool → admin cash) ──
@@ -458,7 +460,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           transaction_date: runDate,
           entry_type: "bank",
           is_bank: true,
-          gl_account_id: null,
+          gl_account_id: gl1000Id,
           control_account_id: adminCashControlId,
           debit: 0,
           credit: bankGrandTotal,
