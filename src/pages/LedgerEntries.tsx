@@ -672,7 +672,10 @@ const LedgerEntries = () => {
 
         {/* ── Journal Entries ── */}
         <TabsContent value="journal" className="space-y-3">
-          <div className="flex justify-end">
+           <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
+              <CalendarDays className="h-4 w-4 mr-1" /> End of Month Run
+            </Button>
             <Button size="sm" onClick={() => { setJournalForm({ ...defaultJournalForm, tax_type_id: getDefaultTaxTypeId() }); setJournalDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Journal Entry
             </Button>
