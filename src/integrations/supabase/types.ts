@@ -5179,7 +5179,8 @@ export type Database = {
           due_date: string
           id: string
           invoice_date: string
-          invoice_number: string
+          invoice_html: string | null
+          invoice_number: string | null
           member_count: number
           member_fee_total: number
           monthly_admin_fee: number
@@ -5201,10 +5202,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          due_date: string
+          due_date?: string
           id?: string
           invoice_date?: string
-          invoice_number: string
+          invoice_html?: string | null
+          invoice_number?: string | null
           member_count?: number
           member_fee_total?: number
           monthly_admin_fee?: number
@@ -5229,7 +5231,8 @@ export type Database = {
           due_date?: string
           id?: string
           invoice_date?: string
-          invoice_number?: string
+          invoice_html?: string | null
+          invoice_number?: string | null
           member_count?: number
           member_fee_total?: number
           monthly_admin_fee?: number
