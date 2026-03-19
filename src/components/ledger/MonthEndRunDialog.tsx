@@ -492,7 +492,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
             {/* Status messages */}
             {posted && (
-              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-sm text-primary bg-primary/10 rounded-lg p-3">
                 <CheckCircle2 className="h-4 w-4" />
                 Journal entries have been posted to the ledger. The invoice amount of {formatCurrency(grandInvoiceTotal)} is payable to the administrator.
               </div>
