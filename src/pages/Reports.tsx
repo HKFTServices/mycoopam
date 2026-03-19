@@ -266,9 +266,13 @@ const Reports = () => {
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
   })();
 
-  // Income = GL Credit side; Expense = GL Debit side
-  const totalIncomeExclVat = isAggregated.filter(r => r.gl_type === "income").reduce((s, r) => s + (r.exclVatCredit - r.exclVatDebit), 0);
-  const totalExpenseExclVat = isAggregated.filter(r => r.gl_type === "expense").reduce((s, r) => s + (r.exclVatDebit - r.exclVatCredit), 0);
+  // Income = GL Credit side; Expense must display as positive in the IS
+  const totalIncomeExclVat = isAggregated
+    .filter(r => r.gl_type === "income")
+    .reduce((s, r) => s + (r.exclVatCredit - r.exclVatDebit), 0);
+  const totalExpenseExclVat = isAggregated
+    .filter(r => r.gl_type === "expense")
+    .reduce((s, r) => s + Math.abs(r.exclVatDebit - r.exclVatCredit), 0);
   const netProfit = totalIncomeExclVat - totalExpenseExclVat;
 
 
@@ -454,8 +458,8 @@ const Reports = () => {
                     <TableRow key={r.code}>
                       <TableCell className="font-mono text-xs">{r.code}</TableCell>
                       <TableCell>{r.name}</TableCell>
-                      {/* Expense = GL Debit side (contra of CFT Credit) */}
-                      <TableCell className="text-right">{fmtAmt(r.exclVatDebit - r.exclVatCredit)}</TableCell>
+                      {/* Expense must display as a positive amount in the IS */}
+                      <TableCell className="text-right">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</TableCell>
                     </TableRow>
                   ))}
                   {isAggregated.filter(r => r.gl_type === "expense").length === 0 && (
