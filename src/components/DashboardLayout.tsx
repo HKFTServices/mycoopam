@@ -158,6 +158,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));
   const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/setup"));
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/setup"));
+  const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/head-office"));
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
