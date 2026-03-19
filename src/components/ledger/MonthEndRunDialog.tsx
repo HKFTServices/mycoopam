@@ -522,7 +522,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             )}
 
             {/* ── SECTION 3: Transactional Admin Fees ── */}
-            {feeLines.filter(l => l.paymentMethod === "invoice").length > 0 && (
+            {(feeLines.filter(l => l.paymentMethod === "invoice").length > 0 || txDetailLines.length > 0) && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -531,6 +531,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
+                  {/* Summary totals */}
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -543,8 +544,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                     </TableHeader>
                     <TableBody>
                       {feeLines.filter(l => l.paymentMethod === "invoice").map((l, i) => (
-                        <TableRow key={`t-${i}`}>
-                          <TableCell className="text-sm font-medium">{l.feeTypeName}</TableCell>
+                        <TableRow key={`t-${i}`} className="bg-muted/20 font-semibold">
+                          <TableCell className="text-sm font-semibold">{l.feeTypeName}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{l.basis}</TableCell>
                           <TableCell className="text-right text-sm">{formatCurrency(l.grossAmount)}</TableCell>
                           <TableCell className="text-right text-sm">{l.adminPercentage}%</TableCell>
@@ -553,6 +554,41 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
                       ))}
                     </TableBody>
                   </Table>
+
+                  {/* Transaction detail */}
+                  {txDetailLines.length > 0 && (
+                    <div className="border-t">
+                      <div className="px-4 py-2 bg-muted/10">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction Detail</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Date</TableHead>
+                            <TableHead className="text-xs">Type</TableHead>
+                            <TableHead className="text-xs">Member</TableHead>
+                            <TableHead className="text-xs">Reference</TableHead>
+                            <TableHead className="text-right text-xs">Amount</TableHead>
+                            <TableHead className="text-right text-xs">Admin %</TableHead>
+                            <TableHead className="text-right text-xs">Admin Fee</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {txDetailLines.map((d, i) => (
+                            <TableRow key={`td-${i}`}>
+                              <TableCell className="text-xs">{d.txDate}</TableCell>
+                              <TableCell className="text-xs">{d.txTypeName}</TableCell>
+                              <TableCell className="text-xs">{d.entityName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{d.txReference}</TableCell>
+                              <TableCell className="text-right text-xs">{formatCurrency(d.txAmount)}</TableCell>
+                              <TableCell className="text-right text-xs">{d.tierPct}%</TableCell>
+                              <TableCell className="text-right text-xs font-medium">{formatCurrency(d.adminFee)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
