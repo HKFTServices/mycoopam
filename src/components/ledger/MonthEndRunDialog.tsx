@@ -426,10 +426,10 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
   // ── Totals ──
   const journalLines = feeLines.filter(l => l.paymentMethod === "journal");
   const totalJournalFees = journalLines.reduce((s, l) => s + l.calculatedFee, 0);
-  const totalPoolPctInvoice = feeLines.filter(l => l.paymentMethod === "journal" && l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
-  const totalVaultInvoice = feeLines.filter(l => l.paymentMethod === "bank" && l.invoiceByAdmin).reduce((s, l) => s + l.adminFee, 0);
+  const totalAdminFeesBank = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode !== "VAULT_FEES_EXP").reduce((s, l) => s + l.calculatedFee, 0);
+  const totalVaultInvoice = feeLines.filter(l => l.paymentMethod === "bank" && l.feeTypeCode === "VAULT_FEES_EXP").reduce((s, l) => s + l.calculatedFee, 0);
   const totalTransactionalAdmin = feeLines.filter(l => l.paymentMethod === "invoice").reduce((s, l) => s + l.adminFee, 0);
-  const grandInvoiceTotal = totalPoolPctInvoice + totalVaultInvoice + totalTransactionalAdmin;
+  const grandInvoiceTotal = totalAdminFeesBank + totalVaultInvoice + totalTransactionalAdmin;
 
   const handleClose = () => {
     setCalculated(false);
