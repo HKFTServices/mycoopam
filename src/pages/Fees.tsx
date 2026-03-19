@@ -584,14 +584,6 @@ const Fees = () => {
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-center text-sm">
-                            {(() => {
-                              const rules = feeRules.filter(r => r.fee_type_id === ft.id);
-                              const firstWithShare = rules.find(r => (r as any).admin_share_percentage > 0);
-                              const share = firstWithShare ? (firstWithShare as any).admin_share_percentage : 0;
-                              return share > 0 ? `${Number(share).toFixed(0)}%` : "—";
-                            })()}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
