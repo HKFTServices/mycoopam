@@ -128,7 +128,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
         if (monthlyFee <= 0) continue;
 
-        // Always create a journal line (debit admin cash, credit pool cash)
+        // Use the fee type's payment_method: "journal" = recovery, "bank" = admin fee payable
         lines.push({
           feeTypeName: ft.name,
           feeTypeCode: ft.code,
@@ -139,8 +139,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           calculatedFee: monthlyFee,
           adminPercentage: 0,
           adminFee: ft.payment_method === "bank" ? monthlyFee : 0,
-          paymentMethod: "journal", // Always journal for pool recoveries
-          invoiceByAdmin: ft.payment_method === "bank", // Also invoiceable if bank
+          paymentMethod: ft.payment_method, // Keep original: "journal" or "bank"
+          invoiceByAdmin: ft.payment_method === "bank",
           feeTypeId: ft.id,
           poolId: config.pool_id,
           poolCashControlId: pool.cash_control_account_id,
@@ -293,8 +293,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       if (!currentTenant || !user || !adminPool) throw new Error("Missing context");
 
       const adminCashControlId = adminPool.cash_control_account_id;
-      // Post journals for all journal-type lines AND bank-type lines with invoice_by_administrator
-      const journalLines = feeLines.filter(l => (l.paymentMethod === "journal" || (l.paymentMethod === "bank" && l.invoiceByAdmin)) && l.calculatedFee > 0 && l.poolCashControlId);
+      const journalLines = feeLines.filter(l => l.paymentMethod === "journal" && l.calculatedFee > 0);
 
       for (const line of journalLines) {
         // Journal: Debit Admin Cash Control, Credit Pool Cash Control
