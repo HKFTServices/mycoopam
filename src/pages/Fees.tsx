@@ -593,7 +593,7 @@ const Fees = () => {
               )}
             </CardContent>
             <div className="px-6 pb-5 text-xs text-muted-foreground space-y-1.5 border-t border-border pt-4 mx-6 mb-2">
-              <p><span className="font-semibold">Admin Share %:</span> The percentage of transactional fees the administrator will charge for admin services — i.e. admin fees paid out from whatever is charged on transactions.</p>
+              <p><span className="font-semibold">Admin Share %:</span> Each fee rule has its own administrator share percentage (configured per rule). At month-end, the total admin share of all transactional fees is invoiced to the administrator.</p>
             </div>
           </Card>
 
