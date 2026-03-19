@@ -192,21 +192,22 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
       // 3) TRANSACTIONAL FEES - admin share from transactions this month
       const { data: monthTxns } = await (supabase as any).from("transactions")
-        .select("id, amount, fee_amount, transaction_type_id, transaction_date, reference, entity_account_id")
+        .select("id, amount, fee_amount, transaction_type_id, transaction_date, notes, entity_account_id")
         .eq("tenant_id", currentTenant.id)
         .eq("status", "approved")
         .gte("transaction_date", monthStart)
         .lte("transaction_date", runDate);
 
       const txns = monthTxns ?? [];
-      
+
       // Fetch fee rules directly inside the mutation to avoid closure timing issues
       const { data: freshRules } = await (supabase as any).from("transaction_fee_rules")
         .select("*, transaction_fee_types(id, name, code, cash_control_account_id, gl_account_id)")
-        .eq("tenant_id", currentTenant.id).eq("is_active", true);
-      
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true);
+
       const allRules = freshRules ?? [];
-      
+
       // Fetch tiers separately and group by fee_rule_id
       const ruleIds = allRules.map((r: any) => r.id);
       let tiersMap: Record<string, any[]> = {};
@@ -219,26 +220,20 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           tiersMap[tier.fee_rule_id].push(tier);
         }
       }
-      
-      // Attach tiers to rules
+
       for (const rule of allRules) {
         rule.transaction_fee_tiers = tiersMap[rule.id] || [];
       }
-      
-      // Rules that have admin fees
-      const rulesWithAdmin = allRules.filter((r: any) => 
-        r.admin_share_percentage > 0 || 
+
+      const rulesWithAdmin = allRules.filter((r: any) =>
+        r.admin_share_percentage > 0 ||
         (r.calculation_method === "sliding_scale" && r.transaction_fee_tiers.length > 0)
       );
-      
-      console.log("[EOM] Rules with admin:", rulesWithAdmin.length, "Transactions:", txns.length);
-      
-      // Get transaction type names
+
       const { data: txTypes } = await (supabase as any).from("transaction_types").select("id, name").eq("tenant_id", currentTenant.id);
       const txTypeMap: Record<string, string> = {};
       for (const tt of txTypes ?? []) txTypeMap[tt.id] = tt.name;
 
-      // Get entity names for detail display
       const entityAccountIds = [...new Set(txns.map((t: any) => t.entity_account_id).filter(Boolean))];
       let entityNameMap: Record<string, string> = {};
       if (entityAccountIds.length > 0) {
@@ -267,8 +262,9 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
+            const txReference = tx.notes?.trim() || tx.id.substring(0, 8);
             totalGross += txAmount;
-            const tier = tiers.find((t: any) => 
+            const tier = tiers.find((t: any) =>
               txAmount >= t.min_amount && (t.max_amount === null || txAmount <= t.max_amount)
             );
             const tierPct = tier?.admin_percentage || 0;
@@ -278,7 +274,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             details.push({
               txTypeName,
               txDate: tx.transaction_date,
-              txReference: tx.reference || tx.id.substring(0, 8),
+              txReference,
               txAmount,
               tierPct,
               adminFee: txAdminFee,
@@ -315,6 +311,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
+            const txReference = tx.notes?.trim() || tx.id.substring(0, 8);
             totalGross += txAmount;
             const txAdminFee = Math.round((txAmount * adminPct / 100) * 100) / 100;
             totalAdminFee += txAdminFee;
@@ -322,7 +319,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             details.push({
               txTypeName,
               txDate: tx.transaction_date,
-              txReference: tx.reference || tx.id.substring(0, 8),
+              txReference,
               txAmount,
               tierPct: adminPct,
               adminFee: txAdminFee,
