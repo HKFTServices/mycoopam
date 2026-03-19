@@ -472,6 +472,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         if (eBankEntry) throw eBankEntry;
 
         // Standalone expense journal: Administration Fees (monthly + transactional)
+        // Posted as CFT credit so that contra-posting (CFT Cr → GL Dr) produces
+        // a GL Debit on the expense account = positive expense in IS.
         if (adminFeesTotal > 0 && adminGlId) {
           const { error: eAdminGl } = await (supabase as any).from("cashflow_transactions").insert({
             tenant_id: currentTenant.id,
@@ -480,8 +482,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             is_bank: false,
             gl_account_id: adminGlId,
             control_account_id: null,
-            debit: adminFeesTotal,
-            credit: 0,
+            debit: 0,
+            credit: adminFeesTotal,
             vat_amount: 0,
             amount_excl_vat: adminFeesTotal,
             description: `EOM Expense: Administration Fees`,
@@ -501,8 +503,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             is_bank: false,
             gl_account_id: vaultGlId,
             control_account_id: null,
-            debit: vaultFeesTotal,
-            credit: 0,
+            debit: 0,
+            credit: vaultFeesTotal,
             vat_amount: 0,
             amount_excl_vat: vaultFeesTotal,
             description: `EOM Expense: Vault Fees`,
