@@ -5250,6 +5250,7 @@ export type Database = {
       }
       transaction_fee_tiers: {
         Row: {
+          admin_percentage: number
           created_at: string
           fee_rule_id: string
           id: string
@@ -5260,6 +5261,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_percentage?: number
           created_at?: string
           fee_rule_id: string
           id?: string
@@ -5270,6 +5272,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_percentage?: number
           created_at?: string
           fee_rule_id?: string
           id?: string

@@ -82,6 +82,7 @@ type FeeTier = {
   min_amount: number;
   max_amount: number | null;
   percentage: number;
+  admin_percentage: number;
 };
 
 const Fees = () => {
@@ -402,6 +403,7 @@ const Fees = () => {
             min_amount: t.min_amount,
             max_amount: t.max_amount,
             percentage: t.percentage,
+            admin_percentage: t.admin_percentage,
           }));
           const { error: tierError } = await (supabase as any).from("transaction_fee_tiers").insert(tierInserts);
           if (tierError) throw tierError;
@@ -472,7 +474,7 @@ const Fees = () => {
         admin_share_percentage: (existingRule as any).admin_share_percentage || 0,
       });
       const ruleTiers = allTiers.filter((t: any) => t.fee_rule_id === existingRule.id);
-      setTiers(ruleTiers.map((t: any) => ({ min_amount: t.min_amount, max_amount: t.max_amount, percentage: t.percentage })));
+      setTiers(ruleTiers.map((t: any) => ({ min_amount: t.min_amount, max_amount: t.max_amount, percentage: t.percentage, admin_percentage: t.admin_percentage || 0 })));
     } else {
       setEditingRuleId(null);
       setRuleForm({ calculation_method: "percentage", fixed_amount: 0, percentage: 0, is_active: true, admin_share_percentage: 0 });
@@ -484,7 +486,7 @@ const Fees = () => {
 
   const addTier = () => {
     const lastMax = tiers.length > 0 ? (tiers[tiers.length - 1].max_amount ?? 0) : 0;
-    setTiers([...tiers, { min_amount: lastMax + 1, max_amount: null, percentage: 0 }]);
+    setTiers([...tiers, { min_amount: lastMax + 1, max_amount: null, percentage: 0, admin_percentage: 0 }]);
   };
 
   const updateTier = (index: number, field: keyof FeeTier, value: number | null) => {
@@ -1049,6 +1051,10 @@ const Fees = () => {
                       <Label className="text-xs">Rate (%)</Label>
                       <Input type="number" step="0.01" value={tier.percentage} onChange={e => updateTier(idx, "percentage", parseFloat(e.target.value) || 0)} />
                     </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Admin (%)</Label>
+                      <Input type="number" step="0.01" value={tier.admin_percentage} onChange={e => updateTier(idx, "admin_percentage" as any, parseFloat(e.target.value) || 0)} disabled={!canEditAdminShare} />
+                    </div>
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeTier(idx)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -1057,21 +1063,23 @@ const Fees = () => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Administrator %</Label>
-              <Input
-                type="number" step="0.01" min="0" max="100"
-                value={ruleForm.admin_share_percentage}
-                onChange={e => setRuleForm({ ...ruleForm, admin_share_percentage: parseFloat(e.target.value) || 0 })}
-                placeholder="e.g. 0.25"
-                disabled={!canEditAdminShare}
-              />
-              <p className="text-xs text-muted-foreground">
-                {canEditAdminShare
-                  ? "The administrator's own fee % calculated on the transaction value. E.g. if Switching Fee is 0.5% and Administrator is 0.25%, both are applied to the transaction value independently."
-                  : "You do not have permission to modify the administrator percentage."}
-              </p>
-            </div>
+            {ruleForm.calculation_method !== "sliding_scale" && (
+              <div className="space-y-2">
+                <Label>Administrator %</Label>
+                <Input
+                  type="number" step="0.01" min="0" max="100"
+                  value={ruleForm.admin_share_percentage}
+                  onChange={e => setRuleForm({ ...ruleForm, admin_share_percentage: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g. 0.25"
+                  disabled={!canEditAdminShare}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {canEditAdminShare
+                    ? "The administrator's own fee % calculated on the transaction value."
+                    : "You do not have permission to modify the administrator percentage."}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <Switch checked={ruleForm.is_active} onCheckedChange={checked => setRuleForm({ ...ruleForm, is_active: checked })} />
