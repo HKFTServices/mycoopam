@@ -135,6 +135,12 @@ const mamNavItems = [
   { label: "MAM Admin", icon: Cog, path: "/dashboard/mam/admin" },
 ];
 
+const headOfficeNavItems = [
+  { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
+  { label: "Tenant Management", icon: Users, path: "/dashboard/head-office/tenants" },
+  { label: "Tenant Invoices", icon: FileText, path: "/dashboard/head-office/invoices" },
+];
+
 const dailyPricesNavItems = [
   { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
   { label: "Pool Updates", icon: TrendingUp, path: "/dashboard/daily-prices/pools" },
