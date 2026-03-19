@@ -411,15 +411,16 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
       }
 
       // ── 2) Post BANK entry (single payment to administrator) ──
-      // Only monthly admin fees & vault fees need bank entries.
-      // Transactional admin fees are already recovered inside admin cash from original transactions
-      // — they only appear on the invoice, NOT as new ledger entries.
+      // The bank payment is one consolidated credit from Admin Cash for the full invoice total.
+      // It includes monthly admin fees + transactional admin fees + vault fees.
       const bankLines = feeLines.filter(l => l.paymentMethod === "bank" && l.calculatedFee > 0);
+      const invoiceLines = feeLines.filter(l => l.paymentMethod === "invoice" && l.adminFee > 0);
 
-      // Aggregate into two GL buckets: admin fees vs vault fees
+      // Aggregate into two GL buckets for the expense journals
       const adminFeesTotal = bankLines
         .filter(l => l.feeTypeCode !== "VAULT_FEES_EXP")
-        .reduce((s, l) => s + l.calculatedFee, 0);
+        .reduce((s, l) => s + l.calculatedFee, 0)
+        + invoiceLines.reduce((s, l) => s + l.adminFee, 0); // transactional admin fees
 
       const vaultFeesTotal = bankLines
         .filter(l => l.feeTypeCode === "VAULT_FEES_EXP")
@@ -431,8 +432,8 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
         const adminGlId = bankLines.find(l => l.feeTypeCode !== "VAULT_FEES_EXP")?.glAccountId || null;
         const vaultGlId = bankLines.find(l => l.feeTypeCode === "VAULT_FEES_EXP")?.glAccountId || null;
 
-        // Parent: Credit Admin Cash control (bank payment out) for total
-        const { data: bankParent, error: eBankParent } = await (supabase as any).from("cashflow_transactions").insert({
+        // Single bank entry: Credit Admin Cash control for the total invoice amount
+        const { error: eBankEntry } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: runDate,
           entry_type: "bank",
@@ -447,19 +448,18 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           reference: `EOM-BANK-${runDate}`,
           notes: `Month-end admin invoice payment`,
           posted_by: user.id,
-        }).select("id").single();
-        if (eBankParent) throw eBankParent;
+        });
+        if (eBankEntry) throw eBankEntry;
 
-        // Child 1: Debit Admin Fees GL (monthly admin fees only)
+        // Standalone expense journal: Administration Fees (monthly + transactional)
         if (adminFeesTotal > 0 && adminGlId) {
           const { error: eAdminGl } = await (supabase as any).from("cashflow_transactions").insert({
             tenant_id: currentTenant.id,
             transaction_date: runDate,
-            entry_type: "bank",
-            is_bank: true,
-            parent_id: bankParent.id,
+            entry_type: "journal",
+            is_bank: false,
             gl_account_id: adminGlId,
-            control_account_id: adminCashControlId,
+            control_account_id: null,
             debit: adminFeesTotal,
             credit: 0,
             vat_amount: 0,
@@ -472,16 +472,15 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
           if (eAdminGl) throw eAdminGl;
         }
 
-        // Child 2: Debit Vault Fees GL
+        // Standalone expense journal: Vault Fees
         if (vaultFeesTotal > 0 && vaultGlId) {
           const { error: eVaultGl } = await (supabase as any).from("cashflow_transactions").insert({
             tenant_id: currentTenant.id,
             transaction_date: runDate,
-            entry_type: "bank",
-            is_bank: true,
-            parent_id: bankParent.id,
+            entry_type: "journal",
+            is_bank: false,
             gl_account_id: vaultGlId,
-            control_account_id: adminCashControlId,
+            control_account_id: null,
             debit: vaultFeesTotal,
             credit: 0,
             vat_amount: 0,
