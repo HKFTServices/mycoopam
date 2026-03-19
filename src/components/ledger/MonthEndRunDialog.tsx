@@ -308,7 +308,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
 
           for (const tx of ruleTxns) {
             const txAmount = Number(tx.amount) || 0;
-            const txReference = tx.notes?.trim() || tx.id.substring(0, 8);
             totalGross += txAmount;
             const txAdminFee = Math.round((txAmount * adminPct / 100) * 100) / 100;
             totalAdminFee += txAdminFee;
@@ -316,7 +315,6 @@ export const MonthEndRunDialog = ({ open, onOpenChange }: { open: boolean; onOpe
             details.push({
               txTypeName,
               txDate: tx.transaction_date,
-              txReference,
               txAmount,
               tierPct: adminPct,
               adminFee: txAdminFee,
