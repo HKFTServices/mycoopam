@@ -40,6 +40,16 @@ type FeeCalcLine = {
   creditControlAccountId: string | null;
 };
 
+type TxDetailLine = {
+  txTypeName: string;
+  txDate: string;
+  txReference: string;
+  txAmount: number;
+  tierPct: number;
+  adminFee: number;
+  entityName: string;
+};
+
 const formatCurrency = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
