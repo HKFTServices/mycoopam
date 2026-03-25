@@ -355,18 +355,56 @@ const LegacyGlAllocation = () => {
   };
 
   // Group entries by parent
+  // Orphan root entries with entry_type 1978 (loan instalment) that share
+  // the same entity + timestamp as a deposit root get merged into that deposit group.
   const grouped = useMemo(() => {
     const roots = cftEntries.filter(e => e.parent_id === "0");
     const children = cftEntries.filter(e => e.parent_id !== "0");
 
-    const groups: { root: LegacyCftEntry; children: LegacyCftEntry[] }[] = [];
+    // Identify orphan loan instalment roots (1978 with ParentID=0)
+    const orphanLoanRoots = new Set<string>();
+    const depositRoots: LegacyCftEntry[] = [];
+    const otherRoots: LegacyCftEntry[] = [];
+
     for (const root of roots) {
-      groups.push({
-        root,
-        children: children
-          .filter(c => c.parent_id === root.cft_id)
-          .sort((a, b) => parseInt(a.cft_id) - parseInt(b.cft_id)),
-      });
+      if (root.entry_type_id === "1978" && root.tx_type_id === "0") {
+        orphanLoanRoots.add(root.cft_id);
+      } else if (root.tx_type_id === "1912" || root.entry_type_id === "1921") {
+        depositRoots.add(root);
+      } else {
+        otherRoots.push(root);
+      }
+    }
+
+    // Build a lookup: entity+date -> deposit root cft_id
+    const depositKey = (entityId: string, date: string) => `${entityId}|${date?.split(" ")[0]}`;
+    const depositByKey = new Map<string, string>();
+    for (const dr of depositRoots) {
+      depositByKey.set(depositKey(dr.entity_id, dr.transaction_date), dr.cft_id);
+    }
+
+    // Assign orphan 1978 entries as children of matching deposit roots
+    const adoptedOrphans = new Map<string, LegacyCftEntry[]>();
+    const unmatched: LegacyCftEntry[] = [];
+    for (const root of roots) {
+      if (!orphanLoanRoots.has(root.cft_id)) continue;
+      const key = depositKey(root.entity_id, root.transaction_date);
+      const parentCftId = depositByKey.get(key);
+      if (parentCftId) {
+        if (!adoptedOrphans.has(parentCftId)) adoptedOrphans.set(parentCftId, []);
+        adoptedOrphans.get(parentCftId)!.push(root);
+      } else {
+        unmatched.push(root); // keep as standalone root if no matching deposit
+      }
+    }
+
+    const groups: { root: LegacyCftEntry; children: LegacyCftEntry[] }[] = [];
+    for (const root of [...depositRoots, ...otherRoots, ...unmatched]) {
+      const childEntries = children
+        .filter(c => c.parent_id === root.cft_id)
+        .concat(adoptedOrphans.get(root.cft_id) ?? [])
+        .sort((a, b) => parseInt(a.cft_id) - parseInt(b.cft_id));
+      groups.push({ root, children: childEntries });
     }
     return groups.sort((a, b) => a.root.transaction_date.localeCompare(b.root.transaction_date));
   }, [cftEntries]);
