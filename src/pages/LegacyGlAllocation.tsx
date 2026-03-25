@@ -520,14 +520,15 @@ const LegacyGlAllocation = () => {
         });
       }
       // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
-      else if (entry.entry_type_id === "1922" && mapping.split_rule?.splits) {
-        for (const split of mapping.split_rule.splits) {
+      else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
+        for (const split of (mapping.split_rule as any).splits) {
+          const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
           proposed.push({
             description: split.description,
             debit: 0,
             credit: split.amount,
             gl_account_id: split.gl_account_id,
-            gl_account_label: split.description,
+            gl_account_label: glLabel,
             control_account_id: null, control_account_label: "",
             pool_id: null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "membership_fee",
