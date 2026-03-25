@@ -755,9 +755,6 @@ const LegacyGlAllocation = () => {
                     </>
                   );
                 })()}
-                    </>
-                  );
-                })()}
               </div>
             </CardTitle>
           </CardHeader>
