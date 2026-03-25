@@ -296,14 +296,15 @@ const LegacyGlAllocation = () => {
         from += PAGE_SIZE;
       }
 
-      const fromDate = new Date("2025-03-01");
+      const filterFrom = dateFrom;
+      const filterTo = dateTo;
       const allParsed: { entry: LegacyCftEntry; txTypeId: string }[] = [];
 
       for (const row of allRows) {
         try {
           const n = JSON.parse(row.notes ?? "{}");
           const txDate = new Date(n.TransactionDate);
-          if (txDate < fromDate) continue;
+          if (txDate < filterFrom || txDate > filterTo) continue;
 
           allParsed.push({
             entry: {
