@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatCurrency";
 
@@ -406,7 +406,30 @@ const LegacyGlAllocation = () => {
           <CardHeader>
             <CardTitle className="text-base flex items-center justify-between">
               <span>{selectedTypeName} — {grouped.length} transactions from 1 Mar 2025</span>
-              <Badge variant="outline">{cftEntries.length} total legs</Badge>
+              <div className="flex gap-2">
+                {(() => {
+                  const balanced = grouped.filter(g => {
+                    const allEntries = [g.root, ...g.children];
+                    const d = allEntries.reduce((s, e) => s + e.debit, 0);
+                    const c = allEntries.reduce((s, e) => s + e.credit, 0);
+                    return Math.abs(d - c) < 0.01;
+                  }).length;
+                  const unbalanced = grouped.length - balanced;
+                  return (
+                    <>
+                      <Badge variant="outline" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {balanced} balanced
+                      </Badge>
+                      {unbalanced > 0 && (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" /> {unbalanced} unbalanced
+                        </Badge>
+                      )}
+                      <Badge variant="outline">{cftEntries.length} total legs</Badge>
+                    </>
+                  );
+                })()}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -421,8 +444,8 @@ const LegacyGlAllocation = () => {
                     <TableHead className="text-xs">Entity</TableHead>
                     <TableHead className="text-xs">Control Account</TableHead>
                     <TableHead className="text-xs text-right">Debit</TableHead>
-                    <TableHead className="text-xs text-right">Credit</TableHead>
-                    <TableHead className="text-xs">GL Allocation</TableHead>
+                     <TableHead className="text-xs text-right">Credit</TableHead>
+                     <TableHead className="text-xs text-right">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -432,6 +455,8 @@ const LegacyGlAllocation = () => {
                     const allMapped = [g.root, ...g.children].every(e => getGlLabel(e).mapped);
                     const totalDebit = g.root.debit + g.children.reduce((s, c) => s + c.debit, 0);
                     const totalCredit = g.root.credit + g.children.reduce((s, c) => s + c.credit, 0);
+                    const balance = totalDebit - totalCredit;
+                    const isBalanced = Math.abs(balance) < 0.01;
                     const rootMapping = getGlMapping(g.root.entry_type_id);
 
                     return (
@@ -439,7 +464,7 @@ const LegacyGlAllocation = () => {
                         {/* Root row */}
                         <TableRow
                           key={`root-${g.root.cft_id}`}
-                          className="cursor-pointer hover:bg-muted/50 font-medium"
+                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!isBalanced ? 'bg-destructive/5' : ''}`}
                           onClick={() => toggleParent(g.root.cft_id)}
                         >
                           <TableCell className="px-2">
@@ -461,14 +486,14 @@ const LegacyGlAllocation = () => {
                           <TableCell className="text-xs text-right font-mono">
                             {totalCredit > 0 ? formatCurrency(totalCredit) : ""}
                           </TableCell>
-                          <TableCell>
-                            {allMapped ? (
-                              <Badge variant="default" className="text-[10px] gap-1">
-                                <CheckCircle2 className="h-3 w-3" /> Mapped
+                          <TableCell className="text-xs text-right font-mono">
+                            {isBalanced ? (
+                              <Badge variant="outline" className="text-[10px] gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-green-600" /> ✓
                               </Badge>
                             ) : (
                               <Badge variant="destructive" className="text-[10px] gap-1">
-                                <XCircle className="h-3 w-3" /> Unmapped
+                                <AlertTriangle className="h-3 w-3" /> {formatCurrency(Math.abs(balance))}
                               </Badge>
                             )}
                           </TableCell>
