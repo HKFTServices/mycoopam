@@ -333,6 +333,8 @@ const LegacyGlAllocation = () => {
               is_bank: n.IsBank === "1",
               transaction_date: (n.TransactionDate ?? "").split("T")[0].split(" ")[0],
               description: "",
+              inc_exp_id: n.IncExpID ?? "0",
+              fee_id: n.FeeID ?? "0",
             },
             txTypeId: n.Type_TransactionID ?? "0",
           });
