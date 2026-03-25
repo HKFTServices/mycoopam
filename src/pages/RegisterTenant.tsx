@@ -167,7 +167,7 @@ const RegisterTenant = () => {
                 <div className="space-y-2">
                   <Label htmlFor="slug">URL Slug</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">mycoop.app/t/</span>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">.myco-op.co.za</span>
                     <Input id="slug" placeholder="e.g. aem" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} required maxLength={30} />
                   </div>
                 </div>

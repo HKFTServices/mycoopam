@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, Building2, Coins, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
+import { navigateToTenant } from "@/lib/getSiteUrl";
 
 const SOURCE_TENANT_ID = "38e204c4-829f-4544-ab53-b2f3f5342662"; // AEM
 
@@ -257,7 +258,7 @@ export default function TenantSetupWizard() {
                 <Button
                   className="w-full"
                   size="lg"
-                  onClick={() => navigate(tenantSlug ? `/t/${tenantSlug}` : "/")}
+                  onClick={() => tenantSlug ? navigateToTenant(tenantSlug, navigate) : navigate("/")}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Go to Sign In

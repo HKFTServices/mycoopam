@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
+import { navigateToTenant } from "@/lib/getSiteUrl";
 
 interface Tenant {
   id: string;
@@ -187,7 +188,7 @@ const Landing = () => {
                   key={t.id}
                   onClick={() => {
                     setShowTenantPicker(false);
-                    navigate(`/t/${t.slug}`);
+                    navigateToTenant(t.slug, navigate);
                   }}
                   className="w-full flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-left hover:bg-accent transition-colors"
                 >
