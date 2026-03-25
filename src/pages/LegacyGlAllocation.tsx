@@ -610,7 +610,7 @@ const LegacyGlAllocation = () => {
   const allProposed = useMemo(() => {
     if (!glMappings?.length || !controlAccounts || !grouped.length) return [];
     return grouped.map(g => buildProposedForGroup(g));
-  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap]);
+  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap, tenantGlConfig]);
 
   const buildPreview = () => {
     setProposedGroups(allProposed);
