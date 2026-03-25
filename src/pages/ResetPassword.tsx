@@ -57,9 +57,8 @@ const ResetPassword = () => {
       setSuccess(true);
       clearPasswordRecovery();
       toast({ title: "Password updated successfully" });
-      // Sign out so they can log in with the new password
-      await supabase.auth.signOut();
-      setTimeout(() => navigate("/auth", { replace: true }), 2000);
+      // Auto-login: user already has a session, redirect to dashboard
+      setTimeout(() => navigate("/dashboard", { replace: true }), 2000);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -96,7 +95,7 @@ const ResetPassword = () => {
               <CheckCircle className="h-12 w-12 text-primary" />
             </div>
             <CardTitle>Password Updated</CardTitle>
-            <CardDescription>Redirecting you to sign in…</CardDescription>
+            <CardDescription>Redirecting you to your dashboard…</CardDescription>
           </CardHeader>
         </Card>
       </div>
