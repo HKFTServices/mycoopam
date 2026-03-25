@@ -866,9 +866,10 @@ const LegacyGlAllocation = () => {
   // ═══════════════════════════════════════════════════════════════
   // POST: Commit the proposed entries to cashflow_transactions
   // ═══════════════════════════════════════════════════════════════
-  const postEntries = async () => {
+  const postEntries = async (groups?: ProposedGroup[]) => {
     if (!currentTenant) return;
-    const balanced = proposedGroups.filter(g => g.isBalanced);
+    const source = groups ?? proposedGroups;
+    const balanced = source.filter(g => g.isBalanced);
     if (balanced.length === 0) {
       toast.error("No balanced groups to post");
       return;
@@ -971,6 +972,19 @@ const LegacyGlAllocation = () => {
                   <FileSearch className="h-4 w-4" />
                   Preview CFT Posting
                 </Button>
+                {allProposed.filter(g => g.isBalanced).length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      postEntries(allProposed);
+                    }}
+                    disabled={posting}
+                    className="gap-2"
+                  >
+                    {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    Post {allProposed.filter(g => g.isBalanced).length} Balanced Groups
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -1241,7 +1255,7 @@ const LegacyGlAllocation = () => {
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowPreview(false)}>Cancel</Button>
             <Button
-              onClick={postEntries}
+              onClick={() => postEntries()}
               disabled={posting || proposedGroups.filter(g => g.isBalanced).length === 0}
               className="gap-2"
             >
