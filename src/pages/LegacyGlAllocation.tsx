@@ -692,14 +692,14 @@ const LegacyGlAllocation = () => {
           transaction_date: txDate, entry_type: "withdrawal_fee",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
-        // 2. DR Fee Income GL
+        // 2. CR Fee Income GL (income is always credited)
         proposed.push({
           description: `${mapping.entry_type_name ?? "Fee"} Income`,
-          debit: amount, credit: 0,
+          debit: 0, credit: amount,
           gl_account_id: feeGlId, gl_account_label: feeGlLabel,
           control_account_id: null, control_account_label: "",
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "fee_income_dr",
+          transaction_date: txDate, entry_type: "fee_income_cr",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
