@@ -187,6 +187,36 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
+  // Fetch tenant configuration GL account IDs (to match new deposit posting pattern)
+  const { data: tenantGlConfig } = useQuery({
+    queryKey: ["tenant-gl-config", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return null;
+      const { data } = await (supabase as any)
+        .from("tenant_configuration")
+        .select("pool_allocation_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id")
+        .eq("tenant_id", currentTenant.id)
+        .maybeSingle();
+      if (!data) return null;
+      // Fetch GL account labels
+      const glIds = [data.pool_allocation_gl_account_id, data.membership_fee_gl_account_id, data.bank_gl_account_id].filter(Boolean);
+      const { data: glAccounts } = await supabase
+        .from("gl_accounts")
+        .select("id, code, name")
+        .in("id", glIds);
+      const glMap = Object.fromEntries((glAccounts ?? []).map(g => [g.id, g]));
+      return {
+        poolAllocationGlId: data.pool_allocation_gl_account_id as string | null,
+        poolAllocationGlLabel: data.pool_allocation_gl_account_id ? `${glMap[data.pool_allocation_gl_account_id]?.code} ${glMap[data.pool_allocation_gl_account_id]?.name}` : "",
+        membershipFeeGlId: data.membership_fee_gl_account_id as string | null,
+        membershipFeeGlLabel: data.membership_fee_gl_account_id ? `${glMap[data.membership_fee_gl_account_id]?.code} ${glMap[data.membership_fee_gl_account_id]?.name}` : "",
+        bankGlId: data.bank_gl_account_id as string | null,
+        bankGlLabel: data.bank_gl_account_id ? `${glMap[data.bank_gl_account_id]?.code} ${glMap[data.bank_gl_account_id]?.name}` : "",
+      };
+    },
+    enabled: !!currentTenant,
+  });
+
   // Fetch entity account mappings for resolving EntityID
   const { data: entityAccountMap } = useQuery({
     queryKey: ["entity-accounts-map", currentTenant?.id],
@@ -419,6 +449,16 @@ const LegacyGlAllocation = () => {
 
     const proposed: ProposedCftEntry[] = [];
 
+    // Pool deposit entry type IDs (all resolve via CashAccountID)
+    const poolDepositEntryTypes = new Set([
+      "1924", // Member Fees
+      "1927", "1928", "1929", "1930", // Asset, Reserve, Health, Health Reserve
+      "1986", // Member Account
+      "1989", // Funeral Fund
+      "1994", // Crypto
+      "2006", // Gold
+    ]);
+
     for (const entry of allEntries) {
       const mapping = getGlMapping(entry.entry_type_id);
       if (!mapping) continue;
@@ -426,31 +466,26 @@ const LegacyGlAllocation = () => {
       const amount = entry.debit > 0 ? entry.debit : entry.credit;
       if (amount === 0) continue;
 
-      // For dep funds, child entries (non-bank) are stored as DRs in legacy
-      // but must be posted as CRs to balance against the bank DR
-      const isChildEntry = entry.cft_id !== rootCftId;
-      const flipToCR = isDepFunds && isChildEntry && entry.debit > 0 && entry.entry_type_id !== "1978";
-
-      // ── Bank Receipt (1921) ──
+      // ── Bank Receipt (1921) ── DR Bank GL (cash in)
       if (entry.entry_type_id === "1921") {
         proposed.push({
           description: "Bank Deposit",
           debit: amount, credit: 0,
-          gl_account_id: mapping.gl_account_id,
-          gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+          gl_account_id: tenantGlConfig?.bankGlId ?? mapping.gl_account_id,
+          gl_account_label: tenantGlConfig?.bankGlLabel ?? `${mapping.gl_account_code} ${mapping.gl_account_name}`,
           control_account_id: null, control_account_label: "",
           pool_id: null, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: "bank_receipt",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Membership Fee (1922) — Split ──
+      // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
       else if (entry.entry_type_id === "1922" && mapping.split_rule?.splits) {
         for (const split of mapping.split_rule.splits) {
           proposed.push({
             description: split.description,
-            debit: flipToCR ? 0 : split.amount,
-            credit: flipToCR ? split.amount : 0,
+            debit: 0,
+            credit: split.amount,
             gl_account_id: split.gl_account_id,
             gl_account_label: split.description,
             control_account_id: null, control_account_label: "",
@@ -497,22 +532,53 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── All Pool Deposit entries — use CashAccountID to resolve pool cash control ──
-      // 1924 (Member Fees), 1927 (Asset Pool), 1928 (Reserve Pool), 1929 (Health Pool),
-      // 1930 (Health Reserve Pool), 1986 (Member Account Pool), 1989 (Funeral Fund Pool),
-      // 1994 (Crypto Pool), 2006 (Gold Pool)
-      else {
+      // ── Pool Deposit entries — DR Cash Control + CR Member Interest GL ──
+      // Matches new deposit pattern: DR pool cash control (cash flowing in),
+      // GL = Member Interest (2020) for pool allocations, Fee Income (4010) for fees
+      else if (isDepFunds && poolDepositEntryTypes.has(entry.entry_type_id)) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        const isFeeEntry = entry.entry_type_id === "1924"; // Member Fees go to admin/fee GL
+        const glId = isFeeEntry
+          ? (tenantGlConfig?.membershipFeeGlId ?? null)
+          : (tenantGlConfig?.poolAllocationGlId ?? null);
+        const glLabel = isFeeEntry
+          ? (tenantGlConfig?.membershipFeeGlLabel ?? "Fee Income")
+          : (tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest");
+
+        // 1. DR Cash Control — cash flowing into the pool
         proposed.push({
-          description: `${mapping.entry_type_name ?? `Pool Deposit`} — ${poolName}`,
-          debit: flipToCR ? 0 : entry.debit,
-          credit: flipToCR ? amount : entry.credit,
+          description: `${mapping.entry_type_name ?? "Pool Deposit"} — ${poolName}`,
+          debit: amount, credit: 0,
           gl_account_id: null, gl_account_label: "",
           control_account_id: ca?.new_id ?? null,
           control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: "pool_deposit",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // 2. CR GL Account — Member Interest (BS) or Fee Income (IS)
+        proposed.push({
+          description: `${isFeeEntry ? "Fee Income" : "Member Interest"} — ${poolName}`,
+          debit: 0, credit: amount,
+          gl_account_id: glId, gl_account_label: glLabel,
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: isFeeEntry ? "fee_income" : "member_interest",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Fallback for non-deposit or unmapped entries ──
+      else {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        proposed.push({
+          description: `${mapping.entry_type_name ?? "Entry"} — ${ca?.pool_name ?? ca?.name ?? ""}`,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: mapping.gl_account_id, gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
+          control_account_id: ca?.new_id ?? mapping.control_account_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : (mapping.control_account_name ?? ""),
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: mapping.entry_type_name ?? "other",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
@@ -521,13 +587,21 @@ const LegacyGlAllocation = () => {
     const totalDebit = proposed.reduce((s, e) => s + e.debit, 0);
     const totalCredit = proposed.reduce((s, e) => s + e.credit, 0);
 
+    // For deposits: balanced when total CR (allocations) = root DR (bank receipt)
+    // The DRs include both root bank + pool cash controls; CRs are the GL counterparts
+    // So balanced = totalCredit matches the root bank DR amount
+    const rootAmount = rootEntry.debit > 0 ? rootEntry.debit : rootEntry.credit;
+    const isBalanced = isDepFunds
+      ? Math.abs(totalCredit - rootAmount) < 0.01
+      : Math.abs(totalDebit - totalCredit) < 0.01;
+
     return {
       root: group.root,
       children: group.children,
       entries: proposed,
       totalDebit,
       totalCredit,
-      isBalanced: Math.abs(totalDebit - totalCredit) < 0.01,
+      isBalanced,
       entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
     };
   };
@@ -536,7 +610,7 @@ const LegacyGlAllocation = () => {
   const allProposed = useMemo(() => {
     if (!glMappings?.length || !controlAccounts || !grouped.length) return [];
     return grouped.map(g => buildProposedForGroup(g));
-  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap]);
+  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap, tenantGlConfig]);
 
   const buildPreview = () => {
     setProposedGroups(allProposed);
