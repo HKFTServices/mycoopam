@@ -10,6 +10,8 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
