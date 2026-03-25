@@ -673,7 +673,9 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Withdrawal fee entries (1936 Courier, 1940 Admin) — CR Cash Control + DR Fee Income GL ──
+      // ── Withdrawal fee entries (1936 Courier, 1940 Admin) — DR Admin Cash Control + CR Fee Income GL ──
+      // Fees paid from units: the pool redemption already CR'd the pool cash control,
+      // so the fee flows INTO admin cash (debit) and is recognized as income (credit).
       else if (isWithdrawal && withdrawalFeeEntryTypes.has(entry.entry_type_id)) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
@@ -681,10 +683,10 @@ const LegacyGlAllocation = () => {
           ? "7c3ca82b-ef31-406e-91a8-20ddc4306b0f" // 4040 Courier Fee Income
           : "6cf12752-95ba-499c-a86c-3c17fe2407f5"; // 4000 Administration Income
         const feeGlLabel = entry.entry_type_id === "1936" ? "4040 Courier Fee Income" : "4000 Administration Income";
-        // 1. CR Cash Control
+        // 1. DR Admin Cash Control — fee flows into admin
         proposed.push({
           description: `${mapping.entry_type_name ?? "Fee"} — ${poolName}`,
-          debit: 0, credit: amount,
+          debit: amount, credit: 0,
           gl_account_id: null, gl_account_label: "",
           control_account_id: ca?.new_id ?? null,
           control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
