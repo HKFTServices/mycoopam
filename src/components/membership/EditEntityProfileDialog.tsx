@@ -24,15 +24,16 @@ interface EditEntityProfileDialogProps {
   onOpenChange: (open: boolean) => void;
   entityId: string;
   entityType?: string; // "natural_person" | "legal_entity"
+  initialTab?: "details" | "address" | "bank" | "referrer" | "documents";
 }
 
-const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType }: EditEntityProfileDialogProps) => {
+const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, initialTab }: EditEntityProfileDialogProps) => {
   const { user, profile, refreshProfile } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [data, setData] = useState<ApplicationData>(createInitialData("person"));
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState(initialTab || "details");
 
   const isNaturalPerson = entityType === "natural_person";
 
@@ -233,6 +234,11 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType }: E
     };
     loadRelType();
   }, [entity, user, currentTenant, entityId]);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveTab(initialTab || "details");
+  }, [open, initialTab]);
 
   const handleSave = async () => {
     if (!user || !currentTenant || !entity) return;

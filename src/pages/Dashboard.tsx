@@ -22,12 +22,15 @@ import {
   MoreHorizontal,
   CalendarDays,
   SlidersHorizontal,
+  AlertTriangle,
+  FileDown,
 } from "lucide-react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 import { PoolIcon } from "@/components/pools/PoolIcon";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
+import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
 
 type TimeRange = "12m" | "30d" | "7d" | "24h";
 
@@ -56,6 +59,18 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function isCriticalDocName(name: string) {
+  const n = name.toLowerCase();
+  const isIdLike =
+    n.includes("passport") ||
+    n.includes("identity") ||
+    (n.includes("id") && !n.includes("guid") && !n.includes("idea"));
+  const isPoaLike =
+    (n.includes("proof") && n.includes("address")) ||
+    (n.includes("proof") && n.includes("residence"));
+  return isIdLike || isPoaLike;
+}
+
 const DONUT_COLORS = [
   "hsl(var(--primary))",
   "hsl(var(--accent))",
@@ -75,6 +90,7 @@ const Dashboard = () => {
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("12m");
+  const [docsDialogOpen, setDocsDialogOpen] = useState(false);
 
   const tenantId = currentTenant?.id;
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
@@ -97,6 +113,28 @@ const Dashboard = () => {
     (r: any) => r.role === "tenant_admin" && r.tenant_id === tenantId
   );
   const isAdmin = isSuperAdmin || isTenantAdmin;
+
+  const { data: myEntityRel } = useQuery({
+    queryKey: ["dashboard_myself_entity", user?.id, tenantId],
+    queryFn: async () => {
+      if (!user || !tenantId) return null;
+      const { data } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id, relationship_type_id, relationship_types!inner(name), entities!inner(id, entity_categories(entity_type))")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .eq("relationship_types.name", "Myself")
+        .limit(1)
+        .maybeSingle();
+      return data ?? null;
+    },
+    enabled: !!user && !!tenantId && !isAdmin,
+  });
+
+  const myEntityId = myEntityRel?.entity_id as string | undefined;
+  const myRelationshipTypeId = myEntityRel?.relationship_type_id as string | undefined;
+  const myEntityType = myEntityRel?.entities?.entity_categories?.entity_type as string | undefined;
 
   const rangeDays = TIME_RANGES.find((r) => r.value === timeRange)?.days ?? 365;
   const fromDateStr = useMemo(() => {
@@ -397,6 +435,55 @@ const Dashboard = () => {
     },
     enabled: !!tenantId && !isAdmin && memberAccountIds.length > 0,
   });
+
+  const { data: requiredDocRequirements = [] } = useQuery({
+    queryKey: ["dashboard_required_docs", tenantId, myRelationshipTypeId],
+    queryFn: async () => {
+      if (!tenantId || !myRelationshipTypeId) return [];
+      const { data, error } = await supabase
+        .from("document_entity_requirements")
+        .select("document_type_id, document_types!inner(id, name, template_key, template_file_url)")
+        .eq("tenant_id", tenantId)
+        .eq("relationship_type_id", myRelationshipTypeId)
+        .eq("is_active", true)
+        .eq("is_required_for_registration", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!tenantId && !!myRelationshipTypeId && !!myEntityId && !isAdmin,
+  });
+
+  const { data: myEntityDocs = [] } = useQuery({
+    queryKey: ["dashboard_my_entity_docs", tenantId, myEntityId],
+    queryFn: async () => {
+      if (!tenantId || !myEntityId) return [];
+      const { data, error } = await (supabase as any)
+        .from("entity_documents")
+        .select("id, document_type_id")
+        .eq("tenant_id", tenantId)
+        .eq("entity_id", myEntityId)
+        .eq("is_deleted", false)
+        .eq("is_active", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!tenantId && !!myEntityId && !isAdmin,
+  });
+
+  const missingCriticalDocs = useMemo(() => {
+    if (!requiredDocRequirements.length) return [];
+    const existing = new Set((myEntityDocs ?? []).map((d: any) => d.document_type_id));
+    const missing = requiredDocRequirements
+      .map((r: any) => ({
+        id: r.document_type_id as string,
+        name: r.document_types?.name as string,
+        templateKey: r.document_types?.template_key as string | undefined,
+      }))
+      .filter((dt) => dt.id && dt.name)
+      .filter((dt) => !existing.has(dt.id))
+      .filter((dt) => isCriticalDocName(dt.name));
+    return missing;
+  }, [requiredDocRequirements, myEntityDocs]);
 
   // ── Member: Holdings ──
   const { data: memberHoldings = [] } = useQuery({
@@ -702,6 +789,49 @@ const Dashboard = () => {
         </Card>
       )}
 
+      {/* Required documents (member) */}
+      {currentTenant && !isAdmin && missingCriticalDocs.length > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Required Documents</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Some required documents are still outstanding. Use &apos;Generate&apos; to create a pre-filled document with your details.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {missingCriticalDocs.slice(0, 4).map((d) => (
+                      <Badge key={d.id} variant="outline" className="text-[11px]">
+                        {d.name}
+                      </Badge>
+                    ))}
+                    {missingCriticalDocs.length > 4 ? (
+                      <Badge variant="outline" className="text-[11px]">+{missingCriticalDocs.length - 4} more</Badge>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 md:pt-1">
+                <Button
+                  onClick={() => setDocsDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <FileDown className="h-4 w-4" />
+                  Generate
+                </Button>
+                <Button variant="outline" onClick={() => setDocsDialogOpen(true)}>
+                  Upload
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Pending Application Welcome + Co-op Summary */}
       {showPendingWelcome && (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -904,6 +1034,16 @@ const Dashboard = () => {
         loanSummaries={loanSummaries}
         totalOutstanding={totalLoansOutstanding}
       />
+
+      {myEntityId && (
+        <EditEntityProfileDialog
+          open={docsDialogOpen}
+          onOpenChange={setDocsDialogOpen}
+          entityId={myEntityId}
+          entityType={myEntityType}
+          initialTab="documents"
+        />
+      )}
     </div>
   );
 };
