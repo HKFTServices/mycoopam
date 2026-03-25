@@ -26,9 +26,11 @@ const Auth = () => {
   const [branding, setBranding] = useState<{ tenant_name: string; logo_url: string | null } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, isPasswordRecovery } = useAuth();
 
   useEffect(() => {
+    // Don't redirect to dashboard during password recovery
+    if (isPasswordRecovery) return;
     if (session) {
       navigate("/dashboard", { replace: true });
     } else {
@@ -37,7 +39,7 @@ const Auth = () => {
         navigateToTenant(tenantSlug, navigate, { replace: true });
       }
     }
-  }, [session, navigate]);
+  }, [session, navigate, isPasswordRecovery]);
 
   // Fetch tenant branding (public RPC, no auth needed)
   useEffect(() => {

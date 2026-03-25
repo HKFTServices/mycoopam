@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -16,23 +17,27 @@ const ResetPassword = () => {
   const [isRecovery, setIsRecovery] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
   useEffect(() => {
-    // Listen for PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsRecovery(true);
-      }
-    });
+    // Detect recovery from AuthContext (PASSWORD_RECOVERY event)
+    if (isPasswordRecovery) {
+      setIsRecovery(true);
+    }
 
-    // Check hash for recovery type
+    // Check URL query params for type=recovery (PKCE flow)
+    const type = searchParams.get("type");
+    if (type === "recovery") {
+      setIsRecovery(true);
+    }
+
+    // Check hash for recovery type (implicit flow fallback)
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
       setIsRecovery(true);
     }
-
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [isPasswordRecovery, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +55,10 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setSuccess(true);
+      clearPasswordRecovery();
       toast({ title: "Password updated successfully" });
+      // Sign out so they can log in with the new password
+      await supabase.auth.signOut();
       setTimeout(() => navigate("/auth", { replace: true }), 2000);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
