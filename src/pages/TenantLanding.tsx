@@ -296,10 +296,21 @@ const TenantLanding = () => {
                     setLoading(true);
                     try {
                       const resetRedirectUrl = `${getSiteUrl(slug)}/reset-password?tenant=${slug}`;
-                      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: resetRedirectUrl,
+                      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+                        body: {
+                          email,
+                          tenant_slug: slug,
+                          redirect_url: resetRedirectUrl,
+                        },
                       });
                       if (error) throw error;
+                      // If fallback=true, tenant SMTP not configured, use default Supabase auth
+                      if (data?.fallback) {
+                        const { error: fallbackErr } = await supabase.auth.resetPasswordForEmail(email, {
+                          redirectTo: resetRedirectUrl,
+                        });
+                        if (fallbackErr) throw fallbackErr;
+                      }
                       toast({
                         title: "Check your email",
                         description: "We've sent you a password reset link.",
