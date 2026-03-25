@@ -841,10 +841,12 @@ const LegacyGlAllocation = () => {
       }
     }
 
-    // ── Withdrawal bank payment — if any entry has is_bank=true, add CR Bank GL ──
+    // ── Withdrawal bank payment — only pool redemption entries that are is_bank ──
+    // Fee entries (paid from units or otherwise) are handled separately as fee income;
+    // the bank payment should reflect only the net payout to the member.
     if (isWithdrawal) {
       const bankTotal = allEntries
-        .filter(e => e.is_bank && (poolWithdrawalEntryTypes.has(e.entry_type_id) || withdrawalFeeEntryTypes.has(e.entry_type_id)))
+        .filter(e => e.is_bank && poolWithdrawalEntryTypes.has(e.entry_type_id))
         .reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
       if (bankTotal > 0) {
         proposed.push({
