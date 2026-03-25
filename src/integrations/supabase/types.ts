@@ -1842,6 +1842,7 @@ export type Database = {
           deletion_time: string | null
           description: string
           extra1: string | null
+          gl_account_id: string | null
           id: string
           is_active: boolean
           is_deleted: boolean
@@ -1865,6 +1866,7 @@ export type Database = {
           deletion_time?: string | null
           description: string
           extra1?: string | null
+          gl_account_id?: string | null
           id?: string
           is_active?: boolean
           is_deleted?: boolean
@@ -1888,6 +1890,7 @@ export type Database = {
           deletion_time?: string | null
           description?: string
           extra1?: string | null
+          gl_account_id?: string | null
           id?: string
           is_active?: boolean
           is_deleted?: boolean
@@ -1913,6 +1916,13 @@ export type Database = {
             columns: ["debit_control_account_id"]
             isOneToOne: false
             referencedRelation: "control_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_expense_items_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
             referencedColumns: ["id"]
           },
           {
