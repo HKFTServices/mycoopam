@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Building2, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import myCoopLogo from "@/assets/mycoop-logo.jpg";
+import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 
 const RegisterTenant = () => {
   const navigate = useNavigate();

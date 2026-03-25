@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import myCoopLogo from "@/assets/mycoop-logo.jpg";
+import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 
 interface Tenant {
   id: string;
