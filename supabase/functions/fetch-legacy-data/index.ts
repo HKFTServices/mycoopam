@@ -196,6 +196,22 @@ const TABLE_QUERIES: Record<string, string> = {
       VATDebit AS vat_debit, VATCredit AS vat_credit
     FROM dbo.ex_Bookeeping
   `,
+  income_expense_items: `
+    SELECT CAST(Id AS VARCHAR(36)) AS legacy_id,
+      ExpenseCode AS item_code, Description AS description,
+      Frequency AS recurrence_type,
+      CAST(AccountDebit AS VARCHAR(36)) AS legacy_debit_ca_id,
+      CAST(AccountCredit AS VARCHAR(36)) AS legacy_credit_ca_id,
+      FixedAmount AS amount, PoolValuePerc AS percentage,
+      CAST(TaxTypeId AS VARCHAR(36)) AS legacy_tax_type_id,
+      VAT AS vat, Bankflow AS bankflow, Extra1 AS extra1,
+      IsActive AS is_active, IsDeleted AS is_deleted,
+      CAST(CreatorUserId AS VARCHAR(36)) AS creator_user_id,
+      CAST(LastModifierUserId AS VARCHAR(36)) AS last_modifier_user_id,
+      CAST(DeleterUserId AS VARCHAR(36)) AS deleter_user_id,
+      DeletionTime AS deletion_time
+    FROM dbo.IncomeExpenses
+  `,
   stock_transactions: `
     SELECT ID AS id, TransactionDate AS transaction_date,
       PTUserID AS pt_user_id,
