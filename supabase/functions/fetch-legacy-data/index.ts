@@ -147,7 +147,6 @@ const TABLE_QUERIES: Record<string, string> = {
       tv.Ord AS ord, tv.IsActive AS is_active, tv.IsEditable AS is_editable
     FROM dbo.gen_TypeValues tv
     LEFT JOIN dbo.gen_Types t ON t.ID = tv.TypeID
-    WHERE tv.IsActive = 1
   `,
   ex_fees: `
     SELECT ID AS id, Type_TransactionID AS type_transaction_id,
