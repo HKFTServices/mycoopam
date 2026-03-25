@@ -466,6 +466,7 @@ const LegacyGlAllocation = () => {
       "1989", // Funeral Fund
       "1994", // Crypto
       "2006", // Gold
+      "2008", // Silver
     ]);
 
     for (const entry of allEntries) {
