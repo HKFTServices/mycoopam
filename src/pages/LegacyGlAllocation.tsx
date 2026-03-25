@@ -638,6 +638,186 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
+      // ── Withdrawal pool entries — CR Cash Control + DR Member Interest GL ──
+      // Opposite of deposit: cash flows out of pool
+      else if (isWithdrawal && poolWithdrawalEntryTypes.has(entry.entry_type_id)) {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        // 1. CR Cash Control — cash leaving the pool
+        proposed.push({
+          description: `${mapping.entry_type_name ?? "Pool Withdrawal"} — ${poolName}`,
+          debit: 0, credit: amount,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "pool_withdrawal",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // 2. DR GL Account — Member Interest (units being redeemed)
+        proposed.push({
+          description: `Member Interest — ${poolName}`,
+          debit: amount, credit: 0,
+          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
+          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "member_interest_dr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Withdrawal fee entries (1936 Courier, 1940 Admin) — CR Cash Control + DR Fee Income GL ──
+      else if (isWithdrawal && withdrawalFeeEntryTypes.has(entry.entry_type_id)) {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        const feeGlId = entry.entry_type_id === "1936"
+          ? "7c3ca82b-ef31-406e-91a8-20ddc4306b0f" // 4040 Courier Fee Income
+          : "6cf12752-95ba-499c-a86c-3c17fe2407f5"; // 4000 Administration Income
+        const feeGlLabel = entry.entry_type_id === "1936" ? "4040 Courier Fee Income" : "4000 Administration Income";
+        // 1. CR Cash Control
+        proposed.push({
+          description: `${mapping.entry_type_name ?? "Fee"} — ${poolName}`,
+          debit: 0, credit: amount,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "withdrawal_fee",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // 2. DR Fee Income GL
+        proposed.push({
+          description: `${mapping.entry_type_name ?? "Fee"} Income`,
+          debit: amount, credit: 0,
+          gl_account_id: feeGlId, gl_account_label: feeGlLabel,
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "fee_income_dr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Switching (1955) — CR source pool cash control + DR dest pool cash control ──
+      // Each switch entry has debit on dest and credit on source
+      else if (isSwitching && switchingPoolEntryTypes.has(entry.entry_type_id)) {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        if (entry.debit > 0) {
+          // DR destination pool cash control
+          proposed.push({
+            description: `Switch In — ${poolName}`,
+            debit: entry.debit, credit: 0,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca?.new_id ?? null,
+            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "switch_in",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+        if (entry.credit > 0) {
+          // CR source pool cash control
+          proposed.push({
+            description: `Switch Out — ${poolName}`,
+            debit: 0, credit: entry.credit,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca?.new_id ?? null,
+            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "switch_out",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+      }
+      // ── Switching admin fee (1939) ──
+      else if (isSwitching && entry.entry_type_id === "1939") {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        proposed.push({
+          description: `Switching Admin Fee — ${poolName}`,
+          debit: 0, credit: amount,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "switch_fee",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        proposed.push({
+          description: "Switching Admin Fee Income",
+          debit: amount, credit: 0,
+          gl_account_id: "6cf12752-95ba-499c-a86c-3c17fe2407f5", gl_account_label: "4000 Administration Income",
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "fee_income_dr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Income/Expense (1988) — Pool cash control journal ──
+      else if (isIncomeExpense && entry.entry_type_id === "1988") {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        // Cash control entry
+        proposed.push({
+          description: `Income/Expense — ${poolName}`,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "income_expense",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // Offsetting GL entry — Member Interest
+        proposed.push({
+          description: `Member Interest — ${poolName}`,
+          debit: entry.credit, credit: entry.debit,
+          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
+          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: entry.debit > 0 ? "member_interest_dr" : "member_interest_cr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Stock Purchase (1948) / Stock Sale (1949) — Stock control entries ──
+      else if ((isStockPurchase && entry.entry_type_id === "1948") || (isStockSale && entry.entry_type_id === "1949")) {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        proposed.push({
+          description: `${isStockPurchase ? "Stock Purchase" : "Stock Sale"} — ${poolName}`,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: "ea027bb8-2079-4020-a382-2ad00e8ae296", gl_account_label: "1030 Stock control",
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: isStockPurchase ? "stock_purchase" : "stock_sale",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Stock Purchase/Sale pool allocations — same as pool deposit/withdrawal ──
+      else if ((isStockPurchase || isStockSale) && stockPoolEntryTypes.has(entry.entry_type_id)) {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        proposed.push({
+          description: `${mapping.entry_type_name ?? "Pool Allocation"} — ${poolName}`,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "stock_pool_allocation",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        proposed.push({
+          description: `Member Interest — ${poolName}`,
+          debit: entry.credit, credit: entry.debit,
+          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
+          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "member_interest",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
       // ── Fallback for non-deposit or unmapped entries ──
       else {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
