@@ -113,8 +113,9 @@ const LegacyGlAllocation = () => {
       // Collect GL IDs from both direct mappings and split rules
       const glIds = data.filter(d => d.gl_account_id).map(d => d.gl_account_id!);
       for (const d of data) {
-        if (d.split_rule?.splits) {
-          for (const s of (d.split_rule as any).splits) {
+        const sr = d.split_rule as any;
+        if (sr?.splits) {
+          for (const s of sr.splits) {
             if (s.gl_account_id) glIds.push(s.gl_account_id);
           }
         }
