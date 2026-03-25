@@ -481,6 +481,11 @@ const LegacyGlAllocation = () => {
     const txDate = rootEntry.transaction_date;
     const rootCftId = rootEntry.cft_id;
     const isDepFunds = rootEntry.tx_type_id === "1912" || rootEntry.entry_type_id === "1921";
+    const isWithdrawal = rootEntry.tx_type_id === "1945";
+    const isSwitching = rootEntry.tx_type_id === "1914";
+    const isIncomeExpense = rootEntry.tx_type_id === "1952";
+    const isStockPurchase = rootEntry.tx_type_id === "1953";
+    const isStockSale = rootEntry.tx_type_id === "1954";
     // Check if this transaction includes a Share entry (1922) — determines fee treatment
     const hasShareEntry = allEntries.some(e => e.entry_type_id === "1922");
 
@@ -497,6 +502,29 @@ const LegacyGlAllocation = () => {
       "2006", // Gold
       "2008", // Silver
     ]);
+
+    // Pool withdrawal entry type IDs
+    const poolWithdrawalEntryTypes = new Set([
+      "0",    // Generic
+      "1931", // Asset
+      "1932", // Reserve
+      "1933", // Health
+      "1934", // Health Reserve
+      "1964", // Member Account
+      "1990", // Funeral Fund
+      "1995", // Crypto
+      "2007", // Gold
+      "2009", // Silver
+    ]);
+
+    // Withdrawal fee entry types
+    const withdrawalFeeEntryTypes = new Set(["1936", "1940"]);
+
+    // Switching entry types
+    const switchingPoolEntryTypes = new Set(["1955", "0"]);
+
+    // Stock entry types (resolve via CashAccountID)
+    const stockPoolEntryTypes = new Set(["0", "1932", "1964", "1995", "2007", "2009"]);
 
     for (const entry of allEntries) {
       const mapping = getGlMapping(entry.entry_type_id);
