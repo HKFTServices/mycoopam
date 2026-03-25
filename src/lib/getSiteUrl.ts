@@ -34,10 +34,6 @@ export function getTenantUrl(slug: string): string {
 }
 
 /**
- * Navigate to a tenant URL. In production this does a full redirect
- * to the subdomain; in dev it returns a path for react-router navigate().
- */
-/**
  * Navigate to a tenant URL. Always does a full redirect to the production subdomain.
  */
 export function navigateToTenant(slug: string, navigate: (path: string, opts?: any) => void, opts?: { replace?: boolean }) {
