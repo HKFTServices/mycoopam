@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, Building2, Coins, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import myCoopLogo from "@/assets/mycoop-logo.jpg";
+import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 
 const SOURCE_TENANT_ID = "38e204c4-829f-4544-ab53-b2f3f5342662"; // AEM
 
