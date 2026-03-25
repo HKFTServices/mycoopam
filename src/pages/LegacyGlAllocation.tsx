@@ -8,9 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle, Play, FileSearch } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle, Play, FileSearch, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface LegacyCftEntry {
   id: string;
