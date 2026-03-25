@@ -29,6 +29,19 @@ interface LegacyCftEntry {
   is_bank: boolean;
   transaction_date: string;
   description: string;
+  inc_exp_id: string;
+  fee_id: string;
+}
+
+interface IncExpItem {
+  id: string;
+  item_code: string;
+  description: string;
+  gl_account_id: string | null;
+  gl_code: string | null;
+  gl_name: string | null;
+  credit_control_account_id: string | null;
+  debit_control_account_id: string | null;
 }
 
 interface GlMapping {
@@ -272,6 +285,56 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
+  // Fetch income/expense items with GL account mapping (keyed by legacy_id)
+  const { data: incExpMap } = useQuery({
+    queryKey: ["inc-exp-items-map", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return {};
+      // Get legacy mappings for income_expense_items
+      const { data: mappings } = await supabase
+        .from("legacy_id_mappings")
+        .select("legacy_id, new_id")
+        .eq("table_name", "income_expense_items")
+        .eq("tenant_id", currentTenant.id);
+      if (!mappings?.length) return {};
+
+      const itemIds = mappings.map(m => m.new_id);
+      const { data: items } = await (supabase as any)
+        .from("income_expense_items")
+        .select("id, item_code, description, gl_account_id, credit_control_account_id, debit_control_account_id")
+        .in("id", itemIds);
+
+      // Fetch GL account details for items that have gl_account_id
+      const glIds = (items ?? []).filter((i: any) => i.gl_account_id).map((i: any) => i.gl_account_id);
+      let glMap: Record<string, any> = {};
+      if (glIds.length > 0) {
+        const { data: gls } = await supabase.from("gl_accounts").select("id, code, name").in("id", glIds);
+        glMap = Object.fromEntries((gls ?? []).map(g => [g.id, g]));
+      }
+
+      const itemMap = Object.fromEntries((items ?? []).map((i: any) => [i.id, i]));
+      const result: Record<string, IncExpItem> = {};
+      for (const m of mappings) {
+        const item = itemMap[m.new_id];
+        if (item) {
+          const gl = item.gl_account_id ? glMap[item.gl_account_id] : null;
+          result[m.legacy_id] = {
+            id: item.id,
+            item_code: item.item_code,
+            description: item.description,
+            gl_account_id: item.gl_account_id,
+            gl_code: gl?.code ?? null,
+            gl_name: gl?.name ?? null,
+            credit_control_account_id: item.credit_control_account_id,
+            debit_control_account_id: item.debit_control_account_id,
+          };
+        }
+      }
+      return result;
+    },
+    enabled: !!currentTenant,
+  });
+
   const loadTransactions = async () => {
     if (!currentTenant) return;
     setLoading(true);
@@ -320,6 +383,8 @@ const LegacyGlAllocation = () => {
               is_bank: n.IsBank === "1",
               transaction_date: (n.TransactionDate ?? "").split("T")[0].split(" ")[0],
               description: "",
+              inc_exp_id: n.IncExpID ?? "0",
+              fee_id: n.FeeID ?? "0",
             },
             txTypeId: n.Type_TransactionID ?? "0",
           });
@@ -761,32 +826,86 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Income/Expense (1988) — Pool cash control journal ──
+      // ── Income/Expense (1988) — Resolve IncExpID for description & GL ──
       else if (isIncomeExpense && entry.entry_type_id === "1988") {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
-        // Cash control entry
-        proposed.push({
-          description: `Income/Expense — ${poolName}`,
-          debit: entry.debit, credit: entry.credit,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "income_expense",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-        // Offsetting GL entry — Member Interest
-        proposed.push({
-          description: `Member Interest — ${poolName}`,
-          debit: entry.credit, credit: entry.debit,
-          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
-          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
-          control_account_id: null, control_account_label: "",
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: entry.debit > 0 ? "member_interest_dr" : "member_interest_cr",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
+        const incExpItem = entry.inc_exp_id !== "0" ? incExpMap?.[entry.inc_exp_id] : null;
+        const itemDesc = incExpItem?.description ?? incExpItem?.item_code ?? "Income/Expense";
+        const amount = entry.debit > 0 ? entry.debit : entry.credit;
+
+        if (entry.is_bank) {
+          // ── BANK TRANSACTION: DR/CR Bank GL + DR/CR Expense/Income GL ──
+          // 1. Bank entry
+          proposed.push({
+            description: `Bank Payment — ${itemDesc}`,
+            debit: entry.debit > 0 ? 0 : amount,
+            credit: entry.debit > 0 ? amount : 0,
+            gl_account_id: tenantGlConfig?.bankGlId ?? null,
+            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "bank_payment",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 2. Expense/Income GL entry (opposite side of bank)
+          proposed.push({
+            description: `${itemDesc} — ${poolName}`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: incExpItem?.gl_account_id ?? null,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `⚠️ No GL mapped (${itemDesc})`,
+            control_account_id: null, control_account_label: "",
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense_gl",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 3. Cash control entry (pool cash)
+          proposed.push({
+            description: `${itemDesc} — ${poolName} Cash`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca?.new_id ?? null,
+            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 4. Member Interest offset
+          proposed.push({
+            description: `Member Interest — ${poolName}`,
+            debit: entry.credit, credit: entry.debit,
+            gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
+            gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
+            control_account_id: null, control_account_label: "",
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: entry.debit > 0 ? "member_interest_dr" : "member_interest_cr",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        } else {
+          // ── JOURNAL ENTRY (no bank): Cash control + GL + Member Interest ──
+          // 1. Cash control entry
+          proposed.push({
+            description: `${itemDesc} — ${poolName}`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca?.new_id ?? null,
+            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 2. GL entry for the expense/income type
+          proposed.push({
+            description: `${itemDesc} — GL`,
+            debit: entry.credit, credit: entry.debit,
+            gl_account_id: incExpItem?.gl_account_id ?? null,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `⚠️ No GL mapped (${itemDesc})`,
+            control_account_id: null, control_account_label: "",
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense_gl",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
       }
       // ── Stock Purchase (1948) / Stock Sale (1949) — Stock control entries ──
       else if ((isStockPurchase && entry.entry_type_id === "1948") || (isStockSale && entry.entry_type_id === "1949")) {
@@ -1167,7 +1286,12 @@ const LegacyGlAllocation = () => {
                             <Badge variant="outline" className="font-mono text-[10px]">
                               {pg.entries.length} entries
                             </Badge>
-                            <span className="ml-1 text-muted-foreground">{rootMapping?.entry_type_name ?? ""}</span>
+                            <span className="ml-1 text-muted-foreground">
+                              {rootMapping?.entry_type_name ?? ""}
+                              {pg.root.inc_exp_id !== "0" && incExpMap?.[pg.root.inc_exp_id]
+                                ? ` — ${incExpMap[pg.root.inc_exp_id].description}`
+                                : ""}
+                            </span>
                           </TableCell>
                           <TableCell className="text-xs">{pg.entityName}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">Proposed</TableCell>
