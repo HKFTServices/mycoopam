@@ -439,12 +439,7 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Build metadata notes from all fields
-          const notesObj: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(record)) {
-            if (v !== null && v !== undefined && String(v).trim() !== "") notesObj[k] = v;
-          }
-          const notes = JSON.stringify(notesObj);
+          // (notesObj and notes already built above)
 
           // Build a rich description: resolve all ID columns to their names
           const descParts: string[] = [];
