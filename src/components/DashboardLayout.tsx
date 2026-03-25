@@ -476,7 +476,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </Link>
           </div>
 
-          <div className="relative">
+          <div className="relative mt-2">
             <Search className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
             <SidebarInput
               ref={searchInputRef}
