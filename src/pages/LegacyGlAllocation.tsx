@@ -137,14 +137,30 @@ const LegacyGlAllocation = () => {
         caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
       }
 
-      return data.map(d => ({
-        ...d,
-        gl_account_code: d.gl_account_id ? glMap[d.gl_account_id]?.code : undefined,
-        gl_account_name: d.gl_account_id ? glMap[d.gl_account_id]?.name : undefined,
-        control_account_name: d.control_account_id
-          ? `${caMap[d.control_account_id]?.name ?? "Unknown"} (${caMap[d.control_account_id]?.pools?.name ?? ""})`
-          : undefined,
-      })) as GlMapping[];
+      return data.map(d => {
+        // Enrich split rules with GL codes
+        let enrichedSplitRule = d.split_rule;
+        const sr = d.split_rule as any;
+        if (sr?.splits) {
+          enrichedSplitRule = {
+            ...sr,
+            splits: sr.splits.map((s: any) => ({
+              ...s,
+              gl_code: s.gl_account_id ? glMap[s.gl_account_id]?.code : undefined,
+              gl_name: s.gl_account_id ? glMap[s.gl_account_id]?.name : undefined,
+            })),
+          };
+        }
+        return {
+          ...d,
+          split_rule: enrichedSplitRule,
+          gl_account_code: d.gl_account_id ? glMap[d.gl_account_id]?.code : undefined,
+          gl_account_name: d.gl_account_id ? glMap[d.gl_account_id]?.name : undefined,
+          control_account_name: d.control_account_id
+            ? `${caMap[d.control_account_id]?.name ?? "Unknown"} (${caMap[d.control_account_id]?.pools?.name ?? ""})`
+            : undefined,
+        };
+      }) as GlMapping[];
     },
     enabled: !!currentTenant,
   });
