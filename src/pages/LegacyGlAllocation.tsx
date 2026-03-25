@@ -436,12 +436,10 @@ const LegacyGlAllocation = () => {
     if (!mapping) return { label: "❌ No mapping", mapped: false };
     
     if (mapping.split_rule) {
-      const splits = mapping.split_rule.splits;
+      const splits = (mapping.split_rule as any).splits;
       if (splits) {
-        // Look up GL codes for each split's gl_account_id
         const splitLabels = splits.map((s: any) => {
-          const glAcct = glAccounts?.find((g: any) => g.id === s.gl_account_id);
-          const glCode = glAcct ? `${glAcct.code} ` : "";
+          const glCode = s.gl_code ? `${s.gl_code} ` : "";
           return `${glCode}${s.description}`;
         });
         return {
