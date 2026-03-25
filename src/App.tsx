@@ -72,6 +72,7 @@ import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
 import DebitOrders from "./pages/DebitOrders";
+import LegacyGlAllocation from "./pages/LegacyGlAllocation";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 
 const queryClient = new QueryClient();
@@ -169,6 +170,7 @@ const App = () => (
               <Route path="/dashboard/setup/loan-settings" element={<AdminRoute><LoanSettings /></AdminRoute>} />
               <Route path="/dashboard/setup/budget-categories" element={<AdminRoute><BudgetCategories /></AdminRoute>} />
               <Route path="/dashboard/setup/gl-accounts" element={<AdminRoute><GLAccounts /></AdminRoute>} />
+              <Route path="/dashboard/legacy-gl-allocation" element={<AdminRoute><LegacyGlAllocation /></AdminRoute>} />
 
               {/* Super admin only: global setup + MAM */}
               <Route path="/dashboard/setup/entity-categories" element={<SuperAdminRoute><EntityCategories /></SuperAdminRoute>} />
