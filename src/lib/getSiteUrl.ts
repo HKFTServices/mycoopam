@@ -12,14 +12,12 @@ export function isOnProductionDomain(): boolean {
 }
 
 export function getSiteUrl(tenantSlug?: string | null): string {
-  // If we're on a tenant subdomain, use that origin
-  if (isOnProductionDomain()) {
-    return window.location.origin;
-  }
-
-  // Not on production domain (e.g. Lovable preview) — always use production URLs
   if (tenantSlug) {
     return `https://${tenantSlug}.${PRODUCTION_DOMAIN}`;
+  }
+
+  if (isOnProductionDomain()) {
+    return window.location.origin;
   }
 
   return `https://www.${PRODUCTION_DOMAIN}`;
