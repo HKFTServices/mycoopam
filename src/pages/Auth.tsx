@@ -274,10 +274,21 @@ const Auth = () => {
                         ? window.location.hostname.replace(".myco-op.co.za", "")
                         : storedTenantSlug;
                       const resetRedirectUrl = `${getSiteUrl(tenantSlug)}/reset-password${tenantSlug ? `?tenant=${tenantSlug}` : ""}`;
-                      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: resetRedirectUrl,
+                      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+                        body: {
+                          email,
+                          tenant_slug: tenantSlug,
+                          redirect_url: resetRedirectUrl,
+                        },
                       });
                       if (error) throw error;
+                      // If fallback=true, tenant SMTP not configured, use default Supabase auth
+                      if (data?.fallback) {
+                        const { error: fallbackErr } = await supabase.auth.resetPasswordForEmail(email, {
+                          redirectTo: resetRedirectUrl,
+                        });
+                        if (fallbackErr) throw fallbackErr;
+                      }
                       toast({
                         title: "Check your email",
                         description: "We've sent you a password reset link.",
