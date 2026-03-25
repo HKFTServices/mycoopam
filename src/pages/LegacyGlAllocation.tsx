@@ -110,11 +110,20 @@ const LegacyGlAllocation = () => {
 
       if (!data?.length) return [];
 
+      // Collect GL IDs from both direct mappings and split rules
       const glIds = data.filter(d => d.gl_account_id).map(d => d.gl_account_id!);
-      const { data: glAccounts } = await supabase
-        .from("gl_accounts")
-        .select("id, code, name")
-        .in("id", glIds);
+      for (const d of data) {
+        const sr = d.split_rule as any;
+        if (sr?.splits) {
+          for (const s of sr.splits) {
+            if (s.gl_account_id) glIds.push(s.gl_account_id);
+          }
+        }
+      }
+      const uniqueGlIds = [...new Set(glIds)];
+      const { data: glAccounts } = uniqueGlIds.length > 0
+        ? await supabase.from("gl_accounts").select("id, code, name").in("id", uniqueGlIds)
+        : { data: [] };
 
       const glMap = Object.fromEntries((glAccounts ?? []).map(g => [g.id, g]));
 
@@ -128,14 +137,30 @@ const LegacyGlAllocation = () => {
         caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
       }
 
-      return data.map(d => ({
-        ...d,
-        gl_account_code: d.gl_account_id ? glMap[d.gl_account_id]?.code : undefined,
-        gl_account_name: d.gl_account_id ? glMap[d.gl_account_id]?.name : undefined,
-        control_account_name: d.control_account_id
-          ? `${caMap[d.control_account_id]?.name ?? "Unknown"} (${caMap[d.control_account_id]?.pools?.name ?? ""})`
-          : undefined,
-      })) as GlMapping[];
+      return data.map(d => {
+        // Enrich split rules with GL codes
+        let enrichedSplitRule = d.split_rule;
+        const sr = d.split_rule as any;
+        if (sr?.splits) {
+          enrichedSplitRule = {
+            ...sr,
+            splits: sr.splits.map((s: any) => ({
+              ...s,
+              gl_code: s.gl_account_id ? glMap[s.gl_account_id]?.code : undefined,
+              gl_name: s.gl_account_id ? glMap[s.gl_account_id]?.name : undefined,
+            })),
+          };
+        }
+        return {
+          ...d,
+          split_rule: enrichedSplitRule,
+          gl_account_code: d.gl_account_id ? glMap[d.gl_account_id]?.code : undefined,
+          gl_account_name: d.gl_account_id ? glMap[d.gl_account_id]?.name : undefined,
+          control_account_name: d.control_account_id
+            ? `${caMap[d.control_account_id]?.name ?? "Unknown"} (${caMap[d.control_account_id]?.pools?.name ?? ""})`
+            : undefined,
+        };
+      }) as GlMapping[];
     },
     enabled: !!currentTenant,
   });
@@ -411,10 +436,14 @@ const LegacyGlAllocation = () => {
     if (!mapping) return { label: "❌ No mapping", mapped: false };
     
     if (mapping.split_rule) {
-      const splits = mapping.split_rule.splits;
+      const splits = (mapping.split_rule as any).splits;
       if (splits) {
+        const splitLabels = splits.map((s: any) => {
+          const glCode = s.gl_code ? `${s.gl_code} ` : "";
+          return `${glCode}${s.description}`;
+        });
         return {
-          label: splits.map((s: any) => s.description).join(" + "),
+          label: splitLabels.join(" + "),
           mapped: true,
         };
       }
@@ -491,14 +520,15 @@ const LegacyGlAllocation = () => {
         });
       }
       // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
-      else if (entry.entry_type_id === "1922" && mapping.split_rule?.splits) {
-        for (const split of mapping.split_rule.splits) {
+      else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
+        for (const split of (mapping.split_rule as any).splits) {
+          const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
           proposed.push({
             description: split.description,
             debit: 0,
             credit: split.amount,
             gl_account_id: split.gl_account_id,
-            gl_account_label: split.description,
+            gl_account_label: glLabel,
             control_account_id: null, control_account_label: "",
             pool_id: null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "membership_fee",
@@ -550,17 +580,13 @@ const LegacyGlAllocation = () => {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
         const isFeeEntry = entry.entry_type_id === "1924";
-        // If Share (1922) is present: 1924 = membership fee income (R1 join + R199 fee handled by 1922 split)
-        // If no Share: 1924 = normal admin/transaction fee income
+        // 1924 always maps to Administration Income (4000) from the mapping.
+        // Membership Fee Income (4010) is only used inside the 1922 split (R199).
         const glId = isFeeEntry
-          ? (hasShareEntry
-              ? (tenantGlConfig?.membershipFeeGlId ?? null)
-              : (mapping.gl_account_id ?? null))
+          ? (mapping.gl_account_id ?? null)
           : (tenantGlConfig?.poolAllocationGlId ?? null);
         const glLabel = isFeeEntry
-          ? (hasShareEntry
-              ? "Membership Fee Income"
-              : (mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "Administration Fee Income"))
+          ? (mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "Administration Fee Income")
           : (tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest");
 
         // 1. DR Cash Control — cash flowing into the pool
