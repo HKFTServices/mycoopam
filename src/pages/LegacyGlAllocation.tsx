@@ -827,6 +827,8 @@ const LegacyGlAllocation = () => {
         });
       }
       // ── Income/Expense (1988) — Resolve IncExpID for description & GL ──
+      // Inc/Exp transactions move cash between control accounts and GL.
+      // No unit redemption / member interest involved.
       else if (isIncomeExpense && entry.entry_type_id === "1988") {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
@@ -835,23 +837,16 @@ const LegacyGlAllocation = () => {
         const amount = entry.debit > 0 ? entry.debit : entry.credit;
 
         if (entry.is_bank) {
-          // ── BANK TRANSACTION: DR/CR Bank GL + DR/CR Expense/Income GL ──
-          // 1. Bank entry
-          proposed.push({
-            description: `Bank Payment — ${itemDesc}`,
-            debit: entry.debit > 0 ? 0 : amount,
-            credit: entry.debit > 0 ? amount : 0,
-            gl_account_id: tenantGlConfig?.bankGlId ?? null,
-            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
-            control_account_id: null, control_account_label: "",
-            pool_id: null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: "bank_payment",
-            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-          });
-          // 2. Expense/Income GL entry (opposite side of bank)
+          // ── BANK TRANSACTION ──
+          // Expense paid from bank: DR Expense GL, CR Bank GL
+          // Income received to bank: DR Bank GL, CR Income GL
+          const isExpense = entry.credit > 0; // CFT credit = cash leaving pool = expense
+
+          // 1. Expense/Income GL entry
           proposed.push({
             description: `${itemDesc} — ${poolName}`,
-            debit: entry.debit, credit: entry.credit,
+            debit: isExpense ? amount : 0,
+            credit: isExpense ? 0 : amount,
             gl_account_id: incExpItem?.gl_account_id ?? null,
             gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `⚠️ No GL mapped (${itemDesc})`,
             control_account_id: null, control_account_label: "",
@@ -859,7 +854,19 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense_gl",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 3. Cash control entry (pool cash)
+          // 2. Bank GL entry (opposite side)
+          proposed.push({
+            description: `Bank — ${itemDesc}`,
+            debit: isExpense ? 0 : amount,
+            credit: isExpense ? amount : 0,
+            gl_account_id: tenantGlConfig?.bankGlId ?? null,
+            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "bank_payment",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 3. Cash control entry (pool cash movement)
           proposed.push({
             description: `${itemDesc} — ${poolName} Cash`,
             debit: entry.debit, credit: entry.credit,
@@ -870,19 +877,8 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 4. Member Interest offset
-          proposed.push({
-            description: `Member Interest — ${poolName}`,
-            debit: entry.credit, credit: entry.debit,
-            gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
-            gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
-            control_account_id: null, control_account_label: "",
-            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: entry.debit > 0 ? "member_interest_dr" : "member_interest_cr",
-            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-          });
         } else {
-          // ── JOURNAL ENTRY (no bank): Cash control + GL + Member Interest ──
+          // ── JOURNAL ENTRY (no bank): Cash control + GL ──
           // 1. Cash control entry
           proposed.push({
             description: `${itemDesc} — ${poolName}`,
@@ -894,7 +890,7 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 2. GL entry for the expense/income type
+          // 2. GL entry (opposite side)
           proposed.push({
             description: `${itemDesc} — GL`,
             debit: entry.credit, credit: entry.debit,
