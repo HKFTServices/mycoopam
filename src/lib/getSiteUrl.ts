@@ -30,3 +30,33 @@ export function getSiteUrl(tenantSlug?: string | null): string {
   // Dev / preview fallback
   return window.location.origin;
 }
+
+/**
+ * Navigate to a tenant's landing page.
+ * In production → redirects to https://{slug}.myco-op.co.za
+ * In dev/preview → uses path-based /t/{slug}
+ */
+export function getTenantUrl(slug: string): string {
+  if (import.meta.env.PROD) {
+    return `https://${slug}.${PRODUCTION_DOMAIN}`;
+  }
+  // Dev fallback: path-based routing still works in preview
+  return `/t/${slug}`;
+}
+
+/**
+ * Navigate to a tenant URL. In production this does a full redirect
+ * to the subdomain; in dev it returns a path for react-router navigate().
+ */
+export function navigateToTenant(slug: string, navigate: (path: string, opts?: any) => void, opts?: { replace?: boolean }) {
+  if (import.meta.env.PROD) {
+    const url = `https://${slug}.${PRODUCTION_DOMAIN}`;
+    if (opts?.replace) {
+      window.location.replace(url);
+    } else {
+      window.location.href = url;
+    }
+  } else {
+    navigate(`/t/${slug}`, opts);
+  }
+}
