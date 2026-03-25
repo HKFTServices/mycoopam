@@ -7,34 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/** Fetch global SMTP settings from system_settings table */
-async function getGlobalSmtp(adminClient: any) {
-  const keys = [
-    "GLOBAL_SMTP_HOST",
-    "GLOBAL_SMTP_PORT",
-    "GLOBAL_SMTP_USERNAME",
-    "GLOBAL_SMTP_PASSWORD",
-    "GLOBAL_SMTP_FROM_EMAIL",
-    "GLOBAL_SMTP_FROM_NAME",
-  ];
-  const { data } = await adminClient
-    .from("system_settings")
-    .select("key, value")
-    .in("key", keys);
-
-  const map: Record<string, string> = {};
-  for (const row of data || []) map[row.key] = row.value ?? "";
-
-  return {
-    host: map["GLOBAL_SMTP_HOST"] || "",
-    port: parseInt(map["GLOBAL_SMTP_PORT"] || "587", 10),
-    username: map["GLOBAL_SMTP_USERNAME"] || "",
-    password: map["GLOBAL_SMTP_PASSWORD"] || "",
-    fromEmail: map["GLOBAL_SMTP_FROM_EMAIL"] || "",
-    fromName: map["GLOBAL_SMTP_FROM_NAME"] || "",
-  };
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -99,8 +71,12 @@ Deno.serve(async (req) => {
       .eq("id", tenant_id)
       .single();
 
-    // Fetch global SMTP configuration from system_settings
-    const smtp = await getGlobalSmtp(adminClient);
+    // Fetch tenant SMTP configuration from tenant_configuration
+    const { data: tenantConfig } = await adminClient
+      .from("tenant_configuration")
+      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
 
     // Fetch communication template for this event in user's preferred language
     const userLang = profile.language_code || "en";
@@ -118,20 +94,13 @@ Deno.serve(async (req) => {
 
     // Resolve tenant display name: prefer legal entity name over tenant.name
     let tenantName = tenant?.name || "the cooperative";
-    {
-      const { data: tenantCfg } = await adminClient
-        .from("tenant_configuration")
-        .select("legal_entity_id")
-        .eq("tenant_id", tenant_id)
-        .maybeSingle();
-      if (tenantCfg?.legal_entity_id) {
-        const { data: legalEntity } = await adminClient
-          .from("entities")
-          .select("name")
-          .eq("id", tenantCfg.legal_entity_id)
-          .single();
-        if (legalEntity?.name) tenantName = legalEntity.name;
-      }
+    if (tenantConfig?.legal_entity_id) {
+      const { data: legalEntity } = await adminClient
+        .from("entities")
+        .select("name")
+        .eq("id", tenantConfig.legal_entity_id)
+        .single();
+      if (legalEntity?.name) tenantName = legalEntity.name;
     }
 
     // Use template if available, otherwise use a default
@@ -161,13 +130,7 @@ Deno.serve(async (req) => {
       body = body.replaceAll(key, val);
     }
 
-    // Fetch and append tenant email signature
-    const { data: tenantConfig } = await adminClient
-      .from("tenant_configuration")
-      .select("email_signature_en, email_signature_af")
-      .eq("tenant_id", tenant_id)
-      .maybeSingle();
-
+    // Append tenant email signature
     const emailSignature = userLang === "af"
       ? (tenantConfig as any)?.email_signature_af || (tenantConfig as any)?.email_signature_en || ""
       : (tenantConfig as any)?.email_signature_en || "";
@@ -175,31 +138,34 @@ Deno.serve(async (req) => {
       body = body + emailSignature;
     }
 
-    // Try to send via global SMTP
+    // Send via tenant SMTP
     let emailSent = false;
     let messageId = "";
     let smtpError = "";
 
-    if (smtp.host && smtp.fromEmail) {
+    if (tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
       try {
-        const usePort = smtp.port === 465 ? 587 : smtp.port;
+        const requestedPort = tenantConfig.smtp_port || 587;
+        const usePort = requestedPort === 465 ? 587 : requestedPort;
 
-        console.log(`[send-registration-email] Sending via ${smtp.host}:${usePort} to ${profile.email}`);
+        console.log(`[send-registration-email] Sending via ${tenantConfig.smtp_host}:${usePort} to ${profile.email}`);
 
         const transporter = nodemailer.createTransport({
-          host: smtp.host,
+          host: tenantConfig.smtp_host,
           port: usePort,
           secure: false,
-          tls: { rejectUnauthorized: false },
-          auth: smtp.username ? {
-            user: smtp.username,
-            pass: smtp.password,
+          ignoreTLS: true,
+          auth: tenantConfig.smtp_username ? {
+            user: tenantConfig.smtp_username,
+            pass: tenantConfig.smtp_password || "",
           } : undefined,
         });
 
-        const fromHeader = smtp.fromName
-          ? `"${smtp.fromName}" <${smtp.fromEmail}>`
-          : smtp.fromEmail;
+        const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
+        const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
+        const fromHeader = tenantConfig.smtp_from_name
+          ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
+          : effectiveFromEmail;
 
         const info = await transporter.sendMail({
           from: fromHeader,
@@ -216,7 +182,7 @@ Deno.serve(async (req) => {
         console.error(`[send-registration-email] SMTP error: ${smtpError}`);
       }
     } else {
-      smtpError = "Global SMTP not configured in system settings";
+      smtpError = "SMTP not configured for this tenant";
       console.warn(`[send-registration-email] ${smtpError}`);
     }
 
