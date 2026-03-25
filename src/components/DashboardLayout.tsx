@@ -186,6 +186,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     await signOut();
     if (tenantSlug) {
       navigateToTenant(tenantSlug, navigate, { replace: true });
+    } else if (!isOnProductionDomain()) {
+      window.location.replace("https://www.myco-op.co.za");
     } else {
       navigate("/", { replace: true });
     }
@@ -199,6 +201,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
     if (tenantSlug) {
       navigateToTenant(tenantSlug, navigate, { replace: true });
+    } else if (!isOnProductionDomain()) {
+      window.location.replace("https://www.myco-op.co.za");
     } else {
       navigate("/auth", { replace: true });
     }
