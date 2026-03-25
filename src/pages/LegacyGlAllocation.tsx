@@ -406,7 +406,30 @@ const LegacyGlAllocation = () => {
           <CardHeader>
             <CardTitle className="text-base flex items-center justify-between">
               <span>{selectedTypeName} — {grouped.length} transactions from 1 Mar 2025</span>
-              <Badge variant="outline">{cftEntries.length} total legs</Badge>
+              <div className="flex gap-2">
+                {(() => {
+                  const balanced = grouped.filter(g => {
+                    const allEntries = [g.root, ...g.children];
+                    const d = allEntries.reduce((s, e) => s + e.debit, 0);
+                    const c = allEntries.reduce((s, e) => s + e.credit, 0);
+                    return Math.abs(d - c) < 0.01;
+                  }).length;
+                  const unbalanced = grouped.length - balanced;
+                  return (
+                    <>
+                      <Badge variant="outline" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {balanced} balanced
+                      </Badge>
+                      {unbalanced > 0 && (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" /> {unbalanced} unbalanced
+                        </Badge>
+                      )}
+                      <Badge variant="outline">{cftEntries.length} total legs</Badge>
+                    </>
+                  );
+                })()}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
