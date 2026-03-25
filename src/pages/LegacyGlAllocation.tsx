@@ -584,9 +584,10 @@ const LegacyGlAllocation = () => {
       }
     }
 
-    // Balance check: sum all GL entry debits and credits — they must match
-    const totalDebit = proposed.reduce((s, e) => s + e.debit, 0);
-    const totalCredit = proposed.reduce((s, e) => s + e.credit, 0);
+    // Balance check: only count entries that have a GL account (exclude cash control-only entries)
+    const glEntries = proposed.filter(e => e.gl_account_id);
+    const totalDebit = glEntries.reduce((s, e) => s + e.debit, 0);
+    const totalCredit = glEntries.reduce((s, e) => s + e.credit, 0);
     const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
     return {
