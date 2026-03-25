@@ -74,6 +74,7 @@ import LoanApplications from "./pages/LoanApplications";
 import DebitOrders from "./pages/DebitOrders";
 import LegacyGlAllocation from "./pages/LegacyGlAllocation";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
+import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,11 @@ const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => (
   </DashboardRoute>
 );
 
+const PublicRoot = () => {
+  const tenantSlug = getTenantSlugFromSubdomain();
+  return tenantSlug ? <TenantLanding /> : <Landing />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -120,7 +126,7 @@ const App = () => (
           <TenantProvider>
             <Routes>
               {/* Public routes */}
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<PublicRoot />} />
               <Route path="/t/:slug" element={<TenantLanding />} />
               <Route path="/register-tenant" element={<RegisterTenant />} />
               <Route path="/setup-tenant" element={<TenantSetupWizard />} />
