@@ -187,6 +187,36 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
+  // Fetch tenant configuration GL account IDs (to match new deposit posting pattern)
+  const { data: tenantGlConfig } = useQuery({
+    queryKey: ["tenant-gl-config", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return null;
+      const { data } = await (supabase as any)
+        .from("tenant_configuration")
+        .select("pool_allocation_gl_account_id, membership_fee_gl_account_id, bank_gl_account_id")
+        .eq("tenant_id", currentTenant.id)
+        .maybeSingle();
+      if (!data) return null;
+      // Fetch GL account labels
+      const glIds = [data.pool_allocation_gl_account_id, data.membership_fee_gl_account_id, data.bank_gl_account_id].filter(Boolean);
+      const { data: glAccounts } = await supabase
+        .from("gl_accounts")
+        .select("id, code, name")
+        .in("id", glIds);
+      const glMap = Object.fromEntries((glAccounts ?? []).map(g => [g.id, g]));
+      return {
+        poolAllocationGlId: data.pool_allocation_gl_account_id as string | null,
+        poolAllocationGlLabel: data.pool_allocation_gl_account_id ? `${glMap[data.pool_allocation_gl_account_id]?.code} ${glMap[data.pool_allocation_gl_account_id]?.name}` : "",
+        membershipFeeGlId: data.membership_fee_gl_account_id as string | null,
+        membershipFeeGlLabel: data.membership_fee_gl_account_id ? `${glMap[data.membership_fee_gl_account_id]?.code} ${glMap[data.membership_fee_gl_account_id]?.name}` : "",
+        bankGlId: data.bank_gl_account_id as string | null,
+        bankGlLabel: data.bank_gl_account_id ? `${glMap[data.bank_gl_account_id]?.code} ${glMap[data.bank_gl_account_id]?.name}` : "",
+      };
+    },
+    enabled: !!currentTenant,
+  });
+
   // Fetch entity account mappings for resolving EntityID
   const { data: entityAccountMap } = useQuery({
     queryKey: ["entity-accounts-map", currentTenant?.id],
