@@ -370,7 +370,7 @@ const LegacyGlAllocation = () => {
       if (root.entry_type_id === "1978" && root.tx_type_id === "0") {
         orphanLoanRoots.add(root.cft_id);
       } else if (root.tx_type_id === "1912" || root.entry_type_id === "1921") {
-        depositRoots.add(root);
+        depositRoots.push(root);
       } else {
         otherRoots.push(root);
       }
