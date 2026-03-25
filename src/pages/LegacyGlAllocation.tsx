@@ -490,6 +490,7 @@ const LegacyGlAllocation = () => {
 
     // Pool deposit entry type IDs (all resolve via CashAccountID)
     const poolDepositEntryTypes = new Set([
+      "0",    // Generic legacy pool allocation (resolve via CashAccountID)
       "1924", // Member Fees
       "1927", "1928", "1929", "1930", // Asset, Reserve, Health, Health Reserve
       "1986", // Member Account
