@@ -12,6 +12,7 @@ import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDi
 import PendingTransferNotification from "@/components/transfers/PendingTransferNotification";
 import ChangePasswordDialog from "@/components/profile/ChangePasswordDialog";
 import { Badge } from "@/components/ui/badge";
+import { navigateToTenant } from "@/lib/getSiteUrl";
 import {
   Select,
   SelectContent,
@@ -184,7 +185,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const tenantSlug = localStorage.getItem("tenantSlug");
     await signOut();
     if (tenantSlug) {
-      navigate(`/t/${tenantSlug}`, { replace: true });
+      navigateToTenant(tenantSlug, navigate, { replace: true });
     } else {
       navigate("/", { replace: true });
     }
@@ -197,7 +198,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const tenantSlug = localStorage.getItem("tenantSlug");
     await supabase.auth.signOut();
     if (tenantSlug) {
-      navigate(`/t/${tenantSlug}`, { replace: true });
+      navigateToTenant(tenantSlug, navigate, { replace: true });
     } else {
       navigate("/auth", { replace: true });
     }
