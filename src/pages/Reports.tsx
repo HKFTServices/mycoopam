@@ -316,8 +316,12 @@ const Reports = () => {
   const glIncome      = glSection("income");
   const glExpense     = glSection("expense");
 
-  // Accumulated profit: sourced directly from the IS calculation (same date filter)
-  const accumulatedProfit = netProfit;
+  // Accumulated profit for Balance Sheet: must use all-time bsData (not date-filtered IS)
+  const accumulatedProfit = (() => {
+    const allTimeIncome = glIncome.totalCr - glIncome.totalDr;
+    const allTimeExpense = Math.abs(glExpense.totalDr - glExpense.totalCr);
+    return allTimeIncome - allTimeExpense;
+  })();
 
   // Grand totals across all GL types
   const grandTotalDr = [glAssets, glLiabilities, glEquity, glIncome, glExpense].reduce((s, g) => s + g.totalDr, 0);
