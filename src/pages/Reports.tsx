@@ -202,7 +202,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("cashflow_transactions")
-        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, gl_accounts(name, code, gl_type)")
+        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .not("entry_type", "eq", "vat")
@@ -221,7 +221,7 @@ const Reports = () => {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("cashflow_transactions")
-        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, gl_accounts(name, code, gl_type)")
+        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .not("gl_account_id", "is", null)
@@ -243,7 +243,8 @@ const Reports = () => {
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0, exclVatDebit: 0, exclVatCredit: 0 };
 
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      const isStraightPosting = Boolean(r.is_bank) || isLoanEntry;
+      const isLegacy = !!r.legacy_transaction_id;
+      const isStraightPosting = Boolean(r.is_bank) || isLoanEntry || isLegacy;
 
       if (isStraightPosting) {
         map[r.gl_account_id].netDebit += Number(r.debit || 0);
@@ -288,8 +289,9 @@ const Reports = () => {
       if (!["asset", "liability", "equity", "income", "expense"].includes(type)) continue;
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      if (r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry) {
-        // Bank GL, VAT entries, Stock Control entries, and Loan entries: straight posting (CFT Dr = GL Dr, CFT Cr = GL Cr)
+      const isLegacy = !!r.legacy_transaction_id;
+      if (r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || isLegacy) {
+        // Bank GL, VAT entries, Stock Control entries, Loan entries, and Legacy entries: straight posting (CFT Dr = GL Dr, CFT Cr = GL Cr)
         map[r.gl_account_id].netDebit  += Number(r.debit || 0);
         map[r.gl_account_id].netCredit += Number(r.credit || 0);
       } else {
