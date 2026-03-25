@@ -420,9 +420,22 @@ Deno.serve(async (req) => {
           const { data: existing } = await adminClient.from("legacy_id_mappings").select("new_id")
             .eq("tenant_id", tenant_id).eq("table_name", table_name).eq("legacy_id", legacyId).maybeSingle();
 
+          // Build metadata notes from all fields (moved up so we can use it for updates too)
+          const notesObj: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(record)) {
+            if (v !== null && v !== undefined && String(v).trim() !== "") notesObj[k] = v;
+          }
+          const notes = JSON.stringify(notesObj);
+
           if (existing) {
-            results.skipped++;
-            results.simulation.push({ legacy_id: legacyId, action: "skip_already_mapped" });
+            // Update existing record with latest notes (picks up new fields)
+            if (!isDryRun) {
+              await adminClient.from("legacy_id_mappings")
+                .update({ notes, imported_at: new Date().toISOString() })
+                .eq("tenant_id", tenant_id).eq("table_name", table_name).eq("legacy_id", legacyId);
+            }
+            results.inserted++;
+            results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_update" : "updated" });
             continue;
           }
 
