@@ -12,7 +12,7 @@ import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDi
 import PendingTransferNotification from "@/components/transfers/PendingTransferNotification";
 import ChangePasswordDialog from "@/components/profile/ChangePasswordDialog";
 import { Badge } from "@/components/ui/badge";
-import { navigateToTenant } from "@/lib/getSiteUrl";
+import { navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
 import {
   Select,
   SelectContent,
