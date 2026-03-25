@@ -29,6 +29,19 @@ interface LegacyCftEntry {
   is_bank: boolean;
   transaction_date: string;
   description: string;
+  inc_exp_id: string;
+  fee_id: string;
+}
+
+interface IncExpItem {
+  id: string;
+  item_code: string;
+  description: string;
+  gl_account_id: string | null;
+  gl_code: string | null;
+  gl_name: string | null;
+  credit_control_account_id: string | null;
+  debit_control_account_id: string | null;
 }
 
 interface GlMapping {
