@@ -449,6 +449,8 @@ const LegacyGlAllocation = () => {
     const txDate = rootEntry.transaction_date;
     const rootCftId = rootEntry.cft_id;
     const isDepFunds = rootEntry.tx_type_id === "1912" || rootEntry.entry_type_id === "1921";
+    // Check if this transaction includes a Share entry (1922) — determines fee treatment
+    const hasShareEntry = allEntries.some(e => e.entry_type_id === "1922");
 
     const proposed: ProposedCftEntry[] = [];
 
