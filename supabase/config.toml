@@ -1,1 +1,5 @@
 project_id = "yhzajyegudbecyjpznjr"
+
+[auth]
+site_url = "https://www.myco-op.co.za"
+additional_redirect_urls = ["https://*.myco-op.co.za", "https://*.myco-op.co.za/**", "https://www.myco-op.co.za/**"]

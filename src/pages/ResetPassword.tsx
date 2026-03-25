@@ -21,18 +21,13 @@ const ResetPassword = () => {
   const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
   useEffect(() => {
-    // Detect recovery from AuthContext (PASSWORD_RECOVERY event)
     if (isPasswordRecovery) {
       setIsRecovery(true);
     }
-
-    // Check URL query params for type=recovery (PKCE flow)
     const type = searchParams.get("type");
     if (type === "recovery") {
       setIsRecovery(true);
     }
-
-    // Check hash for recovery type (implicit flow fallback)
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
       setIsRecovery(true);
@@ -57,6 +52,17 @@ const ResetPassword = () => {
       setSuccess(true);
       clearPasswordRecovery();
       toast({ title: "Password updated successfully" });
+
+      // Send password reset confirmation email via tenant SMTP
+      try {
+        const tenantId = localStorage.getItem("tenantId");
+        await supabase.functions.invoke("send-password-reset-confirmation", {
+          body: { tenant_id: tenantId || undefined },
+        });
+      } catch (emailErr) {
+        console.warn("Could not send password reset confirmation email:", emailErr);
+      }
+
       // Auto-login: user already has a session, redirect to dashboard
       setTimeout(() => navigate("/dashboard", { replace: true }), 2000);
     } catch (error: any) {
