@@ -24,7 +24,7 @@ import {
   CalendarDays,
   SlidersHorizontal,
 } from "lucide-react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -56,6 +56,17 @@ function monthLabelFromKey(key: string) {
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
+
+const DONUT_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+  "hsl(215 85% 55%)",
+  "hsl(155 60% 45%)",
+  "hsl(28 90% 55%)",
+  "hsl(270 65% 60%)",
+  "hsl(0 75% 55%)",
+  "hsl(190 70% 45%)",
+];
 
 const Dashboard = () => {
   const { currentTenant, tenants, branding } = useTenant();
@@ -510,9 +521,8 @@ const Dashboard = () => {
 
   const showPendingWelcome = !isAdmin && !hasHoldings && !showFirstDeposit && hasPendingApplication;
 
-  const chartSeries = isAdmin ? aumOverTime : memberDepositsOverTime;
-  const chartTitle = isAdmin ? "Balance over time" : "Deposits over time";
-  const recentListTitle = isAdmin ? "Recent deposits" : "Recent deposits";
+  const memberChartSeries = memberDepositsOverTime;
+  const recentListTitle = isAdmin ? "Recent transactions" : "Recent deposits";
 
   const primaryMetric = useMemo(() => {
     if (isAdmin) return { title: "Primary account", subtitle: "Co-op AUM", value: totalAUM };
@@ -526,7 +536,7 @@ const Dashboard = () => {
   }, [isAdmin, memberDepositsOverTime, timeRange, totalLoansOutstanding]);
 
   const primaryChangePct = useMemo(() => {
-    const series = chartSeries;
+    const series = isAdmin ? aumOverTime : memberChartSeries;
     if (!series || series.length < 2) return null;
     const last = Number(series[series.length - 1]?.value ?? 0);
     const prev = Number(series[series.length - 2]?.value ?? 0);
@@ -543,6 +553,39 @@ const Dashboard = () => {
     const base = isAdmin ? 42 : 55;
     return base;
   }, [isAdmin]);
+
+  const aumAllocationData = useMemo(() => {
+    const sorted = [...poolSummaries]
+      .map((p: any) => ({ name: p.name as string, value: Number(p.totalValue || 0) }))
+      .filter((x) => x.value > 0)
+      .sort((a, b) => b.value - a.value);
+    const top = sorted.slice(0, 5);
+    const other = sorted.slice(5).reduce((s, x) => s + x.value, 0);
+    return other > 0 ? [...top, { name: "Other", value: other }] : top;
+  }, [poolSummaries]);
+
+  const loanBookData = useMemo(() => {
+    const rows = (loanSummaries ?? [])
+      .map((s: any) => ({
+        name: ((s.entity_name || "").toString().trim() + " " + (s.entity_last_name || "").toString().trim()).trim() || "Entity",
+        value: Number(s.outstanding || 0),
+      }))
+      .filter((x) => x.value > 0.01)
+      .sort((a, b) => b.value - a.value);
+    const top = rows.slice(0, 5);
+    const other = rows.slice(5).reduce((sum, x) => sum + x.value, 0);
+    return other > 0 ? [...top, { name: "Other", value: other }] : top;
+  }, [loanSummaries]);
+
+  const accountsStatusData = useMemo(() => {
+    const active = Number(adminStats?.totalAccounts || 0);
+    const pending = Number(adminStats?.pendingAccounts || 0);
+    const data = [
+      { name: "Active", value: active },
+      { name: "Pending", value: pending },
+    ].filter((x) => x.value > 0);
+    return data;
+  }, [adminStats]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -699,49 +742,55 @@ const Dashboard = () => {
             />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div>
-                    <CardTitle className="text-sm">{chartTitle}</CardTitle>
-                    <CardDescription className="text-xs">
-                      {isAdmin ? "Average monthly AUM" : "Monthly deposits"}
-                    </CardDescription>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {chartSeries?.length ? (
-                    <div className="h-[220px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartSeries}>
-                          <XAxis
-                            dataKey="label"
-                            tickLine={false}
-                            axisLine={false}
-                            fontSize={11}
-                            stroke="hsl(var(--muted-foreground))"
-                          />
-                          <Tooltip content={<ChartTooltip />} />
-                          <Bar
-                            dataKey="value"
-                            radius={[6, 6, 0, 0]}
-                            fill="hsl(var(--primary))"
-                            background={{ fill: "hsl(var(--muted))", radius: 6 }}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
-                      No chart data yet.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+	          <div className="grid gap-4 lg:grid-cols-3">
+	            <div className="lg:col-span-2 space-y-4">
+	              {isAdmin ? (
+	                <AdminChartsCard
+	                  aumData={aumAllocationData}
+	                  loanData={loanBookData}
+	                  accountsData={accountsStatusData}
+	                />
+	              ) : (
+	                <Card>
+	                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+	                    <div>
+	                      <CardTitle className="text-sm">Deposits over time</CardTitle>
+	                      <CardDescription className="text-xs">Monthly deposits</CardDescription>
+	                    </div>
+	                    <Button variant="ghost" size="icon" className="h-8 w-8">
+	                      <MoreHorizontal className="h-4 w-4" />
+	                    </Button>
+	                  </CardHeader>
+	                  <CardContent>
+	                    {memberChartSeries?.length ? (
+	                      <div className="h-[220px]">
+	                        <ResponsiveContainer width="100%" height="100%">
+	                          <BarChart data={memberChartSeries}>
+	                            <XAxis
+	                              dataKey="label"
+	                              tickLine={false}
+	                              axisLine={false}
+	                              fontSize={11}
+	                              stroke="hsl(var(--muted-foreground))"
+	                            />
+	                            <Tooltip content={<ChartTooltip />} />
+	                            <Bar
+	                              dataKey="value"
+	                              radius={[6, 6, 0, 0]}
+	                              fill="hsl(var(--primary))"
+	                              background={{ fill: "hsl(var(--muted))", radius: 6 }}
+	                            />
+	                          </BarChart>
+	                        </ResponsiveContainer>
+	                      </div>
+	                    ) : (
+	                      <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
+	                        No chart data yet.
+	                      </div>
+	                    )}
+	                  </CardContent>
+	                </Card>
+	              )}
 
               {isAdmin ? (
                 <PoolSummariesCard pools={poolSummaries} />
@@ -852,6 +901,126 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       <p className="font-medium">{label}</p>
       <p className="text-muted-foreground mt-0.5">{formatCurrency(val)}</p>
     </div>
+  );
+};
+
+const DonutBlock = ({
+  title,
+  data,
+  formatValue,
+  emptyLabel,
+}: {
+  title: string;
+  data: Array<{ name: string; value: number }>;
+  formatValue?: (v: number) => string;
+  emptyLabel: string;
+}) => {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const chartData = data.map((d) => ({ ...d, percent: total > 0 ? d.value / total : 0 }));
+  const fmt = (v: number) => (formatValue ? formatValue(v) : formatCurrency(v));
+
+  const TooltipContent = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const p = payload[0];
+    const value = Number(p.value ?? 0);
+    const percent = Number(p.payload?.percent ?? 0) * 100;
+    return (
+      <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
+        <p className="font-medium">{p.name}</p>
+        <p className="text-muted-foreground mt-0.5">{fmt(value)}</p>
+        <p className="text-muted-foreground mt-0.5">{percent.toFixed(1)}%</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-foreground">{title}</p>
+        <p className="text-[10px] text-muted-foreground">{total > 0 ? fmt(total) : ""}</p>
+      </div>
+
+      {chartData.length ? (
+        <div className="h-[160px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={48}
+                outerRadius={70}
+                paddingAngle={2}
+              >
+                {chartData.map((_, idx) => (
+                  <Cell key={idx} fill={DONUT_COLORS[idx % DONUT_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<TooltipContent />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="h-[160px] flex items-center justify-center text-sm text-muted-foreground">
+          {emptyLabel}
+        </div>
+      )}
+
+      {chartData.length ? (
+        <div className="space-y-1.5">
+          {chartData.slice(0, 6).map((d, idx) => (
+            <div key={d.name} className="flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: DONUT_COLORS[idx % DONUT_COLORS.length] }}
+                />
+                <span className="truncate text-muted-foreground">{d.name}</span>
+              </div>
+              <span className="font-medium">
+                {fmt(d.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const AdminChartsCard = ({
+  aumData,
+  loanData,
+  accountsData,
+}: {
+  aumData: Array<{ name: string; value: number }>;
+  loanData: Array<{ name: string; value: number }>;
+  accountsData: Array<{ name: string; value: number }>;
+}) => {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle className="text-sm">Financial overview</CardTitle>
+          <CardDescription className="text-xs">Allocation and exposure</CardDescription>
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-6 md:grid-cols-3">
+          <DonutBlock title="AUM allocation" data={aumData} emptyLabel="No AUM data yet." />
+          <DonutBlock title="Loan book" data={loanData} emptyLabel="No outstanding loans." />
+          <DonutBlock
+            title="Accounts status"
+            data={accountsData}
+            emptyLabel="No account stats yet."
+            formatValue={(v) => Number(v).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
