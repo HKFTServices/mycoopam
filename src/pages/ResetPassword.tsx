@@ -95,7 +95,7 @@ const ResetPassword = () => {
               <CheckCircle className="h-12 w-12 text-primary" />
             </div>
             <CardTitle>Password Updated</CardTitle>
-            <CardDescription>Redirecting you to sign in…</CardDescription>
+            <CardDescription>Redirecting you to your dashboard…</CardDescription>
           </CardHeader>
         </Card>
       </div>
