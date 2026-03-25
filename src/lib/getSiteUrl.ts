@@ -9,25 +9,23 @@
 
 const PRODUCTION_DOMAIN = "myco-op.co.za";
 
-export function getSiteUrl(tenantSlug?: string | null): string {
-  const hostname = window.location.hostname;
+function isOnProductionDomain(): boolean {
+  return window.location.hostname.endsWith(PRODUCTION_DOMAIN);
+}
 
-  // If we're on the production domain already, use the real origin
-  if (hostname.endsWith(PRODUCTION_DOMAIN)) {
+export function getSiteUrl(tenantSlug?: string | null): string {
+  if (isOnProductionDomain()) {
     return window.location.origin;
   }
 
-  // In production context but called with a tenant slug
   if (tenantSlug) {
     return `https://${tenantSlug}.${PRODUCTION_DOMAIN}`;
   }
 
-  // Default production root
-  if (import.meta.env.PROD) {
+  if (isOnProductionDomain()) {
     return `https://www.${PRODUCTION_DOMAIN}`;
   }
 
-  // Dev / preview fallback
   return window.location.origin;
 }
 
@@ -37,10 +35,9 @@ export function getSiteUrl(tenantSlug?: string | null): string {
  * In dev/preview → uses path-based /t/{slug}
  */
 export function getTenantUrl(slug: string): string {
-  if (import.meta.env.PROD) {
+  if (isOnProductionDomain()) {
     return `https://${slug}.${PRODUCTION_DOMAIN}`;
   }
-  // Dev fallback: path-based routing still works in preview
   return `/t/${slug}`;
 }
 
@@ -49,7 +46,7 @@ export function getTenantUrl(slug: string): string {
  * to the subdomain; in dev it returns a path for react-router navigate().
  */
 export function navigateToTenant(slug: string, navigate: (path: string, opts?: any) => void, opts?: { replace?: boolean }) {
-  if (import.meta.env.PROD) {
+  if (isOnProductionDomain()) {
     const url = `https://${slug}.${PRODUCTION_DOMAIN}`;
     if (opts?.replace) {
       window.location.replace(url);
