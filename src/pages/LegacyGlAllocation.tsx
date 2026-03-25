@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle, Play, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatCurrency";
 
@@ -45,6 +46,32 @@ interface ControlAccountMap {
   pool_name: string | null;
 }
 
+interface ProposedCftEntry {
+  description: string;
+  debit: number;
+  credit: number;
+  gl_account_id: string | null;
+  gl_account_label: string;
+  control_account_id: string | null;
+  control_account_label: string;
+  pool_id: string | null;
+  entity_account_id: string | null;
+  transaction_date: string;
+  entry_type: string;
+  reference: string;
+  legacy_transaction_id: string;
+}
+
+interface ProposedGroup {
+  root: LegacyCftEntry;
+  children: LegacyCftEntry[];
+  entries: ProposedCftEntry[];
+  totalDebit: number;
+  totalCredit: number;
+  isBalanced: boolean;
+  entityName: string;
+}
+
 const TRANSACTION_TYPES = [
   { id: "1912", name: "Deposit Funds" },
   { id: "1945", name: "Withdrawal" },
@@ -65,6 +92,10 @@ const LegacyGlAllocation = () => {
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [cftEntries, setCftEntries] = useState<LegacyCftEntry[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [proposedGroups, setProposedGroups] = useState<ProposedGroup[]>([]);
+  const [posting, setPosting] = useState(false);
+  const [expandedPreview, setExpandedPreview] = useState<Set<string>>(new Set());
 
   // Fetch GL mappings for selected transaction type
   const { data: glMappings } = useQuery({
@@ -79,7 +110,6 @@ const LegacyGlAllocation = () => {
 
       if (!data?.length) return [];
 
-      // Get GL account details
       const glIds = data.filter(d => d.gl_account_id).map(d => d.gl_account_id!);
       const { data: glAccounts } = await supabase
         .from("gl_accounts")
@@ -88,7 +118,6 @@ const LegacyGlAllocation = () => {
 
       const glMap = Object.fromEntries((glAccounts ?? []).map(g => [g.id, g]));
 
-      // Get control account names for mapped control accounts
       const caIds = data.filter(d => d.control_account_id).map(d => d.control_account_id!);
       let caMap: Record<string, any> = {};
       if (caIds.length > 0) {
@@ -111,7 +140,7 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
-  // Fetch control account mappings
+  // Fetch control account mappings (legacy_id -> new control_account with pool)
   const { data: controlAccounts } = useQuery({
     queryKey: ["legacy-control-accounts", currentTenant?.id],
     queryFn: async () => {
@@ -127,7 +156,7 @@ const LegacyGlAllocation = () => {
       const caIds = mappings.map(m => m.new_id);
       const { data: cas } = await supabase
         .from("control_accounts")
-        .select("id, name, pool_id, pools(name)")
+        .select("id, name, account_type, pool_id, pools(name)")
         .in("id", caIds);
 
       const caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
@@ -137,7 +166,23 @@ const LegacyGlAllocation = () => {
         new_id: m.new_id,
         name: caMap[m.new_id]?.name ?? "Unknown",
         pool_name: caMap[m.new_id]?.pools?.name ?? null,
-      })) as ControlAccountMap[];
+        account_type: caMap[m.new_id]?.account_type ?? null,
+        pool_id: caMap[m.new_id]?.pool_id ?? null,
+      })) as (ControlAccountMap & { account_type: string | null; pool_id: string | null })[];
+    },
+    enabled: !!currentTenant,
+  });
+
+  // Fetch all control accounts for finding loan control by pool
+  const { data: allControlAccounts } = useQuery({
+    queryKey: ["all-control-accounts", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data } = await supabase
+        .from("control_accounts")
+        .select("id, name, account_type, pool_id, pools(name)")
+        .eq("tenant_id", currentTenant.id);
+      return data ?? [];
     },
     enabled: !!currentTenant,
   });
@@ -149,7 +194,7 @@ const LegacyGlAllocation = () => {
       if (!currentTenant) return {};
       const { data } = await supabase
         .from("entity_accounts")
-        .select("client_account_id, account_number, entity_id, entities(name, last_name)")
+        .select("id, client_account_id, account_number, entity_id, entities(name, last_name)")
         .eq("tenant_id", currentTenant.id)
         .not("client_account_id", "is", null);
 
@@ -157,7 +202,9 @@ const LegacyGlAllocation = () => {
         (data ?? []).map((ea: any) => [
           String(ea.client_account_id),
           {
+            id: ea.id,
             account_number: ea.account_number,
+            entity_id: ea.entity_id,
             entity_name: [ea.entities?.name, ea.entities?.last_name].filter(Boolean).join(" "),
           },
         ])
@@ -170,7 +217,6 @@ const LegacyGlAllocation = () => {
     if (!currentTenant) return;
     setLoading(true);
     try {
-      // Fetch ALL cashflow_transactions with pagination to avoid the 1000-row default limit
       let allRows: { legacy_id: string; notes: string | null }[] = [];
       const PAGE_SIZE = 1000;
       let from = 0;
@@ -224,7 +270,6 @@ const LegacyGlAllocation = () => {
 
       // Now fetch child entries that belong to root transactions but have different Type_TransactionID
       if (rootCftIds.length > 0) {
-        // Fetch children — they reference ParentID matching our roots
         let childRows: { legacy_id: string; notes: string | null }[] = [];
         let childFrom = 0;
         let childHasMore = true;
@@ -339,7 +384,6 @@ const LegacyGlAllocation = () => {
     }
 
     if (mapping.entry_type_id === "1924") {
-      // Cash control - resolve via CashAccountID
       return { label: `→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
     }
 
@@ -358,6 +402,318 @@ const LegacyGlAllocation = () => {
     return { label: "⚠️ GL not set", mapped: false };
   };
 
+  // ═══════════════════════════════════════════════════════════════
+  // PREVIEW: Build proposed balanced CFT entries per transaction group
+  // ═══════════════════════════════════════════════════════════════
+  const buildPreview = () => {
+    if (!currentTenant || !glMappings || !controlAccounts) return;
+
+    const memberAcctPool = allControlAccounts?.find(ca => ca.name === "Member Account Cash");
+    const memberAcctLoanControl = allControlAccounts?.find(ca => ca.name === "Member Account Loans");
+    const memberAcctCashControl = allControlAccounts?.find(ca => ca.name === "Member Account Cash");
+
+    const proposed: ProposedGroup[] = [];
+
+    for (const group of grouped) {
+      const allEntries = [group.root, ...group.children];
+      const rootEntry = group.root;
+      const entityId = rootEntry.entity_id;
+      const eaInfo = entityAccountMap?.[entityId];
+      const txDate = rootEntry.transaction_date;
+      const rootCftId = rootEntry.cft_id;
+
+      const cftEntries: ProposedCftEntry[] = [];
+
+      for (const entry of allEntries) {
+        const mapping = getGlMapping(entry.entry_type_id);
+        if (!mapping) continue;
+
+        const amount = entry.debit > 0 ? entry.debit : entry.credit;
+        if (amount === 0) continue;
+
+        // ── Bank Receipt (1921) ──
+        if (entry.entry_type_id === "1921") {
+          cftEntries.push({
+            description: "Bank Deposit",
+            debit: amount,
+            credit: 0,
+            gl_account_id: mapping.gl_account_id,
+            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+            control_account_id: null,
+            control_account_label: "",
+            pool_id: null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "bank_receipt",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // ── Membership Fee (1922) — Split ──
+        else if (entry.entry_type_id === "1922" && mapping.split_rule?.splits) {
+          for (const split of mapping.split_rule.splits) {
+            cftEntries.push({
+              description: split.description,
+              debit: split.amount,
+              credit: 0,
+              gl_account_id: split.gl_account_id,
+              gl_account_label: split.description,
+              control_account_id: null,
+              control_account_label: "",
+              pool_id: null,
+              entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate,
+              entry_type: "membership_fee",
+              reference: `Legacy CFT ${rootCftId}`,
+              legacy_transaction_id: rootCftId,
+            });
+          }
+        }
+
+        // ── Pool Cash Control (1924) ──
+        else if (entry.entry_type_id === "1924") {
+          const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+          cftEntries.push({
+            description: `Cash Control — ${ca?.name ?? "Unknown"}`,
+            debit: entry.debit,
+            credit: entry.credit,
+            gl_account_id: null,
+            gl_account_label: "",
+            control_account_id: ca?.new_id ?? null,
+            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (ca as any)?.pool_id ?? null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "cash_control",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // ── VAT (1928) ──
+        else if (entry.entry_type_id === "1928") {
+          cftEntries.push({
+            description: "VAT",
+            debit: entry.debit,
+            credit: entry.credit,
+            gl_account_id: mapping.gl_account_id,
+            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+            control_account_id: null,
+            control_account_label: "",
+            pool_id: null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "vat",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // ── Loan Instalment (1978) — Triple entry ──
+        else if (entry.entry_type_id === "1978") {
+          const repaymentAmount = entry.debit > 0 ? entry.debit : entry.credit;
+
+          // 1. CR Member Loans GL (1025)
+          cftEntries.push({
+            description: "Loan Repayment",
+            debit: 0,
+            credit: repaymentAmount,
+            gl_account_id: mapping.gl_account_id,
+            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+            control_account_id: null,
+            control_account_label: "",
+            pool_id: null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "loan_repayment",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+
+          // 2. CR Loan Control (Member Account)
+          cftEntries.push({
+            description: "Loan Repayment — Loan Control CR",
+            debit: 0,
+            credit: repaymentAmount,
+            gl_account_id: null,
+            gl_account_label: "",
+            control_account_id: memberAcctLoanControl?.id ?? mapping.control_account_id,
+            control_account_label: `${memberAcctLoanControl?.name ?? "Member Account Loans"}`,
+            pool_id: memberAcctCashControl?.pool_id ?? null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "loan_control_cr",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+
+          // 3. DR Cash Control (Member Account)
+          cftEntries.push({
+            description: "Loan Repayment — Cash Control DR",
+            debit: repaymentAmount,
+            credit: 0,
+            gl_account_id: null,
+            gl_account_label: "",
+            control_account_id: memberAcctCashControl?.id ?? null,
+            control_account_label: `${memberAcctCashControl?.name ?? "Member Account Cash"}`,
+            pool_id: memberAcctCashControl?.pool_id ?? null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "cash_control_dr",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // ── Unit Allocation (1986) ──
+        else if (entry.entry_type_id === "1986" || entry.entry_type_id === "2006") {
+          const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+          if (ca) {
+            cftEntries.push({
+              description: `Cash Control — ${ca.name}`,
+              debit: entry.debit,
+              credit: entry.credit,
+              gl_account_id: null,
+              gl_account_label: "",
+              control_account_id: ca.new_id,
+              control_account_label: `${ca.name} (${ca.pool_name})`,
+              pool_id: (ca as any).pool_id ?? null,
+              entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate,
+              entry_type: "unit_allocation",
+              reference: `Legacy CFT ${rootCftId}`,
+              legacy_transaction_id: rootCftId,
+            });
+          }
+        }
+
+        // ── Fees (1927, 1929, 1930) ──
+        else if (["1927", "1929", "1930"].includes(entry.entry_type_id)) {
+          cftEntries.push({
+            description: mapping.entry_type_name,
+            debit: entry.debit,
+            credit: entry.credit,
+            gl_account_id: mapping.gl_account_id,
+            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+            control_account_id: null,
+            control_account_label: "",
+            pool_id: null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "fee",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // ── Fallback: any other mapped entry type ──
+        else {
+          const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+          cftEntries.push({
+            description: mapping.entry_type_name ?? `Entry ${entry.entry_type_id}`,
+            debit: entry.debit,
+            credit: entry.credit,
+            gl_account_id: mapping.gl_account_id,
+            gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
+            control_account_id: ca?.new_id ?? mapping.control_account_id,
+            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : (mapping.control_account_name ?? ""),
+            pool_id: (ca as any)?.pool_id ?? null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate,
+            entry_type: "other",
+            reference: `Legacy CFT ${rootCftId}`,
+            legacy_transaction_id: rootCftId,
+          });
+        }
+      }
+
+      const totalDebit = cftEntries.reduce((s, e) => s + e.debit, 0);
+      const totalCredit = cftEntries.reduce((s, e) => s + e.credit, 0);
+
+      proposed.push({
+        root: group.root,
+        children: group.children,
+        entries: cftEntries,
+        totalDebit,
+        totalCredit,
+        isBalanced: Math.abs(totalDebit - totalCredit) < 0.01,
+        entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
+      });
+    }
+
+    setProposedGroups(proposed);
+    setExpandedPreview(new Set());
+    setShowPreview(true);
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // POST: Commit the proposed entries to cashflow_transactions
+  // ═══════════════════════════════════════════════════════════════
+  const postEntries = async () => {
+    if (!currentTenant) return;
+    const balanced = proposedGroups.filter(g => g.isBalanced);
+    if (balanced.length === 0) {
+      toast.error("No balanced groups to post");
+      return;
+    }
+
+    setPosting(true);
+    try {
+      // Check which legacy_transaction_ids are already posted
+      const legacyIds = [...new Set(balanced.flatMap(g => g.entries.map(e => e.legacy_transaction_id)))];
+      const { data: existing } = await supabase
+        .from("cashflow_transactions")
+        .select("legacy_transaction_id")
+        .in("legacy_transaction_id", legacyIds);
+
+      const alreadyPosted = new Set((existing ?? []).map(e => e.legacy_transaction_id));
+
+      const toInsert = balanced
+        .filter(g => !alreadyPosted.has(g.root.cft_id))
+        .flatMap(g =>
+          g.entries.map(e => ({
+            tenant_id: currentTenant.id,
+            transaction_date: e.transaction_date,
+            description: e.description,
+            debit: e.debit,
+            credit: e.credit,
+            gl_account_id: e.gl_account_id,
+            control_account_id: e.control_account_id,
+            pool_id: e.pool_id,
+            entity_account_id: e.entity_account_id,
+            entry_type: e.entry_type,
+            reference: e.reference,
+            legacy_transaction_id: e.legacy_transaction_id,
+            is_bank: e.entry_type === "bank_receipt",
+            is_active: true,
+          }))
+        );
+
+      if (toInsert.length === 0) {
+        toast.info("All groups already posted");
+        setShowPreview(false);
+        setPosting(false);
+        return;
+      }
+
+      // Insert in batches of 100
+      const BATCH = 100;
+      for (let i = 0; i < toInsert.length; i += BATCH) {
+        const batch = toInsert.slice(i, i + BATCH);
+        const { error } = await supabase.from("cashflow_transactions").insert(batch);
+        if (error) throw error;
+      }
+
+      toast.success(`Posted ${toInsert.length} entries from ${balanced.length} transaction groups`);
+      setShowPreview(false);
+    } catch (err: any) {
+      toast.error("Post failed: " + err.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+
   const selectedTypeName = TRANSACTION_TYPES.find(t => t.id === selectedTxType)?.name ?? selectedTxType;
   const mappedCount = glMappings?.length ?? 0;
 
@@ -368,7 +724,7 @@ const LegacyGlAllocation = () => {
           <CardTitle className="text-lg">Legacy GL Allocation</CardTitle>
           <CardDescription>
             Browse legacy CFT transactions from <strong>1 Mar 2025</strong> onwards and verify GL account mappings.
-            Select a transaction type, load entries, and review the allocation per leg.
+            Select a transaction type, load entries, preview the proposed balanced CFT postings, then post.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -391,9 +747,15 @@ const LegacyGlAllocation = () => {
               Load Transactions
             </Button>
             {grouped.length > 0 && (
-              <Button variant="outline" size="sm" onClick={expandAll}>
-                Expand All ({grouped.length})
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={expandAll}>
+                  Expand All ({grouped.length})
+                </Button>
+                <Button variant="secondary" size="sm" onClick={buildPreview} className="gap-2">
+                  <FileSearch className="h-4 w-4" />
+                  Preview CFT Posting
+                </Button>
+              </>
             )}
           </div>
 
@@ -477,7 +839,6 @@ const LegacyGlAllocation = () => {
                   {grouped.map(g => {
                     const isExpanded = expandedParents.has(g.root.cft_id);
                     const rootGl = getGlLabel(g.root);
-                    const allMapped = [g.root, ...g.children].every(e => getGlLabel(e).mapped);
                     const totalDebit = g.root.debit + g.children.reduce((s, c) => s + c.debit, 0);
                     const totalCredit = g.root.credit + g.children.reduce((s, c) => s + c.credit, 0);
                     const balance = totalDebit - totalCredit;
@@ -486,7 +847,6 @@ const LegacyGlAllocation = () => {
 
                     return (
                       <>
-                        {/* Root row */}
                         <TableRow
                           key={`root-${g.root.cft_id}`}
                           className={`cursor-pointer hover:bg-muted/50 font-medium ${!isBalanced ? 'bg-destructive/5' : ''}`}
@@ -524,10 +884,8 @@ const LegacyGlAllocation = () => {
                           </TableCell>
                         </TableRow>
 
-                        {/* Child rows */}
                         {isExpanded && (
                           <>
-                            {/* Root detail */}
                             <TableRow key={`detail-root-${g.root.cft_id}`} className="bg-muted/30">
                               <TableCell></TableCell>
                               <TableCell className="text-xs font-mono text-muted-foreground">{g.root.cft_id}</TableCell>
@@ -590,6 +948,133 @@ const LegacyGlAllocation = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* ═══════════ PREVIEW DIALOG ═══════════ */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preview CFT Posting — {selectedTypeName}</DialogTitle>
+            <DialogDescription>
+              Review the proposed balanced entries below. Only balanced groups (DR = CR) will be posted.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex gap-3 mb-2">
+            {(() => {
+              const bal = proposedGroups.filter(g => g.isBalanced).length;
+              const unbal = proposedGroups.length - bal;
+              return (
+                <>
+                  <Badge variant="outline" className="gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-600" /> {bal} balanced
+                  </Badge>
+                  {unbal > 0 && (
+                    <Badge variant="destructive" className="gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {unbal} unbalanced
+                    </Badge>
+                  )}
+                  <Badge variant="outline">
+                    {proposedGroups.reduce((s, g) => s + g.entries.length, 0)} total CFT entries
+                  </Badge>
+                </>
+              );
+            })()}
+          </div>
+
+          <div className="space-y-1">
+            {proposedGroups.map(pg => {
+              const isOpen = expandedPreview.has(pg.root.cft_id);
+              return (
+                <div key={pg.root.cft_id} className={`border rounded-md ${!pg.isBalanced ? 'border-destructive/50 bg-destructive/5' : ''}`}>
+                  <div
+                    className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setExpandedPreview(prev => {
+                        const n = new Set(prev);
+                        n.has(pg.root.cft_id) ? n.delete(pg.root.cft_id) : n.add(pg.root.cft_id);
+                        return n;
+                      });
+                    }}
+                  >
+                    {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                    <span className="text-xs font-mono font-medium">CFT {pg.root.cft_id}</span>
+                    <span className="text-xs text-muted-foreground">{pg.root.transaction_date}</span>
+                    <span className="text-xs">{pg.entityName}</span>
+                    <span className="ml-auto text-xs font-mono">
+                      DR {formatCurrency(pg.totalDebit)} | CR {formatCurrency(pg.totalCredit)}
+                    </span>
+                    {pg.isBalanced ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                    )}
+                  </div>
+
+                  {isOpen && (
+                    <div className="px-3 pb-2">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Description</TableHead>
+                            <TableHead className="text-xs text-right">DR</TableHead>
+                            <TableHead className="text-xs text-right">CR</TableHead>
+                            <TableHead className="text-xs">GL Account</TableHead>
+                            <TableHead className="text-xs">Control Account</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pg.entries.map((e, i) => (
+                            <TableRow key={i} className="text-xs">
+                              <TableCell>{e.description}</TableCell>
+                              <TableCell className="text-right font-mono">
+                                {e.debit > 0 ? formatCurrency(e.debit) : ""}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                {e.credit > 0 ? formatCurrency(e.credit) : ""}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">{e.gl_account_label || "—"}</TableCell>
+                              <TableCell className="text-muted-foreground">{e.control_account_label || "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold border-t-2">
+                            <TableCell>Total</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(pg.totalDebit)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(pg.totalCredit)}</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell>
+                              {pg.isBalanced ? (
+                                <Badge variant="outline" className="text-[10px] gap-1">
+                                  <CheckCircle2 className="h-3 w-3 text-green-600" /> Balanced
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="text-[10px] gap-1">
+                                  <AlertTriangle className="h-3 w-3" /> Off by {formatCurrency(Math.abs(pg.totalDebit - pg.totalCredit))}
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setShowPreview(false)}>Cancel</Button>
+            <Button
+              onClick={postEntries}
+              disabled={posting || proposedGroups.filter(g => g.isBalanced).length === 0}
+              className="gap-2"
+            >
+              {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Post {proposedGroups.filter(g => g.isBalanced).length} Balanced Groups
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
