@@ -3,17 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Resolves a tenant by slug from either:
  * 1. Path-based routing: /t/aem → slug = "aem"
- * 2. Subdomain-based routing: aem.mycoop.co.za → slug = "aem"
+ * 2. Subdomain-based routing: aem.myco-op.co.za → slug = "aem"
  *
- * For now we use path-based. When going live with wildcard DNS (*.mycoop.co.za),
+ * For now we use path-based. When going live with wildcard DNS (*.myco-op.co.za),
  * enable subdomain detection by setting VITE_TENANT_DOMAIN in env.
  */
 
-const TENANT_DOMAIN = import.meta.env.VITE_TENANT_DOMAIN; // e.g. "mycoop.co.za"
+const TENANT_DOMAIN = import.meta.env.VITE_TENANT_DOMAIN || "myco-op.co.za";
 
 export function getTenantSlugFromSubdomain(): string | null {
   if (!TENANT_DOMAIN) return null;
-  const hostname = window.location.hostname; // e.g. aem.mycoop.co.za
+  const hostname = window.location.hostname; // e.g. aem.myco-op.co.za
   if (hostname.endsWith(`.${TENANT_DOMAIN}`)) {
     const slug = hostname.replace(`.${TENANT_DOMAIN}`, "").split(".").pop();
     return slug || null;

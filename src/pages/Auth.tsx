@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
+import { getSiteUrl } from "@/lib/getSiteUrl";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -76,7 +77,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: getSiteUrl(),
             data: { first_name: firstName, last_name: lastName },
             captchaToken,
           },
@@ -267,7 +268,7 @@ const Auth = () => {
                     setLoading(true);
                     try {
                       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/reset-password`,
+                        redirectTo: `${getSiteUrl()}/reset-password`,
                       });
                       if (error) throw error;
                       toast({
