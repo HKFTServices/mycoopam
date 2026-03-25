@@ -95,7 +95,7 @@ const globalSetupNavItems = [
   { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
   { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
   { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
-  { label: "Email Settings", icon: Mail, path: "/dashboard/setup/email-settings" },
+  
   { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
   { label: "Tax Types", icon: Receipt, path: "/dashboard/setup/tax-types" },
   { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
