@@ -221,7 +221,7 @@ const Reports = () => {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("cashflow_transactions")
-        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, gl_accounts(name, code, gl_type)")
+        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .not("gl_account_id", "is", null)
