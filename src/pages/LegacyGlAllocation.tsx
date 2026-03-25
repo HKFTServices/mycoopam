@@ -32,6 +32,8 @@ interface GlMapping {
   gl_account_id: string | null;
   gl_account_code?: string;
   gl_account_name?: string;
+  control_account_id: string | null;
+  control_account_name?: string;
   split_rule: any;
   notes: string | null;
 }
@@ -51,6 +53,7 @@ const TRANSACTION_TYPES = [
   { id: "1952", name: "Income Expense" },
   { id: "1959", name: "Loan (Payout)" },
   { id: "1960", name: "Grant" },
+  { id: "2000", name: "Loan Write-off" },
   { id: "1915", name: "Switching" },
   { id: "1914", name: "Transfer" },
   { id: "1916", name: "Deposit Metal" },
@@ -70,7 +73,7 @@ const LegacyGlAllocation = () => {
       if (!currentTenant) return [];
       const { data } = await supabase
         .from("legacy_gl_mappings")
-        .select("entry_type_id, entry_type_name, gl_account_id, split_rule, notes")
+        .select("entry_type_id, entry_type_name, gl_account_id, control_account_id, split_rule, notes")
         .eq("tenant_id", currentTenant.id)
         .eq("transaction_type_id", selectedTxType);
 
@@ -85,10 +88,24 @@ const LegacyGlAllocation = () => {
 
       const glMap = Object.fromEntries((glAccounts ?? []).map(g => [g.id, g]));
 
+      // Get control account names for mapped control accounts
+      const caIds = data.filter(d => d.control_account_id).map(d => d.control_account_id!);
+      let caMap: Record<string, any> = {};
+      if (caIds.length > 0) {
+        const { data: cas } = await supabase
+          .from("control_accounts")
+          .select("id, name, pool_id, pools(name)")
+          .in("id", caIds);
+        caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
+      }
+
       return data.map(d => ({
         ...d,
         gl_account_code: d.gl_account_id ? glMap[d.gl_account_id]?.code : undefined,
         gl_account_name: d.gl_account_id ? glMap[d.gl_account_id]?.name : undefined,
+        control_account_name: d.control_account_id
+          ? `${caMap[d.control_account_id]?.name ?? "Unknown"} (${caMap[d.control_account_id]?.pools?.name ?? ""})`
+          : undefined,
       })) as GlMapping[];
     },
     enabled: !!currentTenant,
@@ -326,8 +343,16 @@ const LegacyGlAllocation = () => {
       return { label: `→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
     }
 
+    const parts: string[] = [];
     if (mapping.gl_account_code) {
-      return { label: `${mapping.gl_account_code} ${mapping.gl_account_name}`, mapped: true };
+      parts.push(`${mapping.gl_account_code} ${mapping.gl_account_name}`);
+    }
+    if (mapping.control_account_name) {
+      parts.push(`⇢ ${mapping.control_account_name}`);
+    }
+
+    if (parts.length > 0) {
+      return { label: parts.join(" | "), mapped: true };
     }
 
     return { label: "⚠️ GL not set", mapped: false };
