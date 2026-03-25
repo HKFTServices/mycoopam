@@ -348,6 +348,10 @@ const LegacyGlAllocation = () => {
         }
       }
 
+      // Debug: verify key entries are loaded
+      const check12497 = entries.filter(e => e.cft_id === "12497" || e.parent_id === "12497");
+      console.log("CFT 12497 group:", check12497.map(e => `${e.cft_id} (parent=${e.parent_id}, entry=${e.entry_type_id}, DR=${e.debit}, CR=${e.credit})`));
+
       setCftEntries(entries);
       toast.success(`Loaded ${entries.length} entries from 1 Mar 2025`);
     } catch (err: any) {
