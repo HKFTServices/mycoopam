@@ -976,8 +976,7 @@ const LegacyGlAllocation = () => {
                   <Button
                     size="sm"
                     onClick={() => {
-                      setProposedGroups(allProposed);
-                      postEntries();
+                      postEntries(allProposed);
                     }}
                     disabled={posting}
                     className="gap-2"
