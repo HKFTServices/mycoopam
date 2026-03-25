@@ -269,7 +269,9 @@ const Auth = () => {
                     }
                     setLoading(true);
                     try {
-                      const resetRedirectUrl = `${window.location.origin}/reset-password`;
+                      const resetRedirectUrl = isOnProductionDomain()
+                        ? `${window.location.origin}/reset-password`
+                        : `https://www.myco-op.co.za/reset-password`;
                       const { error } = await supabase.auth.resetPasswordForEmail(email, {
                         redirectTo: resetRedirectUrl,
                       });

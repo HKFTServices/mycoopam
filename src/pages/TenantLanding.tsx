@@ -295,8 +295,11 @@ const TenantLanding = () => {
                     }
                     setLoading(true);
                     try {
+                      const resetOrigin = window.location.hostname.endsWith("myco-op.co.za")
+                        ? window.location.origin
+                        : `https://www.myco-op.co.za`;
                       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/reset-password`,
+                        redirectTo: `${resetOrigin}/reset-password`,
                       });
                       if (error) throw error;
                       toast({
