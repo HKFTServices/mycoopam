@@ -62,9 +62,18 @@ interface Props {
   defaultAccountId?: string;
   depositOnly?: boolean;
   stockOnly?: boolean;
+  defaultTxnCode?: string;
 }
 
-const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccountId, stockOnly }: Props) => {
+const NewTransactionDialog = ({
+  open,
+  onOpenChange,
+  defaultPoolId,
+  defaultAccountId,
+  depositOnly,
+  stockOnly,
+  defaultTxnCode,
+}: Props) => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -702,11 +711,24 @@ const NewTransactionDialog = ({ open, onOpenChange, defaultPoolId, defaultAccoun
   const accountHasHoldings = allHoldings.length > 0;
 
   // Filter txn types based on account holdings (now that allHoldings is available)
-  const filteredTxnTypes = stockOnly
-    ? txnTypes.filter((t: any) => STOCK_ONLY_CODES.includes(t.code))
-    : selectedAccountId && !accountHasHoldings
-      ? txnTypes.filter((t: any) => DEPOSIT_ONLY_CODES.includes(t.code))
-      : txnTypes;
+  const filteredTxnTypes = depositOnly
+    ? txnTypes.filter((t: any) => DEPOSIT_ONLY_CODES.includes(t.code))
+    : stockOnly
+      ? txnTypes.filter((t: any) => STOCK_ONLY_CODES.includes(t.code))
+      : selectedAccountId && !accountHasHoldings
+        ? txnTypes.filter((t: any) => DEPOSIT_ONLY_CODES.includes(t.code))
+        : txnTypes;
+
+  // Preselect a transaction type by code (when provided by caller, e.g., dashboard quick-actions)
+  useEffect(() => {
+    if (!open) return;
+    if (!defaultTxnCode) return;
+    if (selectedTxnTypeId) return;
+    const match = filteredTxnTypes.find((t: any) => t.code === defaultTxnCode) || txnTypes.find((t: any) => t.code === defaultTxnCode);
+    if (match?.id) {
+      setSelectedTxnTypeId(match.id);
+    }
+  }, [open, defaultTxnCode, filteredTxnTypes, txnTypes, selectedTxnTypeId]);
 
   // Holdings for the currently selected pool (used for switch/transfer calcs)
   const holdings = allHoldings.filter((h: any) => h.pool_id === selectedPoolId);

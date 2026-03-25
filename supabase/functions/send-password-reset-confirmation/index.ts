@@ -175,14 +175,14 @@ Deno.serve(async (req) => {
           auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
         });
 
-        const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
-        const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
+        const fromEmail = tenantConfig.smtp_from_email;
         const fromHeader = tenantConfig.smtp_from_name
-          ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
-          : effectiveFromEmail;
+          ? `"${tenantConfig.smtp_from_name}" <${fromEmail}>`
+          : fromEmail;
 
         const info = await transporter.sendMail({
           from: fromHeader,
+          replyTo: tenantConfig.smtp_username?.includes("@") ? tenantConfig.smtp_username : undefined,
           to: profile.email,
           subject,
           html: body,

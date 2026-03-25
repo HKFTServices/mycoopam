@@ -282,12 +282,14 @@ const Auth = () => {
                         },
                       });
                       if (error) throw error;
-                      // If fallback=true, tenant SMTP not configured, use default Supabase auth
                       if (data?.fallback) {
-                        const { error: fallbackErr } = await supabase.auth.resetPasswordForEmail(email, {
-                          redirectTo: resetRedirectUrl,
+                        toast({
+                          title: "Email sender not configured",
+                          description:
+                            "This cooperative is not configured to send password reset emails from its tenant mailer address yet. Please contact your administrator.",
+                          variant: "destructive",
                         });
-                        if (fallbackErr) throw fallbackErr;
+                        return;
                       }
                       toast({
                         title: "Check your email",

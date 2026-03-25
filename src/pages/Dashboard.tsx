@@ -1,41 +1,73 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users, Wallet, TrendingUp, Building2, Gem, ArrowUpRight,
-  ArrowDownRight, CreditCard, PieChart as PieChartIcon, Clock, BarChart3, Banknote,
+  Users,
+  Wallet,
+  TrendingUp,
+  Building2,
+  Gem,
+  ArrowUpRight,
+  ArrowDownRight,
+  CreditCard,
+  Clock,
+  Banknote,
+  MoreHorizontal,
+  CalendarDays,
+  SlidersHorizontal,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 import { PoolIcon } from "@/components/pools/PoolIcon";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
 
-const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--accent-foreground))",
-  "hsl(210, 70%, 55%)",
-  "hsl(150, 60%, 45%)",
-  "hsl(35, 85%, 55%)",
-  "hsl(280, 60%, 55%)",
-  "hsl(0, 65%, 55%)",
-  "hsl(190, 70%, 45%)",
+type TimeRange = "12m" | "30d" | "7d" | "24h";
+
+const TIME_RANGES: Array<{ value: TimeRange; label: string; days: number }> = [
+  { value: "12m", label: "12 months", days: 365 },
+  { value: "30d", label: "30 days", days: 30 },
+  { value: "7d", label: "7 days", days: 7 },
+  { value: "24h", label: "24 hours", days: 1 },
 ];
+
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function monthKeyFromIsoDate(dateStr: string) {
+  return dateStr.slice(0, 7);
+}
+
+function monthLabelFromKey(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  const dt = new Date(y, (m ?? 1) - 1, 1);
+  return dt.toLocaleString("en-ZA", { month: "short" });
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
 
 const Dashboard = () => {
   const { currentTenant, tenants, branding } = useTenant();
   const { profile, user } = useAuth();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
+  const [txnDialogMode, setTxnDialogMode] = useState<"deposit" | "send">("deposit");
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>("12m");
 
   const tenantId = currentTenant?.id;
-  const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}` : "Welcome back";
+  const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   // User roles
   const { data: userRoles = [] } = useQuery({
@@ -55,6 +87,13 @@ const Dashboard = () => {
     (r: any) => r.role === "tenant_admin" && r.tenant_id === tenantId
   );
   const isAdmin = isSuperAdmin || isTenantAdmin;
+
+  const rangeDays = TIME_RANGES.find((r) => r.value === timeRange)?.days ?? 365;
+  const fromDateStr = useMemo(() => {
+    const from = new Date();
+    from.setDate(from.getDate() - rangeDays);
+    return isoDate(from);
+  }, [rangeDays]);
 
   // ── Admin Stats ──
   const { data: adminStats } = useQuery({
@@ -133,6 +172,58 @@ const Dashboard = () => {
 
   const totalAUM = poolSummaries.reduce((sum: number, p: any) => sum + p.totalValue, 0);
 
+  // ── Admin: AUM over time (monthly) ──
+  const { data: aumOverTime = [] } = useQuery({
+    queryKey: ["dashboard_aum_over_time", tenantId, fromDateStr],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const { data, error } = await (supabase as any)
+        .from("daily_pool_prices")
+        .select("totals_date, total_units, unit_price_sell, unit_price_buy")
+        .eq("tenant_id", tenantId)
+        .gte("totals_date", fromDateStr)
+        .order("totals_date", { ascending: true });
+      if (error) throw error;
+
+      const dayTotals = new Map<string, number>();
+      for (const row of data ?? []) {
+        const day = row.totals_date;
+        const units = Number(row.total_units || 0);
+        const price = Number(row.unit_price_sell ?? row.unit_price_buy ?? 0);
+        const val = units * price;
+        dayTotals.set(day, (dayTotals.get(day) ?? 0) + val);
+      }
+
+      const monthAgg = new Map<string, { sum: number; count: number }>();
+      for (const [day, total] of dayTotals.entries()) {
+        const mk = monthKeyFromIsoDate(day);
+        const cur = monthAgg.get(mk) ?? { sum: 0, count: 0 };
+        cur.sum += total;
+        cur.count += 1;
+        monthAgg.set(mk, cur);
+      }
+
+      const months: string[] = [];
+      const now = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - rangeDays);
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
+      while (cursor <= end) {
+        const mk = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+        months.push(mk);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      return months.map((mk) => {
+        const a = monthAgg.get(mk);
+        const value = a ? a.sum / Math.max(1, a.count) : 0;
+        return { key: mk, label: monthLabelFromKey(mk), value };
+      });
+    },
+    enabled: !!tenantId && isAdmin,
+  });
+
   // ── Loan Outstanding ──
   const { data: loanSummaries = [] } = useQuery({
     queryKey: ["loan_outstanding", tenantId],
@@ -163,6 +254,94 @@ const Dashboard = () => {
       return data ?? [];
     },
     enabled: !!tenantId && isAdmin,
+  });
+
+  // ── Member: Accounts (for deposits / chart) ──
+  const { data: memberAccountIds = [] } = useQuery({
+    queryKey: ["dashboard_member_account_ids", user?.id, tenantId],
+    queryFn: async () => {
+      if (!user || !tenantId) return [];
+      const { data: rels } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true);
+      if (!rels?.length) return [];
+      const entityIds = rels.map((r: any) => r.entity_id);
+      const { data: accounts } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id")
+        .in("entity_id", entityIds)
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .eq("is_approved", true);
+      return (accounts ?? []).map((a: any) => a.id as string);
+    },
+    enabled: !!user && !!tenantId && !isAdmin,
+  });
+
+  // ── Member: Deposits over time (monthly) ──
+  const { data: memberDepositsOverTime = [] } = useQuery({
+    queryKey: ["dashboard_member_deposits_over_time", tenantId, memberAccountIds, fromDateStr],
+    queryFn: async () => {
+      if (!tenantId || memberAccountIds.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("unit_transactions")
+        .select("transaction_date, credit, value")
+        .eq("tenant_id", tenantId)
+        .in("entity_account_id", memberAccountIds)
+        .gte("transaction_date", fromDateStr)
+        .eq("is_active", true)
+        .gt("credit", 0);
+      if (error) throw error;
+
+      const monthTotals = new Map<string, number>();
+      for (const row of data ?? []) {
+        const mk = monthKeyFromIsoDate(row.transaction_date);
+        const amt = Number(row.value ?? 0) || Number(row.credit ?? 0);
+        monthTotals.set(mk, (monthTotals.get(mk) ?? 0) + amt);
+      }
+
+      const months: string[] = [];
+      const now = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - rangeDays);
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
+      while (cursor <= end) {
+        const mk = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+        months.push(mk);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      return months.map((mk) => ({
+        key: mk,
+        label: monthLabelFromKey(mk),
+        value: monthTotals.get(mk) ?? 0,
+      }));
+    },
+    enabled: !!tenantId && !isAdmin && memberAccountIds.length > 0,
+  });
+
+  // ── Member: Recent deposits ──
+  const { data: memberRecentDeposits = [] } = useQuery({
+    queryKey: ["dashboard_member_recent_deposits", tenantId, memberAccountIds],
+    queryFn: async () => {
+      if (!tenantId || memberAccountIds.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("unit_transactions")
+        .select("id, transaction_date, credit, value, notes, pools(name)")
+        .eq("tenant_id", tenantId)
+        .in("entity_account_id", memberAccountIds)
+        .eq("is_active", true)
+        .gt("credit", 0)
+        .order("transaction_date", { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!tenantId && !isAdmin && memberAccountIds.length > 0,
   });
 
   // ── Member: Holdings ──
@@ -331,14 +510,95 @@ const Dashboard = () => {
 
   const showPendingWelcome = !isAdmin && !hasHoldings && !showFirstDeposit && hasPendingApplication;
 
+  const chartSeries = isAdmin ? aumOverTime : memberDepositsOverTime;
+  const chartTitle = isAdmin ? "Balance over time" : "Deposits over time";
+  const recentListTitle = isAdmin ? "Recent deposits" : "Recent deposits";
+
+  const primaryMetric = useMemo(() => {
+    if (isAdmin) return { title: "Primary account", subtitle: "Co-op AUM", value: totalAUM };
+    return { title: "Primary account", subtitle: "My portfolio", value: memberTotalValue };
+  }, [isAdmin, totalAUM, memberTotalValue]);
+
+  const secondaryMetric = useMemo(() => {
+    if (isAdmin) return { title: "Secondary account", subtitle: "Loans outstanding", value: totalLoansOutstanding };
+    const rangeTotal = memberDepositsOverTime.reduce((sum: number, x: any) => sum + Number(x.value ?? 0), 0);
+    return { title: "Secondary account", subtitle: `Deposits (${TIME_RANGES.find((r) => r.value === timeRange)?.label ?? "range"})`, value: rangeTotal };
+  }, [isAdmin, memberDepositsOverTime, timeRange, totalLoansOutstanding]);
+
+  const primaryChangePct = useMemo(() => {
+    const series = chartSeries;
+    if (!series || series.length < 2) return null;
+    const last = Number(series[series.length - 1]?.value ?? 0);
+    const prev = Number(series[series.length - 2]?.value ?? 0);
+    if (prev <= 0) return null;
+    return ((last - prev) / prev) * 100;
+  }, [chartSeries]);
+
+  const ringPrimary = useMemo(() => {
+    const pct = primaryChangePct ?? 3.4;
+    return clamp(60 + Math.abs(pct) * 5, 20, 92);
+  }, [primaryChangePct]);
+
+  const ringSecondary = useMemo(() => {
+    const base = isAdmin ? 42 : 55;
+    return base;
+  }, [isAdmin]);
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{greeting}</h1>
-        <p className="text-muted-foreground mt-1">
-          {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
-        </p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Banking Dashboard</h1>
+          <p className="text-muted-foreground mt-1 truncate">{greeting}</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setTxnDialogMode("deposit");
+              setSelectedPoolId(undefined);
+              setTxnDialogOpen(true);
+            }}
+          >
+            Deposit
+          </Button>
+          <Button
+            onClick={() => {
+              setTxnDialogMode("send");
+              setSelectedPoolId(undefined);
+              setTxnDialogOpen(true);
+            }}
+          >
+            Send funds
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+          <TabsList className="h-8">
+            {TIME_RANGES.map((r) => (
+              <TabsTrigger key={r.value} value={r.value} className="text-xs px-3">
+                {r.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <CalendarDays className="h-4 w-4 mr-2" />
+            Select dates
+          </Button>
+          <Button variant="outline" size="sm">
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        </div>
       </div>
 
       {/* No tenant */}
@@ -359,15 +619,6 @@ const Dashboard = () => {
       {/* Pending Application Welcome + Co-op Summary */}
       {showPendingWelcome && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {/* Co-op AUM pie chart */}
-          {poolSummaries.length > 0 && (
-            <AumPieChart
-              title="Co-op Assets Under Management"
-              description={`Total: ${formatCurrency(totalAUM)}`}
-              data={poolSummaries.map((p: any) => ({ name: p.name, value: p.totalValue }))}
-            />
-          )}
-
           {/* Welcome card */}
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="py-6 h-full flex items-center">
@@ -426,170 +677,110 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* ── Admin Stats ── */}
-      {currentTenant && isAdmin && adminStats && (
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Entities" value={adminStats.totalEntities} icon={Users} description="Registered entities" />
-          <StatCard label="Active Accounts" value={adminStats.totalAccounts} icon={CreditCard} description="Approved & active" />
-          <StatCard label="Active Pools" value={adminStats.activePools} icon={PieChartIcon} description="Investment pools" />
-          <StatCard
-            label="Total AUM"
-            value={formatCurrency(totalAUM)}
-            icon={TrendingUp}
-            description="Assets under management"
-            highlight
-          />
-        </div>
-      )}
-
-      {/* ── Loans Outstanding (admin) ── */}
-      {currentTenant && isAdmin && totalLoansOutstanding > 0 && (
-        <button
-          onClick={() => setLoanDialogOpen(true)}
-          className="w-full text-left"
-        >
-          <Card className="border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors cursor-pointer">
-            <CardContent className="flex items-center gap-4 py-4">
-              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                <Banknote className="h-5 w-5 text-destructive" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Total Loans Outstanding</p>
-                <p className="text-xl font-bold text-destructive">{formatCurrency(totalLoansOutstanding)}</p>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {loanSummaries.filter((s: any) => s.outstanding > 0.01).length} entities →
-              </div>
-            </CardContent>
-          </Card>
-        </button>
-      )}
-
-
-      {currentTenant && !showPendingWelcome && (poolSummaries.length > 0 || memberHoldings.length > 0) && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {/* Co-op AUM pie (visible to all with pool data) */}
-          {poolSummaries.length > 0 && (
-            <AumPieChart
-              title="Co-op Assets Under Management"
-              description={`Total: ${formatCurrency(totalAUM)}`}
-              data={poolSummaries.map((p: any) => ({ name: p.name, value: p.totalValue }))}
+      {currentTenant && !showPendingWelcome && (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <MetricCard
+              title={primaryMetric.title}
+              subtitle={primaryMetric.subtitle}
+              value={primaryMetric.value}
+              ringValue={ringPrimary}
+              changePct={primaryChangePct}
+              variant="primary"
             />
-          )}
-
-          {/* My AUM pie */}
-          {memberHoldings.length > 0 ? (
-            <AumPieChart
-              title="My Portfolio"
-              description={`Total: ${formatCurrency(memberTotalValue)}`}
-              data={memberHoldings.map((h: any) => ({ name: h.poolName, value: h.value }))}
+            <MetricCard
+              title={secondaryMetric.title}
+              subtitle={secondaryMetric.subtitle}
+              value={secondaryMetric.value}
+              ringValue={ringSecondary}
+              changePct={null}
+              variant="neutral"
+              onClick={isAdmin && totalLoansOutstanding > 0 ? () => setLoanDialogOpen(true) : undefined}
             />
-          ) : !isAdmin && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-6 h-full flex items-center">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Clock className="h-6 w-6 text-primary" />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-sm">{chartTitle}</CardTitle>
+                    <CardDescription className="text-xs">
+                      {isAdmin ? "Average monthly AUM" : "Monthly deposits"}
+                    </CardDescription>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold">Welcome to {branding.legalEntityName || currentTenant?.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.
-                    </p>
-                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {chartSeries?.length ? (
+                    <div className="h-[220px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartSeries}>
+                          <XAxis
+                            dataKey="label"
+                            tickLine={false}
+                            axisLine={false}
+                            fontSize={11}
+                            stroke="hsl(var(--muted-foreground))"
+                          />
+                          <Tooltip content={<ChartTooltip />} />
+                          <Bar
+                            dataKey="value"
+                            radius={[6, 6, 0, 0]}
+                            fill="hsl(var(--primary))"
+                            background={{ fill: "hsl(var(--muted))", radius: 6 }}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
+                      No chart data yet.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {isAdmin ? (
+                <PoolSummariesCard pools={poolSummaries} />
+              ) : (
+                <CardsCard deposits={memberRecentDeposits} cardholderName={profile?.first_name || "Member"} />
+              )}
+
+              {isAdmin && adminStats ? (
+                <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                  <StatCard label="Entities" value={adminStats.totalEntities} icon={Users} description="Registered entities" />
+                  <StatCard label="Active Accounts" value={adminStats.totalAccounts} icon={CreditCard} description="Approved & active" />
+                  <StatCard label="Active Pools" value={adminStats.activePools} icon={Wallet} description="Investment pools" />
+                  <StatCard label="Approvals" value={adminStats.pendingAccounts} icon={TrendingUp} description="Pending activations" />
                 </div>
+              ) : null}
+            </div>
+
+            <Card className="lg:col-span-1">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div>
+                  <CardTitle className="text-sm">{recentListTitle}</CardTitle>
+                  <CardDescription className="text-xs">
+                    {isAdmin ? "Latest operating journal entries" : "Latest account deposits"}
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isAdmin ? (
+                  <RecentAdminTransactions items={recentTransactions} learnMoreTo="/dashboard/transactions" />
+                ) : (
+                  <RecentMemberDeposits items={memberRecentDeposits} learnMoreTo="/dashboard/statements" />
+                )}
               </CardContent>
             </Card>
-          )}
-        </div>
-      )}
-
-      {/* ── Admin: Pool Summaries + Recent Transactions ── */}
-      {currentTenant && isAdmin && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {/* Pool Summaries */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Pool Summaries</CardTitle>
-              <CardDescription>Unit prices and total values</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {poolSummaries.length > 0 ? (
-                <div className="space-y-2">
-                  {poolSummaries.map((pool: any) => (
-                    <div key={pool.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
-                      <div className="flex items-center gap-2.5">
-                        {pool.iconUrl ? (
-                          <img src={pool.iconUrl} alt={pool.name} className="h-7 w-7 rounded object-cover shrink-0" />
-                        ) : (
-                          <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-                            {pool.name.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium">{pool.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {Number(pool.totalUnits).toLocaleString("en-ZA", { maximumFractionDigits: 0 })} units
-                            {pool.latestDate ? ` · ${pool.latestDate}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">{formatCurrency(pool.totalValue)}</p>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(pool.unitPrice, "R", 4)}/unit</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-8 text-center">No pool data available.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Transactions */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Recent Transactions</CardTitle>
-              <CardDescription>Latest operating journal entries</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentTransactions.length > 0 ? (
-                <div className="space-y-1">
-                  {recentTransactions.map((txn: any) => (
-                    <div key={txn.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors">
-                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        txn.transaction_type === "bank" ? "bg-emerald-500/10" : "bg-blue-500/10"
-                      }`}>
-                        {txn.transaction_type === "bank" ? (
-                          <ArrowUpRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">{txn.description}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {txn.transaction_date}
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            {txn.transaction_type}
-                          </Badge>
-                          {txn.is_reversed && (
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">reversed</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm font-medium shrink-0">{formatCurrency(Number(txn.amount))}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-8 text-center">No transactions yet.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Non-admin with no holdings and no first-deposit prompt */}
@@ -611,7 +802,8 @@ const Dashboard = () => {
         open={txnDialogOpen}
         onOpenChange={setTxnDialogOpen}
         defaultPoolId={selectedPoolId}
-        depositOnly
+        depositOnly={txnDialogMode === "deposit"}
+        defaultTxnCode={txnDialogMode === "send" ? "TRANSFER" : "DEPOSIT_FUNDS"}
       />
 
       <LoanDetailsDialog
@@ -621,68 +813,6 @@ const Dashboard = () => {
         totalOutstanding={totalLoansOutstanding}
       />
     </div>
-  );
-};
-
-// ── AUM Pie Chart Component ──
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload?.length) {
-    return (
-      <div className="rounded-lg border bg-popover px-3 py-2 text-sm shadow-md">
-        <p className="font-medium">{payload[0].name}</p>
-        <p className="text-muted-foreground">{formatCurrency(payload[0].value)}</p>
-        <p className="text-xs text-muted-foreground">{(payload[0].payload.percent * 100).toFixed(1)}%</p>
-      </div>
-    );
-  }
-  return null;
-};
-
-const AumPieChart = ({
-  title, description, data,
-}: {
-  title: string;
-  description: string;
-  data: { name: string; value: number }[];
-}) => {
-  const total = data.reduce((s, d) => s + d.value, 0);
-  const chartData = data.map((d) => ({ ...d, percent: total > 0 ? d.value / total : 0 }));
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={2}
-                dataKey="value"
-                nameKey="name"
-              >
-                {chartData.map((_, idx) => (
-                  <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                formatter={(value: string) => <span className="text-sm text-foreground">{value}</span>}
-                iconType="circle"
-                iconSize={8}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
@@ -713,3 +843,289 @@ const StatCard = ({
 );
 
 export default Dashboard;
+
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  const val = Number(payload[0].value ?? 0);
+  return (
+    <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
+      <p className="font-medium">{label}</p>
+      <p className="text-muted-foreground mt-0.5">{formatCurrency(val)}</p>
+    </div>
+  );
+};
+
+const Ring = ({ value, variant }: { value: number; variant: "primary" | "neutral" }) => {
+  const size = 44;
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = clamp(value, 0, 100);
+  const dash = (pct / 100) * c;
+  const color = variant === "primary" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))";
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke="hsl(var(--muted))"
+        strokeWidth={stroke}
+        fill="transparent"
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke={color}
+        strokeWidth={stroke}
+        fill="transparent"
+        strokeLinecap="round"
+        strokeDasharray={`${dash} ${c - dash}`}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </svg>
+  );
+};
+
+const MetricCard = ({
+  title,
+  subtitle,
+  value,
+  ringValue,
+  changePct,
+  variant,
+  onClick,
+}: {
+  title: string;
+  subtitle: string;
+  value: number;
+  ringValue: number;
+  changePct: number | null;
+  variant: "primary" | "neutral";
+  onClick?: () => void;
+}) => {
+  const changeLabel =
+    changePct == null
+      ? null
+      : `${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%`;
+
+  return (
+    <Card
+      className={onClick ? "cursor-pointer hover:shadow-sm transition-shadow" : undefined}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === "Enter" || e.key === " ") onClick();
+      }}
+    >
+      <CardContent className="py-5">
+        <div className="flex items-start gap-4">
+          <Ring value={ringValue} variant={variant} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold truncate">{title}</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 -mr-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Current balance</p>
+            <p className="text-2xl font-bold tracking-tight mt-1">{formatCurrency(value)}</p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+              {changeLabel ? (
+                <span className={`text-xs font-medium ${changePct! >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                  {changeLabel}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const RecentAdminTransactions = ({ items, learnMoreTo }: { items: any[]; learnMoreTo: string }) => {
+  if (!items?.length) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No transactions yet.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((txn: any) => (
+        <div key={txn.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/40 transition-colors">
+          <div
+            className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+              txn.transaction_type === "bank" ? "bg-emerald-500/10" : "bg-blue-500/10"
+            }`}
+          >
+            {txn.transaction_type === "bank" ? (
+              <ArrowUpRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <ArrowDownRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm truncate">{txn.description}</p>
+            <p className="text-xs text-muted-foreground truncate">{txn.transaction_date}</p>
+          </div>
+          <p className="text-sm font-medium shrink-0">{formatCurrency(Number(txn.amount))}</p>
+        </div>
+      ))}
+      <div className="pt-2 text-right">
+        <Button variant="link" asChild className="h-auto px-0 text-xs">
+          <Link to={learnMoreTo}>Learn more</Link>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const RecentMemberDeposits = ({ items, learnMoreTo }: { items: any[]; learnMoreTo: string }) => {
+  if (!items?.length) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No deposits yet.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((row: any) => {
+        const poolName = row.pools?.name || "Deposit";
+        const amount = Number(row.value ?? 0) || Number(row.credit ?? 0);
+        return (
+          <div key={row.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/40 transition-colors">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+              <CreditCard className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm truncate">{poolName}</p>
+              <p className="text-xs text-muted-foreground truncate">{row.transaction_date}</p>
+            </div>
+            <p className="text-sm font-medium shrink-0 text-emerald-600 dark:text-emerald-400">
+              +{formatCurrency(amount)}
+            </p>
+          </div>
+        );
+      })}
+      <div className="pt-2 text-right">
+        <Button variant="link" asChild className="h-auto px-0 text-xs">
+          <Link to={learnMoreTo}>Learn more</Link>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const CardsCard = ({ deposits, cardholderName }: { deposits: any[]; cardholderName: string }) => {
+  const total = deposits.reduce((s: number, d: any) => s + (Number(d.value ?? 0) || 0), 0);
+  const left = Math.max(0, total * 0.35);
+  const right = Math.max(0, total * 0.2);
+  const leftPct = total > 0 ? clamp((left / total) * 100, 5, 95) : 35;
+  const rightPct = total > 0 ? clamp((right / total) * 100, 5, 95) : 20;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm">Your cards</CardTitle>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl p-4 text-white bg-gradient-to-br from-primary to-primary/70 shadow-sm">
+            <div className="text-xs opacity-90">Untitled.</div>
+            <div className="mt-6 text-[10px] opacity-80">{cardholderName.toUpperCase()}</div>
+            <div className="mt-1 font-mono text-xs tracking-widest opacity-90">1234 1234 1234 1234</div>
+            <div className="mt-3">
+              <p className="text-[10px] opacity-80">Spending this month</p>
+              <Progress value={leftPct} className="h-1.5 mt-2 bg-white/20" />
+              <div className="mt-2 flex items-center justify-between text-[10px] opacity-90">
+                <span />
+                <span>{formatCurrency(left)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4 text-white bg-gradient-to-br from-zinc-900 to-zinc-700 shadow-sm">
+            <div className="text-xs opacity-90">Untitled.</div>
+            <div className="mt-6 text-[10px] opacity-80">{cardholderName.toUpperCase()}</div>
+            <div className="mt-1 font-mono text-xs tracking-widest opacity-90">0124 1234 1234 1234</div>
+            <div className="mt-3">
+              <p className="text-[10px] opacity-80">Spending this month</p>
+              <Progress value={rightPct} className="h-1.5 mt-2 bg-white/20" />
+              <div className="mt-2 flex items-center justify-between text-[10px] opacity-90">
+                <span />
+                <span>{formatCurrency(right)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end">
+          <Button variant="outline" size="sm">
+            Manage cards
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const PoolSummariesCard = ({ pools }: { pools: any[] }) => {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle className="text-sm">Pool summaries</CardTitle>
+          <CardDescription className="text-xs">Unit prices and total values</CardDescription>
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {pools?.length ? (
+          <div className="space-y-2">
+            {pools.slice(0, 6).map((pool: any) => (
+              <div key={pool.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {pool.iconUrl ? (
+                    <img src={pool.iconUrl} alt={pool.name} className="h-7 w-7 rounded object-cover shrink-0" />
+                  ) : (
+                    <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                      {pool.name.charAt(0)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{pool.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {Number(pool.totalUnits).toLocaleString("en-ZA", { maximumFractionDigits: 0 })} units
+                      {pool.latestDate ? ` · ${pool.latestDate}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0 pl-2">
+                  <p className="text-sm font-semibold">{formatCurrency(pool.totalValue)}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(pool.unitPrice, "R", 4)}/unit</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-8 text-center">No pool data available.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
