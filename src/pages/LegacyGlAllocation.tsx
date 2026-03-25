@@ -123,7 +123,7 @@ const LegacyGlAllocation = () => {
       if (caIds.length > 0) {
         const { data: cas } = await supabase
           .from("control_accounts")
-          .select("id, name, pool_id, pools(name)")
+          .select("id, name, pool_id, pools!control_accounts_pool_id_fkey(name)")
           .in("id", caIds);
         caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
       }
@@ -156,7 +156,7 @@ const LegacyGlAllocation = () => {
       const caIds = mappings.map(m => m.new_id);
       const { data: cas } = await supabase
         .from("control_accounts")
-        .select("id, name, account_type, pool_id, pools(name)")
+        .select("id, name, account_type, pool_id, pools!control_accounts_pool_id_fkey(name)")
         .in("id", caIds);
 
       const caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
@@ -180,7 +180,7 @@ const LegacyGlAllocation = () => {
       if (!currentTenant) return [];
       const { data } = await supabase
         .from("control_accounts")
-        .select("id, name, account_type, pool_id, pools(name)")
+        .select("id, name, account_type, pool_id, pools!control_accounts_pool_id_fkey(name)")
         .eq("tenant_id", currentTenant.id);
       return data ?? [];
     },
@@ -482,7 +482,8 @@ const LegacyGlAllocation = () => {
           description: `VAT — ${ca?.pool_name ?? ""}`,
           debit: flipToCR ? 0 : entry.debit,
           credit: flipToCR ? amount : entry.credit,
-          gl_account_id: null, gl_account_label: "",
+          gl_account_id: mapping.gl_account_id,
+          gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
           control_account_id: ca?.new_id ?? null,
           control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `VAT CA#${entry.cash_account_id}`,
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
