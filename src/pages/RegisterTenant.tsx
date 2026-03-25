@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Building2, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
+import { getSiteUrl } from "@/lib/getSiteUrl";
 
 const RegisterTenant = () => {
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ const RegisterTenant = () => {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: getSiteUrl(),
           data: { first_name: firstName.trim(), last_name: lastName.trim() },
         },
       });
