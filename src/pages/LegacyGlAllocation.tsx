@@ -1255,7 +1255,7 @@ const LegacyGlAllocation = () => {
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowPreview(false)}>Cancel</Button>
             <Button
-              onClick={postEntries}
+              onClick={() => postEntries()}
               disabled={posting || proposedGroups.filter(g => g.isBalanced).length === 0}
               className="gap-2"
             >
