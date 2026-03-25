@@ -847,9 +847,15 @@ const LegacyGlAllocation = () => {
     // Fee entries (paid from units or otherwise) are handled separately as fee income;
     // the bank payment should reflect only the net payout to the member.
     if (isWithdrawal) {
-      const bankTotal = allEntries
+      // Gross pool redemption (includes fees paid from units)
+      const grossRedemption = allEntries
         .filter(e => e.is_bank && poolWithdrawalEntryTypes.has(e.entry_type_id))
         .reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
+      // Subtract fees paid from units — these don't flow to the bank
+      const feesFromUnits = allEntries
+        .filter(e => withdrawalFeeEntryTypes.has(e.entry_type_id))
+        .reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
+      const bankTotal = grossRedemption - feesFromUnits;
       if (bankTotal > 0) {
         proposed.push({
           description: "Bank Payment",
