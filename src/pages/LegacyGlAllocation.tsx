@@ -444,8 +444,8 @@ const LegacyGlAllocation = () => {
                     <TableHead className="text-xs">Entity</TableHead>
                     <TableHead className="text-xs">Control Account</TableHead>
                     <TableHead className="text-xs text-right">Debit</TableHead>
-                    <TableHead className="text-xs text-right">Credit</TableHead>
-                    <TableHead className="text-xs">GL Allocation</TableHead>
+                     <TableHead className="text-xs text-right">Credit</TableHead>
+                     <TableHead className="text-xs text-right">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
