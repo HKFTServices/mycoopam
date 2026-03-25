@@ -16,7 +16,8 @@ export function getTenantSlugFromSubdomain(): string | null {
   const hostname = window.location.hostname; // e.g. aem.myco-op.co.za
   if (hostname.endsWith(`.${TENANT_DOMAIN}`)) {
     const slug = hostname.replace(`.${TENANT_DOMAIN}`, "").split(".").pop();
-    return slug || null;
+    if (!slug || slug === "www") return null;
+    return slug;
   }
   return null;
 }
