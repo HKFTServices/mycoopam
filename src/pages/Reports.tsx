@@ -243,7 +243,8 @@ const Reports = () => {
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0, exclVatDebit: 0, exclVatCredit: 0 };
 
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      const isStraightPosting = Boolean(r.is_bank) || isLoanEntry;
+      const isLegacy = !!r.legacy_transaction_id;
+      const isStraightPosting = Boolean(r.is_bank) || isLoanEntry || isLegacy;
 
       if (isStraightPosting) {
         map[r.gl_account_id].netDebit += Number(r.debit || 0);
