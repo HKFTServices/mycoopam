@@ -421,7 +421,8 @@ const LegacyGlAllocation = () => {
     }
 
     if (mapping.entry_type_id === "1924") {
-      return { label: `→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
+      const glPart = mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name} | ` : "";
+      return { label: `${glPart}→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
     }
 
     const parts: string[] = [];
@@ -552,10 +553,14 @@ const LegacyGlAllocation = () => {
         // If Share (1922) is present: 1924 = membership fee income (R1 join + R199 fee handled by 1922 split)
         // If no Share: 1924 = normal admin/transaction fee income
         const glId = isFeeEntry
-          ? (tenantGlConfig?.membershipFeeGlId ?? null)
+          ? (hasShareEntry
+              ? (tenantGlConfig?.membershipFeeGlId ?? null)
+              : (mapping.gl_account_id ?? null))
           : (tenantGlConfig?.poolAllocationGlId ?? null);
         const glLabel = isFeeEntry
-          ? (hasShareEntry ? "Membership Fee Income" : "Administration Fee Income")
+          ? (hasShareEntry
+              ? "Membership Fee Income"
+              : (mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "Administration Fee Income"))
           : (tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest");
 
         // 1. DR Cash Control — cash flowing into the pool
