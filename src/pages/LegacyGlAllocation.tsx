@@ -857,6 +857,25 @@ const LegacyGlAllocation = () => {
           transaction_date: txDate, entry_type: "bank_payment",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
+      } else {
+        // Fallback: if no is_bank entries but GL entries are out of balance, insert bank payment for the imbalance
+        const glCheck = proposed.filter(e => e.gl_account_id);
+        const dr = glCheck.reduce((s, e) => s + e.debit, 0);
+        const cr = glCheck.reduce((s, e) => s + e.credit, 0);
+        const imbalance = Math.abs(dr - cr);
+        if (imbalance > 0.01) {
+          proposed.push({
+            description: "Bank Payment (missing)",
+            debit: dr > cr ? 0 : imbalance,
+            credit: dr > cr ? imbalance : 0,
+            gl_account_id: tenantGlConfig?.bankGlId ?? null,
+            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "bank_payment",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
       }
     }
 
