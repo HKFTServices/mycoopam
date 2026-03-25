@@ -285,7 +285,56 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
-  const loadTransactions = async () => {
+  // Fetch income/expense items with GL account mapping (keyed by legacy_id)
+  const { data: incExpMap } = useQuery({
+    queryKey: ["inc-exp-items-map", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return {};
+      // Get legacy mappings for income_expense_items
+      const { data: mappings } = await supabase
+        .from("legacy_id_mappings")
+        .select("legacy_id, new_id")
+        .eq("table_name", "income_expense_items")
+        .eq("tenant_id", currentTenant.id);
+      if (!mappings?.length) return {};
+
+      const itemIds = mappings.map(m => m.new_id);
+      const { data: items } = await (supabase as any)
+        .from("income_expense_items")
+        .select("id, item_code, description, gl_account_id, credit_control_account_id, debit_control_account_id")
+        .in("id", itemIds);
+
+      // Fetch GL account details for items that have gl_account_id
+      const glIds = (items ?? []).filter((i: any) => i.gl_account_id).map((i: any) => i.gl_account_id);
+      let glMap: Record<string, any> = {};
+      if (glIds.length > 0) {
+        const { data: gls } = await supabase.from("gl_accounts").select("id, code, name").in("id", glIds);
+        glMap = Object.fromEntries((gls ?? []).map(g => [g.id, g]));
+      }
+
+      const itemMap = Object.fromEntries((items ?? []).map((i: any) => [i.id, i]));
+      const result: Record<string, IncExpItem> = {};
+      for (const m of mappings) {
+        const item = itemMap[m.new_id];
+        if (item) {
+          const gl = item.gl_account_id ? glMap[item.gl_account_id] : null;
+          result[m.legacy_id] = {
+            id: item.id,
+            item_code: item.item_code,
+            description: item.description,
+            gl_account_id: item.gl_account_id,
+            gl_code: gl?.code ?? null,
+            gl_name: gl?.name ?? null,
+            credit_control_account_id: item.credit_control_account_id,
+            debit_control_account_id: item.debit_control_account_id,
+          };
+        }
+      }
+      return result;
+    },
+    enabled: !!currentTenant,
+  });
+
     if (!currentTenant) return;
     setLoading(true);
     try {
