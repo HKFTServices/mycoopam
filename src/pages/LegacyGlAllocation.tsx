@@ -342,8 +342,16 @@ const LegacyGlAllocation = () => {
       return { label: `→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
     }
 
+    const parts: string[] = [];
     if (mapping.gl_account_code) {
-      return { label: `${mapping.gl_account_code} ${mapping.gl_account_name}`, mapped: true };
+      parts.push(`${mapping.gl_account_code} ${mapping.gl_account_name}`);
+    }
+    if (mapping.control_account_name) {
+      parts.push(`⇢ ${mapping.control_account_name}`);
+    }
+
+    if (parts.length > 0) {
+      return { label: parts.join(" | "), mapped: true };
     }
 
     return { label: "⚠️ GL not set", mapped: false };
