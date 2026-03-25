@@ -123,7 +123,7 @@ const LegacyGlAllocation = () => {
       if (caIds.length > 0) {
         const { data: cas } = await supabase
           .from("control_accounts")
-          .select("id, name, pool_id, pools(name)")
+          .select("id, name, pool_id, pools!control_accounts_pool_id_fkey(name)")
           .in("id", caIds);
         caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
       }
@@ -156,7 +156,7 @@ const LegacyGlAllocation = () => {
       const caIds = mappings.map(m => m.new_id);
       const { data: cas } = await supabase
         .from("control_accounts")
-        .select("id, name, account_type, pool_id, pools(name)")
+        .select("id, name, account_type, pool_id, pools!control_accounts_pool_id_fkey(name)")
         .in("id", caIds);
 
       const caMap = Object.fromEntries((cas ?? []).map((c: any) => [c.id, c]));
@@ -180,7 +180,7 @@ const LegacyGlAllocation = () => {
       if (!currentTenant) return [];
       const { data } = await supabase
         .from("control_accounts")
-        .select("id, name, account_type, pool_id, pools(name)")
+        .select("id, name, account_type, pool_id, pools!control_accounts_pool_id_fkey(name)")
         .eq("tenant_id", currentTenant.id);
       return data ?? [];
     },
