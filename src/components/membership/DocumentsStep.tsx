@@ -29,6 +29,86 @@ interface DocumentsStepProps extends StepProps {
   entityId?: string;
 }
 
+type DocCategory =
+  | "Identity"
+  | "Address"
+  | "Banking"
+  | "Tax"
+  | "Employment & Income"
+  | "Business"
+  | "Legal"
+  | "Other";
+
+const CATEGORY_ORDER: DocCategory[] = [
+  "Identity",
+  "Address",
+  "Banking",
+  "Tax",
+  "Employment & Income",
+  "Business",
+  "Legal",
+  "Other",
+];
+
+function categorizeDocType(name: string): DocCategory {
+  const n = name.toLowerCase();
+
+  // Identity
+  if (n.includes("passport") || n.includes("identity") || /\bid\b/.test(n) || n.includes("id card")) return "Identity";
+
+  // Address
+  if (
+    (n.includes("proof") && n.includes("address")) ||
+    (n.includes("proof") && n.includes("residence")) ||
+    n.includes("utility") ||
+    (n.includes("municipal") && n.includes("account"))
+  ) return "Address";
+
+  // Banking
+  if (
+    n.includes("bank") ||
+    n.includes("account confirmation") ||
+    n.includes("statement") ||
+    n.includes("debit order") ||
+    n.includes("mandate")
+  ) return "Banking";
+
+  // Tax
+  if (n.includes("tax") || n.includes("sars") || n.includes("vat") || n.includes("tax clearance")) return "Tax";
+
+  // Employment & Income
+  if (
+    n.includes("payslip") ||
+    n.includes("pay slip") ||
+    n.includes("salary") ||
+    n.includes("income") ||
+    n.includes("employment") ||
+    n.includes("contract of employment")
+  ) return "Employment & Income";
+
+  // Business
+  if (
+    n.includes("cipc") ||
+    n.includes("registration") ||
+    n.includes("company") ||
+    n.includes("ck") ||
+    n.includes("founding") ||
+    n.includes("directors")
+  ) return "Business";
+
+  // Legal
+  if (
+    n.includes("resolution") ||
+    n.includes("agreement") ||
+    n.includes("consent") ||
+    n.includes("terms") ||
+    n.includes("policy") ||
+    n.includes("authority")
+  ) return "Legal";
+
+  return "Other";
+}
+
 const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps) => {
   const [pendingFile, setPendingFile] = useState<{ docTypeId: string; file: File } | null>(null);
   const { currentTenant } = useTenant();
@@ -225,6 +305,21 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
   // Other (non-required) document types
   const otherDocTypes = allDocTypes.filter((dt: any) => !requiredDocTypeIds.has(dt.id));
 
+  // Group other doc types into categories
+  const otherDocTypesByCategory: Record<DocCategory, any[]> = CATEGORY_ORDER.reduce((acc, cat) => {
+    acc[cat] = [];
+    return acc;
+  }, {} as Record<DocCategory, any[]>);
+
+  for (const dt of otherDocTypes) {
+    const cat = categorizeDocType(dt.name || "");
+    otherDocTypesByCategory[cat].push(dt);
+  }
+
+  for (const cat of CATEGORY_ORDER) {
+    otherDocTypesByCategory[cat].sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+  }
+
   // Check if any required doc is still outstanding
   const getUploaded = (docTypeId: string) => {
     const raw = data.uploadedDocs[docTypeId];
@@ -400,7 +495,23 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
         </CardHeader>
         <CardContent className="space-y-3">
           {otherDocTypes.length > 0 ? (
-            otherDocTypes.map((dt: any) => renderDocTypeRow(dt.id, dt.name, false))
+            <div className="space-y-6">
+              {CATEGORY_ORDER.map((cat) => {
+                const items = otherDocTypesByCategory[cat] || [];
+                if (items.length === 0) return null;
+                return (
+                  <div key={cat} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground">{cat}</p>
+                      <span className="text-[10px] text-muted-foreground">{items.length}</span>
+                    </div>
+                    <div className="space-y-3">
+                      {items.map((dt: any) => renderDocTypeRow(dt.id, dt.name, false))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : allDocTypes.length === 0 ? (
             <div className="text-center py-6">
               <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40" />

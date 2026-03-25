@@ -25,7 +25,7 @@ import {
   AlertTriangle,
   FileDown,
 } from "lucide-react";
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -934,29 +934,39 @@ const Dashboard = () => {
 	                      <MoreHorizontal className="h-4 w-4" />
 	                    </Button>
 	                  </CardHeader>
-	                  <CardContent>
-	                    {memberChartSeries?.length ? (
-	                      <div className="h-[220px]">
-	                        <ResponsiveContainer width="100%" height="100%">
-	                          <BarChart data={memberChartSeries}>
-	                            <XAxis
-	                              dataKey="label"
-	                              tickLine={false}
-	                              axisLine={false}
-	                              fontSize={11}
-	                              stroke="hsl(var(--muted-foreground))"
-	                            />
-	                            <Tooltip content={<ChartTooltip />} />
-	                            <Bar
-	                              dataKey="value"
-	                              radius={[6, 6, 0, 0]}
-	                              fill="hsl(var(--primary))"
-	                              background={{ fill: "hsl(var(--muted))", radius: 6 }}
-	                            />
-	                          </BarChart>
-	                        </ResponsiveContainer>
-	                      </div>
-	                    ) : (
+		                  <CardContent>
+		                    {memberChartSeries?.length ? (
+		                      <div className="h-[220px]">
+		                        <ResponsiveContainer width="100%" height="100%">
+		                          <AreaChart data={memberChartSeries} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
+		                            <defs>
+		                              <linearGradient id="depositsFill" x1="0" y1="0" x2="0" y2="1">
+		                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+		                                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+		                              </linearGradient>
+		                            </defs>
+		                            <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" />
+		                            <XAxis
+		                              dataKey="label"
+		                              tickLine={false}
+		                              axisLine={false}
+		                              fontSize={11}
+		                              stroke="hsl(var(--muted-foreground))"
+		                            />
+		                            <Tooltip content={<ChartTooltip />} />
+		                            <Area
+		                              type="monotone"
+		                              dataKey="value"
+		                              stroke="hsl(var(--primary))"
+		                              strokeWidth={2}
+		                              fill="url(#depositsFill)"
+		                              dot={{ r: 2, strokeWidth: 0, fill: "hsl(var(--primary))" }}
+		                              activeDot={{ r: 4 }}
+		                            />
+		                          </AreaChart>
+		                        </ResponsiveContainer>
+		                      </div>
+		                    ) : (
 	                      <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
 	                        No chart data yet.
 	                      </div>
