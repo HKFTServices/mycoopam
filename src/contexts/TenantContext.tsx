@@ -59,8 +59,30 @@ const applyTheme = (branding: TenantBranding) => {
 
   if (branding.themeSidebarHsl) {
     root.style.setProperty("--sidebar-background", branding.themeSidebarHsl);
+    // Pick readable sidebar foreground colors based on lightness.
+    // branding.themeSidebarHsl is expected to be "H S% L%".
+    const parts = branding.themeSidebarHsl.trim().split(/\s+/);
+    const lightnessPart = parts[2] || "";
+    const lightness = Number(lightnessPart.replace("%", ""));
+    const isDark = !Number.isNaN(lightness) ? lightness < 50 : false;
+
+    if (isDark) {
+      root.style.setProperty("--sidebar-foreground", "0 0% 98%");
+      root.style.setProperty("--sidebar-accent", "222 40% 13%");
+      root.style.setProperty("--sidebar-accent-foreground", "0 0% 98%");
+      root.style.setProperty("--sidebar-border", "222 35% 15%");
+    } else {
+      root.style.setProperty("--sidebar-foreground", "222 47% 11%");
+      root.style.setProperty("--sidebar-accent", "220 16% 93%");
+      root.style.setProperty("--sidebar-accent-foreground", "222 47% 11%");
+      root.style.setProperty("--sidebar-border", "220 16% 90%");
+    }
   } else {
     root.style.removeProperty("--sidebar-background");
+    root.style.removeProperty("--sidebar-foreground");
+    root.style.removeProperty("--sidebar-accent");
+    root.style.removeProperty("--sidebar-accent-foreground");
+    root.style.removeProperty("--sidebar-border");
   }
 };
 
