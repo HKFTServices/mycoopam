@@ -153,24 +153,36 @@ const LegacyGlAllocation = () => {
     if (!currentTenant) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("legacy_id_mappings")
-        .select("legacy_id, notes")
-        .eq("table_name", "cashflow_transactions")
-        .eq("tenant_id", currentTenant.id)
-        .order("legacy_id");
+      // Fetch ALL cashflow_transactions with pagination to avoid the 1000-row default limit
+      let allRows: { legacy_id: string; notes: string | null }[] = [];
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let hasMore = true;
 
-      if (error) throw error;
+      while (hasMore) {
+        const { data: page, error } = await supabase
+          .from("legacy_id_mappings")
+          .select("legacy_id, notes")
+          .eq("table_name", "cashflow_transactions")
+          .eq("tenant_id", currentTenant.id)
+          .like("notes", `%"Type_TransactionID":"${selectedTxType}"%`)
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        allRows = allRows.concat(page ?? []);
+        hasMore = (page?.length ?? 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
 
       const fromDate = new Date("2025-03-01");
       const entries: LegacyCftEntry[] = [];
+      const rootCftIds: string[] = [];
 
-      for (const row of data ?? []) {
+      for (const row of allRows) {
         try {
           const n = JSON.parse(row.notes ?? "{}");
           const txDate = new Date(n.TransactionDate);
           if (txDate < fromDate) continue;
-          if (n.Type_TransactionID !== selectedTxType && n.ParentID === "0") continue;
 
           entries.push({
             id: row.legacy_id,
@@ -186,19 +198,42 @@ const LegacyGlAllocation = () => {
             transaction_date: n.TransactionDate?.split("T")[0] ?? n.TransactionDate?.split(" ")[0] ?? "",
             description: "",
           });
+
+          if (n.ParentID === "0") {
+            rootCftIds.push(n.ID);
+          }
         } catch {}
       }
 
-      // Now find child entries for root transactions
-      const rootIds = entries.filter(e => e.parent_id === "0").map(e => e.cft_id);
-      const allData = data ?? [];
-      
-      for (const row of allData) {
-        try {
-          const n = JSON.parse(row.notes ?? "{}");
-          if (n.ParentID !== "0" && rootIds.includes(n.ParentID)) {
-            const existing = entries.find(e => e.cft_id === n.ID);
-            if (!existing) {
+      // Now fetch child entries that belong to root transactions but have different Type_TransactionID
+      if (rootCftIds.length > 0) {
+        // Fetch children — they reference ParentID matching our roots
+        let childRows: { legacy_id: string; notes: string | null }[] = [];
+        let childFrom = 0;
+        let childHasMore = true;
+
+        while (childHasMore) {
+          const { data: childPage, error: childErr } = await supabase
+            .from("legacy_id_mappings")
+            .select("legacy_id, notes")
+            .eq("table_name", "cashflow_transactions")
+            .eq("tenant_id", currentTenant.id)
+            .not("notes", "like", `%"ParentID":"0"%`)
+            .range(childFrom, childFrom + PAGE_SIZE - 1);
+
+          if (childErr) throw childErr;
+          childRows = childRows.concat(childPage ?? []);
+          childHasMore = (childPage?.length ?? 0) === PAGE_SIZE;
+          childFrom += PAGE_SIZE;
+        }
+
+        const existingCftIds = new Set(entries.map(e => e.cft_id));
+        const rootIdSet = new Set(rootCftIds);
+
+        for (const row of childRows) {
+          try {
+            const n = JSON.parse(row.notes ?? "{}");
+            if (rootIdSet.has(n.ParentID) && !existingCftIds.has(n.ID)) {
               entries.push({
                 id: row.legacy_id,
                 cft_id: n.ID,
@@ -214,8 +249,8 @@ const LegacyGlAllocation = () => {
                 description: "",
               });
             }
-          }
-        } catch {}
+          } catch {}
+        }
       }
 
       setCftEntries(entries);
