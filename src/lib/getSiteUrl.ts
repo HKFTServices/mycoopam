@@ -1,9 +1,7 @@
 /**
  * Returns the canonical site URL for redirects and email links.
  *
- * - In production (myco-op.co.za domain): uses the actual origin
- * - In development / preview: falls back to window.location.origin
- *
+ * Always returns the production domain (myco-op.co.za) for redirects and emails.
  * For tenant-specific URLs, pass the tenant slug to get e.g. https://aem.myco-op.co.za
  */
 
@@ -14,46 +12,35 @@ export function isOnProductionDomain(): boolean {
 }
 
 export function getSiteUrl(tenantSlug?: string | null): string {
+  // If we're on a tenant subdomain, use that origin
   if (isOnProductionDomain()) {
     return window.location.origin;
   }
 
+  // Not on production domain (e.g. Lovable preview) — always use production URLs
   if (tenantSlug) {
     return `https://${tenantSlug}.${PRODUCTION_DOMAIN}`;
   }
 
-  if (isOnProductionDomain()) {
-    return `https://www.${PRODUCTION_DOMAIN}`;
-  }
-
-  return window.location.origin;
+  return `https://www.${PRODUCTION_DOMAIN}`;
 }
 
 /**
- * Navigate to a tenant's landing page.
- * In production → redirects to https://{slug}.myco-op.co.za
- * In dev/preview → uses path-based /t/{slug}
+ * Get the URL for a tenant's landing page.
+ * Always returns the production subdomain URL.
  */
 export function getTenantUrl(slug: string): string {
-  if (isOnProductionDomain()) {
-    return `https://${slug}.${PRODUCTION_DOMAIN}`;
-  }
-  return `/t/${slug}`;
+  return `https://${slug}.${PRODUCTION_DOMAIN}`;
 }
 
 /**
- * Navigate to a tenant URL. In production this does a full redirect
- * to the subdomain; in dev it returns a path for react-router navigate().
+ * Navigate to a tenant URL. Always does a full redirect to the production subdomain.
  */
 export function navigateToTenant(slug: string, navigate: (path: string, opts?: any) => void, opts?: { replace?: boolean }) {
-  if (isOnProductionDomain()) {
-    const url = `https://${slug}.${PRODUCTION_DOMAIN}`;
-    if (opts?.replace) {
-      window.location.replace(url);
-    } else {
-      window.location.href = url;
-    }
+  const url = `https://${slug}.${PRODUCTION_DOMAIN}`;
+  if (opts?.replace) {
+    window.location.replace(url);
   } else {
-    navigate(`/t/${slug}`, opts);
+    window.location.href = url;
   }
 }
