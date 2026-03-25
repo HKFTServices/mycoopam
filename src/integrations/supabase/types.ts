@@ -2057,6 +2057,76 @@ export type Database = {
           },
         ]
       }
+      legacy_gl_mappings: {
+        Row: {
+          control_account_id: string | null
+          created_at: string | null
+          entry_type_id: string
+          entry_type_name: string
+          gl_account_id: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          split_rule: Json | null
+          tenant_id: string
+          transaction_type_id: string
+          transaction_type_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          control_account_id?: string | null
+          created_at?: string | null
+          entry_type_id: string
+          entry_type_name: string
+          gl_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          split_rule?: Json | null
+          tenant_id: string
+          transaction_type_id: string
+          transaction_type_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          control_account_id?: string | null
+          created_at?: string | null
+          entry_type_id?: string
+          entry_type_name?: string
+          gl_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          split_rule?: Json | null
+          tenant_id?: string
+          transaction_type_id?: string
+          transaction_type_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legacy_gl_mappings_control_account_id_fkey"
+            columns: ["control_account_id"]
+            isOneToOne: false
+            referencedRelation: "control_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legacy_gl_mappings_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legacy_gl_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legacy_id_mappings: {
         Row: {
           description: string | null

@@ -117,6 +117,7 @@ const tenantSetupNavItems = [
     { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
   ] },
   { label: "Data Import", icon: Package, path: "/dashboard/setup/data-import" },
+  { label: "Legacy GL Allocation", icon: BookOpen, path: "/dashboard/legacy-gl-allocation" },
   
 ];
 
