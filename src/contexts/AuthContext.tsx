@@ -21,6 +21,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  isPasswordRecovery: false,
+  clearPasswordRecovery: () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -32,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
