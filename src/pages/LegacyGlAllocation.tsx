@@ -247,6 +247,7 @@ const LegacyGlAllocation = () => {
     if (!currentTenant) return;
     setLoading(true);
     try {
+      // Load ALL CFT entries in a single pass (no type filter)
       let allRows: { legacy_id: string; notes: string | null }[] = [];
       const PAGE_SIZE = 1000;
       let from = 0;
@@ -258,7 +259,6 @@ const LegacyGlAllocation = () => {
           .select("legacy_id, notes")
           .eq("table_name", "cashflow_transactions")
           .eq("tenant_id", currentTenant.id)
-          .like("notes", `%"Type_TransactionID":"${selectedTxType}"%`)
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -268,8 +268,7 @@ const LegacyGlAllocation = () => {
       }
 
       const fromDate = new Date("2025-03-01");
-      const entries: LegacyCftEntry[] = [];
-      const rootCftIds: string[] = [];
+      const allParsed: { entry: LegacyCftEntry; txTypeId: string }[] = [];
 
       for (const row of allRows) {
         try {
@@ -277,71 +276,75 @@ const LegacyGlAllocation = () => {
           const txDate = new Date(n.TransactionDate);
           if (txDate < fromDate) continue;
 
-          entries.push({
-            id: row.legacy_id,
-            cft_id: n.ID,
-            parent_id: n.ParentID ?? "0",
-            entry_type_id: n.Type_TransactionEntryID ?? "0",
-            tx_type_id: n.Type_TransactionID ?? "0",
-            entity_id: n.EntityID ?? "0",
-            cash_account_id: n.CashAccountID ?? "0",
-            debit: parseFloat(n.Debit) || 0,
-            credit: parseFloat(n.Credit) || 0,
-            is_bank: n.IsBank === "1",
-            transaction_date: n.TransactionDate?.split("T")[0] ?? n.TransactionDate?.split(" ")[0] ?? "",
-            description: "",
+          allParsed.push({
+            entry: {
+              id: row.legacy_id,
+              cft_id: n.ID,
+              parent_id: n.ParentID ?? "0",
+              entry_type_id: n.Type_TransactionEntryID ?? "0",
+              tx_type_id: n.Type_TransactionID ?? "0",
+              entity_id: n.EntityID ?? "0",
+              cash_account_id: n.CashAccountID ?? "0",
+              debit: parseFloat(n.Debit) || 0,
+              credit: parseFloat(n.Credit) || 0,
+              is_bank: n.IsBank === "1",
+              transaction_date: n.TransactionDate?.split("T")[0] ?? n.TransactionDate?.split(" ")[0] ?? "",
+              description: "",
+            },
+            txTypeId: n.Type_TransactionID ?? "0",
           });
-
-          if (n.ParentID === "0") {
-            rootCftIds.push(n.ID);
-          }
         } catch {}
       }
 
-      // Now fetch child entries that belong to root transactions but have different Type_TransactionID
-      if (rootCftIds.length > 0) {
-        let childRows: { legacy_id: string; notes: string | null }[] = [];
-        let childFrom = 0;
-        let childHasMore = true;
+      // Collect all root IDs for the selected transaction type
+      const rootIds = new Set(
+        allParsed
+          .filter(p => p.entry.parent_id === "0" && p.txTypeId === selectedTxType)
+          .map(p => p.entry.cft_id)
+      );
 
-        while (childHasMore) {
-          const { data: childPage, error: childErr } = await supabase
-            .from("legacy_id_mappings")
-            .select("legacy_id, notes")
-            .eq("table_name", "cashflow_transactions")
-            .eq("tenant_id", currentTenant.id)
-            .not("notes", "like", `%"ParentID":"0"%`)
-            .range(childFrom, childFrom + PAGE_SIZE - 1);
+      // Collect entries: roots of selected type + ALL their children (any type) + orphan 1978s matching by entity+date
+      const entries: LegacyCftEntry[] = [];
+      const addedIds = new Set<string>();
 
-          if (childErr) throw childErr;
-          childRows = childRows.concat(childPage ?? []);
-          childHasMore = (childPage?.length ?? 0) === PAGE_SIZE;
-          childFrom += PAGE_SIZE;
+      // 1. Add roots of the selected type
+      for (const p of allParsed) {
+        if (rootIds.has(p.entry.cft_id)) {
+          entries.push(p.entry);
+          addedIds.add(p.entry.cft_id);
         }
+      }
 
-        const existingCftIds = new Set(entries.map(e => e.cft_id));
-        const rootIdSet = new Set(rootCftIds);
+      // 2. Add all children whose ParentID matches a root
+      for (const p of allParsed) {
+        if (p.entry.parent_id !== "0" && rootIds.has(p.entry.parent_id) && !addedIds.has(p.entry.cft_id)) {
+          entries.push(p.entry);
+          addedIds.add(p.entry.cft_id);
+        }
+      }
 
-        for (const row of childRows) {
-          try {
-            const n = JSON.parse(row.notes ?? "{}");
-            if (rootIdSet.has(n.ParentID) && !existingCftIds.has(n.ID)) {
-              entries.push({
-                id: row.legacy_id,
-                cft_id: n.ID,
-                parent_id: n.ParentID,
-                entry_type_id: n.Type_TransactionEntryID ?? "0",
-                tx_type_id: n.Type_TransactionID ?? "0",
-                entity_id: n.EntityID ?? "0",
-                cash_account_id: n.CashAccountID ?? "0",
-                debit: parseFloat(n.Debit) || 0,
-                credit: parseFloat(n.Credit) || 0,
-                is_bank: n.IsBank === "1",
-                transaction_date: n.TransactionDate?.split("T")[0] ?? n.TransactionDate?.split(" ")[0] ?? "",
-                description: "",
-              });
-            }
-          } catch {}
+      // 3. Add orphan root entries (ParentID=0) that should be grouped with deposits
+      //    e.g. loan instalments (1978), membership shares (1922) with matching entity+date
+      const rootByEntityDate = new Map<string, string>();
+      for (const e of entries) {
+        if (rootIds.has(e.cft_id)) {
+          const key = `${e.entity_id}|${e.transaction_date.split(" ")[0]}`;
+          rootByEntityDate.set(key, e.cft_id);
+        }
+      }
+
+      for (const p of allParsed) {
+        if (addedIds.has(p.entry.cft_id)) continue;
+        if (p.entry.parent_id !== "0") continue;
+        // Only adopt orphans that are NOT themselves a different transaction type root with children
+        if (p.entry.entry_type_id === "1978" || p.entry.entry_type_id === "1922") {
+          const key = `${p.entry.entity_id}|${p.entry.transaction_date.split(" ")[0]}`;
+          if (rootByEntityDate.has(key)) {
+            // Re-parent this orphan as a child of the matching deposit root
+            p.entry.parent_id = rootByEntityDate.get(key)!;
+            entries.push(p.entry);
+            addedIds.add(p.entry.cft_id);
+          }
         }
       }
 
@@ -354,57 +357,19 @@ const LegacyGlAllocation = () => {
     }
   };
 
-  // Group entries by parent
-  // Orphan root entries with entry_type 1978 (loan instalment) that share
-  // the same entity + timestamp as a deposit root get merged into that deposit group.
+  // Group entries by parent (orphans already re-parented during loading)
   const grouped = useMemo(() => {
     const roots = cftEntries.filter(e => e.parent_id === "0");
     const children = cftEntries.filter(e => e.parent_id !== "0");
 
-    // Identify orphan loan instalment roots (1978 with ParentID=0)
-    const orphanLoanRoots = new Set<string>();
-    const depositRoots: LegacyCftEntry[] = [];
-    const otherRoots: LegacyCftEntry[] = [];
-
-    for (const root of roots) {
-      if (root.entry_type_id === "1978" && root.tx_type_id === "0") {
-        orphanLoanRoots.add(root.cft_id);
-      } else if (root.tx_type_id === "1912" || root.entry_type_id === "1921") {
-        depositRoots.push(root);
-      } else {
-        otherRoots.push(root);
-      }
-    }
-
-    // Build a lookup: entity+date -> deposit root cft_id
-    const depositKey = (entityId: string, date: string) => `${entityId}|${date?.split(" ")[0]}`;
-    const depositByKey = new Map<string, string>();
-    for (const dr of depositRoots) {
-      depositByKey.set(depositKey(dr.entity_id, dr.transaction_date), dr.cft_id);
-    }
-
-    // Assign orphan 1978 entries as children of matching deposit roots
-    const adoptedOrphans = new Map<string, LegacyCftEntry[]>();
-    const unmatched: LegacyCftEntry[] = [];
-    for (const root of roots) {
-      if (!orphanLoanRoots.has(root.cft_id)) continue;
-      const key = depositKey(root.entity_id, root.transaction_date);
-      const parentCftId = depositByKey.get(key);
-      if (parentCftId) {
-        if (!adoptedOrphans.has(parentCftId)) adoptedOrphans.set(parentCftId, []);
-        adoptedOrphans.get(parentCftId)!.push(root);
-      } else {
-        unmatched.push(root); // keep as standalone root if no matching deposit
-      }
-    }
-
     const groups: { root: LegacyCftEntry; children: LegacyCftEntry[] }[] = [];
-    for (const root of [...depositRoots, ...otherRoots, ...unmatched]) {
-      const childEntries = children
-        .filter(c => c.parent_id === root.cft_id)
-        .concat(adoptedOrphans.get(root.cft_id) ?? [])
-        .sort((a, b) => parseInt(a.cft_id) - parseInt(b.cft_id));
-      groups.push({ root, children: childEntries });
+    for (const root of roots) {
+      groups.push({
+        root,
+        children: children
+          .filter(c => c.parent_id === root.cft_id)
+          .sort((a, b) => parseInt(a.cft_id) - parseInt(b.cft_id)),
+      });
     }
     return groups.sort((a, b) => a.root.transaction_date.localeCompare(b.root.transaction_date));
   }, [cftEntries]);
