@@ -269,9 +269,11 @@ const Auth = () => {
                     }
                     setLoading(true);
                     try {
-                      const resetRedirectUrl = isOnProductionDomain()
-                        ? `${window.location.origin}/reset-password`
-                        : `https://www.myco-op.co.za/reset-password`;
+                      const storedTenantSlug = localStorage.getItem("tenantSlug");
+                      const tenantSlug = isOnProductionDomain() && window.location.hostname !== "www.myco-op.co.za"
+                        ? window.location.hostname.replace(".myco-op.co.za", "")
+                        : storedTenantSlug;
+                      const resetRedirectUrl = `${getSiteUrl(tenantSlug)}/reset-password${tenantSlug ? `?tenant=${tenantSlug}` : ""}`;
                       const { error } = await supabase.auth.resetPasswordForEmail(email, {
                         redirectTo: resetRedirectUrl,
                       });

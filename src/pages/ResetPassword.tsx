@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getSiteUrl } from "@/lib/getSiteUrl";
+import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -20,19 +22,34 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
+  const tenantSlugFromQuery = searchParams.get("tenant");
+  const tenantSlugFromSubdomain = getTenantSlugFromSubdomain();
+  const tenantSlug = tenantSlugFromQuery || tenantSlugFromSubdomain || localStorage.getItem("tenantSlug");
+
   useEffect(() => {
-    if (isPasswordRecovery) {
-      setIsRecovery(true);
-    }
     const type = searchParams.get("type");
-    if (type === "recovery") {
-      setIsRecovery(true);
-    }
     const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    const hasRecoveryToken = type === "recovery" || hash.includes("type=recovery") || isPasswordRecovery;
+
+    if (hasRecoveryToken) {
       setIsRecovery(true);
     }
-  }, [isPasswordRecovery, searchParams]);
+
+    if (tenantSlug) {
+      localStorage.setItem("tenantSlug", tenantSlug);
+    }
+
+    if (!tenantSlug) return;
+
+    const expectedOrigin = getSiteUrl(tenantSlug);
+    const isOnExpectedOrigin = window.location.origin === expectedOrigin;
+
+    if (hasRecoveryToken && !isOnExpectedOrigin) {
+      const query = searchParams.toString();
+      const targetUrl = `${expectedOrigin}/reset-password${query ? `?${query}` : ""}${window.location.hash}`;
+      window.location.replace(targetUrl);
+    }
+  }, [isPasswordRecovery, searchParams, tenantSlug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +70,6 @@ const ResetPassword = () => {
       clearPasswordRecovery();
       toast({ title: "Password updated successfully" });
 
-      // Send password reset confirmation email via tenant SMTP
       try {
         const tenantId = localStorage.getItem("tenantId");
         await supabase.functions.invoke("send-password-reset-confirmation", {
@@ -63,8 +79,14 @@ const ResetPassword = () => {
         console.warn("Could not send password reset confirmation email:", emailErr);
       }
 
-      // Auto-login: user already has a session, redirect to dashboard
-      setTimeout(() => navigate("/dashboard", { replace: true }), 2000);
+      const dashboardUrl = tenantSlug ? `${getSiteUrl(tenantSlug)}/dashboard` : "/dashboard";
+      setTimeout(() => {
+        if (tenantSlug) {
+          window.location.replace(dashboardUrl);
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+      }, 2000);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
