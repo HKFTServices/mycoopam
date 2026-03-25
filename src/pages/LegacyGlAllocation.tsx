@@ -413,8 +413,14 @@ const LegacyGlAllocation = () => {
     if (mapping.split_rule) {
       const splits = mapping.split_rule.splits;
       if (splits) {
+        // Look up GL codes for each split's gl_account_id
+        const splitLabels = splits.map((s: any) => {
+          const glAcct = glAccounts?.find((g: any) => g.id === s.gl_account_id);
+          const glCode = glAcct ? `${glAcct.code} ` : "";
+          return `${glCode}${s.description}`;
+        });
         return {
-          label: splits.map((s: any) => s.description).join(" + "),
+          label: splitLabels.join(" + "),
           mapped: true,
         };
       }
