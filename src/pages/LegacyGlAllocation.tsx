@@ -75,15 +75,13 @@ interface ProposedGroup {
 const TRANSACTION_TYPES = [
   { id: "1912", name: "Deposit Funds" },
   { id: "1945", name: "Withdrawal" },
+  { id: "1914", name: "Switching" },
+  { id: "1952", name: "Income Expense" },
   { id: "1953", name: "Stock Purchase" },
   { id: "1954", name: "Stock Sale" },
-  { id: "1952", name: "Income Expense" },
   { id: "1959", name: "Loan (Payout)" },
   { id: "1960", name: "Grant" },
   { id: "2000", name: "Loan Write-off" },
-  { id: "1915", name: "Switching" },
-  { id: "1914", name: "Transfer" },
-  { id: "1916", name: "Deposit Metal" },
 ];
 
 const LegacyGlAllocation = () => {
