@@ -288,7 +288,7 @@ const LegacyGlAllocation = () => {
               debit: parseFloat(n.Debit) || 0,
               credit: parseFloat(n.Credit) || 0,
               is_bank: n.IsBank === "1",
-              transaction_date: n.TransactionDate?.split("T")[0] ?? n.TransactionDate?.split(" ")[0] ?? "",
+              transaction_date: (n.TransactionDate ?? "").split("T")[0].split(" ")[0],
               description: "",
             },
             txTypeId: n.Type_TransactionID ?? "0",
