@@ -1286,7 +1286,12 @@ const LegacyGlAllocation = () => {
                             <Badge variant="outline" className="font-mono text-[10px]">
                               {pg.entries.length} entries
                             </Badge>
-                            <span className="ml-1 text-muted-foreground">{rootMapping?.entry_type_name ?? ""}</span>
+                            <span className="ml-1 text-muted-foreground">
+                              {rootMapping?.entry_type_name ?? ""}
+                              {pg.root.inc_exp_id !== "0" && incExpMap?.[pg.root.inc_exp_id]
+                                ? ` — ${incExpMap[pg.root.inc_exp_id].description}`
+                                : ""}
+                            </span>
                           </TableCell>
                           <TableCell className="text-xs">{pg.entityName}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">Proposed</TableCell>
