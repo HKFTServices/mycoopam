@@ -971,6 +971,20 @@ const LegacyGlAllocation = () => {
                   <FileSearch className="h-4 w-4" />
                   Preview CFT Posting
                 </Button>
+                {allProposed.filter(g => g.isBalanced).length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setProposedGroups(allProposed);
+                      postEntries();
+                    }}
+                    disabled={posting}
+                    className="gap-2"
+                  >
+                    {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    Post {allProposed.filter(g => g.isBalanced).length} Balanced Groups
+                  </Button>
+                )}
               </>
             )}
           </div>
