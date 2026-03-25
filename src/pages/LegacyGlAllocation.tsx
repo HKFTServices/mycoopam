@@ -734,27 +734,27 @@ const LegacyGlAllocation = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center justify-between">
-              <span>{selectedTypeName} — {grouped.length} transactions from 1 Mar 2025</span>
+              <span>{selectedTypeName} — {allProposed.length} transactions from 1 Mar 2025</span>
               <div className="flex gap-2">
                 {(() => {
-                  const balanced = grouped.filter(g => {
-                    const allEntries = [g.root, ...g.children];
-                    const d = allEntries.reduce((s, e) => s + e.debit, 0);
-                    const c = allEntries.reduce((s, e) => s + e.credit, 0);
-                    return Math.abs(d - c) < 0.01;
-                  }).length;
-                  const unbalanced = grouped.length - balanced;
+                  const bal = allProposed.filter(g => g.isBalanced).length;
+                  const unbal = allProposed.length - bal;
                   return (
                     <>
                       <Badge variant="outline" className="gap-1">
-                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {balanced} balanced
+                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {bal} balanced
                       </Badge>
-                      {unbalanced > 0 && (
+                      {unbal > 0 && (
                         <Badge variant="destructive" className="gap-1">
-                          <AlertTriangle className="h-3 w-3" /> {unbalanced} unbalanced
+                          <AlertTriangle className="h-3 w-3" /> {unbal} unbalanced
                         </Badge>
                       )}
-                      <Badge variant="outline">{cftEntries.length} total legs</Badge>
+                      <Badge variant="outline">
+                        {allProposed.reduce((s, g) => s + g.entries.length, 0)} proposed entries
+                      </Badge>
+                    </>
+                  );
+                })()}
                     </>
                   );
                 })()}
