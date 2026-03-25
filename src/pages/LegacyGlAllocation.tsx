@@ -866,9 +866,10 @@ const LegacyGlAllocation = () => {
   // ═══════════════════════════════════════════════════════════════
   // POST: Commit the proposed entries to cashflow_transactions
   // ═══════════════════════════════════════════════════════════════
-  const postEntries = async () => {
+  const postEntries = async (groups?: ProposedGroup[]) => {
     if (!currentTenant) return;
-    const balanced = proposedGroups.filter(g => g.isBalanced);
+    const source = groups ?? proposedGroups;
+    const balanced = source.filter(g => g.isBalanced);
     if (balanced.length === 0) {
       toast.error("No balanced groups to post");
       return;
