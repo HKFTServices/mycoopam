@@ -110,11 +110,19 @@ const LegacyGlAllocation = () => {
 
       if (!data?.length) return [];
 
+      // Collect GL IDs from both direct mappings and split rules
       const glIds = data.filter(d => d.gl_account_id).map(d => d.gl_account_id!);
-      const { data: glAccounts } = await supabase
-        .from("gl_accounts")
-        .select("id, code, name")
-        .in("id", glIds);
+      for (const d of data) {
+        if (d.split_rule?.splits) {
+          for (const s of (d.split_rule as any).splits) {
+            if (s.gl_account_id) glIds.push(s.gl_account_id);
+          }
+        }
+      }
+      const uniqueGlIds = [...new Set(glIds)];
+      const { data: glAccounts } = uniqueGlIds.length > 0
+        ? await supabase.from("gl_accounts").select("id, code, name").in("id", uniqueGlIds)
+        : { data: [] };
 
       const glMap = Object.fromEntries((glAccounts ?? []).map(g => [g.id, g]));
 
