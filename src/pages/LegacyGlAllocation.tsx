@@ -421,7 +421,8 @@ const LegacyGlAllocation = () => {
     }
 
     if (mapping.entry_type_id === "1924") {
-      return { label: `→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
+      const glPart = mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name} | ` : "";
+      return { label: `${glPart}→ ${getControlAccountName(entry.cash_account_id)}`, mapped: true };
     }
 
     const parts: string[] = [];
