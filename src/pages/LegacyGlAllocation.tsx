@@ -841,6 +841,25 @@ const LegacyGlAllocation = () => {
       }
     }
 
+    // ── Withdrawal bank payment — if any entry has is_bank=true, add CR Bank GL ──
+    if (isWithdrawal) {
+      const bankTotal = allEntries
+        .filter(e => e.is_bank && (poolWithdrawalEntryTypes.has(e.entry_type_id) || withdrawalFeeEntryTypes.has(e.entry_type_id)))
+        .reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
+      if (bankTotal > 0) {
+        proposed.push({
+          description: "Bank Payment",
+          debit: 0, credit: bankTotal,
+          gl_account_id: tenantGlConfig?.bankGlId ?? null,
+          gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "bank_payment",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+    }
+
     // Balance check: only count entries that have a GL account (exclude cash control-only entries)
     const glEntries = proposed.filter(e => e.gl_account_id);
     const totalDebit = glEntries.reduce((s, e) => s + e.debit, 0);
@@ -909,7 +928,7 @@ const LegacyGlAllocation = () => {
             entry_type: e.entry_type,
             reference: e.reference,
             legacy_transaction_id: e.legacy_transaction_id,
-            is_bank: e.entry_type === "bank_receipt",
+            is_bank: e.entry_type === "bank_receipt" || e.entry_type === "bank_payment",
             is_active: true,
           }))
         );
