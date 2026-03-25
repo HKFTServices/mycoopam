@@ -403,246 +403,188 @@ const LegacyGlAllocation = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════
-  // PREVIEW: Build proposed balanced CFT entries per transaction group
+  // Build proposed balanced CFT entries for a single group
   // ═══════════════════════════════════════════════════════════════
-  const buildPreview = () => {
-    if (!currentTenant || !glMappings || !controlAccounts) return;
+  const memberAcctLoanControl = allControlAccounts?.find(ca => ca.name === "Member Account Loans");
+  const memberAcctCashControl = allControlAccounts?.find(ca => ca.name === "Member Account Cash");
 
-    const memberAcctPool = allControlAccounts?.find(ca => ca.name === "Member Account Cash");
-    const memberAcctLoanControl = allControlAccounts?.find(ca => ca.name === "Member Account Loans");
-    const memberAcctCashControl = allControlAccounts?.find(ca => ca.name === "Member Account Cash");
+  const buildProposedForGroup = (group: { root: LegacyCftEntry; children: LegacyCftEntry[] }): ProposedGroup => {
+    const allEntries = [group.root, ...group.children];
+    const rootEntry = group.root;
+    const entityId = rootEntry.entity_id;
+    const eaInfo = entityAccountMap?.[entityId];
+    const txDate = rootEntry.transaction_date;
+    const rootCftId = rootEntry.cft_id;
 
-    const proposed: ProposedGroup[] = [];
+    const proposed: ProposedCftEntry[] = [];
 
-    for (const group of grouped) {
-      const allEntries = [group.root, ...group.children];
-      const rootEntry = group.root;
-      const entityId = rootEntry.entity_id;
-      const eaInfo = entityAccountMap?.[entityId];
-      const txDate = rootEntry.transaction_date;
-      const rootCftId = rootEntry.cft_id;
+    for (const entry of allEntries) {
+      const mapping = getGlMapping(entry.entry_type_id);
+      if (!mapping) continue;
 
-      const cftEntries: ProposedCftEntry[] = [];
+      const amount = entry.debit > 0 ? entry.debit : entry.credit;
+      if (amount === 0) continue;
 
-      for (const entry of allEntries) {
-        const mapping = getGlMapping(entry.entry_type_id);
-        if (!mapping) continue;
-
-        const amount = entry.debit > 0 ? entry.debit : entry.credit;
-        if (amount === 0) continue;
-
-        // ── Bank Receipt (1921) ──
-        if (entry.entry_type_id === "1921") {
-          cftEntries.push({
-            description: "Bank Deposit",
-            debit: amount,
-            credit: 0,
-            gl_account_id: mapping.gl_account_id,
-            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
-            control_account_id: null,
-            control_account_label: "",
-            pool_id: null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "bank_receipt",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-        }
-
-        // ── Membership Fee (1922) — Split ──
-        else if (entry.entry_type_id === "1922" && mapping.split_rule?.splits) {
-          for (const split of mapping.split_rule.splits) {
-            cftEntries.push({
-              description: split.description,
-              debit: split.amount,
-              credit: 0,
-              gl_account_id: split.gl_account_id,
-              gl_account_label: split.description,
-              control_account_id: null,
-              control_account_label: "",
-              pool_id: null,
-              entity_account_id: eaInfo?.id ?? null,
-              transaction_date: txDate,
-              entry_type: "membership_fee",
-              reference: `Legacy CFT ${rootCftId}`,
-              legacy_transaction_id: rootCftId,
-            });
-          }
-        }
-
-        // ── Pool Cash Control (1924) ──
-        else if (entry.entry_type_id === "1924") {
-          const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-          cftEntries.push({
-            description: `Cash Control — ${ca?.name ?? "Unknown"}`,
-            debit: entry.debit,
-            credit: entry.credit,
-            gl_account_id: null,
-            gl_account_label: "",
-            control_account_id: ca?.new_id ?? null,
-            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-            pool_id: (ca as any)?.pool_id ?? null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "cash_control",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-        }
-
-        // ── VAT (1928) ──
-        else if (entry.entry_type_id === "1928") {
-          cftEntries.push({
-            description: "VAT",
-            debit: entry.debit,
-            credit: entry.credit,
-            gl_account_id: mapping.gl_account_id,
-            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
-            control_account_id: null,
-            control_account_label: "",
-            pool_id: null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "vat",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-        }
-
-        // ── Loan Instalment (1978) — Triple entry ──
-        else if (entry.entry_type_id === "1978") {
-          const repaymentAmount = entry.debit > 0 ? entry.debit : entry.credit;
-
-          // 1. CR Member Loans GL (1025)
-          cftEntries.push({
-            description: "Loan Repayment",
-            debit: 0,
-            credit: repaymentAmount,
-            gl_account_id: mapping.gl_account_id,
-            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
-            control_account_id: null,
-            control_account_label: "",
-            pool_id: null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "loan_repayment",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-
-          // 2. CR Loan Control (Member Account)
-          cftEntries.push({
-            description: "Loan Repayment — Loan Control CR",
-            debit: 0,
-            credit: repaymentAmount,
-            gl_account_id: null,
-            gl_account_label: "",
-            control_account_id: memberAcctLoanControl?.id ?? mapping.control_account_id,
-            control_account_label: `${memberAcctLoanControl?.name ?? "Member Account Loans"}`,
-            pool_id: memberAcctCashControl?.pool_id ?? null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "loan_control_cr",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-
-          // 3. DR Cash Control (Member Account)
-          cftEntries.push({
-            description: "Loan Repayment — Cash Control DR",
-            debit: repaymentAmount,
-            credit: 0,
-            gl_account_id: null,
-            gl_account_label: "",
-            control_account_id: memberAcctCashControl?.id ?? null,
-            control_account_label: `${memberAcctCashControl?.name ?? "Member Account Cash"}`,
-            pool_id: memberAcctCashControl?.pool_id ?? null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "cash_control_dr",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-        }
-
-        // ── Unit Allocation (1986) ──
-        else if (entry.entry_type_id === "1986" || entry.entry_type_id === "2006") {
-          const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-          if (ca) {
-            cftEntries.push({
-              description: `Cash Control — ${ca.name}`,
-              debit: entry.debit,
-              credit: entry.credit,
-              gl_account_id: null,
-              gl_account_label: "",
-              control_account_id: ca.new_id,
-              control_account_label: `${ca.name} (${ca.pool_name})`,
-              pool_id: (ca as any).pool_id ?? null,
-              entity_account_id: eaInfo?.id ?? null,
-              transaction_date: txDate,
-              entry_type: "unit_allocation",
-              reference: `Legacy CFT ${rootCftId}`,
-              legacy_transaction_id: rootCftId,
-            });
-          }
-        }
-
-        // ── Fees (1927, 1929, 1930) ──
-        else if (["1927", "1929", "1930"].includes(entry.entry_type_id)) {
-          cftEntries.push({
-            description: mapping.entry_type_name,
-            debit: entry.debit,
-            credit: entry.credit,
-            gl_account_id: mapping.gl_account_id,
-            gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
-            control_account_id: null,
-            control_account_label: "",
-            pool_id: null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "fee",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
-          });
-        }
-
-        // ── Fallback: any other mapped entry type ──
-        else {
-          const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-          cftEntries.push({
-            description: mapping.entry_type_name ?? `Entry ${entry.entry_type_id}`,
-            debit: entry.debit,
-            credit: entry.credit,
-            gl_account_id: mapping.gl_account_id,
-            gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
-            control_account_id: ca?.new_id ?? mapping.control_account_id,
-            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : (mapping.control_account_name ?? ""),
-            pool_id: (ca as any)?.pool_id ?? null,
-            entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate,
-            entry_type: "other",
-            reference: `Legacy CFT ${rootCftId}`,
-            legacy_transaction_id: rootCftId,
+      // ── Bank Receipt (1921) ──
+      if (entry.entry_type_id === "1921") {
+        proposed.push({
+          description: "Bank Deposit",
+          debit: amount, credit: 0,
+          gl_account_id: mapping.gl_account_id,
+          gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "bank_receipt",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Membership Fee (1922) — Split ──
+      else if (entry.entry_type_id === "1922" && mapping.split_rule?.splits) {
+        for (const split of mapping.split_rule.splits) {
+          proposed.push({
+            description: split.description,
+            debit: split.amount, credit: 0,
+            gl_account_id: split.gl_account_id,
+            gl_account_label: split.description,
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "membership_fee",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         }
       }
-
-      const totalDebit = cftEntries.reduce((s, e) => s + e.debit, 0);
-      const totalCredit = cftEntries.reduce((s, e) => s + e.credit, 0);
-
-      proposed.push({
-        root: group.root,
-        children: group.children,
-        entries: cftEntries,
-        totalDebit,
-        totalCredit,
-        isBalanced: Math.abs(totalDebit - totalCredit) < 0.01,
-        entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
-      });
+      // ── Pool Cash Control (1924) ──
+      else if (entry.entry_type_id === "1924") {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        proposed.push({
+          description: `Cash Control — ${ca?.name ?? "Unknown"}`,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "cash_control",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── VAT (1928) ──
+      else if (entry.entry_type_id === "1928") {
+        proposed.push({
+          description: "VAT",
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: mapping.gl_account_id,
+          gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "vat",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Loan Instalment (1978) — Triple entry ──
+      else if (entry.entry_type_id === "1978") {
+        const repaymentAmount = entry.debit > 0 ? entry.debit : entry.credit;
+        // 1. CR Member Loans GL (1025)
+        proposed.push({
+          description: "Loan Repayment",
+          debit: 0, credit: repaymentAmount,
+          gl_account_id: mapping.gl_account_id,
+          gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_repayment",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // 2. CR Loan Control (Member Account)
+        proposed.push({
+          description: "Loan Repayment — Loan Control CR",
+          debit: 0, credit: repaymentAmount,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: memberAcctLoanControl?.id ?? mapping.control_account_id,
+          control_account_label: memberAcctLoanControl?.name ?? "Member Account Loans",
+          pool_id: memberAcctCashControl?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_control_cr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // 3. DR Cash Control (Member Account)
+        proposed.push({
+          description: "Loan Repayment — Cash Control DR",
+          debit: repaymentAmount, credit: 0,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: memberAcctCashControl?.id ?? null,
+          control_account_label: memberAcctCashControl?.name ?? "Member Account Cash",
+          pool_id: memberAcctCashControl?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "cash_control_dr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Unit Allocation (1986/2006) ──
+      else if (entry.entry_type_id === "1986" || entry.entry_type_id === "2006") {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        if (ca) {
+          proposed.push({
+            description: `Cash Control — ${ca.name}`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca.new_id,
+            control_account_label: `${ca.name} (${ca.pool_name})`,
+            pool_id: (ca as any).pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "unit_allocation",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+      }
+      // ── Fees (1927, 1929, 1930) ──
+      else if (["1927", "1929", "1930"].includes(entry.entry_type_id)) {
+        proposed.push({
+          description: mapping.entry_type_name,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: mapping.gl_account_id,
+          gl_account_label: `${mapping.gl_account_code} ${mapping.gl_account_name}`,
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "fee",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Fallback ──
+      else {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        proposed.push({
+          description: mapping.entry_type_name ?? `Entry ${entry.entry_type_id}`,
+          debit: entry.debit, credit: entry.credit,
+          gl_account_id: mapping.gl_account_id,
+          gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
+          control_account_id: ca?.new_id ?? mapping.control_account_id,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : (mapping.control_account_name ?? ""),
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "other",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
     }
 
-    setProposedGroups(proposed);
+    const totalDebit = proposed.reduce((s, e) => s + e.debit, 0);
+    const totalCredit = proposed.reduce((s, e) => s + e.credit, 0);
+
+    return {
+      root: group.root,
+      children: group.children,
+      entries: proposed,
+      totalDebit,
+      totalCredit,
+      isBalanced: Math.abs(totalDebit - totalCredit) < 0.01,
+      entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
+    };
+  };
+
+  // Build all proposed groups (memoized)
+  const allProposed = useMemo(() => {
+    if (!glMappings?.length || !controlAccounts || !grouped.length) return [];
+    return grouped.map(g => buildProposedForGroup(g));
+  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap]);
+
+  const buildPreview = () => {
+    setProposedGroups(allProposed);
     setExpandedPreview(new Set());
     setShowPreview(true);
   };
