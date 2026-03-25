@@ -179,6 +179,7 @@ const TABLE_QUERIES: Record<string, string> = {
     SELECT ID AS id, ParentTable AS parent_table, ParentID AS parent_id,
       PTUserID AS pt_user_id, TransactionDate AS transaction_date,
       Type_TransactionEntryID AS type_transaction_entry_id,
+      Type_TransactionID AS type_transaction_id,
       EntityID AS entity_id, FeeID AS fee_id, IncExpID AS inc_exp_id,
       BrokerID AS broker_id, BrokerCommisionPerc AS broker_commission_perc,
       CashAccountID AS cash_account_id,
