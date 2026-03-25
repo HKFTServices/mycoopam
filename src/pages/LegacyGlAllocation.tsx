@@ -335,6 +335,7 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
+  const loadTransactions = async () => {
     if (!currentTenant) return;
     setLoading(true);
     try {
