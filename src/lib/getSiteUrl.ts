@@ -9,7 +9,7 @@
 
 const PRODUCTION_DOMAIN = "myco-op.co.za";
 
-function isOnProductionDomain(): boolean {
+export function isOnProductionDomain(): boolean {
   return window.location.hostname.endsWith(PRODUCTION_DOMAIN);
 }
 

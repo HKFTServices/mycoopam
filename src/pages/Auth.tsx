@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
-import { getSiteUrl, navigateToTenant } from "@/lib/getSiteUrl";
+import { getSiteUrl, navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -267,8 +267,11 @@ const Auth = () => {
                     }
                     setLoading(true);
                     try {
+                      const resetRedirectUrl = isOnProductionDomain()
+                        ? `${window.location.origin}/reset-password`
+                        : `https://www.myco-op.co.za/reset-password`;
                       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${getSiteUrl()}/reset-password`,
+                        redirectTo: resetRedirectUrl,
                       });
                       if (error) throw error;
                       toast({
