@@ -460,37 +460,6 @@ const LegacyGlAllocation = () => {
           });
         }
       }
-      // ── Pool Cash Control (1924) ──
-      else if (entry.entry_type_id === "1924") {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        proposed.push({
-          description: `Cash Control — ${ca?.name ?? "Unknown"}`,
-          debit: flipToCR ? 0 : entry.debit,
-          credit: flipToCR ? amount : entry.credit,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "cash_control",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-      }
-      // ── VAT (1928) — use CashAccountID to resolve pool ──
-      else if (entry.entry_type_id === "1928") {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        proposed.push({
-          description: `VAT — ${ca?.pool_name ?? ""}`,
-          debit: flipToCR ? 0 : entry.debit,
-          credit: flipToCR ? amount : entry.credit,
-          gl_account_id: mapping.gl_account_id,
-          gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `VAT CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "vat",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-      }
       // ── Loan Instalment (1978) — Triple entry ──
       else if (entry.entry_type_id === "1978") {
         const repaymentAmount = entry.debit > 0 ? entry.debit : entry.credit;
@@ -528,52 +497,22 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Unit Allocation / Member Interest (1986/2006) ──
-      else if (entry.entry_type_id === "1986" || entry.entry_type_id === "2006") {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        if (ca) {
-          proposed.push({
-            description: `Member Interest — ${ca.pool_name ?? ca.name}`,
-            debit: flipToCR ? 0 : entry.debit,
-            credit: flipToCR ? amount : entry.credit,
-            gl_account_id: null, gl_account_label: "",
-            control_account_id: ca.new_id,
-            control_account_label: `${ca.name} (${ca.pool_name})`,
-            pool_id: (ca as any).pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: "member_interest",
-            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-          });
-        }
-      }
-      // ── Fees (1927, 1929, 1930) — use CashAccountID to resolve pool ──
-      else if (["1927", "1929", "1930"].includes(entry.entry_type_id)) {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        proposed.push({
-          description: `${mapping.entry_type_name} — ${ca?.pool_name ?? ""}`,
-          debit: flipToCR ? 0 : entry.debit,
-          credit: flipToCR ? amount : entry.credit,
-          gl_account_id: mapping.gl_account_id,
-          gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : "",
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "fee",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-      }
-      // ── Other pool-specific entries (1989, 1994, etc.) ──
+      // ── All Pool Deposit entries — use CashAccountID to resolve pool cash control ──
+      // 1924 (Member Fees), 1927 (Asset Pool), 1928 (Reserve Pool), 1929 (Health Pool),
+      // 1930 (Health Reserve Pool), 1986 (Member Account Pool), 1989 (Funeral Fund Pool),
+      // 1994 (Crypto Pool), 2006 (Gold Pool)
       else {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
         proposed.push({
-          description: `${mapping.entry_type_name ?? `Entry ${entry.entry_type_id}`} — ${ca?.pool_name ?? ""}`,
+          description: `${mapping.entry_type_name ?? `Pool Deposit`} — ${poolName}`,
           debit: flipToCR ? 0 : entry.debit,
           credit: flipToCR ? amount : entry.credit,
-          gl_account_id: mapping.gl_account_id,
-          gl_account_label: mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "",
-          control_account_id: ca?.new_id ?? mapping.control_account_id,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : (mapping.control_account_name ?? ""),
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca?.new_id ?? null,
+          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "other",
+          transaction_date: txDate, entry_type: "pool_deposit",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
