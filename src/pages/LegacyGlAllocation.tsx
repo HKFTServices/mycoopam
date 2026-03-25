@@ -8,9 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle, Play, FileSearch } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Eye, AlertTriangle, Play, FileSearch, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface LegacyCftEntry {
   id: string;
@@ -88,6 +92,8 @@ const LegacyGlAllocation = () => {
   const { currentTenant } = useTenant();
   const [selectedTxType, setSelectedTxType] = useState("1912");
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
+  const [dateFrom, setDateFrom] = useState<Date>(new Date("2025-03-01"));
+  const [dateTo, setDateTo] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [cftEntries, setCftEntries] = useState<LegacyCftEntry[]>([]);
   const [showPreview, setShowPreview] = useState(false);
@@ -290,14 +296,15 @@ const LegacyGlAllocation = () => {
         from += PAGE_SIZE;
       }
 
-      const fromDate = new Date("2025-03-01");
+      const filterFrom = dateFrom;
+      const filterTo = dateTo;
       const allParsed: { entry: LegacyCftEntry; txTypeId: string }[] = [];
 
       for (const row of allRows) {
         try {
           const n = JSON.parse(row.notes ?? "{}");
           const txDate = new Date(n.TransactionDate);
-          if (txDate < fromDate) continue;
+          if (txDate < filterFrom || txDate > filterTo) continue;
 
           allParsed.push({
             entry: {
@@ -946,6 +953,34 @@ const LegacyGlAllocation = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3 items-end">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">From Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(dateFrom, "dd MMM yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateFrom} onSelect={d => d && setDateFrom(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">To Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(dateTo, "dd MMM yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateTo} onSelect={d => d && setDateTo(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Transaction Type</label>
               <Select value={selectedTxType} onValueChange={v => { setSelectedTxType(v); setCftEntries([]); }}>
