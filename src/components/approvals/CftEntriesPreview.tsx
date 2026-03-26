@@ -70,48 +70,48 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
-                <TableHead className="h-7 py-1 text-[10px]">Side</TableHead>
                 <TableHead className="h-7 py-1 text-[10px]">GL Account</TableHead>
                 <TableHead className="h-7 py-1 text-[10px]">Control Account</TableHead>
-                <TableHead className="h-7 py-1 text-[10px] text-right">Debit (+)</TableHead>
-                <TableHead className="h-7 py-1 text-[10px] text-right">Credit (−)</TableHead>
+                <TableHead className="h-7 py-1 text-[10px] text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lines.map((l, i) => (
-                <TableRow key={i} className="text-xs">
-                  <TableCell className="py-1.5">
-                    <Badge variant={l.side === "DR" ? "default" : "destructive"} className="text-[9px] h-4 px-1.5">
-                      {l.side}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="py-1.5">
-                    {l.glCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>}
-                    <span className="text-xs">{l.glName || l.description}</span>
-                  </TableCell>
-                  <TableCell className="py-1.5 text-xs text-muted-foreground">
-                    {l.controlAccount && l.controlAccount !== "—" ? (
-                      <span>
-                        {l.controlAccount}{" "}
-                        <span className="font-mono text-[10px] font-semibold">({l.controlAccountSide || "Dt"})</span>
-                      </span>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell className="py-1.5 text-right text-xs font-medium">
-                    {l.side === "DR" ? fmt(l.amount) : ""}
-                  </TableCell>
-                  <TableCell className="py-1.5 text-right text-xs font-medium">
-                    {l.side === "CR" ? fmt(l.amount) : ""}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {lines.map((l, i) => {
+                const glSideLabel = l.side === "DR" ? "Dt" : "Ct";
+                const ctrlSideLabel = l.controlAccountSide || (l.side === "DR" ? "Dt" : "Ct");
+                return (
+                  <TableRow key={i} className="text-xs">
+                    <TableCell className="py-1.5">
+                      {l.glCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>}
+                      <span className="text-xs">{l.glName || l.description}</span>
+                      <span className={`ml-1.5 font-mono text-[10px] font-bold ${l.side === "DR" ? "text-blue-600 dark:text-blue-400" : "text-rose-600 dark:text-rose-400"}`}>({glSideLabel})</span>
+                    </TableCell>
+                    <TableCell className="py-1.5 text-xs text-muted-foreground">
+                      {l.controlAccount && l.controlAccount !== "—" ? (
+                        <span>
+                          {l.controlAccount}
+                          <span className={`ml-1 font-mono text-[10px] font-bold ${ctrlSideLabel === "Dt" ? "text-blue-600 dark:text-blue-400" : "text-rose-600 dark:text-rose-400"}`}>({ctrlSideLabel})</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right text-xs font-medium">
+                      {fmt(l.amount)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {/* Totals row */}
               <TableRow className="border-t-2 bg-muted/30 font-bold">
-                <TableCell colSpan={3} className="py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground text-right">
+                <TableCell className="py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                   Totals
                 </TableCell>
-                <TableCell className="py-1.5 text-right text-xs font-bold">{fmt(totalDebit)}</TableCell>
-                <TableCell className="py-1.5 text-right text-xs font-bold">{fmt(totalCredit)}</TableCell>
+                <TableCell className="py-1.5 text-[10px] text-muted-foreground">
+                  <span className="font-mono text-blue-600 dark:text-blue-400 mr-2">Dt {fmt(totalDebit)}</span>
+                  <span className="font-mono text-rose-600 dark:text-rose-400">Ct {fmt(totalCredit)}</span>
+                </TableCell>
+                <TableCell className="py-1.5 text-right text-xs font-bold">{fmt(totalDebit + totalCredit)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
