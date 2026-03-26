@@ -326,18 +326,29 @@ async function generateStatementPdf(data: {
       const resp = await fetch(logoUrl);
       if (resp.ok) {
         const buf = await resp.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const bytes = new Uint8Array(buf);
+        // Convert to base64 in chunks to avoid stack overflow with large images
+        let binary = "";
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.subarray(i, i + chunkSize);
+          binary += String.fromCharCode(...chunk);
+        }
+        const base64 = btoa(binary);
         const contentType = resp.headers.get("content-type") || "image/png";
         const ext = contentType.includes("jpeg") || contentType.includes("jpg") ? "JPEG" : "PNG";
         logoImgData = `data:${contentType};base64,${base64}`;
         try {
           doc.addImage(logoImgData, ext, 15, y, 25, 15, undefined, "FAST");
-        } catch {
-          logoImgData = null; // If image fails, skip it
+        } catch (imgErr) {
+          console.error("Logo addImage failed:", imgErr);
+          logoImgData = null;
         }
+      } else {
+        console.error("Logo fetch failed:", resp.status, resp.statusText);
       }
-    } catch {
-      // Skip logo on failure
+    } catch (fetchErr) {
+      console.error("Logo fetch error:", fetchErr);
     }
   }
 
