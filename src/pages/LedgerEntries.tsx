@@ -496,7 +496,7 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       setBankDialogOpen(false);
       setBankForm({ ...defaultBankForm });
-      toast.success(isApprover ? "Bank entry posted to ledger" : "Bank entry submitted for approval");
+      toast.success("Bank entry submitted for approval");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -613,7 +613,7 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       setJournalDialogOpen(false);
       setJournalForm({ ...defaultJournalForm });
-      toast.success(isApprover ? "Journal entry posted to ledger" : "Journal entry submitted for approval");
+      toast.success("Journal entry submitted for approval");
     },
     onError: (e: Error) => toast.error(e.message),
   });
