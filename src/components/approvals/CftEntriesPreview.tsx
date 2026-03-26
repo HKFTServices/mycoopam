@@ -88,7 +88,14 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
                     {l.glCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>}
                     <span className="text-xs">{l.glName || l.description}</span>
                   </TableCell>
-                  <TableCell className="py-1.5 text-xs text-muted-foreground">{l.controlAccount || "—"}</TableCell>
+                  <TableCell className="py-1.5 text-xs text-muted-foreground">
+                    {l.controlAccount && l.controlAccount !== "—" ? (
+                      <span>
+                        {l.controlAccount}{" "}
+                        <span className="font-mono text-[10px] font-semibold">({l.side === "DR" ? "Dt" : "Ct"})</span>
+                      </span>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell className="py-1.5 text-right text-xs font-medium">
                     {l.side === "DR" ? fmt(l.amount) : ""}
                   </TableCell>
