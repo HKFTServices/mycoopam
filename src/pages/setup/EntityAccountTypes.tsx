@@ -51,19 +51,23 @@ const EntityAccountTypes = () => {
   });
 
   const { data: types = [], isLoading } = useQuery({
-    queryKey: ["entity_account_types"],
+    queryKey: ["entity_account_types", currentTenant?.id],
     queryFn: async () => {
+      if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("entity_account_types")
         .select("*")
+        .eq("tenant_id", currentTenant.id)
         .order("name");
       if (error) throw error;
       return data as EntityAccountType[];
     },
+    enabled: !!currentTenant,
   });
 
   const upsert = useMutation({
     mutationFn: async (values: typeof form & { id?: string }) => {
+      if (!currentTenant) throw new Error("No tenant selected");
       const payload = {
         name: values.name,
         prefix: values.prefix,
@@ -72,6 +76,7 @@ const EntityAccountTypes = () => {
         is_active: values.is_active,
         number_count: values.number_count,
         membership_fee: values.membership_fee,
+        tenant_id: currentTenant.id,
       };
       if (values.id) {
         const { error } = await (supabase as any).from("entity_account_types").update(payload).eq("id", values.id);
@@ -82,7 +87,7 @@ const EntityAccountTypes = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["entity_account_types"] });
+      queryClient.invalidateQueries({ queryKey: ["entity_account_types", currentTenant?.id] });
       setDialogOpen(false);
       setEditing(null);
       toast.success(editing ? "Account type updated" : "Account type created");
@@ -96,7 +101,7 @@ const EntityAccountTypes = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["entity_account_types"] });
+      queryClient.invalidateQueries({ queryKey: ["entity_account_types", currentTenant?.id] });
       toast.success("Account type deleted");
     },
     onError: (e: Error) => toast.error(e.message),

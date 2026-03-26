@@ -151,6 +151,7 @@ const tenantSetupNavItems: NavItem[] = [
   { label: "Pools", icon: Wallet, path: "/dashboard/pools" },
   { label: "Items", icon: Gem, path: "/dashboard/items" },
   { label: "Fees", icon: DollarSign, path: "/dashboard/fees" },
+  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
   { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts" },
   { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements" },
   { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
