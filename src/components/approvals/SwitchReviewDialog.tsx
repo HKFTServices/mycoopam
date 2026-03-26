@@ -170,6 +170,18 @@ const SwitchReviewDialog = ({
   const accountNumber = primaryTxn?.entity_accounts?.account_number || "—";
   const txnTypeName = primaryTxn?.transaction_types?.name || "Switch";
 
+  // Build CFT preview lines
+  const switchCftLines = useMemo(() => {
+    if (!group) return [];
+    return buildSwitchCftLines({
+      grossRedemption,
+      netSwitchAmount,
+      fromPoolName,
+      toPoolName,
+      feeBreakdown,
+    });
+  }, [group?.primary?.id, grossRedemption, netSwitchAmount]);
+
   const handleApprove = () => {
     if (!group) return;
     if (dateChanged && overrideDateStr && !anyPriceMissing) {
