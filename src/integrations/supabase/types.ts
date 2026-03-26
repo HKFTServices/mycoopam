@@ -6291,6 +6291,7 @@ export type Database = {
         | "withdrawal_approval"
         | "transaction_confirmation"
         | "first_membership_dep_stock"
+        | "pending_approval_notification"
       entity_type: "natural_person" | "legal_entity"
       gender_type: "male" | "female" | "other"
       registration_status: "incomplete" | "pending_verification" | "registered"
@@ -6452,6 +6453,7 @@ export const Constants = {
         "withdrawal_approval",
         "transaction_confirmation",
         "first_membership_dep_stock",
+        "pending_approval_notification",
       ],
       entity_type: ["natural_person", "legal_entity"],
       gender_type: ["male", "female", "other"],
