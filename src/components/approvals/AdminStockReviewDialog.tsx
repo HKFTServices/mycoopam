@@ -443,7 +443,6 @@ const AdminStockReviewDialog = ({
                 />
               )}
             </div>
-            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Notes</Label>
               <Input
