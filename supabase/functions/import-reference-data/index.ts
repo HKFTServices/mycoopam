@@ -13,7 +13,7 @@ const GLOBAL_TABLE_CONFIGS: Record<string, { matchField: string; targetTable: st
   titles: { matchField: "description", targetTable: "titles" },
   entity_categories: { matchField: "name", targetTable: "entity_categories" },
   relationship_types: { matchField: "name", targetTable: "relationship_types" },
-  entity_account_types: { matchField: "name", targetTable: "entity_account_types" },
+  entity_account_types: { matchField: "name", targetTable: "entity_account_types", tenantScoped: true },
   banks: { matchField: "name", targetTable: "banks" },
   bank_account_types: { matchField: "name", targetTable: "bank_account_types" },
   document_types: { matchField: "name", targetTable: "document_types", tenantScoped: true },
