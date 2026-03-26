@@ -288,7 +288,34 @@ Deno.serve(async (req) => {
       results.document_entity_requirements = drRows.length;
     }
 
-    // ─── 8. Budget Categories ───
+    // ─── 8. Entity Account Types ───
+    const { data: srcEATypes } = await admin
+      .from("entity_account_types")
+      .select("*")
+      .eq("tenant_id", SOURCE_TENANT_ID);
+
+    if (srcEATypes && srcEATypes.length > 0) {
+      const eatRows = srcEATypes.map((eat: any) => {
+        const newId = uuid();
+        idMap.set(eat.id, newId);
+        return {
+          id: newId,
+          tenant_id: tenant_id,
+          name: eat.name,
+          prefix: eat.prefix,
+          account_type: eat.account_type,
+          allow_public_registration: eat.allow_public_registration,
+          is_active: eat.is_active,
+          number_count: eat.number_count,
+          membership_fee: eat.membership_fee,
+        };
+      });
+      const { error } = await admin.from("entity_account_types").insert(eatRows);
+      if (error) console.error("Entity account types error:", error);
+      results.entity_account_types = eatRows.length;
+    }
+
+    // ─── 9. Budget Categories ───
     const { data: srcBudget } = await admin
       .from("budget_categories")
       .select("*")
