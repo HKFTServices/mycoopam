@@ -308,7 +308,12 @@ const SwitchReviewDialog = ({
               <div className="rounded-lg bg-orange-500/10 px-3 py-2 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground">Unit Price (UP Sell)</p>
                 <p className={cn("font-mono font-bold text-sm", dateChanged && !fromPriceMissing && "text-primary")}>
-                  {fromPriceMissing ? <span className="text-destructive">⚠ No price</span> : (effectiveFromUnitPrice > 0 ? fmt(effectiveFromUnitPrice) : "—")}
+                  {fromPriceMissing ? (
+                    <span className="inline-flex items-center gap-1.5 text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      No price
+                    </span>
+                  ) : (effectiveFromUnitPrice > 0 ? fmt(effectiveFromUnitPrice) : "—")}
                 </p>
               </div>
               <div className="rounded-lg bg-orange-500/10 px-3 py-2 space-y-0.5">
@@ -342,7 +347,12 @@ const SwitchReviewDialog = ({
               <div className="rounded-lg bg-emerald-500/10 px-3 py-2 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground">Unit Price (UP Buy)</p>
                 <p className={cn("font-mono font-bold text-sm", dateChanged && !toPriceMissing && "text-primary")}>
-                  {toPriceMissing ? <span className="text-destructive">⚠ No price</span> : (effectiveToUnitPrice > 0 ? fmt(effectiveToUnitPrice) : "—")}
+                  {toPriceMissing ? (
+                    <span className="inline-flex items-center gap-1.5 text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      No price
+                    </span>
+                  ) : (effectiveToUnitPrice > 0 ? fmt(effectiveToUnitPrice) : "—")}
                 </p>
               </div>
               <div className="rounded-lg bg-emerald-500/10 px-3 py-2 space-y-0.5">

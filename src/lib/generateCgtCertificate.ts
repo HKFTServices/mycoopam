@@ -158,8 +158,9 @@ export function generateCgtCertificate(data: CgtCertificateData): string {
   @page { margin: 15mm; size: A4; }
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.5; color: #1a1a1a; max-width: 800px; margin: 0 auto; padding: 20px; }
-  .print-btn { position: fixed; top: 10px; right: 10px; background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; z-index: 1000; }
+  .print-btn { position: fixed; top: 10px; right: 10px; background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
   .print-btn:hover { background: #1d4ed8; }
+  .print-btn svg { width: 16px; height: 16px; }
   @media print { .print-btn { display: none; } }
 
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1e3a5f; padding-bottom: 14px; margin-bottom: 20px; }
@@ -212,7 +213,14 @@ export function generateCgtCertificate(data: CgtCertificateData): string {
 </style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+<button class="print-btn" onclick="window.print()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+    <rect x="6" y="14" width="12" height="8"></rect>
+  </svg>
+  Print / Save as PDF
+</button>
 
 <!-- HEADER -->
 <div class="header">

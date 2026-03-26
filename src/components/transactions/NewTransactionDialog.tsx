@@ -163,7 +163,7 @@ const NewTransactionDialog = ({
       setDoNotes("");
       setDoSignatureData(null);
     }
-  }, [open, defaultPoolId]);
+  }, [open, defaultPoolId, defaultAccountId]);
 
 
   // Staff check
@@ -727,18 +727,34 @@ const NewTransactionDialog = ({
     const match = filteredTxnTypes.find((t: any) => t.code === defaultTxnCode) || txnTypes.find((t: any) => t.code === defaultTxnCode);
     if (match?.id) {
       setSelectedTxnTypeId(match.id);
+      if (step === "type") setStep("pool");
     }
-  }, [open, defaultTxnCode, filteredTxnTypes, txnTypes, selectedTxnTypeId]);
-
-  // Holdings for the currently selected pool (used for switch/transfer calcs)
-  const holdings = allHoldings.filter((h: any) => h.pool_id === selectedPoolId);
-
+  }, [open, defaultTxnCode, filteredTxnTypes, txnTypes, selectedTxnTypeId, step]);
 
   const selectedTxnType = txnTypes.find((t: any) => t.id === selectedTxnTypeId);
   const isDeposit = selectedTxnType?.code === "DEPOSIT_FUNDS";
   const isWithdrawal = selectedTxnType?.code === "WITHDRAW_FUNDS";
   const isSwitch = SWITCH_CODES.includes(selectedTxnType?.code || "");
   const isTransfer = TRANSFER_CODES.includes(selectedTxnType?.code || "");
+
+  // Keep a "primary" selected pool for deposits (used for unit price/unit estimates)
+  useEffect(() => {
+    if (!open) return;
+    if (!isDeposit) return;
+    if (poolSplits.length > 0) {
+      const firstPoolId = poolSplits[0].poolId;
+      if (!selectedPoolId) {
+        setSelectedPoolId(firstPoolId);
+      } else if (!poolSplits.some((s) => s.poolId === selectedPoolId)) {
+        setSelectedPoolId(firstPoolId);
+      }
+    } else if (selectedPoolId) {
+      setSelectedPoolId("");
+    }
+  }, [open, isDeposit, poolSplits, selectedPoolId]);
+
+  // Holdings for the currently selected pool (used for switch/transfer calcs)
+  const holdings = allHoldings.filter((h: any) => h.pool_id === selectedPoolId);
   const amountNum = parseFloat(amount) || 0;
   // For multi-pool withdrawal, selectedPoolId refers to "primary" pool (first selected).
   // currentHolding is used for switch/transfer single-pool calcs.
@@ -1625,52 +1641,117 @@ const NewTransactionDialog = ({
     setSelectedTxnTypeId("");
     setSelectedPoolId("");
     setPoolSplits([]);
+    setStep("type");
   };
 
   const handleTxnTypeSelect = (id: string) => {
     setSelectedTxnTypeId(id);
     setSelectedPoolId("");
     setPoolSplits([]);
+    setStep("pool");
   };
+
+  // Auto-advance: single-account case for members
+  useEffect(() => {
+    if (!open) return;
+    if (isStaff) return;
+    if (step !== "account") return;
+    if (selectedAccountId) return;
+    if (accountsLoading) return;
+    if (allAccounts.length === 1) {
+      handleAccountSelect(allAccounts[0].id);
+    }
+  }, [open, isStaff, step, selectedAccountId, accountsLoading, allAccounts]);
+
+  // Auto-advance: single transaction type
+  useEffect(() => {
+    if (!open) return;
+    if (step !== "type") return;
+    if (selectedTxnTypeId) return;
+    if (filteredTxnTypes.length === 1) {
+      handleTxnTypeSelect(filteredTxnTypes[0].id);
+    }
+  }, [open, step, selectedTxnTypeId, filteredTxnTypes]);
+
+  // Auto-advance: single pool case
+  useEffect(() => {
+    if (!open) return;
+    if (step !== "pool") return;
+    if (!pools?.length) return;
+    if (pools.length !== 1) return;
+    const onlyPoolId = pools[0].id as string;
+
+    if (isWithdrawal) {
+      if (withdrawalPoolIds.length === 0) setWithdrawalPoolIds([onlyPoolId]);
+      setSelectedPoolId(onlyPoolId);
+      setStep("details");
+      return;
+    }
+
+    if (isDeposit) {
+      if (!loanRepaymentOnly && poolSplits.length === 0) {
+        setPoolSplits([{ poolId: onlyPoolId, percentage: 100 }]);
+      }
+      setSelectedPoolId(onlyPoolId);
+      setStep("details");
+      return;
+    }
+
+    // switch/transfer/stock transactions
+    if (!selectedPoolId) setSelectedPoolId(onlyPoolId);
+    setStep("details");
+  }, [
+    open,
+    step,
+    pools,
+    isWithdrawal,
+    isDeposit,
+    loanRepaymentOnly,
+    poolSplits,
+    selectedPoolId,
+    withdrawalPoolIds,
+  ]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-lg">New Transaction</DialogTitle>
-          {/* Visual Step Indicator */}
-          <div className="flex items-center gap-1 mt-3">
-            {STEPS.map((s, i) => {
-              const meta = STEP_META[s];
-              const Icon = meta.icon;
-              const isCurrent = step === s;
-              const isPast = STEPS.indexOf(s) < STEPS.indexOf(step);
-              return (
-                <div key={s} className="flex items-center gap-1 flex-1">
-                  <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all text-[10px] font-medium w-full justify-center ${
-                    isCurrent
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : isPast
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {isPast ? (
-                      <CheckCircle className="h-3 w-3 shrink-0" />
-                    ) : (
-                      <Icon className="h-3 w-3 shrink-0" />
-                    )}
-                    <span className="hidden sm:inline">{meta.label}</span>
-                  </div>
-                  {i < STEPS.length - 1 && (
-                    <div className={`h-px w-2 shrink-0 ${isPast ? "bg-primary/40" : "bg-border"}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] p-0">
+        <div className="flex flex-col max-h-[90vh]">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+            <DialogTitle className="text-lg">New Transaction</DialogTitle>
 
-        <div className="py-1">
+            {/* Visual Step Indicator */}
+            <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-1">
+              {STEPS.map((s, i) => {
+                const meta = STEP_META[s];
+                const Icon = meta.icon;
+                const isCurrent = step === s;
+                const isPast = STEPS.indexOf(s) < STEPS.indexOf(step);
+                return (
+                  <div key={s} className="flex items-center gap-2 shrink-0">
+                    <div
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-[11px] font-medium ${
+                        isCurrent
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : isPast
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isPast ? (
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      <span>{meta.label}</span>
+                    </div>
+                    {i < STEPS.length - 1 ? <div className={`h-px w-6 ${isPast ? "bg-primary/30" : "bg-border"}`} /> : null}
+                  </div>
+                );
+              })}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === "account" && (
             <AccountSelectionStep
               accounts={allAccounts}
@@ -1723,6 +1804,8 @@ const NewTransactionDialog = ({
                   if (repayment > 0) {
                     setAmount(String(repayment));
                   }
+                  // If user chooses loan-only, move forward immediately
+                  if (outstandingLoanInfo) setStep("details");
                 }
               }}
             />
@@ -1980,32 +2063,39 @@ const NewTransactionDialog = ({
               loanRepaymentAmount={effectiveLoanRepayment}
             />
           )}
-        </div>
+          </div>
 
-        <DialogFooter className="flex gap-2">
-          {step !== "account" && (
-            <Button variant="outline" onClick={prevStep} disabled={submitMutation.isPending} className="gap-1.5">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          )}
-          <div className="flex-1" />
-          {step !== "review" ? (
-            <Button onClick={nextStep} disabled={!canProceed()} className="gap-1.5">
-              Next
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="gap-1.5">
-              {submitMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              {isDebitOrderDeposit ? "Submit Transaction & Debit Order" : "Submit Transaction"}
-            </Button>
-          )}
-        </DialogFooter>
+          <DialogFooter className="flex gap-2 px-6 py-4 border-t border-border bg-background">
+            {step !== "account" ? (
+              <Button variant="outline" onClick={prevStep} disabled={submitMutation.isPending} className="gap-1.5">
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitMutation.isPending}>
+                Cancel
+              </Button>
+            )}
+
+            <div className="flex-1" />
+
+            {step !== "review" ? (
+              <Button onClick={nextStep} disabled={!canProceed()} className="gap-1.5">
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="gap-1.5">
+                {submitMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                {isDebitOrderDeposit ? "Submit Transaction & Debit Order" : "Submit Transaction"}
+              </Button>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

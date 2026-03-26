@@ -515,7 +515,7 @@ ORDER BY ed.EntityId;`}
                 });
                 if (badRows.length > 0) return (
                   <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
-                    <strong>⚠ {badRows.length} rows have non-integer EntityId values</strong> — this likely means the Bytes column contains unquoted commas that are corrupting the CSV parsing. 
+                    <strong>{badRows.length} rows have non-integer EntityId values</strong> — this likely means the Bytes column contains unquoted commas that are corrupting the CSV parsing.
                     Please ensure the Bytes column is properly quoted in the CSV export.
                   </div>
                 );

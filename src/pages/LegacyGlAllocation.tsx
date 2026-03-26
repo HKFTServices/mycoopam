@@ -503,7 +503,7 @@ const LegacyGlAllocation = () => {
 
   const getGlLabel = (entry: LegacyCftEntry): { label: string; mapped: boolean } => {
     const mapping = getGlMapping(entry.entry_type_id);
-    if (!mapping) return { label: "❌ No mapping", mapped: false };
+    if (!mapping) return { label: "No mapping", mapped: false };
     
     if (mapping.split_rule) {
       const splits = (mapping.split_rule as any).splits;
@@ -536,7 +536,7 @@ const LegacyGlAllocation = () => {
       return { label: parts.join(" | "), mapped: true };
     }
 
-    return { label: "⚠️ GL not set", mapped: false };
+    return { label: "GL not set", mapped: false };
   };
 
   // ═══════════════════════════════════════════════════════════════
@@ -848,7 +848,7 @@ const LegacyGlAllocation = () => {
             debit: isExpense ? amount : 0,
             credit: isExpense ? 0 : amount,
             gl_account_id: incExpItem?.gl_account_id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `⚠️ No GL mapped (${itemDesc})`,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `No GL mapped (${itemDesc})`,
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
@@ -895,7 +895,7 @@ const LegacyGlAllocation = () => {
             description: `${itemDesc} — GL`,
             debit: entry.credit, credit: entry.debit,
             gl_account_id: incExpItem?.gl_account_id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `⚠️ No GL mapped (${itemDesc})`,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `No GL mapped (${itemDesc})`,
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",

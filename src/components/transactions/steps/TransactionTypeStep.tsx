@@ -1,5 +1,14 @@
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowLeftRight,
+  ArrowUpFromLine,
+  Info,
+  PackageMinus,
+  PackagePlus,
+  Repeat2,
+  Sparkles,
+} from "lucide-react";
 
 interface TransactionTypeStepProps {
   txnTypes: any[];
@@ -42,13 +51,13 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string }> = 
   },
 };
 
-const ICON_MAP: Record<string, string> = {
-  DEPOSIT_FUNDS: "💰",
-  DEPOSIT_STOCK: "📦",
-  WITHDRAW_FUNDS: "🏧",
-  WITHDRAW_STOCK: "📤",
-  SWITCH: "🔄",
-  TRANSFER: "↔️",
+const ICON_MAP: Record<string, React.ElementType> = {
+  DEPOSIT_FUNDS: ArrowDownToLine,
+  DEPOSIT_STOCK: PackagePlus,
+  WITHDRAW_FUNDS: ArrowUpFromLine,
+  WITHDRAW_STOCK: PackageMinus,
+  SWITCH: Repeat2,
+  TRANSFER: ArrowLeftRight,
 };
 
 const DESC_MAP: Record<string, string> = {
@@ -93,7 +102,10 @@ const TransactionTypeStep = ({ txnTypes, selectedTxnTypeId, onSelect, accountHas
                   : `opacity-80 hover:opacity-100 hover:shadow-sm hover:scale-[1.01]`
               }`}
             >
-              <span className="text-3xl">{ICON_MAP[code] || "📋"}</span>
+              {(() => {
+                const Icon = ICON_MAP[code] || ArrowLeftRight;
+                return <Icon className={`h-8 w-8 ${colors.text}`} />;
+              })()}
               <div>
                 <p className={`font-semibold text-sm leading-tight ${colors.text}`}>{t.name}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
@@ -110,7 +122,7 @@ const TransactionTypeStep = ({ txnTypes, selectedTxnTypeId, onSelect, accountHas
 
       {accountLabel && !accountHasHoldings && (
         <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2">
-          <span className="text-amber-600 dark:text-amber-400 text-lg">ℹ️</span>
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           <p className="text-xs text-amber-700 dark:text-amber-400">
             This is a new account with no holdings. Only deposit transactions are available.
           </p>

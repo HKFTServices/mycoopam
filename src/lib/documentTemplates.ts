@@ -44,7 +44,7 @@ const pageStyles = `
   table.directors td { padding: 8px 4px; border-bottom: 1px dotted #999; }
 `;
 
-const printButton = `<button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>`;
+const printButton = `<button class="print-btn" onclick="window.print()">Print / Save as PDF</button>`;
 
 const today = () => {
   const d = new Date();

@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon } from "lucide-react";
+import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const PAYMENT_METHODS = [
-  { value: "eft", label: "EFT (Bank Transfer)", icon: "🏦" },
-  { value: "cash_deposit", label: "Cash Deposit", icon: "💵" },
-  { value: "debit_order", label: "Debit Order", icon: "🔁" },
+  { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
+  { value: "cash_deposit", label: "Cash Deposit", icon: Banknote },
+  { value: "debit_order", label: "Debit Order", icon: Repeat2 },
 ];
 
 interface JoinShareInfo {
@@ -248,6 +248,7 @@ const DepositDetailsStep = ({
         <div className="grid grid-cols-3 gap-2">
           {PAYMENT_METHODS.map((m) => {
             const isSelected = paymentMethod === m.value;
+            const Icon = m.icon;
             return (
               <button
                 key={m.value}
@@ -258,7 +259,7 @@ const DepositDetailsStep = ({
                     : "border-border hover:border-primary/30 opacity-60 hover:opacity-100"
                 }`}
               >
-                <span className="text-xl">{m.icon}</span>
+                <Icon className={`h-5 w-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                 <span className="text-[10px] font-medium leading-tight">{m.label}</span>
               </button>
             );

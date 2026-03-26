@@ -11,7 +11,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal } from "lucide-react";
+import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -593,7 +593,10 @@ const Transactions = () => {
                     This will <strong>deactivate all ledger entries</strong> (cashflow transactions, unit transactions, stock transactions) linked to this transaction. The transaction will be marked as <strong>Rolled Back</strong>.
                   </span>
                   <span className="block text-destructive font-medium">
-                    ⚠ This does not reverse member pool holdings automatically. Please verify balances after rollback.
+                    <span className="inline-flex items-center gap-1.5">
+                      <AlertTriangle className="h-4 w-4" />
+                      This does not reverse member pool holdings automatically. Please verify balances after rollback.
+                    </span>
                   </span>
                 </>
               ) : (

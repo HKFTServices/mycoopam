@@ -859,7 +859,12 @@ const TransactionReviewDialog = ({
               <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                 <p className="text-muted-foreground">Unit Price (UP)</p>
                 <p className={cn("font-mono font-bold", dateChanged && !hasMissingPrice ? "text-primary" : hasMissingPrice ? "text-destructive" : "")}>
-                  {hasMissingPrice ? "⚠ No price" : fmt(effectiveUnitPrice)}
+                  {hasMissingPrice ? (
+                    <span className="inline-flex items-center gap-1.5 text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      No price
+                    </span>
+                  ) : fmt(effectiveUnitPrice)}
                 </p>
               </div>
               <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">

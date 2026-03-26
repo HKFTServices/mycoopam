@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Check, X, Send } from "lucide-react";
+import { Loader2, Check, X, Send, AlertTriangle, HandCoins } from "lucide-react";
 import SignaturePad from "@/components/ui/signature-pad";
 import { postLoanDisbursement } from "@/lib/postLoanDisbursement";
 
@@ -373,7 +373,10 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                   <Label className="text-xs">Approved Amount (R)</Label>
                   <Input type="number" min={0} value={amountApproved} onChange={(e) => setAmountApproved(parseFloat(e.target.value) || 0)} disabled={isReadOnly} />
                   {selectedPoolId && getPoolValue(selectedPoolId) > 0 && amountApproved > getPoolValue(selectedPoolId) * poolValueMultiple && (
-                    <p className="text-xs text-destructive">⚠ Exceeds pool value limit ({formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)})</p>
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Exceeds pool value limit ({formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)})
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -396,8 +399,9 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                   <span className="text-right font-mono font-semibold text-primary">{formatCurrency(monthlyInstalment)}</span>
                 </div>
                 {monthlyInstalment > app.monthly_available_repayment && (
-                  <p className="text-xs text-destructive mt-2">
-                    ⚠ Monthly instalment exceeds member's stated available repayment of {formatCurrency(app.monthly_available_repayment)}
+                  <p className="text-xs text-destructive mt-2 flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Monthly instalment exceeds member&apos;s stated available repayment of {formatCurrency(app.monthly_available_repayment)}
                   </p>
                 )}
               </div>
@@ -413,7 +417,10 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
           {isAccepted && (
             <Card className="border-primary/30">
               <CardContent className="py-4 space-y-4">
-                <h4 className="text-sm font-semibold">💸 Confirm Payment & Sign</h4>
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <HandCoins className="h-4 w-4 text-primary" />
+                  Confirm Payment &amp; Sign
+                </h4>
                 <p className="text-xs text-muted-foreground">
                   Member has accepted the loan terms. Enter payment details and sign to complete disbursement.
                 </p>
@@ -459,7 +466,10 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
           {app.status === "disbursed" && (
             <Card className="border-emerald-300">
               <CardContent className="py-4 space-y-3">
-                <h4 className="text-sm font-semibold text-emerald-700">💸 Disbursement Details</h4>
+                <h4 className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
+                  <HandCoins className="h-4 w-4 text-emerald-700" />
+                  Disbursement Details
+                </h4>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                   <span className="text-muted-foreground">Reference:</span>
                   <span className="font-mono">{app.disbursement_reference ?? "—"}</span>

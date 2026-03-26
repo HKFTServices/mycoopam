@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Loader2, X, Download, FileSignature } from "lucide-react";
+import { Loader2, X, Download, FileSignature, HandCoins } from "lucide-react";
 import { generateAodHtml } from "@/lib/generateAod";
 import SignaturePad from "@/components/ui/signature-pad";
 import LoanAodContent from "@/components/loans/LoanAodContent";
@@ -215,7 +215,10 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
           {app.status === "disbursed" && (
             <Card className="border-emerald-300">
               <CardContent className="py-3">
-                <h4 className="text-sm font-semibold text-emerald-700 mb-2">💸 Disbursement Details</h4>
+                <h4 className="text-sm font-semibold text-emerald-700 mb-2 flex items-center gap-2">
+                  <HandCoins className="h-4 w-4 text-emerald-700" />
+                  Disbursement Details
+                </h4>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                   <span className="text-muted-foreground">Reference:</span>
                   <span className="font-mono">{app.disbursement_reference ?? "—"}</span>

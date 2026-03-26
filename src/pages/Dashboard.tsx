@@ -729,16 +729,18 @@ const Dashboard = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setTxnDialogMode("deposit");
-              setSelectedPoolId(undefined);
-              setTxnDialogOpen(true);
-            }}
-          >
-            Deposit
-          </Button>
+          {isAdmin ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTxnDialogMode("deposit");
+                setSelectedPoolId(undefined);
+                setTxnDialogOpen(true);
+              }}
+            >
+              Deposit
+            </Button>
+          ) : null}
           <Button
             onClick={() => {
               setTxnDialogMode("send");
