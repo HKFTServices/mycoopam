@@ -96,7 +96,7 @@ serve(async (req) => {
       .select(`
         smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl,
         logo_url, is_vat_registered, vat_number, currency_symbol,
-        legal_entity_id
+        legal_entity_id, email_signature_en, email_signature_af
       `)
       .eq("tenant_id", (txn as any).tenant_id)
       .maybeSingle();
@@ -324,11 +324,17 @@ serve(async (req) => {
       ? `"${tenantCfg.smtp_from_name}" <${effectiveFromEmail}>`
       : effectiveFromEmail;
 
+    // Append email signature to the HTML body
+    const emailSignature = (tenantCfg as any)?.email_signature_en || "";
+    const emailHtml = emailSignature
+      ? html.replace("</body>", `<div style="max-width:780px;margin:0 auto;padding:0 40px;">${emailSignature}</div></body>`)
+      : html;
+
     const info = await transporter.sendMail({
       from: fromHeader,
       to: counterpartyEmail,
       subject: subjectMap[document_type] ?? `${docTitle} ${docNumber}`,
-      html,
+      html: emailHtml,
     });
 
     console.log(`[send-stock-document] Sent ${document_type} to ${counterpartyEmail}: ${info.messageId}`);
