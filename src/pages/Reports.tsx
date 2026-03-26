@@ -92,7 +92,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("unit_transactions")
-        .select("id, transaction_date, pool_id, entity_account_id, unit_price, debit, credit, value, transaction_type, notes")
+        .select("id, transaction_id, transaction_date, pool_id, entity_account_id, unit_price, debit, credit, value, transaction_type, notes, pools(name), entity_accounts(account_number, entities(name, last_name))")
         .eq("tenant_id", tenantId)
         .order("transaction_date", { ascending: false })
         .limit(500);
