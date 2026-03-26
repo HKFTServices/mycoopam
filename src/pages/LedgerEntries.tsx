@@ -1134,8 +1134,7 @@ const LedgerEntries = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Landmark className="h-5 w-5" />Post Bank Entry</DialogTitle>
             <DialogDescription>
-              Record a bank debit or credit against a GL and control account.
-              {!isApprover && " This entry will be submitted for approval before posting."}
+              Record a bank debit or credit against a GL and control account. This entry will be submitted for approval before posting.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1245,8 +1244,7 @@ const LedgerEntries = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Post Journal Entry</DialogTitle>
             <DialogDescription>
-              Creates a double-entry pair (debit + credit) in the transaction ledger linked to a GL account.
-              {!isApprover && " This entry will be submitted for approval before posting."}
+              Creates a double-entry pair (debit + credit) in the transaction ledger linked to a GL account. This entry will be submitted for approval before posting.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
