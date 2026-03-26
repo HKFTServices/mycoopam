@@ -420,13 +420,29 @@ const AdminStockReviewDialog = ({
           <div className="text-sm font-medium">{currentStep.description}</div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Vault / Location Reference</Label>
-              <Input
-                value={vaultRef}
-                onChange={(e) => setVaultRef(e.target.value)}
-                placeholder="Vault A, Safe 3..."
-                className="h-8 text-xs"
-              />
+              <Label className="text-xs">Vault / Location</Label>
+              {vaultLocations.length > 0 ? (
+                <Select value={vaultRef} onValueChange={setVaultRef}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select vault..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vaultLocations.map((v) => (
+                      <SelectItem key={v.id} value={v.name} className="text-xs">
+                        {v.name}{v.description ? ` — ${v.description}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={vaultRef}
+                  onChange={(e) => setVaultRef(e.target.value)}
+                  placeholder="Vault A, Safe 3..."
+                  className="h-8 text-xs"
+                />
+              )}
+            </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Notes</Label>
