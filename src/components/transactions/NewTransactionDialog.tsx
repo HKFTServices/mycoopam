@@ -712,7 +712,7 @@ const NewTransactionDialog = ({
   const accountHasHoldings = allHoldings.length > 0;
 
   // Filter txn types based on account holdings (now that allHoldings is available)
-  const filteredTxnTypes = depositOnly
+  const filteredTxnTypesBase = depositOnly
     ? txnTypes.filter((t: any) => DEPOSIT_ONLY_CODES.includes(t.code))
     : stockOnly
       ? txnTypes.filter((t: any) => STOCK_ONLY_CODES.includes(t.code))
@@ -720,12 +720,17 @@ const NewTransactionDialog = ({
         ? txnTypes.filter((t: any) => DEPOSIT_ONLY_CODES.includes(t.code))
         : txnTypes;
 
+  // Admin dashboard: remove "Send Funds" (TRANSFER) option from the transaction type chooser.
+  const filteredTxnTypes = isStaff
+    ? filteredTxnTypesBase.filter((t: any) => t.code !== "TRANSFER")
+    : filteredTxnTypesBase;
+
   // Preselect a transaction type by code (when provided by caller, e.g., dashboard quick-actions)
   useEffect(() => {
     if (!open) return;
     if (!defaultTxnCode) return;
     if (selectedTxnTypeId) return;
-    const match = filteredTxnTypes.find((t: any) => t.code === defaultTxnCode) || txnTypes.find((t: any) => t.code === defaultTxnCode);
+    const match = filteredTxnTypes.find((t: any) => t.code === defaultTxnCode);
     if (match?.id) {
       setSelectedTxnTypeId(match.id);
       if (step === "type") setStep("pool");
