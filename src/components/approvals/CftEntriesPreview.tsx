@@ -12,6 +12,7 @@ export interface CftLine {
   glCode?: string;
   glName?: string;
   controlAccount?: string;
+  controlAccountSide?: "Dt" | "Ct";
   amount: number;
 }
 
@@ -92,7 +93,7 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
                     {l.controlAccount && l.controlAccount !== "—" ? (
                       <span>
                         {l.controlAccount}{" "}
-                        <span className="font-mono text-[10px] font-semibold">({l.side === "DR" ? "Dt" : "Ct"})</span>
+                        <span className="font-mono text-[10px] font-semibold">({l.controlAccountSide || "Dt"})</span>
                       </span>
                     ) : "—"}
                   </TableCell>
