@@ -25,7 +25,6 @@ type EntityAccountType = {
   account_type: number;
   is_active: boolean;
   number_count: number;
-  membership_fee: number;
   created_at: string;
   updated_at: string;
 };
