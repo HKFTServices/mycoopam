@@ -1408,6 +1408,7 @@ export type Database = {
           name: string
           number_count: number
           prefix: string
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -1420,6 +1421,7 @@ export type Database = {
           name: string
           number_count?: number
           prefix: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -1432,9 +1434,18 @@ export type Database = {
           name?: string
           number_count?: number
           prefix?: string
+          tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entity_account_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_accounts: {
         Row: {

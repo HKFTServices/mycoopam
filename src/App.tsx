@@ -188,7 +188,7 @@ const App = () => (
               <Route path="/dashboard/setup/countries" element={<SuperAdminRoute><Countries /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/banks" element={<SuperAdminRoute><Banks /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/bank-account-types" element={<SuperAdminRoute><BankAccountTypes /></SuperAdminRoute>} />
-              <Route path="/dashboard/setup/entity-account-types" element={<SuperAdminRoute><EntityAccountTypes /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/entity-account-types" element={<RoleProtectedRoute allowedRoles={["tenant_admin"]}><EntityAccountTypes /></RoleProtectedRoute>} />
               <Route path="/dashboard/setup/tax-types" element={<SuperAdminRoute><TaxTypes /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/transaction-types" element={<SuperAdminRoute><TransactionTypes /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/system-email-templates" element={<SuperAdminRoute><SystemEmailTemplates /></SuperAdminRoute>} />

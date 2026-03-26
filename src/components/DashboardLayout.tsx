@@ -137,7 +137,7 @@ const globalSetupNavItems: NavItem[] = [
   { label: "Relationship Types", icon: Link2, path: "/dashboard/setup/relationship-types" },
   { label: "Banks", icon: Landmark, path: "/dashboard/setup/banks" },
   { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
-  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
+  
   { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
   { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
   { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
@@ -151,6 +151,7 @@ const tenantSetupNavItems: NavItem[] = [
   { label: "Pools", icon: Wallet, path: "/dashboard/pools" },
   { label: "Items", icon: Gem, path: "/dashboard/items" },
   { label: "Fees", icon: DollarSign, path: "/dashboard/fees" },
+  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
   { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts" },
   { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements" },
   { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
