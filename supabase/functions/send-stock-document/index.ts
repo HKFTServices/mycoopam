@@ -324,11 +324,17 @@ serve(async (req) => {
       ? `"${tenantCfg.smtp_from_name}" <${effectiveFromEmail}>`
       : effectiveFromEmail;
 
+    // Append email signature to the HTML body
+    const emailSignature = (tenantCfg as any)?.email_signature_en || "";
+    const emailHtml = emailSignature
+      ? html.replace("</body>", `<div style="max-width:780px;margin:0 auto;padding:0 40px;">${emailSignature}</div></body>`)
+      : html;
+
     const info = await transporter.sendMail({
       from: fromHeader,
       to: counterpartyEmail,
       subject: subjectMap[document_type] ?? `${docTitle} ${docNumber}`,
-      html,
+      html: emailHtml,
     });
 
     console.log(`[send-stock-document] Sent ${document_type} to ${counterpartyEmail}: ${info.messageId}`);
