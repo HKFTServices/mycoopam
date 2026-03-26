@@ -238,7 +238,16 @@ const MembershipApplication = () => {
         body: { tenant_id: currentTenant.id },
       }).catch((err) => console.error("Failed to send account creation email:", err));
 
-      toast.success("Membership application submitted successfully!");
+      toast.success(
+        "Membership application submitted! To activate your membership and receive your membership number, please make your first deposit.",
+        {
+          duration: 8000,
+          action: {
+            label: "Deposit Now",
+            onClick: () => navigate("/transactions", { state: { openNewTransaction: true, defaultTxnCode: "DEPOSIT_FUNDS" } }),
+          },
+        }
+      );
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit application. Please try again.");
