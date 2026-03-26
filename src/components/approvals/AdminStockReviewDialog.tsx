@@ -235,6 +235,21 @@ const AdminStockReviewDialog = ({
   const [adminSignature, setAdminSignature] = useState<string | null>(null);
   const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
+  // Fetch vault locations for the tenant
+  const { data: vaultLocations = [] } = useQuery({
+    queryKey: ["vault_locations", txn?.tenant_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vault_locations")
+        .select("id, name, description")
+        .eq("tenant_id", txn.tenant_id)
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+    enabled: !!txn?.tenant_id,
+  });
+
   // Reset all local state when the transaction changes
   useEffect(() => {
     setVaultRef(txn?.vault_reference ?? "");
