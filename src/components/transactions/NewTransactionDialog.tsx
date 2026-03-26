@@ -304,10 +304,22 @@ const NewTransactionDialog = ({
       // Fetch the account type to get membership fee
       const { data: acct } = await (supabase as any)
         .from("entity_accounts")
-        .select("entity_account_type_id, entity_id, entity_account_types(membership_fee)")
+        .select("entity_account_type_id, entity_id, entity_account_types(account_type)")
         .eq("id", transferRecipientAccountId)
         .single();
-      const membershipFee = acct ? Number(acct.entity_account_types?.membership_fee ?? 0) : 0;
+
+      const { data: tenantConfig } = await (supabase as any)
+        .from("tenant_configuration")
+        .select("full_membership_fee, associated_membership_fee")
+        .eq("tenant_id", currentTenant.id)
+        .maybeSingle();
+
+      const receiverAccountType = Number(acct?.entity_account_types?.account_type ?? 0);
+      const membershipFee = receiverAccountType === 1
+        ? Number(tenantConfig?.full_membership_fee ?? 0)
+        : receiverAccountType === 4
+          ? Number(tenantConfig?.associated_membership_fee ?? 0)
+          : 0;
 
       // Commission for receiver entity
       let commissionPctReceiver = 0;
@@ -386,17 +398,21 @@ const NewTransactionDialog = ({
   });
 
   const { data: membershipFeeAmount = 0 } = useQuery({
-    queryKey: ["membership_fee", selectedAccount?.entity_account_type_id],
+    queryKey: ["membership_fee", currentTenant?.id, selectedAccount?.entity_account_types?.account_type],
     queryFn: async () => {
-      if (!selectedAccount?.entity_account_type_id) return 0;
+      if (!currentTenant || !selectedAccount?.entity_account_types?.account_type) return 0;
       const { data } = await (supabase as any)
-        .from("entity_account_types")
-        .select("membership_fee")
-        .eq("id", selectedAccount.entity_account_type_id)
-        .single();
-      return data ? Number(data.membership_fee) : 0;
+        .from("tenant_configuration")
+        .select("full_membership_fee, associated_membership_fee")
+        .eq("tenant_id", currentTenant.id)
+        .maybeSingle();
+
+      const accountType = Number(selectedAccount.entity_account_types.account_type);
+      if (accountType === 1) return Number(data?.full_membership_fee ?? 0);
+      if (accountType === 4) return Number(data?.associated_membership_fee ?? 0);
+      return 0;
     },
-    enabled: !!selectedAccount?.entity_account_type_id && open,
+    enabled: !!currentTenant && !!selectedAccount?.entity_account_types?.account_type && open,
   });
 
   // joinShareInfo is computed after vatRate is available (see below)
