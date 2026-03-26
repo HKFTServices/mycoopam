@@ -143,7 +143,7 @@ const globalSetupNavItems: NavItem[] = [
   { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
   { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
   { label: "System Email Templates", icon: Mail, path: "/dashboard/setup/system-email-templates" },
-  { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions" },
+  
   { label: "API Providers", icon: Globe, path: "/dashboard/setup/api-providers" },
 ];
 
@@ -159,6 +159,7 @@ const tenantSetupNavItems: NavItem[] = [
   { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
   { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings" },
   { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
+  { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions" },
   { label: "Data Import", icon: Package, path: "/dashboard/setup/data-import" },
   { label: "Legacy GL Allocation", icon: BookOpen, path: "/dashboard/legacy-gl-allocation" },
 ];

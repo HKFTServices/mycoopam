@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays } from "lucide-react";
+import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2 } from "lucide-react";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/formatCurrency";
+import TenantFeaturesDialog from "@/components/headoffice/TenantFeaturesDialog";
 
 const TenantManagement = () => {
   const queryClient = useQueryClient();
@@ -22,6 +23,7 @@ const TenantManagement = () => {
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
   const [feeForm, setFeeForm] = useState<Record<string, string>>({});
   const [eomTenant, setEomTenant] = useState<{ id: string; name: string } | null>(null);
+  const [featuresTenant, setFeaturesTenant] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch all tenants with stats
   const { data: tenants = [], isLoading } = useQuery({
@@ -239,6 +241,14 @@ const TenantManagement = () => {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => setFeaturesTenant({ id: tenant.id, name: tenant.name })}
+                        >
+                          <Settings2 className="h-3.5 w-3.5 mr-1" />
+                          Features
+                        </Button>
+                        <Button
+                          size="sm"
                           onClick={() => setEomTenant({ id: tenant.id, name: tenant.name })}
                         >
                           <CalendarDays className="h-3.5 w-3.5 mr-1" />
@@ -338,6 +348,13 @@ const TenantManagement = () => {
         open={!!eomTenant}
         onOpenChange={(open) => !open && setEomTenant(null)}
         tenantOverride={eomTenant}
+      />
+
+      {/* Tenant Features Dialog */}
+      <TenantFeaturesDialog
+        open={!!featuresTenant}
+        onOpenChange={(open) => !open && setFeaturesTenant(null)}
+        tenant={featuresTenant}
       />
     </div>
   );

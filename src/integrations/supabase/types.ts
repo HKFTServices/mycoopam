@@ -5214,6 +5214,41 @@ export type Database = {
           },
         ]
       }
+      tenant_features: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          is_enabled: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          is_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          is_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_features_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_fee_config: {
         Row: {
           created_at: string
@@ -6207,6 +6242,10 @@ export type Database = {
           _tenant_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_feature_enabled: {
+        Args: { _feature_key: string; _tenant_id: string }
         Returns: boolean
       }
       is_tenant_admin_of_user: {
