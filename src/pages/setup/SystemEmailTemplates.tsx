@@ -420,6 +420,8 @@ const SystemEmailTemplates = () => {
       </AlertDialog>
     </div>
   );
+};
+
 // Merge Field Picker Component
 const MergeFieldPicker = ({ onInsert, label = "Merge Fields" }: { onInsert: (tag: string) => void; label?: string }) => (
   <Popover>
