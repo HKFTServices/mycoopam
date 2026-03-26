@@ -421,7 +421,7 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
           </div>
         ) : (
           <>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
               <TabsList className="w-full grid grid-cols-5">
                 <TabsTrigger value="details" className="gap-1.5 text-xs">
                   {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
