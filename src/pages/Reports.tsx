@@ -72,7 +72,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("cashflow_transactions")
-        .select("id, transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, parent_id, control_account_id, pool_id, entity_account_id, vat_amount, amount_excl_vat, gl_account_id, control_accounts(name), gl_accounts(name, code, gl_type), entity_accounts(account_number, entities(name, last_name))")
+        .select("id, transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, parent_id, control_account_id, pool_id, entity_account_id, vat_amount, amount_excl_vat, gl_account_id, control_accounts(name), gl_accounts(name, code, gl_type), pools(name), entity_accounts(account_number, entities(name, last_name))")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("transaction_date", { ascending: false })
