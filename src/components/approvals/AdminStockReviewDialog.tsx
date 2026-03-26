@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Package, Building2, ClipboardCheck, ShieldCheck, Loader2, AlertTriangle,
   Check, ShoppingCart, TrendingDown, SlidersHorizontal, FileText, Mail,
