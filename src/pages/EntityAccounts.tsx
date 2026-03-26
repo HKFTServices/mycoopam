@@ -324,11 +324,18 @@ const EntityAccounts = () => {
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">R 0.00</TableCell>
                     <TableCell>
-                      {!r.hasAccount && (
-                        <Button variant="outline" size="sm" className="whitespace-nowrap">
-                          <UserPlus className="h-3.5 w-3.5 mr-1.5" />Apply
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {r.hasAccount && isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {!r.hasAccount && (
+                          <Button variant="outline" size="sm" className="whitespace-nowrap">
+                            <UserPlus className="h-3.5 w-3.5 mr-1.5" />Apply
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -339,6 +346,53 @@ const EntityAccounts = () => {
       </Card>
 
       <CreateEntityAccountDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+      {/* Edit Entity Account Dialog */}
+      <Dialog open={!!editAccount} onOpenChange={(v) => { if (!v) setEditAccount(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Entity Account</DialogTitle>
+          </DialogHeader>
+          {editAccount && (
+            <div className="space-y-5">
+              <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                <p className="text-sm font-semibold">{editAccount.entityName}</p>
+                <p className="text-xs text-muted-foreground font-mono">{editAccount.accountNumber || "No account number"}</p>
+                {editAccount.accountTypeName && <p className="text-xs text-muted-foreground">{editAccount.accountTypeName}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ACCOUNT_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-active">Active</Label>
+                <Switch id="edit-active" checked={editIsActive} onCheckedChange={setEditIsActive} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-approved">Approved</Label>
+                <Switch id="edit-approved" checked={editIsApproved} onCheckedChange={setEditIsApproved} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAccount(null)}>Cancel</Button>
+            <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
