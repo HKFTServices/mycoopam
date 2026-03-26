@@ -76,6 +76,22 @@ const WithdrawalReviewDialog = ({
   const originalDate = primaryTxn?.transaction_date || primaryTxn?.created_at?.split("T")[0];
   const originalDateObj = originalDate ? parseISO(originalDate) : new Date();
 
+  // Build CFT preview lines
+  const withdrawalCftLines = useMemo(() => {
+    if (!group) return [];
+    const poolRedemptions = allTxns.map((t: any) => ({
+      poolName: t.pools?.name || "Pool",
+      amount: Number(t.amount),
+    }));
+    return buildWithdrawalCftLines({
+      totalAmount,
+      netPayout: totalNet,
+      feeBreakdown,
+      poolRedemptions,
+      isStockWithdrawal,
+    });
+  }, [group?.primary?.id]);
+
   if (!group) return null;
 
   return (
@@ -192,7 +208,9 @@ const WithdrawalReviewDialog = ({
             ))}
           </div>
 
-          {/* Phase 2: Payout Confirmation (cash withdrawal only) */}
+          {/* CFT Entries Preview */}
+          <CftEntriesPreview lines={withdrawalCftLines} />
+
           {isFirstApproved && !isStockWithdrawal && (
             <>
               <div className="space-y-2">
