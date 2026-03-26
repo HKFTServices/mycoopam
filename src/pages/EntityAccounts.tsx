@@ -125,6 +125,35 @@ const EntityAccounts = () => {
 
   const isLoading = loadingEntities || loadingAccounts;
 
+  const ACCOUNT_STATUSES = ["active", "approved", "pending_activation", "suspended", "terminated", "declined"];
+
+  const openEditDialog = (row: AccountRow) => {
+    setEditAccount(row);
+    setEditIsActive(row.isActive ?? false);
+    setEditIsApproved(row.isApproved ?? false);
+    setEditStatus(row.status ?? "active");
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editAccount) throw new Error("No account selected");
+      const { error } = await (supabase as any)
+        .from("entity_accounts")
+        .update({
+          is_active: editIsActive,
+          is_approved: editIsApproved,
+          status: editStatus,
+        })
+        .eq("id", editAccount.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Account updated");
+      queryClient.invalidateQueries({ queryKey: ["user_entity_accounts"] });
+      setEditAccount(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   type AccountRow = {
     id: string;
     entityName: string;
