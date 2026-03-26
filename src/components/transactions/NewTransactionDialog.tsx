@@ -25,6 +25,7 @@ import ReviewStep from "./steps/ReviewStep";
 import type { StockLineItem } from "./steps/StockDepositDetailsStep";
 import type { StockWithdrawalLineItem } from "./steps/StockWithdrawalDetailsStep";
 import { formatLocalDate } from "@/lib/formatDate";
+import { sendApprovalNotification } from "@/lib/sendApprovalNotification";
 
 const ALL_TXN_CODES = [
   "DEPOSIT_FUNDS", "DEPOSIT_STOCK", "WITHDRAW_FUNDS", "WITHDRAW_STOCK",
@@ -1566,6 +1567,22 @@ const NewTransactionDialog = ({
       queryClient.invalidateQueries({ queryKey: ["debit_orders"] });
       queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
       queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
+
+      // Fire-and-forget: notify approver(s) of the new pending transaction
+      if (currentTenant?.id) {
+        const entityName = selectedAccount
+          ? [selectedAccount.entities?.name, selectedAccount.entities?.last_name].filter(Boolean).join(" ")
+          : "";
+        sendApprovalNotification({
+          tenantId: currentTenant.id,
+          transactionType: selectedTxnType?.name || "",
+          memberName: entityName,
+          accountNumber: selectedAccount?.account_number || "",
+          amount: amountNum,
+          transactionDate: txnDateStr,
+        });
+      }
+
       onOpenChange(false);
     },
     onError: (err: any) => toast.error(err.message || "Failed to submit"),

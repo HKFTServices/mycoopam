@@ -1,0 +1,1 @@
+ALTER TYPE public.application_event ADD VALUE IF NOT EXISTS 'pending_approval_notification';
