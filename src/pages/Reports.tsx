@@ -644,14 +644,15 @@ const Reports = () => {
                 return (
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                    <TableRow>
                         <TableHead>Txn ID</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Account</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Control Account</TableHead>
                         <TableHead>GL Account</TableHead>
+                        <TableHead>Control Account</TableHead>
+                        <TableHead>Pool</TableHead>
                         <TableHead className="text-right">Debit</TableHead>
                         <TableHead className="text-right">Credit</TableHead>
                         <TableHead className="text-right">Excl VAT</TableHead>
