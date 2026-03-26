@@ -152,13 +152,13 @@ const DailyPoolPrices = () => {
     enabled: !!currentTenant,
   });
 
-  // Fetch stock quantities per item via server-side aggregation
+  // Fetch stock quantities per item via server-side aggregation (filtered by selected date)
   const { data: stockQuantities = {} } = useQuery({
-    queryKey: ["stock_quantities", currentTenant?.id],
+    queryKey: ["stock_quantities", currentTenant?.id, dateStr],
     queryFn: async () => {
       if (!currentTenant) return {};
       const { data, error } = await (supabase as any)
-        .rpc("get_stock_quantities", { p_tenant_id: currentTenant.id });
+        .rpc("get_stock_quantities", { p_tenant_id: currentTenant.id, p_up_to_date: dateStr });
       if (error) throw error;
       const qtys: Record<string, number> = {};
       for (const row of data || []) {
@@ -169,13 +169,13 @@ const DailyPoolPrices = () => {
     enabled: !!currentTenant,
   });
 
-  // Fetch control account balances from CFT records in legacy_id_mappings
+  // Fetch control account balances from CFT records (filtered by selected date)
   const { data: journalBalances = {} } = useQuery({
-    queryKey: ["cft_control_balances", currentTenant?.id],
+    queryKey: ["cft_control_balances", currentTenant?.id, dateStr],
     queryFn: async () => {
       if (!currentTenant) return {};
       const { data, error } = await (supabase as any)
-        .rpc("get_cft_control_balances", { p_tenant_id: currentTenant.id });
+        .rpc("get_cft_control_balances", { p_tenant_id: currentTenant.id, p_up_to_date: dateStr });
       if (error) throw error;
       const balances: Record<string, number> = {};
       for (const row of data || []) {
