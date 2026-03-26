@@ -45,7 +45,7 @@ const APPLICATION_EVENTS: { value: AppEvent; label: string }[] = [
   { value: "deposit_funds_approval", label: "Funds Deposit Approval" },
   { value: "email_footer", label: "Email Footer" },
   { value: "first_membership_dep_funds", label: "First Membership – Funds Deposit" },
-  { value: "first_membership_dep_metal", label: "First Membership – Metal Deposit" },
+  { value: "first_membership_dep_stock", label: "First Membership – Stock Deposit" },
   { value: "funds_receipt", label: "Funds Receipt" },
   { value: "stock_purchase_approval", label: "Stock Purchase Approval" },
   { value: "switching_approval", label: "Switching Approval" },

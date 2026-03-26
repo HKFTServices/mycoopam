@@ -333,7 +333,7 @@ export async function postDepositApproval(
       // Send first-membership confirmation email (fire-and-forget)
       // Keep using first_membership events — these have special templates
       const firstMembershipEvent = isStockDeposit
-        ? "first_membership_dep_metal"
+        ? "first_membership_dep_stock"
         : "first_membership_dep_funds";
       sendTransactionEmail({
         tenantId,
