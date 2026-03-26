@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import CftEntriesPreview, { buildDepositCftLines } from "@/components/approvals/CftEntriesPreview";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,

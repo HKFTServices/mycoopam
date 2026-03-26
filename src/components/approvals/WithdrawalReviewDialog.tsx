@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
+import CftEntriesPreview, { buildWithdrawalCftLines } from "@/components/approvals/CftEntriesPreview";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
