@@ -695,8 +695,9 @@ const Reports = () => {
                               </span>
                             </TableCell>
                             <TableCell className="max-w-[200px] truncate" title={r.description}>{r.description}</TableCell>
-                            <TableCell className="text-xs">{r.control_accounts?.name || "—"}</TableCell>
                             <TableCell className="text-xs">{r.gl_accounts ? `${r.gl_accounts.code} ${r.gl_accounts.name}` : "—"}</TableCell>
+                            <TableCell className="text-xs">{r.control_accounts?.name || "—"}</TableCell>
+                            <TableCell className="text-xs">{r.pools?.name || "—"}</TableCell>
                             <TableCell className="text-right font-mono">{Number(r.debit) > 0 ? fmt(r.debit) : "—"}</TableCell>
                             <TableCell className="text-right font-mono">{Number(r.credit) > 0 ? fmt(r.credit) : "—"}</TableCell>
                             <TableCell className="text-right">{fmt(r.amount_excl_vat)}</TableCell>
