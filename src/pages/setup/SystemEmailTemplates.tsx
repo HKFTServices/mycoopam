@@ -339,7 +339,13 @@ const SystemEmailTemplates = () => {
               <div className="flex items-center justify-between">
                 <Label>Email Body</Label>
                 <div className="flex gap-1">
-                  <MergeFieldPicker onInsert={(tag) => setForm({ ...form, body_html: form.body_html + tag })} />
+                  <MergeFieldPicker onInsert={(tag) => {
+                    if (!showHtmlSource && editorRef.current) {
+                      editorRef.current.insertText(tag);
+                    } else {
+                      setForm({ ...form, body_html: form.body_html + tag });
+                    }
+                  }} />
                   <Button
                     type="button"
                     variant="ghost"
