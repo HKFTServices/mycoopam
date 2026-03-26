@@ -48,6 +48,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (event === ("TOKEN_REFRESH_FAILED" as any)) {
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // ignore
+          }
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
         if (event === "PASSWORD_RECOVERY") {
           setIsPasswordRecovery(true);
         }

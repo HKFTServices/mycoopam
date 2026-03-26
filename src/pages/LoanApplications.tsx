@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Banknote, Eye } from "lucide-react";
+import { ArrowRight, Loader2, Banknote, Eye, Plus, Sparkles } from "lucide-react";
 import { useState } from "react";
 import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
 import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
+import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (s) {
@@ -37,6 +38,7 @@ const LoanApplications = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [reviewApp, setReviewApp] = useState<any>(null);
   const [acceptApp, setAcceptApp] = useState<any>(null);
+  const [loanApplyOpen, setLoanApplyOpen] = useState(false);
 
   // Check if admin
   const { data: isAdmin = false } = useQuery({
@@ -52,8 +54,51 @@ const LoanApplications = () => {
     enabled: !!user,
   });
 
+  const { data: memberPrimaryAccount, isLoading: memberPrimaryAccountLoading } = useQuery({
+    queryKey: ["loan_apply_primary_account", currentTenant?.id, user?.id],
+    queryFn: async () => {
+      if (!user || !currentTenant) return null;
+
+      const { data: rels, error: relErr } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id, entities(id, name, last_name)")
+        .eq("tenant_id", currentTenant.id)
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+      if (relErr) throw relErr;
+
+      const entityIds = (rels ?? []).map((r: any) => r.entity_id).filter(Boolean);
+      if (entityIds.length === 0) return null;
+
+      const { data: accounts, error: accErr } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id, entity_id, account_number")
+        .eq("tenant_id", currentTenant.id)
+        .in("entity_id", entityIds)
+        .eq("is_active", true)
+        .eq("is_approved", true)
+        .limit(1);
+      if (accErr) throw accErr;
+
+      const a = accounts?.[0];
+      if (!a) return null;
+
+      const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
+      const e = rel?.entities;
+      const entityName = e ? [e.name, e.last_name].filter(Boolean).join(" ") : "Entity";
+
+      return {
+        entityId: a.entity_id as string,
+        entityAccountId: a.id as string,
+        entityName,
+        accountNumber: (a.account_number as string) ?? "",
+      };
+    },
+    enabled: !!user && !!currentTenant,
+  });
+
   // Fetch applications
-  const { data: applications = [], isLoading } = useQuery({
+  const { data: applications = [], isLoading, isFetching } = useQuery({
     queryKey: ["loan_applications", currentTenant?.id, statusFilter],
     queryFn: async () => {
       let query = (supabase as any)
@@ -101,20 +146,62 @@ const LoanApplications = () => {
             </p>
           </div>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-            <SelectItem value="disbursed">Disbursed</SelectItem>
-            <SelectItem value="declined">Declined</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="disbursed">Disbursed</SelectItem>
+              <SelectItem value="declined">Declined</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {memberPrimaryAccount ? (
+        <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-xl border bg-background/70 flex items-center justify-center shrink-0">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base">Apply for a Loan</CardTitle>
+                    <Badge variant="secondary" className="text-[10px]">2 steps</Badge>
+                  </div>
+                  <CardDescription className="text-sm">
+                    Submit a new loan application with a budget summary and loan details.
+                  </CardDescription>
+                </div>
+              </div>
+              <Button onClick={() => setLoanApplyOpen(true)} disabled={memberPrimaryAccountLoading} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Loan Application
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-xs text-muted-foreground">
+              Applying as <span className="font-medium text-foreground">{memberPrimaryAccount.entityName}</span>
+              {memberPrimaryAccount.accountNumber ? (
+                <>
+                  {" "}
+                  (Account <span className="font-mono">{memberPrimaryAccount.accountNumber}</span>)
+                </>
+              ) : null}
+              .
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardContent className="p-0">
@@ -132,7 +219,7 @@ const LoanApplications = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading || (isFetching && applications.length === 0) ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto" />
@@ -212,6 +299,16 @@ const LoanApplications = () => {
           application={acceptApp}
         />
       )}
+
+      {memberPrimaryAccount ? (
+        <LoanApplicationDialog
+          open={loanApplyOpen}
+          onOpenChange={setLoanApplyOpen}
+          entityAccountId={memberPrimaryAccount.entityAccountId}
+          entityId={memberPrimaryAccount.entityId}
+          entityName={memberPrimaryAccount.entityName}
+        />
+      ) : null}
     </div>
   );
 };

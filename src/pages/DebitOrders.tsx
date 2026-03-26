@@ -18,7 +18,9 @@ import { Loader2, CreditCard, Eye, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
@@ -40,6 +42,9 @@ const DebitOrders = () => {
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [entitySelectOpen, setEntitySelectOpen] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [adminAccountSelectOpen, setAdminAccountSelectOpen] = useState(false);
+  const [adminAccountQuery, setAdminAccountQuery] = useState("");
+  const [adminSelectedEntity, setAdminSelectedEntity] = useState<any>(null);
 
   const { data: userRoles = [] } = useQuery({
     queryKey: ["user_roles_do", user?.id],
@@ -174,6 +179,35 @@ const DebitOrders = () => {
   };
 
   const selectedEntity = userEntities.find((e: any) => e.entityId === selectedEntityId);
+  const signUpEntity = isAdmin ? adminSelectedEntity : selectedEntity;
+
+  const { data: adminEntityAccounts = [], isLoading: loadingAdminEntityAccounts } = useQuery({
+    queryKey: ["admin_entity_accounts_debit_order", currentTenant?.id, adminAccountSelectOpen],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id, account_number, entity_id, entities(name, last_name)")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .eq("is_approved", true)
+        .order("account_number", { ascending: true })
+        .limit(300);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant && isAdmin && adminAccountSelectOpen,
+  });
+
+  const filteredAdminEntityAccounts = useMemo(() => {
+    const q = adminAccountQuery.trim().toLowerCase();
+    if (!q) return adminEntityAccounts;
+    return adminEntityAccounts.filter((a: any) => {
+      const name = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ").toLowerCase();
+      const acct = String(a.account_number ?? "").toLowerCase();
+      return name.includes(q) || acct.includes(q);
+    });
+  }, [adminEntityAccounts, adminAccountQuery]);
 
   if (isLoading) {
     return (
@@ -190,7 +224,12 @@ const DebitOrders = () => {
           <CreditCard className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Debit Orders</h1>
         </div>
-        {!isAdmin && (
+        {isAdmin ? (
+          <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Debit Order
+          </Button>
+        ) : (
           <Button onClick={handleSignUpClick} className="gap-2">
             <Plus className="h-4 w-4" />
             Sign Up for Debit Order
@@ -439,6 +478,70 @@ const DebitOrders = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Admin: select entity account to create debit order for */}
+      <Dialog
+        open={adminAccountSelectOpen}
+        onOpenChange={(open) => {
+          setAdminAccountSelectOpen(open);
+          if (!open) setAdminAccountQuery("");
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Member Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={adminAccountQuery}
+              onChange={(e) => setAdminAccountQuery(e.target.value)}
+              placeholder="Search by member name or account number..."
+            />
+            <ScrollArea className="h-[360px] pr-3">
+              {loadingAdminEntityAccounts ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredAdminEntityAccounts.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No matching accounts found.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredAdminEntityAccounts.map((a: any) => {
+                    const entityName = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ") || "Entity";
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => {
+                          setAdminSelectedEntity({
+                            entityId: a.entity_id,
+                            entityName,
+                            entityAccountId: a.id,
+                            accountNumber: a.account_number,
+                          });
+                          setAdminAccountSelectOpen(false);
+                          setSignUpOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{entityName}</p>
+                          <p className="text-xs text-muted-foreground truncate">Account: {a.account_number ?? "—"}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          Select
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit dialog */}
       {editOrder && (
         <DebitOrderSignUpDialog
@@ -453,19 +556,20 @@ const DebitOrders = () => {
       )}
 
       {/* New sign-up dialog */}
-      {signUpOpen && selectedEntity && (
+      {signUpOpen && signUpEntity && (
         <DebitOrderSignUpDialog
           open={signUpOpen}
           onOpenChange={(o) => {
             if (!o) {
               setSignUpOpen(false);
               setSelectedEntityId("");
+              setAdminSelectedEntity(null);
             }
           }}
-          entityId={selectedEntity.entityId}
-          entityName={selectedEntity.entityName}
-          entityAccountId={selectedEntity.entityAccountId}
-          accountNumber={selectedEntity.accountNumber}
+          entityId={signUpEntity.entityId}
+          entityName={signUpEntity.entityName}
+          entityAccountId={signUpEntity.entityAccountId}
+          accountNumber={signUpEntity.accountNumber}
         />
       )}
     </div>

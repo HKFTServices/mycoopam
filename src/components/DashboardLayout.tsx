@@ -422,7 +422,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     setOpen: (open: boolean) => void;
     viewAll: NavItem;
     items: NavItem[];
-    navigateOnOpen?: boolean;
   }) => {
     const effectiveOpen = normalizedQuery ? true : params.open;
     const show = sectionHasMatch(params.label, params.items, normalizedQuery);
@@ -432,17 +431,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       location.pathname === params.viewAll.path ||
       params.items.some((i) => i.path === location.pathname);
 
+    const subItems = params.items.filter((i) => i.path !== params.viewAll.path);
+
     return (
       <SidebarMenuItem key={params.label}>
         <SidebarMenuButton asChild isActive={isActive}>
           <button
             type="button"
             onClick={() => {
-              const willOpen = !params.open;
-              if (params.navigateOnOpen && willOpen && location.pathname !== params.viewAll.path) {
-                navigate(params.viewAll.path);
-              }
-              params.setOpen(willOpen);
+              if (location.pathname !== params.viewAll.path) navigate(params.viewAll.path);
+              params.setOpen(!params.open);
             }}
           >
             <params.icon />
@@ -453,15 +451,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         {effectiveOpen ? (
           <SidebarMenuSub>
-            <SidebarMenuSubItem>
-              <SidebarMenuSubButton asChild isActive={location.pathname === params.viewAll.path}>
-                <Link to={params.viewAll.path}>
-                  <params.viewAll.icon />
-                  <span>{params.viewAll.label}</span>
-                </Link>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-            {params.items.map((item) => (
+            {subItems.map((item) => (
               <SidebarMenuSubItem key={item.path}>
                 <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
                   <Link to={item.path}>
@@ -567,7 +557,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     setOpen: setTransactionsOpen,
                     viewAll: { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions" },
                     items: filteredTransactions.filter((i) => i.path !== "/dashboard/transactions"),
-                    navigateOnOpen: true,
                   })}
               </SidebarMenu>
             </SidebarGroupContent>

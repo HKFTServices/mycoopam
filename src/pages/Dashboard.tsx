@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import {
@@ -22,8 +21,6 @@ import {
   Clock,
   Banknote,
   MoreHorizontal,
-  CalendarDays,
-  SlidersHorizontal,
   AlertTriangle,
   FileDown,
 } from "lucide-react";
@@ -33,15 +30,8 @@ import NewTransactionDialog from "@/components/transactions/NewTransactionDialog
 import { PoolIcon } from "@/components/pools/PoolIcon";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
-
-type TimeRange = "12m" | "30d" | "7d" | "24h";
-
-const TIME_RANGES: Array<{ value: TimeRange; label: string; days: number }> = [
-  { value: "12m", label: "12 months", days: 365 },
-  { value: "30d", label: "30 days", days: 30 },
-  { value: "7d", label: "7 days", days: 7 },
-  { value: "24h", label: "24 hours", days: 1 },
-];
+import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
+import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
 function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -90,8 +80,9 @@ const Dashboard = () => {
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>("12m");
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
+  const [loanApplyOpen, setLoanApplyOpen] = useState(false);
+  const [debitOrderOpen, setDebitOrderOpen] = useState(false);
 
   const tenantId = currentTenant?.id;
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
@@ -100,19 +91,21 @@ const Dashboard = () => {
   const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ["user_roles", user?.id, tenantId],
     queryFn: async () => {
+      if (!user) return [];
       const { data } = await (supabase as any)
         .from("user_roles")
         .select("role, tenant_id")
-        .eq("user_id", user!.id);
+        .eq("user_id", user.id);
       return data ?? [];
     },
     enabled: !!user,
   });
 
   const isSuperAdmin = userRoles.some((r: any) => r.role === "super_admin");
-  const isTenantAdmin = userRoles.some(
-    (r: any) => r.role === "tenant_admin" && r.tenant_id === tenantId
-  );
+  const isTenantAdmin = userRoles.some((r: any) => {
+    if (r.role !== "tenant_admin") return false;
+    return !r.tenant_id || r.tenant_id === tenantId;
+  });
   const isAdmin = isSuperAdmin || isTenantAdmin;
 
   const { data: myEntityRel, isLoading: myEntityRelLoading } = useQuery({
@@ -137,26 +130,73 @@ const Dashboard = () => {
   const myRelationshipTypeId = myEntityRel?.relationship_type_id as string | undefined;
   const myEntityType = myEntityRel?.entities?.entity_categories?.entity_type as string | undefined;
 
-  const rangeDays = TIME_RANGES.find((r) => r.value === timeRange)?.days ?? 365;
+  const { data: memberPrimaryAccount, isLoading: memberPrimaryAccountLoading } = useQuery({
+    queryKey: ["dashboard_member_primary_account", tenantId, user?.id],
+    queryFn: async () => {
+      if (!tenantId || !user) return null;
+
+      const { data: rels, error: relErr } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id, entities(id, name, last_name)")
+        .eq("tenant_id", tenantId)
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+      if (relErr) throw relErr;
+
+      const entityIds = (rels ?? []).map((r: any) => r.entity_id).filter(Boolean);
+      if (entityIds.length === 0) return null;
+
+      const { data: accounts, error: accErr } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id, entity_id, account_number")
+        .eq("tenant_id", tenantId)
+        .in("entity_id", entityIds)
+        .eq("is_active", true)
+        .eq("is_approved", true)
+        .limit(1);
+      if (accErr) throw accErr;
+
+      const a = accounts?.[0];
+      if (!a) return null;
+
+      const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
+      const e = rel?.entities;
+      const entityName = e ? [e.name, e.last_name].filter(Boolean).join(" ") : "Entity";
+
+      return {
+        entityId: a.entity_id as string,
+        entityAccountId: a.id as string,
+        entityName,
+        accountNumber: (a.account_number as string) ?? "",
+      };
+    },
+    enabled: !!tenantId && !!user && !isAdmin,
+  });
+
+  const rangeDays = 365;
   const fromDateStr = useMemo(() => {
     const from = new Date();
     from.setDate(from.getDate() - rangeDays);
     return isoDate(from);
-  }, [rangeDays]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Admin Stats ──
   const { data: adminStats, isLoading: adminStatsLoading } = useQuery({
     queryKey: ["admin_dashboard_stats", tenantId],
     queryFn: async () => {
+      if (!tenantId) {
+        return { totalEntities: 0, totalAccounts: 0, pendingAccounts: 0, activePools: 0 };
+      }
       const [entities, accounts, pending, pools] = await Promise.all([
         supabase.from("entities").select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!).eq("is_deleted", false),
+          .eq("tenant_id", tenantId).eq("is_deleted", false),
         supabase.from("entity_accounts").select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!).eq("is_active", true),
+          .eq("tenant_id", tenantId).eq("is_active", true),
         supabase.from("entity_accounts").select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!).eq("status", "pending_activation"),
+          .eq("tenant_id", tenantId).eq("status", "pending_activation"),
         supabase.from("pools").select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!).eq("is_active", true).eq("is_deleted", false),
+          .eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false),
       ]);
       return {
         totalEntities: entities.count ?? 0,
@@ -172,10 +212,11 @@ const Dashboard = () => {
   const { data: poolSummaries = [], isLoading: poolSummariesLoading } = useQuery({
     queryKey: ["pool_summaries", tenantId],
     queryFn: async () => {
+      if (!tenantId) return [];
       const { data: pools } = await (supabase as any)
         .from("pools")
         .select("id, name, fixed_unit_price, icon_url")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .eq("is_deleted", false)
         .order("name");
@@ -185,7 +226,7 @@ const Dashboard = () => {
       const { data: prices } = await (supabase as any)
         .from("daily_pool_prices")
         .select("pool_id, unit_price_sell, unit_price_buy, total_units, totals_date, member_interest_sell, member_interest_buy")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("totals_date", { ascending: false });
 
       // Get total units from unit_transactions via RPC
@@ -294,12 +335,19 @@ const Dashboard = () => {
   const { data: recentTransactions = [], isLoading: recentTransactionsLoading } = useQuery({
     queryKey: ["admin_recent_transactions", tenantId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("operating_journals")
-        .select("id, transaction_date, description, reference, amount, transaction_type, is_reversed")
-        .eq("tenant_id", tenantId!)
-        .order("transaction_date", { ascending: false })
+      if (!tenantId) return [];
+      const { data, error } = await (supabase as any)
+        .from("transactions")
+        .select(`
+          id, amount, status, transaction_date, created_at,
+          pools!transactions_pool_id_fkey(name),
+          transaction_types!transactions_transaction_type_id_fkey(name, code),
+          entity_accounts!transactions_entity_account_id_fkey(account_number, entities!entity_accounts_entity_id_fkey(name, last_name))
+        `)
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false })
         .limit(8);
+      if (error) throw error;
       return data ?? [];
     },
     enabled: !!tenantId && isAdmin,
@@ -490,12 +538,13 @@ const Dashboard = () => {
   const { data: memberHoldings = [], isLoading: memberHoldingsLoading } = useQuery({
     queryKey: ["member_holdings_dashboard", user?.id, tenantId],
     queryFn: async () => {
+      if (!user || !tenantId) return [];
       // Get user's entity accounts
       const { data: rels } = await (supabase as any)
         .from("user_entity_relationships")
         .select("entity_id")
-        .eq("user_id", user!.id)
-        .eq("tenant_id", tenantId!)
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
         .eq("is_active", true);
       if (!rels?.length) return [];
 
@@ -504,7 +553,7 @@ const Dashboard = () => {
         .from("entity_accounts")
         .select("id, account_number, entity_id, entities(name, last_name)")
         .in("entity_id", entityIds)
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .eq("is_active", true);
       if (!accounts?.length) return [];
 
@@ -518,7 +567,7 @@ const Dashboard = () => {
       const { data: pools } = await (supabase as any)
         .from("pools")
         .select("id, name, fixed_unit_price")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .eq("is_deleted", false);
 
@@ -526,7 +575,7 @@ const Dashboard = () => {
       const { data: latestDateRow } = await (supabase as any)
         .from("daily_pool_prices")
         .select("totals_date")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("totals_date", { ascending: false })
         .limit(1);
       const latestDate = latestDateRow?.[0]?.totals_date ?? null;
@@ -535,7 +584,7 @@ const Dashboard = () => {
         ? await (supabase as any)
           .from("daily_pool_prices")
           .select("pool_id, unit_price_buy")
-          .eq("tenant_id", tenantId!)
+          .eq("tenant_id", tenantId)
           .eq("totals_date", latestDate)
         : { data: [] };
 
@@ -576,11 +625,12 @@ const Dashboard = () => {
   const { data: hasApprovedAccount = false, isLoading: hasApprovedAccountLoading } = useQuery({
     queryKey: ["member_approved_account", user?.id, tenantId],
     queryFn: async () => {
+      if (!user || !tenantId) return false;
       const { data: rels } = await (supabase as any)
         .from("user_entity_relationships")
         .select("entity_id")
-        .eq("user_id", user!.id)
-        .eq("tenant_id", tenantId!)
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
         .eq("is_active", true);
       if (!rels?.length) return false;
       const entityIds = rels.map((r: any) => r.entity_id);
@@ -588,7 +638,7 @@ const Dashboard = () => {
         .from("entity_accounts")
         .select("id, entity_account_types!inner(account_type)")
         .in("entity_id", entityIds)
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .eq("is_approved", true)
         .eq("entity_account_types.account_type", 1)
         .limit(1);
@@ -600,10 +650,11 @@ const Dashboard = () => {
   const { data: availablePools = [], isLoading: availablePoolsLoading } = useQuery({
     queryKey: ["available_pools_dashboard", tenantId],
     queryFn: async () => {
+      if (!tenantId) return [];
       const { data: pools } = await (supabase as any)
         .from("pools")
         .select("id, name, description, icon_url, open_unit_price, pool_statement_display_type")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .eq("is_deleted", false)
         .order("name");
@@ -616,7 +667,7 @@ const Dashboard = () => {
       const { data: prices } = await (supabase as any)
         .from("daily_pool_prices")
         .select("pool_id, unit_price_buy")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("totals_date", { ascending: false });
 
       const latestBuyPrice: Record<string, number> = {};
@@ -638,11 +689,12 @@ const Dashboard = () => {
   const { data: hasPendingApplication = false, isLoading: hasPendingApplicationLoading } = useQuery({
     queryKey: ["member_pending_application", user?.id, tenantId],
     queryFn: async () => {
+      if (!user || !tenantId) return false;
       const { data } = await (supabase as any)
         .from("membership_applications")
         .select("id, status")
-        .eq("user_id", user!.id)
-        .eq("tenant_id", tenantId!)
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
         .in("status", ["pending_review", "first_approved", "pending_activation"])
         .limit(1);
       return (data?.length ?? 0) > 0;
@@ -690,8 +742,8 @@ const Dashboard = () => {
   const secondaryMetric = useMemo(() => {
     if (isAdmin) return { title: "Secondary account", subtitle: "Loans outstanding", value: totalLoansOutstanding };
     const rangeTotal = memberDepositsOverTime.reduce((sum: number, x: any) => sum + Number(x.value ?? 0), 0);
-    return { title: "Secondary account", subtitle: `Deposits (${TIME_RANGES.find((r) => r.value === timeRange)?.label ?? "range"})`, value: rangeTotal };
-  }, [isAdmin, memberDepositsOverTime, timeRange, totalLoansOutstanding]);
+    return { title: "Secondary account", subtitle: "Deposits (12 months)", value: rangeTotal };
+  }, [isAdmin, memberDepositsOverTime, totalLoansOutstanding]);
 
   const primaryChangePct = useMemo(() => {
     const series = isAdmin ? aumOverTime : memberChartSeries;
@@ -758,8 +810,8 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {isAdmin ? (
-          <div className="flex items-center gap-2">
+        {currentTenant ? (
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -767,33 +819,43 @@ const Dashboard = () => {
                 setTxnDialogOpen(true);
               }}
             >
-              Deposit
+              New Transaction
             </Button>
+
+            {isAdmin ? (
+              <Button variant="outline" onClick={() => setLoanDialogOpen(true)}>
+                Loan Transactions
+              </Button>
+            ) : (
+              <Button variant="outline" asChild>
+                <Link to="/dashboard/loan-applications">Loan Transactions</Link>
+              </Button>
+            )}
+
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/debit-orders">Debit Orders</Link>
+            </Button>
+
+            {!isAdmin ? (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                  onClick={() => setLoanApplyOpen(true)}
+                >
+                  Loan Application
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                  onClick={() => setDebitOrderOpen(true)}
+                >
+                  New Debit Order
+                </Button>
+              </>
+            ) : null}
           </div>
         ) : null}
-      </div>
-
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <TabsList className="h-8">
-            {TIME_RANGES.map((r) => (
-              <TabsTrigger key={r.value} value={r.value} className="text-xs px-3">
-                {r.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <CalendarDays className="h-4 w-4 mr-2" />
-            Select dates
-          </Button>
-          <Button variant="outline" size="sm">
-            <SlidersHorizontal className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-        </div>
       </div>
 
       {/* No tenant */}
@@ -1018,7 +1080,7 @@ const Dashboard = () => {
                 <div>
                   <CardTitle className="text-sm">{recentListTitle}</CardTitle>
                   <CardDescription className="text-xs">
-                    {isAdmin ? "Latest operating journal entries" : "Latest account deposits"}
+                    {isAdmin ? "Latest transactions" : "Latest account deposits"}
                   </CardDescription>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1066,6 +1128,26 @@ const Dashboard = () => {
         loanSummaries={loanSummaries}
         totalOutstanding={totalLoansOutstanding}
       />
+
+      {memberPrimaryAccount ? (
+        <>
+          <LoanApplicationDialog
+            open={loanApplyOpen}
+            onOpenChange={setLoanApplyOpen}
+            entityAccountId={memberPrimaryAccount.entityAccountId}
+            entityId={memberPrimaryAccount.entityId}
+            entityName={memberPrimaryAccount.entityName}
+          />
+          <DebitOrderSignUpDialog
+            open={debitOrderOpen}
+            onOpenChange={setDebitOrderOpen}
+            entityId={memberPrimaryAccount.entityId}
+            entityName={memberPrimaryAccount.entityName}
+            entityAccountId={memberPrimaryAccount.entityAccountId}
+            accountNumber={memberPrimaryAccount.accountNumber}
+          />
+        </>
+      ) : null}
 
       {myEntityId && (
         <EditEntityProfileDialog
@@ -1347,26 +1429,30 @@ const RecentAdminTransactions = ({ items, learnMoreTo }: { items: any[]; learnMo
 
   return (
     <div className="space-y-2">
-      {items.map((txn: any) => (
-        <div key={txn.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/40 transition-colors">
-          <div
-            className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-              txn.transaction_type === "bank" ? "bg-emerald-500/10" : "bg-blue-500/10"
-            }`}
-          >
-            {txn.transaction_type === "bank" ? (
-              <ArrowUpRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <ArrowDownRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            )}
+      {items.map((txn: any) => {
+        const typeName = txn.transaction_types?.name || "Transaction";
+        const poolName = txn.pools?.name || "";
+        const entity = txn.entity_accounts?.entities;
+        const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ");
+        const meta = [memberName, txn.entity_accounts?.account_number ? `Acc ${txn.entity_accounts.account_number}` : null]
+          .filter(Boolean)
+          .join(" · ");
+
+        return (
+          <div key={txn.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/40 transition-colors">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10">
+              <ArrowUpRight className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm truncate">{poolName ? `${typeName} · ${poolName}` : typeName}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {meta || "—"}{txn.transaction_date ? ` · ${txn.transaction_date}` : ""}
+              </p>
+            </div>
+            <p className="text-sm font-medium shrink-0">{formatCurrency(Number(txn.amount))}</p>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm truncate">{txn.description}</p>
-            <p className="text-xs text-muted-foreground truncate">{txn.transaction_date}</p>
-          </div>
-          <p className="text-sm font-medium shrink-0">{formatCurrency(Number(txn.amount))}</p>
-        </div>
-      ))}
+        );
+      })}
       <div className="pt-2 text-right">
         <Button variant="link" asChild className="h-auto px-0 text-xs">
           <Link to={learnMoreTo}>Learn more</Link>
