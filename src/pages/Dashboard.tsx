@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
+import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import {
   Users,
   Wallet,
@@ -83,8 +85,8 @@ const DONUT_COLORS = [
 ];
 
 const Dashboard = () => {
-  const { currentTenant, tenants, branding } = useTenant();
-  const { profile, user } = useAuth();
+  const { currentTenant, tenants, branding, loading: tenantLoading } = useTenant();
+  const { profile, user, loading: authLoading } = useAuth();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
@@ -95,7 +97,7 @@ const Dashboard = () => {
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   // User roles
-  const { data: userRoles = [] } = useQuery({
+  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ["user_roles", user?.id, tenantId],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -113,7 +115,7 @@ const Dashboard = () => {
   );
   const isAdmin = isSuperAdmin || isTenantAdmin;
 
-  const { data: myEntityRel } = useQuery({
+  const { data: myEntityRel, isLoading: myEntityRelLoading } = useQuery({
     queryKey: ["dashboard_myself_entity", user?.id, tenantId],
     queryFn: async () => {
       if (!user || !tenantId) return null;
@@ -143,7 +145,7 @@ const Dashboard = () => {
   }, [rangeDays]);
 
   // ── Admin Stats ──
-  const { data: adminStats } = useQuery({
+  const { data: adminStats, isLoading: adminStatsLoading } = useQuery({
     queryKey: ["admin_dashboard_stats", tenantId],
     queryFn: async () => {
       const [entities, accounts, pending, pools] = await Promise.all([
@@ -167,7 +169,7 @@ const Dashboard = () => {
   });
 
   // ── Pool Summaries (all users) ──
-  const { data: poolSummaries = [] } = useQuery({
+  const { data: poolSummaries = [], isLoading: poolSummariesLoading } = useQuery({
     queryKey: ["pool_summaries", tenantId],
     queryFn: async () => {
       const { data: pools } = await (supabase as any)
@@ -220,7 +222,7 @@ const Dashboard = () => {
   const totalAUM = poolSummaries.reduce((sum: number, p: any) => sum + p.totalValue, 0);
 
   // ── Admin: AUM over time (monthly) ──
-  const { data: aumOverTime = [] } = useQuery({
+  const { data: aumOverTime = [], isLoading: aumOverTimeLoading } = useQuery({
     queryKey: ["dashboard_aum_over_time", tenantId, fromDateStr],
     queryFn: async () => {
       if (!tenantId) return [];
@@ -272,7 +274,7 @@ const Dashboard = () => {
   });
 
   // ── Loan Outstanding ──
-  const { data: loanSummaries = [] } = useQuery({
+  const { data: loanSummaries = [], isLoading: loanSummariesLoading } = useQuery({
     queryKey: ["loan_outstanding", tenantId],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("get_loan_outstanding", {
@@ -289,7 +291,7 @@ const Dashboard = () => {
     .reduce((sum: number, s: any) => sum + Number(s.outstanding), 0);
 
   // ── Recent Transactions (admin) ──
-  const { data: recentTransactions = [] } = useQuery({
+  const { data: recentTransactions = [], isLoading: recentTransactionsLoading } = useQuery({
     queryKey: ["admin_recent_transactions", tenantId],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -304,7 +306,7 @@ const Dashboard = () => {
   });
 
   // ── Member: Accounts (for deposits / chart) ──
-  const { data: memberAccountIds = [] } = useQuery({
+  const { data: memberAccountIds = [], isLoading: memberAccountIdsLoading } = useQuery({
     queryKey: ["dashboard_member_account_ids", user?.id, tenantId],
     queryFn: async () => {
       if (!user || !tenantId) return [];
@@ -328,7 +330,7 @@ const Dashboard = () => {
     enabled: !!user && !!tenantId && !isAdmin,
   });
 
-  const { data: memberLoanApplications = [] } = useQuery({
+  const { data: memberLoanApplications = [], isLoading: memberLoanApplicationsLoading } = useQuery({
     queryKey: ["dashboard_member_loan_apps", tenantId, user?.id],
     queryFn: async () => {
       if (!tenantId || !user) return [];
@@ -346,7 +348,7 @@ const Dashboard = () => {
     enabled: !!tenantId && !!user && !isAdmin,
   });
 
-  const { data: memberDebitOrders = [] } = useQuery({
+  const { data: memberDebitOrders = [], isLoading: memberDebitOrdersLoading } = useQuery({
     queryKey: ["dashboard_member_debit_orders", tenantId, user?.id],
     queryFn: async () => {
       if (!tenantId || !user) return [];
@@ -373,7 +375,7 @@ const Dashboard = () => {
   });
 
   // ── Member: Deposits over time (monthly) ──
-  const { data: memberDepositsOverTime = [] } = useQuery({
+  const { data: memberDepositsOverTime = [], isLoading: memberDepositsOverTimeLoading } = useQuery({
     queryKey: ["dashboard_member_deposits_over_time", tenantId, memberAccountIds, fromDateStr],
     queryFn: async () => {
       if (!tenantId || memberAccountIds.length === 0) return [];
@@ -416,7 +418,7 @@ const Dashboard = () => {
   });
 
   // ── Member: Recent deposits ──
-  const { data: memberRecentDeposits = [] } = useQuery({
+  const { data: memberRecentDeposits = [], isLoading: memberRecentDepositsLoading } = useQuery({
     queryKey: ["dashboard_member_recent_deposits", tenantId, memberAccountIds],
     queryFn: async () => {
       if (!tenantId || memberAccountIds.length === 0) return [];
@@ -435,7 +437,7 @@ const Dashboard = () => {
     enabled: !!tenantId && !isAdmin && memberAccountIds.length > 0,
   });
 
-  const { data: requiredDocRequirements = [] } = useQuery({
+  const { data: requiredDocRequirements = [], isLoading: requiredDocRequirementsLoading } = useQuery({
     queryKey: ["dashboard_required_docs", tenantId, myRelationshipTypeId],
     queryFn: async () => {
       if (!tenantId || !myRelationshipTypeId) return [];
@@ -452,7 +454,7 @@ const Dashboard = () => {
     enabled: !!tenantId && !!myRelationshipTypeId && !!myEntityId && !isAdmin,
   });
 
-  const { data: myEntityDocs = [] } = useQuery({
+  const { data: myEntityDocs = [], isLoading: myEntityDocsLoading } = useQuery({
     queryKey: ["dashboard_my_entity_docs", tenantId, myEntityId],
     queryFn: async () => {
       if (!tenantId || !myEntityId) return [];
@@ -485,7 +487,7 @@ const Dashboard = () => {
   }, [requiredDocRequirements, myEntityDocs]);
 
   // ── Member: Holdings ──
-  const { data: memberHoldings = [] } = useQuery({
+  const { data: memberHoldings = [], isLoading: memberHoldingsLoading } = useQuery({
     queryKey: ["member_holdings_dashboard", user?.id, tenantId],
     queryFn: async () => {
       // Get user's entity accounts
@@ -571,7 +573,7 @@ const Dashboard = () => {
   // ── Member: Has holdings / approved account for first-deposit prompt ──
   const hasHoldings = memberHoldings.length > 0;
 
-  const { data: hasApprovedAccount = false } = useQuery({
+  const { data: hasApprovedAccount = false, isLoading: hasApprovedAccountLoading } = useQuery({
     queryKey: ["member_approved_account", user?.id, tenantId],
     queryFn: async () => {
       const { data: rels } = await (supabase as any)
@@ -595,7 +597,7 @@ const Dashboard = () => {
     enabled: !!user && !!tenantId && !hasHoldings,
   });
 
-  const { data: availablePools = [] } = useQuery({
+  const { data: availablePools = [], isLoading: availablePoolsLoading } = useQuery({
     queryKey: ["available_pools_dashboard", tenantId],
     queryFn: async () => {
       const { data: pools } = await (supabase as any)
@@ -633,7 +635,7 @@ const Dashboard = () => {
   const showFirstDeposit = !hasHoldings && hasApprovedAccount && availablePools.length > 0;
 
   // ── Member: Pending application check ──
-  const { data: hasPendingApplication = false } = useQuery({
+  const { data: hasPendingApplication = false, isLoading: hasPendingApplicationLoading } = useQuery({
     queryKey: ["member_pending_application", user?.id, tenantId],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -649,6 +651,33 @@ const Dashboard = () => {
   });
 
   const showPendingWelcome = !isAdmin && !hasHoldings && !showFirstDeposit && hasPendingApplication;
+
+  const showSkeleton =
+    authLoading ||
+    tenantLoading ||
+    (!!currentTenant && (
+      rolesLoading ||
+      (isAdmin ? (
+        adminStatsLoading ||
+        poolSummariesLoading ||
+        aumOverTimeLoading ||
+        loanSummariesLoading ||
+        recentTransactionsLoading
+      ) : (
+        myEntityRelLoading ||
+        memberAccountIdsLoading ||
+        memberHoldingsLoading ||
+        memberLoanApplicationsLoading ||
+        memberDebitOrdersLoading ||
+        hasPendingApplicationLoading ||
+        memberRecentDepositsLoading ||
+        memberDepositsOverTimeLoading ||
+        hasApprovedAccountLoading ||
+        availablePoolsLoading ||
+        requiredDocRequirementsLoading ||
+        myEntityDocsLoading
+      ))
+    ));
 
   const memberChartSeries = memberDepositsOverTime;
   const recentListTitle = isAdmin ? "Recent transactions" : "Recent deposits";
@@ -715,6 +744,8 @@ const Dashboard = () => {
     ].filter((x) => x.value > 0);
     return data;
   }, [adminStats]);
+
+  if (showSkeleton) return isAdmin ? <AdminDashboardSkeleton /> : <UserDashboardSkeleton />;
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
@@ -196,7 +198,7 @@ function sectionHasMatch(label: string, items: NavItem[], query: string) {
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, signOut, user } = useAuth();
-  const { tenants, currentTenant, setCurrentTenant, branding } = useTenant();
+  const { tenants, currentTenant, setCurrentTenant, branding, loading: tenantLoading } = useTenant();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -285,7 +287,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Check current user roles
-  const { data: userRoles = [] } = useQuery({
+  const { data: userRoles = [], isLoading: userRolesLoading } = useQuery({
     queryKey: ["user_roles_nav", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -302,7 +304,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isReferrerOrHouse = userRoles.some((r: string) => ["referrer", "referral_house"].includes(r));
 
   // Check if user has any approved entity account (i.e. successful membership)
-  const { data: hasApprovedAccount = false } = useQuery({
+  const { data: hasApprovedAccount = false, isLoading: hasApprovedAccountLoading } = useQuery({
     queryKey: ["has_approved_account", user?.id, currentTenant?.id],
     queryFn: async () => {
       if (!user || !currentTenant) return false;
@@ -322,11 +324,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         .eq("is_approved", true);
       return (count ?? 0) > 0;
     },
-    enabled: !!user && !!currentTenant,
+    enabled: !!user && !!currentTenant && !isAdmin && !isClerkOrManager,
   });
 
   const showTransactions = isAdmin || isClerkOrManager || hasApprovedAccount;
   const canApprove = isAdmin || isClerkOrManager;
+
+  const showDashboardSkeleton =
+    tenantLoading ||
+    userRolesLoading ||
+    (!currentTenant && tenants.length > 0) ||
+    (!!currentTenant && !isAdmin && !isClerkOrManager && hasApprovedAccountLoading);
 
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ["pending_approvals_count", currentTenant?.id],
@@ -414,6 +422,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     setOpen: (open: boolean) => void;
     viewAll: NavItem;
     items: NavItem[];
+    navigateOnOpen?: boolean;
   }) => {
     const effectiveOpen = normalizedQuery ? true : params.open;
     const show = sectionHasMatch(params.label, params.items, normalizedQuery);
@@ -426,7 +435,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return (
       <SidebarMenuItem key={params.label}>
         <SidebarMenuButton asChild isActive={isActive}>
-          <button type="button" onClick={() => params.setOpen(!params.open)}>
+          <button
+            type="button"
+            onClick={() => {
+              const willOpen = !params.open;
+              if (params.navigateOnOpen && willOpen && location.pathname !== params.viewAll.path) {
+                navigate(params.viewAll.path);
+              }
+              params.setOpen(willOpen);
+            }}
+          >
             <params.icon />
             <span>{params.label}</span>
             {effectiveOpen ? <ChevronDown className="ml-auto" /> : <ChevronRight className="ml-auto" />}
@@ -439,7 +457,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <SidebarMenuSubButton asChild isActive={location.pathname === params.viewAll.path}>
                 <Link to={params.viewAll.path}>
                   <params.viewAll.icon />
-                  <span>View all</span>
+                  <span>{params.viewAll.label}</span>
                 </Link>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
@@ -522,11 +540,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <SidebarSeparator />
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {filteredMain.map((i) => renderLink(i))}
+          {showDashboardSkeleton ? (
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {Array.from({ length: 10 }).map((_, idx) => (
+                    <SidebarMenuSkeleton key={idx} showIcon />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <>
+              <SidebarGroup>
+                <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {filteredMain.map((i) => renderLink(i))}
 
                 {showTransactions &&
                   renderGroup({
@@ -536,109 +567,120 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     setOpen: setTransactionsOpen,
                     viewAll: { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions" },
                     items: filteredTransactions.filter((i) => i.path !== "/dashboard/transactions"),
+                    navigateOnOpen: true,
                   })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarSeparator />
-
-          <SidebarGroup>
-            <SidebarGroupLabel>Reporting</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {matchesQuery(statementsNavItem.label) ? renderLink(statementsNavItem) : null}
-                {!isAdmin && isReferrerOrHouse && matchesQuery("Reports")
-                  ? renderLink({ label: "Reports", icon: FileText, path: "/dashboard/reports" })
-                  : null}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          {isAdmin && (
-            <>
               <SidebarSeparator />
+
               <SidebarGroup>
-                <SidebarGroupLabel>Admin</SidebarGroupLabel>
+                <SidebarGroupLabel>Reporting</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {matchesQuery("Approvals")
-                      ? renderLink(
-                          { label: "Approvals", icon: ClipboardCheck, path: "/dashboard/account-approvals" },
-                          pendingCount > 0 ? { badge: pendingCount } : undefined,
-                        )
+                    {matchesQuery(statementsNavItem.label) ? renderLink(statementsNavItem) : null}
+                    {!isAdmin && isReferrerOrHouse && matchesQuery("Reports")
+                      ? renderLink({ label: "Reports", icon: FileText, path: "/dashboard/reports" })
                       : null}
-
-                    {renderGroup({
-                      label: "Entities",
-                      icon: Building2,
-                      open: entitiesOpen,
-                      setOpen: setEntitiesOpen,
-                      viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
-                      items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
-                    })}
-
-                    {renderGroup({
-                      label: "Daily Prices",
-                      icon: BarChart3,
-                      open: dailyPricesOpen,
-                      setOpen: setDailyPricesOpen,
-                      viewAll: { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
-                      items: filteredDailyPrices,
-                    })}
-
-                    {renderGroup({
-                      label: "Campaigns",
-                      icon: MessageSquare,
-                      open: messagesOpen,
-                      setOpen: setMessagesOpen,
-                      viewAll: { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
-                      items: filteredMessages,
-                    })}
-
-                    {filteredAdminOnly.map((i) => renderLink(i))}
-
-                    {isSuperAdmin &&
-                      renderGroup({
-                        label: "Head Office",
-                        icon: Building2,
-                        open: headOfficeOpen,
-                        setOpen: setHeadOfficeOpen,
-                        viewAll: { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
-                        items: filteredHeadOffice,
-                      })}
-
-                    {isSuperAdmin &&
-                      renderGroup({
-                        label: "Asset Manager",
-                        icon: ShieldPlus,
-                        open: mamOpen,
-                        setOpen: setMamOpen,
-                        viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
-                        items: filteredMam,
-                      })}
-
-                    {isSuperAdmin &&
-                      renderGroup({
-                        label: "Global Setup",
-                        icon: Shield,
-                        open: globalSetupOpen,
-                        setOpen: setGlobalSetupOpen,
-                        viewAll: { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
-                        items: filteredGlobalSetup,
-                      })}
-
-                    {renderGroup({
-                      label: "Tenant Setup",
-                      icon: Wrench,
-                      open: tenantSetupOpen,
-                      setOpen: setTenantSetupOpen,
-                      viewAll: { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
-                      items: filteredTenantSetup,
-                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+
+              {isAdmin && (
+                <>
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Admin</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {matchesQuery("Approvals")
+                          ? renderLink(
+                              { label: "Approvals", icon: ClipboardCheck, path: "/dashboard/account-approvals" },
+                              pendingCount > 0 ? { badge: pendingCount } : undefined,
+                            )
+                          : null}
+
+                        {renderGroup({
+                          label: "Entities",
+                          icon: Building2,
+                          open: entitiesOpen,
+                          setOpen: setEntitiesOpen,
+                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
+                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
+                        })}
+
+                        {renderGroup({
+                          label: "Daily Prices",
+                          icon: BarChart3,
+                          open: dailyPricesOpen,
+                          setOpen: setDailyPricesOpen,
+                          viewAll: { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
+                          items: filteredDailyPrices,
+                        })}
+
+                        {renderGroup({
+                          label: "Campaigns",
+                          icon: MessageSquare,
+                          open: messagesOpen,
+                          setOpen: setMessagesOpen,
+                          viewAll: { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
+                          items: filteredMessages,
+                        })}
+
+                        {filteredAdminOnly.map((i) => renderLink(i))}
+
+                        {isSuperAdmin &&
+                          renderGroup({
+                            label: "Head Office",
+                            icon: Building2,
+                            open: headOfficeOpen,
+                            setOpen: setHeadOfficeOpen,
+                            viewAll: {
+                              label: "Head Office Settings",
+                              icon: Building2,
+                              path: "/dashboard/head-office/settings",
+                            },
+                            items: filteredHeadOffice,
+                          })}
+
+                        {isSuperAdmin &&
+                          renderGroup({
+                            label: "Asset Manager",
+                            icon: ShieldPlus,
+                            open: mamOpen,
+                            setOpen: setMamOpen,
+                            viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
+                            items: filteredMam,
+                          })}
+
+                        {isSuperAdmin &&
+                          renderGroup({
+                            label: "Global Setup",
+                            icon: Shield,
+                            open: globalSetupOpen,
+                            setOpen: setGlobalSetupOpen,
+                            viewAll: {
+                              label: "System Settings",
+                              icon: KeyRound,
+                              path: "/dashboard/setup/system-settings",
+                            },
+                            items: filteredGlobalSetup,
+                          })}
+
+                        {renderGroup({
+                          label: "Tenant Setup",
+                          icon: Wrench,
+                          open: tenantSetupOpen,
+                          setOpen: setTenantSetupOpen,
+                          viewAll: { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
+                          items: filteredTenantSetup,
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
+              )}
             </>
           )}
         </SidebarContent>
@@ -692,11 +734,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Desktop header */}
         <header className="hidden lg:flex h-14 items-center justify-between border-b border-border px-8">
           <div className="flex items-center gap-1.5 flex-wrap">
-            {userRoles.map((role) => (
-              <Badge key={role} variant="secondary" className="text-[11px] font-medium capitalize">
-                {role.replace(/_/g, " ")}
-              </Badge>
-            ))}
+            {userRolesLoading ? (
+              <>
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </>
+            ) : (
+              userRoles.map((role) => (
+                <Badge key={role} variant="secondary" className="text-[11px] font-medium capitalize">
+                  {role.replace(/_/g, " ")}
+                </Badge>
+              ))
+            )}
           </div>
 
           <div className="flex items-center gap-4">
