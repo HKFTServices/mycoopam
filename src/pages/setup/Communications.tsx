@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -31,7 +31,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Mail, MessageSquare, Bell, Monitor, Download, Eye, Code, Braces, Languages, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import RichTextEditor from "@/components/ui/rich-text-editor";
+import RichTextEditor, { type RichTextEditorHandle } from "@/components/ui/rich-text-editor";
 
 const APPLICATION_EVENTS: { value: AppEvent; label: string }[] = [
   { value: "none", label: "None (Manual)" },
