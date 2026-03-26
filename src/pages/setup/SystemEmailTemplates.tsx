@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type RefObject } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -119,6 +119,7 @@ const SystemEmailTemplates = () => {
   const [deleteTarget, setDeleteTarget] = useState<CommTemplate | null>(null);
   const [showHtmlSource, setShowHtmlSource] = useState(false);
   const editorRef = useRef<RichTextEditorHandle>(null);
+  const subjectInputRef = useRef<HTMLInputElement>(null);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["system_email_templates", currentTenant?.id],
@@ -324,14 +325,24 @@ const SystemEmailTemplates = () => {
 
             <div className="space-y-2">
               <Label>Email Subject</Label>
-              <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Welcome to {{tenant_name}}!" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Email Subject</Label>
               <div className="flex gap-2">
-                <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Welcome to {{tenant_name}}!" className="flex-1" />
-                <MergeFieldPicker onInsert={(tag) => setForm({ ...form, subject: form.subject + tag })} label="Merge" />
+                <Input ref={subjectInputRef} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Welcome to {{tenant_name}}!" className="flex-1" />
+                <MergeFieldPicker onInsert={(tag) => {
+                  const input = subjectInputRef.current;
+                  if (input) {
+                    const start = input.selectionStart ?? form.subject.length;
+                    const end = input.selectionEnd ?? start;
+                    const newVal = form.subject.slice(0, start) + tag + form.subject.slice(end);
+                    setForm({ ...form, subject: newVal });
+                    setTimeout(() => {
+                      input.focus();
+                      const cursor = start + tag.length;
+                      input.setSelectionRange(cursor, cursor);
+                    }, 0);
+                  } else {
+                    setForm({ ...form, subject: form.subject + tag });
+                  }
+                }} label="Merge" />
               </div>
             </div>
 
