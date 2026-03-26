@@ -365,6 +365,24 @@ const TransactionReviewDialog = ({
     }
   };
 
+  // Build CFT preview lines
+  const depositCftLines = useMemo(() => {
+    if (!group) return [];
+    const poolAllocations = allTxns.filter((t: any) => t.pool_id).map((t: any) => ({
+      poolName: t.pools?.name || "Pool",
+      amount: Number(t.net_amount),
+    }));
+    return buildDepositCftLines({
+      grossAmount: totalAmount,
+      poolAllocations,
+      feeBreakdown,
+      joinShare: meta.join_share || null,
+      isStockDeposit,
+      isVatRegistered: meta.is_vat_registered ?? false,
+      vatRate: Number(meta.vat_rate || 0),
+    });
+  }, [group, totalAmount, totalNet, feeBreakdown.length]);
+
   const renderOriginalContent = () => (
     <>
       {renderFinancialSummary()}
@@ -372,6 +390,8 @@ const TransactionReviewDialog = ({
       {renderPoolAllocations()}
       {renderDateChangeNote()}
       {renderPOP()}
+      {/* CFT Entries Preview */}
+      <CftEntriesPreview lines={depositCftLines} />
       {/* Funds Confirmation — not needed for debit order deposits */}
       {isDebitOrderDeposit ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-2">
