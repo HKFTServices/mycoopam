@@ -397,7 +397,7 @@ const TransactionReviewDialog = ({
       {renderDateChangeNote()}
       {renderPOP()}
       {/* CFT Entries Preview */}
-      <CftEntriesPreview lines={depositCftLines} />
+      <CftEntriesPreview preview={depositPreview} />
       {/* Funds Confirmation — not needed for debit order deposits */}
       {isDebitOrderDeposit ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-2">

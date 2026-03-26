@@ -182,7 +182,7 @@ const TransferReviewDialog = ({
             </div>
           )}
           {/* CFT Entries Preview */}
-          <CftEntriesPreview lines={transferCftLines} />
+          <CftEntriesPreview preview={transferPreview} />
         </div>
 
         {/* Decline input */}

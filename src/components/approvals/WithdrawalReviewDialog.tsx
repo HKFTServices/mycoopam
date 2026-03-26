@@ -213,7 +213,7 @@ const WithdrawalReviewDialog = ({
           </div>
 
           {/* CFT Entries Preview */}
-          <CftEntriesPreview lines={withdrawalCftLines} />
+          <CftEntriesPreview preview={withdrawalPreview} />
 
           {isFirstApproved && !isStockWithdrawal && (
             <>

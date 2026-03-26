@@ -430,7 +430,7 @@ const SwitchReviewDialog = ({
           )}
 
           {/* CFT Entries Preview */}
-          <CftEntriesPreview lines={switchCftLines} />
+          <CftEntriesPreview preview={switchPreview} />
 
           {/* Decline reason */}
           {showDecline && (
