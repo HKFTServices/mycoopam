@@ -192,7 +192,7 @@ const App = () => (
               <Route path="/dashboard/setup/tax-types" element={<SuperAdminRoute><TaxTypes /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/transaction-types" element={<SuperAdminRoute><TransactionTypes /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/system-email-templates" element={<SuperAdminRoute><SystemEmailTemplates /></SuperAdminRoute>} />
-              <Route path="/dashboard/setup/permissions" element={<SuperAdminRoute><Permissions /></SuperAdminRoute>} />
+              <Route path="/dashboard/setup/permissions" element={<AdminRoute><Permissions /></AdminRoute>} />
               <Route path="/dashboard/setup/api-providers" element={<SuperAdminRoute><ApiProviders /></SuperAdminRoute>} />
 
               {/* Head Office: super_admin only */}
