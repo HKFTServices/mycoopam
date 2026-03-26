@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Package, Building2, ClipboardCheck, ShieldCheck, Loader2, AlertTriangle,
   Check, ShoppingCart, TrendingDown, SlidersHorizontal, FileText, Mail,
@@ -234,6 +235,21 @@ const AdminStockReviewDialog = ({
   const [adminSignature, setAdminSignature] = useState<string | null>(null);
   const [memberSignature, setMemberSignature] = useState<string | null>(null);
 
+  // Fetch vault locations for the tenant
+  const { data: vaultLocations = [] } = useQuery({
+    queryKey: ["vault_locations", txn?.tenant_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vault_locations")
+        .select("id, name, description")
+        .eq("tenant_id", txn.tenant_id)
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+    enabled: !!txn?.tenant_id,
+  });
+
   // Reset all local state when the transaction changes
   useEffect(() => {
     setVaultRef(txn?.vault_reference ?? "");
@@ -404,13 +420,28 @@ const AdminStockReviewDialog = ({
           <div className="text-sm font-medium">{currentStep.description}</div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Vault / Location Reference</Label>
-              <Input
-                value={vaultRef}
-                onChange={(e) => setVaultRef(e.target.value)}
-                placeholder="Vault A, Safe 3..."
-                className="h-8 text-xs"
-              />
+              <Label className="text-xs">Vault / Location</Label>
+              {vaultLocations.length > 0 ? (
+                <Select value={vaultRef} onValueChange={setVaultRef}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select vault..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vaultLocations.map((v) => (
+                      <SelectItem key={v.id} value={v.name} className="text-xs">
+                        {v.name}{v.description ? ` — ${v.description}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={vaultRef}
+                  onChange={(e) => setVaultRef(e.target.value)}
+                  placeholder="Vault A, Safe 3..."
+                  className="h-8 text-xs"
+                />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Notes</Label>
