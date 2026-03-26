@@ -1,0 +1,1 @@
+ALTER TABLE public.entity_account_types DROP COLUMN IF EXISTS membership_fee;
