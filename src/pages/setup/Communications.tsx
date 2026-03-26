@@ -41,17 +41,12 @@ const APPLICATION_EVENTS: { value: AppEvent; label: string }[] = [
   { value: "co_op_name", label: "Co-Op Name" },
   { value: "dear", label: "Dear (Salutation)" },
   { value: "debit_order", label: "Debit Order" },
-  { value: "dep_metal_approval", label: "Metal Deposit Approval" },
-  { value: "deposit_funds_approval", label: "Funds Deposit Approval" },
   { value: "email_footer", label: "Email Footer" },
   { value: "first_membership_dep_funds", label: "First Membership – Funds Deposit" },
   { value: "first_membership_dep_stock", label: "First Membership – Stock Deposit" },
   { value: "funds_receipt", label: "Funds Receipt" },
-  { value: "stock_purchase_approval", label: "Stock Purchase Approval" },
-  { value: "switching_approval", label: "Switching Approval" },
+  { value: "pending_approval_notification", label: "Pending Approval Notification" },
   { value: "termination_of_membership", label: "Termination of Membership" },
-  { value: "transfer_approval", label: "Transfer Approval" },
-  { value: "withdrawal_approval", label: "Withdrawal Approval" },
 ];
 
 const MERGE_FIELDS = [
