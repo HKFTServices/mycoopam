@@ -4,6 +4,40 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## Environments (Dev vs Prod)
+
+This app uses Vite “modes” to load environment variables:
+
+- Local dev (`npm run dev`) loads `.env` + `.env.development`
+- Production build (`npm run build`) loads `.env` + `.env.production`
+
+Environment templates:
+
+- Copy `.env.example` → `.env` and fill in values (or set them in your host like Vercel).
+
+### Local multi-tenancy options
+
+**Option A (recommended for dev): Path-based tenants**
+
+- Open: `http://localhost:8080/t/<tenantSlug>` (example: `http://localhost:8080/t/aem`)
+- Controlled by `VITE_TENANT_ROUTING="path"` in `.env.development`
+
+**Option B: Subdomain tenants on localhost**
+
+Browsers allow `*.localhost` to resolve to `127.0.0.1`, so you can use:
+
+- Open: `http://<tenantSlug>.localhost:8080` (example: `http://aem.localhost:8080`)
+- Set `VITE_TENANT_ROUTING="subdomain"` in `.env.development`
+
+### Supabase Auth redirect allow-list (for local dev)
+
+If you’re using hosted Supabase during local dev, add these to your Supabase Auth redirect allow-list:
+
+- `http://localhost:8080/**`
+- `http://*.localhost:8080/**`
+
+This is required for password reset / email link redirects when testing locally.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

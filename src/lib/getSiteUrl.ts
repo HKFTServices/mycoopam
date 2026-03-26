@@ -1,41 +1,78 @@
 /**
- * Returns the canonical site URL for redirects and email links.
+ * URL helpers for multi-tenant routing.
  *
- * Always returns the production domain (myco-op.co.za) for redirects and emails.
- * For tenant-specific URLs, pass the tenant slug to get e.g. https://aem.myco-op.co.za
+ * Goals:
+ * - Local development should use local base URLs (localhost / *.localhost).
+ * - Production builds should use the canonical production domain for redirects & emails.
  */
 
-const PRODUCTION_DOMAIN = "myco-op.co.za";
+const PROD_DOMAIN = import.meta.env.VITE_PROD_DOMAIN || "myco-op.co.za";
+const TENANT_ROUTING = (import.meta.env.VITE_TENANT_ROUTING || (import.meta.env.DEV ? "path" : "subdomain")) as
+  | "path"
+  | "subdomain";
+const DEV_TENANT_DOMAIN = import.meta.env.VITE_DEV_TENANT_DOMAIN || "localhost";
 
-export function isOnProductionDomain(): boolean {
-  return window.location.hostname.endsWith(PRODUCTION_DOMAIN);
+function getPortSuffix() {
+  return window.location.port ? `:${window.location.port}` : "";
 }
 
-export function getSiteUrl(tenantSlug?: string | null): string {
-  if (tenantSlug) {
-    return `https://${tenantSlug}.${PRODUCTION_DOMAIN}`;
-  }
+function getDevTenantOrigin(slug: string) {
+  return `${window.location.protocol}//${slug}.${DEV_TENANT_DOMAIN}${getPortSuffix()}`;
+}
 
-  if (isOnProductionDomain()) {
+export function isOnProductionDomain(): boolean {
+  return window.location.hostname.endsWith(PROD_DOMAIN);
+}
+
+/**
+ * Base site URL for auth redirects and emails.
+ *
+ * - Dev: uses the current origin by default (supports localhost and tenant.localhost).
+ *   If `VITE_TENANT_ROUTING=subdomain` and a slug is provided, returns the tenant subdomain origin.
+ * - Prod: returns the canonical production domain (tenant subdomain or www).
+ */
+export function getSiteUrl(tenantSlug?: string | null): string {
+  if (import.meta.env.DEV) {
+    if (tenantSlug && TENANT_ROUTING === "subdomain") {
+      return getDevTenantOrigin(tenantSlug);
+    }
     return window.location.origin;
   }
 
-  return `https://www.${PRODUCTION_DOMAIN}`;
+  if (tenantSlug) {
+    return `https://${tenantSlug}.${PROD_DOMAIN}`;
+  }
+
+  return `https://www.${PROD_DOMAIN}`;
 }
 
 /**
- * Get the URL for a tenant's landing page.
- * Always returns the production subdomain URL.
+ * Tenant landing URL.
+ *
+ * - Dev: either `/t/<slug>` (path routing) or `<slug>.localhost` (subdomain routing).
+ * - Prod: `<slug>.<prod-domain>`.
  */
 export function getTenantUrl(slug: string): string {
-  return `https://${slug}.${PRODUCTION_DOMAIN}`;
+  if (import.meta.env.DEV) {
+    if (TENANT_ROUTING === "subdomain") return getDevTenantOrigin(slug);
+    return `${window.location.origin}/t/${slug}`;
+  }
+  return `https://${slug}.${PROD_DOMAIN}`;
 }
 
 /**
- * Navigate to a tenant URL. Always does a full redirect to the production subdomain.
+ * Navigate to a tenant URL with a full redirect.
  */
-export function navigateToTenant(slug: string, navigate: (path: string, opts?: any) => void, opts?: { replace?: boolean }) {
-  const url = `https://${slug}.${PRODUCTION_DOMAIN}`;
+export function navigateToTenant(
+  slug: string,
+  navigate: (path: string, opts?: any) => void,
+  opts?: { replace?: boolean },
+) {
+  const url = getTenantUrl(slug);
+  if (import.meta.env.DEV && TENANT_ROUTING === "path") {
+    navigate(`/t/${slug}`, { replace: !!opts?.replace });
+    return;
+  }
   if (opts?.replace) {
     window.location.replace(url);
   } else {

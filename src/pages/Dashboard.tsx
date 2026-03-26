@@ -721,7 +721,7 @@ const Dashboard = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Banking Dashboard</h1>
+          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1 truncate">{greeting}</p>
           <p className="text-xs text-muted-foreground mt-1 truncate">
             {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
