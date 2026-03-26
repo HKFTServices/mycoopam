@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/popover";
 import { Plus, Pencil, Trash2, Mail, MessageSquare, Bell, Monitor, Eye, Code, Braces } from "lucide-react";
 import { toast } from "sonner";
-import RichTextEditor from "@/components/ui/rich-text-editor";
+import RichTextEditor, { type RichTextEditorHandle } from "@/components/ui/rich-text-editor";
 
 const MERGE_FIELDS = [
   { tag: "{{account_number}}", label: "Member Number" },
@@ -118,6 +118,7 @@ const SystemEmailTemplates = () => {
   const [langFilter, setLangFilter] = useState<string>("all");
   const [deleteTarget, setDeleteTarget] = useState<CommTemplate | null>(null);
   const [showHtmlSource, setShowHtmlSource] = useState(false);
+  const editorRef = useRef<RichTextEditorHandle>(null);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["system_email_templates", currentTenant?.id],
@@ -338,7 +339,13 @@ const SystemEmailTemplates = () => {
               <div className="flex items-center justify-between">
                 <Label>Email Body</Label>
                 <div className="flex gap-1">
-                  <MergeFieldPicker onInsert={(tag) => setForm({ ...form, body_html: form.body_html + tag })} />
+                  <MergeFieldPicker onInsert={(tag) => {
+                    if (!showHtmlSource && editorRef.current) {
+                      editorRef.current.insertText(tag);
+                    } else {
+                      setForm({ ...form, body_html: form.body_html + tag });
+                    }
+                  }} />
                   <Button
                     type="button"
                     variant="ghost"
@@ -355,6 +362,7 @@ const SystemEmailTemplates = () => {
                 <Textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} placeholder="<p>Dear {{first_name}},</p>" rows={10} className="font-mono text-xs" />
               ) : (
                 <RichTextEditor
+                  ref={editorRef}
                   value={form.body_html}
                   onChange={(val) => setForm({ ...form, body_html: val })}
                   placeholder="Dear {{first_name}},..."
