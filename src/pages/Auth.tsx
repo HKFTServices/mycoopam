@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,9 @@ const Auth = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captchaRef = useRef<HCaptcha>(null);
   const [branding, setBranding] = useState<{ tenant_name: string; logo_url: string | null } | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session, isPasswordRecovery } = useAuth();
@@ -262,12 +266,32 @@ const Auth = () => {
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!email) {
-                      toast({ title: "Enter your email first", variant: "destructive" });
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setForgotOpen(true);
+                  }}
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                >
+                  Forgot your password?
+                </button>
+              </div>
+            )}
+            <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                  <DialogDescription>
+                    Enter the email address linked to your account and we'll send you a password reset link.
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!forgotEmail) {
+                      toast({ title: "Please enter your email", variant: "destructive" });
                       return;
                     }
-                    setLoading(true);
+                    setForgotLoading(true);
                     try {
                       const storedTenantSlug = localStorage.getItem("tenantSlug");
                       const tenantSlug = isOnProductionDomain() && window.location.hostname !== "www.myco-op.co.za"
@@ -276,7 +300,7 @@ const Auth = () => {
                       const resetRedirectUrl = `${getSiteUrl(tenantSlug)}/reset-password${tenantSlug ? `?tenant=${tenantSlug}` : ""}`;
                       const { data, error } = await supabase.functions.invoke("send-password-reset", {
                         body: {
-                          email,
+                          email: forgotEmail,
                           tenant_slug: tenantSlug,
                           redirect_url: resetRedirectUrl,
                         },
@@ -286,7 +310,7 @@ const Auth = () => {
                         toast({
                           title: "Email sender not configured",
                           description:
-                            "This cooperative is not configured to send password reset emails from its tenant mailer address yet. Please contact your administrator.",
+                            "This cooperative is not configured to send password reset emails yet. Please contact your administrator.",
                           variant: "destructive",
                         });
                         return;
@@ -295,18 +319,36 @@ const Auth = () => {
                         title: "Check your email",
                         description: "We've sent you a password reset link.",
                       });
+                      setForgotOpen(false);
                     } catch (error: any) {
                       toast({ title: "Error", description: error.message, variant: "destructive" });
                     } finally {
-                      setLoading(false);
+                      setForgotLoading(false);
                     }
                   }}
-                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                  className="space-y-4"
                 >
-                  Forgot your password?
-                </button>
-              </div>
-            )}
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email">Email address</Label>
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setForgotOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={forgotLoading}>
+                      {forgotLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Send Reset Link
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
             <div className="mt-4 text-center text-sm text-muted-foreground">
               {isLogin ? "Not registered yet?" : "Already registered?"}{" "}
               <button
