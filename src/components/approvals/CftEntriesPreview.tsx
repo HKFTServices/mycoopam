@@ -162,7 +162,7 @@ export function buildDepositCftLines(params: {
     const mfExcl = joinShare.membership_fee - mfVat;
     lines.push({
       side: "CR", description: "Membership Fee", glCode: "4010", glName: "Membership Fee Income",
-      controlAccount: "Admin Cash", amount: mfExcl,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: mfExcl,
     });
     if (mfVat > 0) {
       lines.push({
@@ -181,7 +181,7 @@ export function buildDepositCftLines(params: {
     const recalcVat = isVatRegistered && vatRate > 0 ? Math.round(feeBase * (vatRate / 100) * 100) / 100 : 0;
     lines.push({
       side: "CR", description: fee.name, glCode: "4000", glName: "Fee Income",
-      controlAccount: "Admin Cash", amount: feeBase,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: feeBase,
     });
     if (recalcVat > 0) {
       lines.push({
@@ -195,7 +195,7 @@ export function buildDepositCftLines(params: {
   for (const alloc of poolAllocations) {
     lines.push({
       side: "CR", description: `Pool Allocation — ${alloc.poolName}`, glCode: "2020", glName: "Member Interest",
-      controlAccount: `${alloc.poolName} Cash`, amount: alloc.amount,
+      controlAccount: `${alloc.poolName} Cash`, controlAccountSide: "Dt", amount: alloc.amount,
     });
   }
 
@@ -229,7 +229,7 @@ export function buildWithdrawalCftLines(params: {
   for (const pool of poolRedemptions) {
     lines.push({
       side: "DR", description: `Pool Redemption — ${pool.poolName}`, glCode: "2020", glName: "Member Interest",
-      controlAccount: `${pool.poolName} Cash`, amount: pool.amount,
+      controlAccount: `${pool.poolName} Cash`, controlAccountSide: "Ct", amount: pool.amount,
     });
   }
 
@@ -242,7 +242,7 @@ export function buildWithdrawalCftLines(params: {
     const recalcVat = isVatRegistered && vatRate > 0 ? Math.round(feeBase * (vatRate / 100) * 100) / 100 : 0;
     lines.push({
       side: "CR", description: fee.name, glCode: "4000", glName: "Fee Income",
-      controlAccount: "Admin Cash", amount: feeBase,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: feeBase,
     });
     if (recalcVat > 0) {
       lines.push({
@@ -273,13 +273,13 @@ export function buildSwitchCftLines(params: {
   // Pool Redemption from-pool (liability decreases → DR)
   lines.push({
     side: "DR", description: `Pool Redemption — ${fromPoolName}`, glCode: "2020", glName: "Member Interest",
-    controlAccount: `${fromPoolName} Cash`, amount: grossRedemption,
+    controlAccount: `${fromPoolName} Cash`, controlAccountSide: "Ct", amount: grossRedemption,
   });
 
   // Pool Allocation to-pool (liability increases → CR)
   lines.push({
     side: "CR", description: `Pool Allocation — ${toPoolName}`, glCode: "2020", glName: "Member Interest",
-    controlAccount: `${toPoolName} Cash`, amount: netSwitchAmount,
+    controlAccount: `${toPoolName} Cash`, controlAccountSide: "Dt", amount: netSwitchAmount,
   });
 
   // Fee entries (revenue → CR)
@@ -291,7 +291,7 @@ export function buildSwitchCftLines(params: {
     const recalcVat = isVatRegistered && vatRate > 0 ? Math.round(feeBase * (vatRate / 100) * 100) / 100 : 0;
     lines.push({
       side: "CR", description: fee.name, glCode: "4000", glName: "Fee Income",
-      controlAccount: "Admin Cash", amount: feeBase,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: feeBase,
     });
     if (recalcVat > 0) {
       lines.push({
@@ -323,7 +323,7 @@ export function buildTransferCftLines(params: {
   // Pool Redemption sender (liability decreases → DR)
   lines.push({
     side: "DR", description: `Pool Redemption — Sender (${poolName})`, glCode: "2020", glName: "Member Interest",
-    controlAccount: `${poolName} Cash`, amount: grossRedemption,
+    controlAccount: `${poolName} Cash`, controlAccountSide: "Ct", amount: grossRedemption,
   });
 
   // Join Share receiver (equity increases → CR)
@@ -340,7 +340,7 @@ export function buildTransferCftLines(params: {
     const mfExcl = joinShare.membership_fee - mfVat;
     lines.push({
       side: "CR", description: "Membership Fee (Receiver)", glCode: "4010", glName: "Membership Fee Income",
-      controlAccount: "Admin Cash", amount: mfExcl,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: mfExcl,
     });
     if (mfVat > 0) {
       lines.push({
@@ -354,7 +354,7 @@ export function buildTransferCftLines(params: {
   if (commissionAmount > 0) {
     lines.push({
       side: "CR", description: "Referrer Commission", glCode: "4050", glName: "Commission Income",
-      controlAccount: "Admin Cash", amount: commissionAmount,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: commissionAmount,
     });
   }
 
@@ -367,7 +367,7 @@ export function buildTransferCftLines(params: {
     const recalcVat = isVatRegistered && vatRate > 0 ? Math.round(feeBase * (vatRate / 100) * 100) / 100 : 0;
     lines.push({
       side: "CR", description: fee.name, glCode: "4000", glName: "Fee Income",
-      controlAccount: "Admin Cash", amount: feeBase,
+      controlAccount: "Admin Cash", controlAccountSide: "Dt", amount: feeBase,
     });
     if (recalcVat > 0) {
       lines.push({
@@ -380,7 +380,7 @@ export function buildTransferCftLines(params: {
   // Pool Allocation receiver (liability increases → CR)
   lines.push({
     side: "CR", description: `Pool Allocation — Receiver (${poolName})`, glCode: "2020", glName: "Member Interest",
-    controlAccount: `${poolName} Cash`, amount: netTransferAmount,
+    controlAccount: `${poolName} Cash`, controlAccountSide: "Dt", amount: netTransferAmount,
   });
 
   return lines;
