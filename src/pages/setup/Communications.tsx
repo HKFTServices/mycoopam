@@ -402,6 +402,7 @@ const Communications = () => {
             />
           ) : (
             <RichTextEditor
+              ref={lang === "af" ? editorRefAf : editorRefEn}
               value={form[bodyKey]}
               onChange={(val) => setForm({ ...form, [bodyKey]: val })}
               placeholder={lang === "af" ? "Geagte {{first_name}},..." : "Dear {{first_name}},..."}
@@ -413,8 +414,13 @@ const Communications = () => {
   };
 
   const insertMergeFieldForLang = (lang: "en" | "af", tag: string) => {
-    const bodyKey = lang === "af" ? "body_html_af" : "body_html_en";
-    setForm((prev) => ({ ...prev, [bodyKey]: prev[bodyKey] + tag }));
+    const ref = lang === "af" ? editorRefAf : editorRefEn;
+    if (!showHtmlSource && ref.current) {
+      ref.current.insertText(tag);
+    } else {
+      const bodyKey = lang === "af" ? "body_html_af" : "body_html_en";
+      setForm((prev) => ({ ...prev, [bodyKey]: prev[bodyKey] + tag }));
+    }
   };
 
   const generateAfrikaans = async () => {
