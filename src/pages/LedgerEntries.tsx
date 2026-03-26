@@ -1232,8 +1232,8 @@ const LedgerEntries = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setBankDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => postBankMutation.mutate(bankForm)} disabled={!canPostBank || postBankMutation.isPending}>
-              {postBankMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> :
-                isApprover ? "Post Bank Entry" : <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
+              {postBankMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting…</> :
+                <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1344,8 +1344,8 @@ const LedgerEntries = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setJournalDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => postJournalMutation.mutate(journalForm)} disabled={!canPostJournal || postJournalMutation.isPending}>
-              {postJournalMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> :
-                isApprover ? "Post Journal Entry" : <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
+              {postJournalMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting…</> :
+                <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
             </Button>
           </DialogFooter>
         </DialogContent>
