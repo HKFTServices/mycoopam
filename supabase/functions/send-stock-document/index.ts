@@ -96,7 +96,7 @@ serve(async (req) => {
       .select(`
         smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl,
         logo_url, is_vat_registered, vat_number, currency_symbol,
-        legal_entity_id
+        legal_entity_id, email_signature_en, email_signature_af
       `)
       .eq("tenant_id", (txn as any).tenant_id)
       .maybeSingle();
