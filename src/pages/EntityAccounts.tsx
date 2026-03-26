@@ -40,8 +40,13 @@ const EntityAccounts = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState<AccountRow | null>(null);
+  const [editIsActive, setEditIsActive] = useState(false);
+  const [editIsApproved, setEditIsApproved] = useState(false);
+  const [editStatus, setEditStatus] = useState("");
 
   // Check if user is admin
   const { data: isAdmin = false } = useQuery({
