@@ -65,6 +65,7 @@ const MERGE_FIELDS = [
   { tag: "{{email_address}}", label: "Email Address" },
   { tag: "{{tenant_name}}", label: "Co-op Name" },
   { tag: "{{entity_account_name}}", label: "Entity Account Name" },
+  { tag: "{{entity_account_bank_details}}", label: "Tenant Bank Details" },
   { tag: "{{email_signature}}", label: "Email Signature" },
   { tag: "{{agm_venue}}", label: "AGM Venue" },
   { tag: "{{agm_date}}", label: "AGM Date" },

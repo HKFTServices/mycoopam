@@ -25,9 +25,30 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Mail, MessageSquare, Bell, Monitor, Eye, Code } from "lucide-react";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import { Plus, Pencil, Trash2, Mail, MessageSquare, Bell, Monitor, Eye, Code, Braces } from "lucide-react";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+
+const MERGE_FIELDS = [
+  { tag: "{{account_number}}", label: "Member Number" },
+  { tag: "{{entity_name}}", label: "Entity Name" },
+  { tag: "{{legal_entity_name}}", label: "Legal Entity Name" },
+  { tag: "{{user_name}}", label: "User Name" },
+  { tag: "{{user_surname}}", label: "User Surname" },
+  { tag: "{{title}}", label: "Title" },
+  { tag: "{{phone_number}}", label: "Phone Number" },
+  { tag: "{{email_address}}", label: "Email Address" },
+  { tag: "{{tenant_name}}", label: "Co-op Name" },
+  { tag: "{{entity_account_name}}", label: "Entity Account Name" },
+  { tag: "{{entity_account_bank_details}}", label: "Tenant Bank Details" },
+  { tag: "{{email_signature}}", label: "Email Signature" },
+  { tag: "{{agm_venue}}", label: "AGM Venue" },
+  { tag: "{{agm_date}}", label: "AGM Date" },
+  { tag: "{{agm_time}}", label: "AGM Time" },
+];
 
 const APPLICATION_EVENTS: { value: AppEvent; label: string }[] = [
   { value: "none", label: "None (Manual)" },
@@ -306,18 +327,29 @@ const SystemEmailTemplates = () => {
             </div>
 
             <div className="space-y-2">
+              <Label>Email Subject</Label>
+              <div className="flex gap-2">
+                <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Welcome to {{tenant_name}}!" className="flex-1" />
+                <MergeFieldPicker onInsert={(tag) => setForm({ ...form, subject: form.subject + tag })} label="Merge" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Email Body</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setShowHtmlSource(!showHtmlSource)}
-                >
-                  {showHtmlSource ? <Eye className="h-3.5 w-3.5" /> : <Code className="h-3.5 w-3.5" />}
-                  {showHtmlSource ? "Rich Text" : "HTML Source"}
-                </Button>
+                <div className="flex gap-1">
+                  <MergeFieldPicker onInsert={(tag) => setForm({ ...form, body_html: form.body_html + tag })} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setShowHtmlSource(!showHtmlSource)}
+                  >
+                    {showHtmlSource ? <Eye className="h-3.5 w-3.5" /> : <Code className="h-3.5 w-3.5" />}
+                    {showHtmlSource ? "Rich Text" : "HTML Source"}
+                  </Button>
+                </div>
               </div>
               {showHtmlSource ? (
                 <Textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} placeholder="<p>Dear {{first_name}},</p>" rows={10} className="font-mono text-xs" />
@@ -389,5 +421,32 @@ const SystemEmailTemplates = () => {
     </div>
   );
 };
+
+// Merge Field Picker Component
+const MergeFieldPicker = ({ onInsert, label = "Merge Fields" }: { onInsert: (tag: string) => void; label?: string }) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+        <Braces className="h-3.5 w-3.5" />
+        {label}
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-56 p-1" align="end">
+      <div className="space-y-0.5">
+        {MERGE_FIELDS.map((f) => (
+          <button
+            key={f.tag}
+            type="button"
+            className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={() => onInsert(f.tag)}
+          >
+            <span className="font-medium">{f.label}</span>
+            <span className="text-muted-foreground text-xs ml-2 font-mono">{f.tag}</span>
+          </button>
+        ))}
+      </div>
+    </PopoverContent>
+  </Popover>
+);
 
 export default SystemEmailTemplates;
