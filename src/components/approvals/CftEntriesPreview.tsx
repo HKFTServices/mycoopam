@@ -8,6 +8,8 @@ import { CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, BookOpen } from "l
 
 export interface CftLine {
   side: "DR" | "CR";
+  /** The actual GL-level side after contra-posting is applied. Straight-posted entries match `side`, contra-posted entries are the opposite. */
+  glSide: "DR" | "CR";
   description: string;
   glCode?: string;
   glName?: string;
@@ -33,9 +35,10 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
 
   if (lines.length === 0) return null;
 
-  const totalDebit = lines.filter((l) => l.side === "DR").reduce((s, l) => s + l.amount, 0);
-  const totalCredit = lines.filter((l) => l.side === "CR").reduce((s, l) => s + l.amount, 0);
-  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+  // Balance check at the GL level (after contra-posting), not the CFT level
+  const glDebitTotal = lines.filter((l) => l.glSide === "DR").reduce((s, l) => s + l.amount, 0);
+  const glCreditTotal = lines.filter((l) => l.glSide === "CR").reduce((s, l) => s + l.amount, 0);
+  const isBalanced = Math.abs(glDebitTotal - glCreditTotal) < 0.01;
 
   return (
     <div className="rounded-xl border-2 border-border bg-muted/10 overflow-hidden">
@@ -53,11 +56,11 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
         <div className="flex items-center gap-2">
           {isBalanced ? (
             <Badge variant="outline" className="text-[10px] h-5 gap-1 border-emerald-500/40 text-emerald-600 bg-emerald-500/10">
-              <CheckCircle2 className="h-3 w-3" /> Balanced
+              <CheckCircle2 className="h-3 w-3" /> GL Balanced
             </Badge>
           ) : (
             <Badge variant="outline" className="text-[10px] h-5 gap-1 border-destructive/40 text-destructive bg-destructive/10">
-              <AlertTriangle className="h-3 w-3" /> Unbalanced ({fmt(Math.abs(totalDebit - totalCredit))})
+              <AlertTriangle className="h-3 w-3" /> GL Unbalanced ({fmt(Math.abs(glDebitTotal - glCreditTotal))})
             </Badge>
           )}
           {expanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -77,14 +80,14 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
             </TableHeader>
             <TableBody>
               {lines.map((l, i) => {
-                const glSideLabel = l.side === "DR" ? "Dt" : "Ct";
-                const ctrlSideLabel = l.controlAccountSide || (l.side === "DR" ? "Dt" : "Ct");
+                const glSideLabel = l.glSide === "DR" ? "Dt" : "Ct";
+                const ctrlSideLabel = l.controlAccountSide || (l.glSide === "DR" ? "Dt" : "Ct");
                 return (
                   <TableRow key={i} className="text-xs">
                     <TableCell className="py-1.5">
                       {l.glCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>}
                       <span className="text-xs">{l.glName || l.description}</span>
-                      <span className={`ml-1.5 font-mono text-[10px] font-bold ${l.side === "DR" ? "text-blue-600 dark:text-blue-400" : "text-rose-600 dark:text-rose-400"}`}>({glSideLabel})</span>
+                      <span className={`ml-1.5 font-mono text-[10px] font-bold ${l.glSide === "DR" ? "text-blue-600 dark:text-blue-400" : "text-rose-600 dark:text-rose-400"}`}>({glSideLabel})</span>
                     </TableCell>
                     <TableCell className="py-1.5 text-xs text-muted-foreground">
                       {l.controlAccount && l.controlAccount !== "—" ? (
@@ -108,10 +111,10 @@ const CftEntriesPreview = ({ lines, title = "CFT Entries to be Posted" }: CftEnt
                   Totals
                 </TableCell>
                 <TableCell className="py-1.5 text-[10px] text-muted-foreground">
-                  <span className="font-mono text-blue-600 dark:text-blue-400 mr-2">Dt {fmt(totalDebit)}</span>
-                  <span className="font-mono text-rose-600 dark:text-rose-400">Ct {fmt(totalCredit)}</span>
+                  <span className="font-mono text-blue-600 dark:text-blue-400 mr-2">GL Dt {fmt(glDebitTotal)}</span>
+                  <span className="font-mono text-rose-600 dark:text-rose-400">GL Ct {fmt(glCreditTotal)}</span>
                 </TableCell>
-                <TableCell className="py-1.5 text-right text-xs font-bold">{fmt(totalDebit + totalCredit)}</TableCell>
+                <TableCell className="py-1.5 text-right text-xs font-bold">{fmt(glDebitTotal + glCreditTotal)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
