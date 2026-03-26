@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import CftEntriesPreview, { buildTransferCftLines } from "@/components/approvals/CftEntriesPreview";
+import CftEntriesPreview from "@/components/approvals/cft-preview/CftEntriesPreview";
+import { buildTransferPreview } from "@/components/approvals/cft-preview/builders";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -62,15 +63,16 @@ const TransferReviewDialog = ({
   const allIds = group ? [group.primary.id, ...group.siblings.map((s: any) => s.id)] : [];
 
   // Build CFT preview lines
-  const transferCftLines = useMemo(() => {
-    if (!group) return [];
-    return buildTransferCftLines({
+  const transferPreview = useMemo(() => {
+    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
+    return buildTransferPreview({
       grossRedemption,
       netTransferAmount,
       poolName,
       feeBreakdown,
       joinShare: meta.receiver_join_share || null,
       commissionAmount: Number(meta.commission_amount || 0),
+      unitPrice: Number(meta.unit_price_sell || primaryTxn?.unit_price || 0),
     });
   }, [group?.primary?.id]);
 
@@ -180,7 +182,7 @@ const TransferReviewDialog = ({
             </div>
           )}
           {/* CFT Entries Preview */}
-          <CftEntriesPreview lines={transferCftLines} />
+          <CftEntriesPreview preview={transferPreview} />
         </div>
 
         {/* Decline input */}

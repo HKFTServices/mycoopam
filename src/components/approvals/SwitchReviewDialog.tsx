@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import CftEntriesPreview, { buildSwitchCftLines } from "@/components/approvals/CftEntriesPreview";
+import CftEntriesPreview from "@/components/approvals/cft-preview/CftEntriesPreview";
+import { buildSwitchPreview } from "@/components/approvals/cft-preview/builders";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -171,14 +172,18 @@ const SwitchReviewDialog = ({
   const txnTypeName = primaryTxn?.transaction_types?.name || "Switch";
 
   // Build CFT preview lines
-  const switchCftLines = useMemo(() => {
-    if (!group) return [];
-    return buildSwitchCftLines({
+  const switchPreview = useMemo(() => {
+    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
+    let m: any = {};
+    try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
+    return buildSwitchPreview({
       grossRedemption,
       netSwitchAmount,
       fromPoolName,
       toPoolName,
       feeBreakdown,
+      fromUnitPrice: Number(m.from_unit_price || primaryTxn?.unit_price || 0),
+      toUnitPrice: Number(m.to_unit_price || 0),
     });
   }, [group?.primary?.id, grossRedemption, netSwitchAmount]);
 
@@ -425,7 +430,7 @@ const SwitchReviewDialog = ({
           )}
 
           {/* CFT Entries Preview */}
-          <CftEntriesPreview lines={switchCftLines} />
+          <CftEntriesPreview preview={switchPreview} />
 
           {/* Decline reason */}
           {showDecline && (

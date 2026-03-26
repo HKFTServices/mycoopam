@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import CftEntriesPreview, { buildDepositCftLines } from "@/components/approvals/CftEntriesPreview";
+import CftEntriesPreview from "@/components/approvals/cft-preview/CftEntriesPreview";
+import { buildDepositPreview } from "@/components/approvals/cft-preview/builders";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -330,17 +331,19 @@ const TransactionReviewDialog = ({
   const canApprove = stockReceivedConfirmed;
 
   // Build CFT preview lines (must be before early return)
-  const depositCftLines = useMemo(() => {
-    if (!group) return [];
+  const depositPreview = useMemo(() => {
+    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
     const txns = [group.primary, ...group.siblings];
     const tAmount = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
     const poolAllocations = txns.filter((t: any) => t.pool_id).map((t: any) => ({
       poolName: t.pools?.name || "Pool",
       amount: Number(t.net_amount),
+      unitPrice: Number(t.unit_price || 0),
+      units: Number(t.units || 0),
     }));
     let m: any = {};
     try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
-    return buildDepositCftLines({
+    return buildDepositPreview({
       grossAmount: tAmount,
       poolAllocations,
       feeBreakdown: m.fee_breakdown || [],
@@ -394,7 +397,7 @@ const TransactionReviewDialog = ({
       {renderDateChangeNote()}
       {renderPOP()}
       {/* CFT Entries Preview */}
-      <CftEntriesPreview lines={depositCftLines} />
+      <CftEntriesPreview preview={depositPreview} />
       {/* Funds Confirmation — not needed for debit order deposits */}
       {isDebitOrderDeposit ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-2">
