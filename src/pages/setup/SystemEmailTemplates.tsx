@@ -118,6 +118,7 @@ const SystemEmailTemplates = () => {
   const [langFilter, setLangFilter] = useState<string>("all");
   const [deleteTarget, setDeleteTarget] = useState<CommTemplate | null>(null);
   const [showHtmlSource, setShowHtmlSource] = useState(false);
+  const editorRef = useRef<RichTextEditorHandle>(null);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["system_email_templates", currentTenant?.id],
