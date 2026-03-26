@@ -72,7 +72,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("cashflow_transactions")
-        .select("id, transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, parent_id, control_account_id, pool_id, entity_account_id, vat_amount, amount_excl_vat, gl_account_id, control_accounts(name), gl_accounts(name, code, gl_type), entity_accounts(account_number, entities(name, last_name))")
+        .select("id, transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, parent_id, control_account_id, pool_id, entity_account_id, vat_amount, amount_excl_vat, gl_account_id, control_accounts(name), gl_accounts(name, code, gl_type), pools(name), entity_accounts(account_number, entities(name, last_name))")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("transaction_date", { ascending: false })
@@ -92,7 +92,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("unit_transactions")
-        .select("id, transaction_date, pool_id, entity_account_id, unit_price, debit, credit, value, transaction_type, notes")
+        .select("id, transaction_id, transaction_date, pool_id, entity_account_id, unit_price, debit, credit, value, transaction_type, notes, pools(name), entity_accounts(account_number, entities(name, last_name))")
         .eq("tenant_id", tenantId)
         .order("transaction_date", { ascending: false })
         .limit(500);
@@ -644,14 +644,15 @@ const Reports = () => {
                 return (
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                    <TableRow>
                         <TableHead>Txn ID</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Account</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Control Account</TableHead>
                         <TableHead>GL Account</TableHead>
+                        <TableHead>Control Account</TableHead>
+                        <TableHead>Pool</TableHead>
                         <TableHead className="text-right">Debit</TableHead>
                         <TableHead className="text-right">Credit</TableHead>
                         <TableHead className="text-right">Excl VAT</TableHead>
@@ -694,8 +695,9 @@ const Reports = () => {
                               </span>
                             </TableCell>
                             <TableCell className="max-w-[200px] truncate" title={r.description}>{r.description}</TableCell>
-                            <TableCell className="text-xs">{r.control_accounts?.name || "—"}</TableCell>
                             <TableCell className="text-xs">{r.gl_accounts ? `${r.gl_accounts.code} ${r.gl_accounts.name}` : "—"}</TableCell>
+                            <TableCell className="text-xs">{r.control_accounts?.name || "—"}</TableCell>
+                            <TableCell className="text-xs">{r.pools?.name || "—"}</TableCell>
                             <TableCell className="text-right font-mono">{Number(r.debit) > 0 ? fmt(r.debit) : "—"}</TableCell>
                             <TableCell className="text-right font-mono">{Number(r.credit) > 0 ? fmt(r.credit) : "—"}</TableCell>
                             <TableCell className="text-right">{fmt(r.amount_excl_vat)}</TableCell>
@@ -704,7 +706,7 @@ const Reports = () => {
                           </TableRow>
                         );
                       })}
-                      {cftData.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
+                      {cftData.length === 0 && <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
                     </TableBody>
                   </Table>
                 );
@@ -750,8 +752,9 @@ const Reports = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
+                      <TableHead>Txn ID</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Account</TableHead>
                       <TableHead>Pool</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Unit Price</TableHead>
@@ -766,11 +769,16 @@ const Reports = () => {
                       const txnId = r.legacy_transaction_id;
                       const hasGroup = txnId && utTxnCounts[txnId] > 1;
                       const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
+                      const accountName = r.entity_accounts
+                        ? `${[r.entity_accounts.entities?.name, r.entity_accounts.entities?.last_name].filter(Boolean).join(" ")} (${r.entity_accounts.account_number || "—"})`
+                        : "—";
+                      const poolName = r.pools?.name || shortId(r.pool_id);
                       return (
                       <TableRow key={r.id} className={cn(bgColor)}>
-                        <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.transaction_id ? shortId(r.transaction_id) : shortId(r.id)}</TableCell>
                         <TableCell>{r.transaction_date}</TableCell>
-                        <TableCell className="font-mono text-xs">{shortId(r.pool_id)}</TableCell>
+                        <TableCell className="text-xs max-w-[140px] truncate" title={accountName}>{accountName}</TableCell>
+                        <TableCell className="text-xs">{poolName}</TableCell>
                         <TableCell>{r.transaction_type}</TableCell>
                         <TableCell className="text-right">{fmt(r.unit_price)}</TableCell>
                         <TableCell className="text-right">{Number(r.debit) > 0 ? fmt(r.debit) : "—"}</TableCell>
@@ -780,7 +788,7 @@ const Reports = () => {
                       </TableRow>
                       );
                     })}
-                    {utData.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
+                    {utData.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
                   </TableBody>
                 </Table>
               )})()}
