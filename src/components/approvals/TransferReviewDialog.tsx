@@ -179,6 +179,8 @@ const TransferReviewDialog = ({
               <p className="text-sm">{userNotes}</p>
             </div>
           )}
+          {/* CFT Entries Preview */}
+          <CftEntriesPreview lines={transferCftLines} />
         </div>
 
         {/* Decline input */}
