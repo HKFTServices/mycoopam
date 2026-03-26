@@ -420,6 +420,31 @@ const SystemEmailTemplates = () => {
       </AlertDialog>
     </div>
   );
-};
+// Merge Field Picker Component
+const MergeFieldPicker = ({ onInsert, label = "Merge Fields" }: { onInsert: (tag: string) => void; label?: string }) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+        <Braces className="h-3.5 w-3.5" />
+        {label}
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-56 p-1" align="end">
+      <div className="space-y-0.5">
+        {MERGE_FIELDS.map((f) => (
+          <button
+            key={f.tag}
+            type="button"
+            className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={() => onInsert(f.tag)}
+          >
+            <span className="font-medium">{f.label}</span>
+            <span className="text-muted-foreground text-xs ml-2 font-mono">{f.tag}</span>
+          </button>
+        ))}
+      </div>
+    </PopoverContent>
+  </Popover>
+);
 
 export default SystemEmailTemplates;
