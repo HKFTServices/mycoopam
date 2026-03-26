@@ -349,6 +349,13 @@ const TenantManagement = () => {
         onOpenChange={(open) => !open && setEomTenant(null)}
         tenantOverride={eomTenant}
       />
+
+      {/* Tenant Features Dialog */}
+      <TenantFeaturesDialog
+        open={!!featuresTenant}
+        onOpenChange={(open) => !open && setFeaturesTenant(null)}
+        tenant={featuresTenant}
+      />
     </div>
   );
 };
