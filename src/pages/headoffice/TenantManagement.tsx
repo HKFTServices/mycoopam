@@ -16,12 +16,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/formatCurrency";
 import TenantFeaturesDialog from "@/components/headoffice/TenantFeaturesDialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { formatCurrency } from "@/lib/formatCurrency";
 
 const TenantManagement = () => {
   const queryClient = useQueryClient();
