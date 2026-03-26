@@ -61,6 +61,19 @@ const TransferReviewDialog = ({
 
   const allIds = group ? [group.primary.id, ...group.siblings.map((s: any) => s.id)] : [];
 
+  // Build CFT preview lines
+  const transferCftLines = useMemo(() => {
+    if (!group) return [];
+    return buildTransferCftLines({
+      grossRedemption,
+      netTransferAmount,
+      poolName,
+      feeBreakdown,
+      joinShare: meta.receiver_join_share || null,
+      commissionAmount: Number(meta.commission_amount || 0),
+    });
+  }, [group?.primary?.id]);
+
   if (!group) return null;
 
   return (

@@ -424,6 +424,9 @@ const SwitchReviewDialog = ({
             </div>
           )}
 
+          {/* CFT Entries Preview */}
+          <CftEntriesPreview lines={switchCftLines} />
+
           {/* Decline reason */}
           {showDecline && (
             <div className="space-y-2">
