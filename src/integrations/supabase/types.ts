@@ -421,10 +421,15 @@ export type Database = {
       cashflow_transactions: {
         Row: {
           amount_excl_vat: number
+          approved_at: string | null
+          approved_by: string | null
           control_account_id: string | null
           created_at: string
           credit: number
           debit: number
+          declined_at: string | null
+          declined_by: string | null
+          declined_reason: string | null
           description: string | null
           entity_account_id: string | null
           entry_type: string
@@ -438,6 +443,7 @@ export type Database = {
           pool_id: string | null
           posted_by: string | null
           reference: string | null
+          status: string
           tenant_id: string
           transaction_date: string
           transaction_id: string | null
@@ -446,10 +452,15 @@ export type Database = {
         }
         Insert: {
           amount_excl_vat?: number
+          approved_at?: string | null
+          approved_by?: string | null
           control_account_id?: string | null
           created_at?: string
           credit?: number
           debit?: number
+          declined_at?: string | null
+          declined_by?: string | null
+          declined_reason?: string | null
           description?: string | null
           entity_account_id?: string | null
           entry_type?: string
@@ -463,6 +474,7 @@ export type Database = {
           pool_id?: string | null
           posted_by?: string | null
           reference?: string | null
+          status?: string
           tenant_id: string
           transaction_date?: string
           transaction_id?: string | null
@@ -471,10 +483,15 @@ export type Database = {
         }
         Update: {
           amount_excl_vat?: number
+          approved_at?: string | null
+          approved_by?: string | null
           control_account_id?: string | null
           created_at?: string
           credit?: number
           debit?: number
+          declined_at?: string | null
+          declined_by?: string | null
+          declined_reason?: string | null
           description?: string | null
           entity_account_id?: string | null
           entry_type?: string
@@ -488,6 +505,7 @@ export type Database = {
           pool_id?: string | null
           posted_by?: string | null
           reference?: string | null
+          status?: string
           tenant_id?: string
           transaction_date?: string
           transaction_id?: string | null
