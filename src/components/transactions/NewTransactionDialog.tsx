@@ -25,6 +25,7 @@ import ReviewStep from "./steps/ReviewStep";
 import type { StockLineItem } from "./steps/StockDepositDetailsStep";
 import type { StockWithdrawalLineItem } from "./steps/StockWithdrawalDetailsStep";
 import { formatLocalDate } from "@/lib/formatDate";
+import { sendApprovalNotification } from "@/lib/sendApprovalNotification";
 
 const ALL_TXN_CODES = [
   "DEPOSIT_FUNDS", "DEPOSIT_STOCK", "WITHDRAW_FUNDS", "WITHDRAW_STOCK",
