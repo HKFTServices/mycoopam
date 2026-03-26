@@ -329,6 +329,28 @@ const TransactionReviewDialog = ({
   const canProceedFromReceipt = !!adminSignature && !!memberSignature;
   const canApprove = stockReceivedConfirmed;
 
+  // Build CFT preview lines (must be before early return)
+  const depositCftLines = useMemo(() => {
+    if (!group) return [];
+    const txns = [group.primary, ...group.siblings];
+    const tAmount = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const poolAllocations = txns.filter((t: any) => t.pool_id).map((t: any) => ({
+      poolName: t.pools?.name || "Pool",
+      amount: Number(t.net_amount),
+    }));
+    let m: any = {};
+    try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
+    return buildDepositCftLines({
+      grossAmount: tAmount,
+      poolAllocations,
+      feeBreakdown: m.fee_breakdown || [],
+      joinShare: m.join_share || null,
+      isStockDeposit: m.transaction_kind === "stock_deposit",
+      isVatRegistered: m.is_vat_registered ?? false,
+      vatRate: Number(m.vat_rate || 0),
+    });
+  }, [group?.primary?.id]);
+
   if (!group) return null;
 
   const totalAmount = allTxns.reduce((s: number, t: any) => s + Number(t.amount), 0);
@@ -351,7 +373,6 @@ const TransactionReviewDialog = ({
   // ─── Render Step Content ───
   const renderStepContent = () => {
     if (!isStockDeposit) {
-      // Non-stock: render original single-page content
       return renderOriginalContent();
     }
 
@@ -364,24 +385,6 @@ const TransactionReviewDialog = ({
       default: return renderReviewStep();
     }
   };
-
-  // Build CFT preview lines
-  const depositCftLines = useMemo(() => {
-    if (!group) return [];
-    const poolAllocations = allTxns.filter((t: any) => t.pool_id).map((t: any) => ({
-      poolName: t.pools?.name || "Pool",
-      amount: Number(t.net_amount),
-    }));
-    return buildDepositCftLines({
-      grossAmount: totalAmount,
-      poolAllocations,
-      feeBreakdown,
-      joinShare: meta.join_share || null,
-      isStockDeposit,
-      isVatRegistered: meta.is_vat_registered ?? false,
-      vatRate: Number(meta.vat_rate || 0),
-    });
-  }, [group, totalAmount, totalNet, feeBreakdown.length]);
 
   const renderOriginalContent = () => (
     <>
