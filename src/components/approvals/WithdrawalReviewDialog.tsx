@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from "react";
-import CftEntriesPreview, { buildWithdrawalCftLines } from "@/components/approvals/CftEntriesPreview";
+import CftEntriesPreview from "@/components/approvals/cft-preview/CftEntriesPreview";
+import { buildWithdrawalPreview } from "@/components/approvals/cft-preview/builders";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
