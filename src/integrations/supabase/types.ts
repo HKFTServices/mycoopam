@@ -6244,6 +6244,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_feature_enabled: {
+        Args: { _feature_key: string; _tenant_id: string }
+        Returns: boolean
+      }
       is_tenant_admin_of_user: {
         Args: { _admin_id: string; _target_user_id: string }
         Returns: boolean
