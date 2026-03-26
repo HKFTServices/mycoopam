@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import CftEntriesPreview, { buildDepositCftLines } from "@/components/approvals/CftEntriesPreview";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -328,6 +329,28 @@ const TransactionReviewDialog = ({
   const canProceedFromReceipt = !!adminSignature && !!memberSignature;
   const canApprove = stockReceivedConfirmed;
 
+  // Build CFT preview lines (must be before early return)
+  const depositCftLines = useMemo(() => {
+    if (!group) return [];
+    const txns = [group.primary, ...group.siblings];
+    const tAmount = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const poolAllocations = txns.filter((t: any) => t.pool_id).map((t: any) => ({
+      poolName: t.pools?.name || "Pool",
+      amount: Number(t.net_amount),
+    }));
+    let m: any = {};
+    try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
+    return buildDepositCftLines({
+      grossAmount: tAmount,
+      poolAllocations,
+      feeBreakdown: m.fee_breakdown || [],
+      joinShare: m.join_share || null,
+      isStockDeposit: m.transaction_kind === "stock_deposit",
+      isVatRegistered: m.is_vat_registered ?? false,
+      vatRate: Number(m.vat_rate || 0),
+    });
+  }, [group?.primary?.id]);
+
   if (!group) return null;
 
   const totalAmount = allTxns.reduce((s: number, t: any) => s + Number(t.amount), 0);
@@ -350,7 +373,6 @@ const TransactionReviewDialog = ({
   // ─── Render Step Content ───
   const renderStepContent = () => {
     if (!isStockDeposit) {
-      // Non-stock: render original single-page content
       return renderOriginalContent();
     }
 
@@ -371,6 +393,8 @@ const TransactionReviewDialog = ({
       {renderPoolAllocations()}
       {renderDateChangeNote()}
       {renderPOP()}
+      {/* CFT Entries Preview */}
+      <CftEntriesPreview lines={depositCftLines} />
       {/* Funds Confirmation — not needed for debit order deposits */}
       {isDebitOrderDeposit ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-2">

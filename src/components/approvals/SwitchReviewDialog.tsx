@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import CftEntriesPreview, { buildSwitchCftLines } from "@/components/approvals/CftEntriesPreview";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -168,6 +169,18 @@ const SwitchReviewDialog = ({
     : "—";
   const accountNumber = primaryTxn?.entity_accounts?.account_number || "—";
   const txnTypeName = primaryTxn?.transaction_types?.name || "Switch";
+
+  // Build CFT preview lines
+  const switchCftLines = useMemo(() => {
+    if (!group) return [];
+    return buildSwitchCftLines({
+      grossRedemption,
+      netSwitchAmount,
+      fromPoolName,
+      toPoolName,
+      feeBreakdown,
+    });
+  }, [group?.primary?.id, grossRedemption, netSwitchAmount]);
 
   const handleApprove = () => {
     if (!group) return;
@@ -410,6 +423,9 @@ const SwitchReviewDialog = ({
               />
             </div>
           )}
+
+          {/* CFT Entries Preview */}
+          <CftEntriesPreview lines={switchCftLines} />
 
           {/* Decline reason */}
           {showDecline && (
