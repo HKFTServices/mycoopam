@@ -137,7 +137,7 @@ const globalSetupNavItems: NavItem[] = [
   { label: "Relationship Types", icon: Link2, path: "/dashboard/setup/relationship-types" },
   { label: "Banks", icon: Landmark, path: "/dashboard/setup/banks" },
   { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
-  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
+  
   { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
   { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
   { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
