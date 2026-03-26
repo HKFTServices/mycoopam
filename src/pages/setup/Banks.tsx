@@ -19,6 +19,7 @@ import { toast } from "sonner";
 type Bank = {
   id: string;
   name: string;
+  logo_url: string | null;
   branch_code: string | null;
   swift_code: string | null;
   sort_route_code: string | null;
@@ -34,7 +35,7 @@ const Banks = () => {
   const [editing, setEditing] = useState<Bank | null>(null);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
-    name: "", branch_code: "", swift_code: "", sort_route_code: "", country_id: "", is_active: true,
+    name: "", logo_url: "", branch_code: "", swift_code: "", sort_route_code: "", country_id: "", is_active: true,
   });
 
   const { data: banks = [], isLoading } = useQuery({
@@ -61,6 +62,7 @@ const Banks = () => {
     mutationFn: async (values: typeof form & { id?: string }) => {
       const payload = {
         name: values.name,
+        logo_url: values.logo_url || null,
         branch_code: values.branch_code || null,
         swift_code: values.swift_code || null,
         sort_route_code: values.sort_route_code || null,
@@ -98,7 +100,7 @@ const Banks = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", branch_code: "", swift_code: "", sort_route_code: "", country_id: "", is_active: true });
+    setForm({ name: "", logo_url: "", branch_code: "", swift_code: "", sort_route_code: "", country_id: "", is_active: true });
     setDialogOpen(true);
   };
 
@@ -106,6 +108,7 @@ const Banks = () => {
     setEditing(b);
     setForm({
       name: b.name,
+      logo_url: b.logo_url ?? "",
       branch_code: b.branch_code ?? "",
       swift_code: b.swift_code ?? "",
       sort_route_code: b.sort_route_code ?? "",
@@ -153,7 +156,19 @@ const Banks = () => {
               ) : (
                 filtered.map((b) => (
                   <TableRow key={b.id}>
-                    <TableCell className="font-medium">{b.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {b.logo_url ? (
+                          <img
+                            src={b.logo_url}
+                            alt=""
+                            className="h-5 w-5 rounded-sm object-contain bg-background"
+                            loading="lazy"
+                          />
+                        ) : null}
+                        <span>{b.name}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>{b.branch_code ?? "—"}</TableCell>
                     <TableCell>{b.swift_code ?? "—"}</TableCell>
                     <TableCell>{getCountryName(b.country_id)}</TableCell>
@@ -185,6 +200,17 @@ const Banks = () => {
             <div className="space-y-2">
               <Label>Bank Name *</Label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Standard Bank" />
+            </div>
+            <div className="space-y-2">
+              <Label>Logo URL</Label>
+              <Input
+                value={form.logo_url}
+                onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+                placeholder="https://... (small square logo works best)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional. Used as a small icon next to the bank name in debit order details.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

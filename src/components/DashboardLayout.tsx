@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -54,6 +54,7 @@ import {
   Banknote,
   BarChart3,
   Bell,
+  BellRing,
   BookOpen,
   Briefcase,
   Building2,
@@ -99,6 +100,7 @@ type NavItem = {
 const mainNavItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Memberships", icon: Briefcase, path: "/dashboard/memberships" },
+  { label: "Notifications", icon: BellRing, path: "/dashboard/notifications" },
 ];
 
 const transactionsNavItems: NavItem[] = [
@@ -201,6 +203,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { tenants, currentTenant, setCurrentTenant, branding, loading: tenantLoading } = useTenant();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [sidebarQuery, setSidebarQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -380,6 +383,42 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     refetchInterval: 30000,
   });
 
+  const { data: notificationsUnreadCount = 0 } = useQuery({
+    queryKey: ["notifications_unread_count", currentTenant?.id, user?.id],
+    queryFn: async () => {
+      if (!currentTenant || !user) return 0;
+      const { count, error } = await (supabase as any)
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", currentTenant.id)
+        .eq("recipient_user_id", user.id)
+        .is("read_at", null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!currentTenant && !!user,
+    refetchInterval: 30000,
+  });
+
+  useEffect(() => {
+    if (!currentTenant || !user) return;
+    const channel = supabase
+      .channel(`notifications:${currentTenant.id}:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `recipient_user_id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notifications_unread_count", currentTenant.id, user.id] });
+          queryClient.invalidateQueries({ queryKey: ["notifications", currentTenant.id, user.id] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentTenant, user, queryClient]);
+
   const displayName = (() => {
     const entity = myEntity?.entities;
     if (entity?.initials && entity?.last_name) return `${entity.initials} ${entity.last_name}`;
@@ -547,7 +586,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 <SidebarGroupLabel>Navigation</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {filteredMain.map((i) => renderLink(i))}
+                    {filteredMain.map((i) =>
+                      i.path === "/dashboard/notifications"
+                        ? renderLink(
+                            i,
+                            notificationsUnreadCount > 0
+                              ? { badge: <span className="text-[10px] font-semibold">{notificationsUnreadCount}</span> }
+                              : undefined,
+                          )
+                        : renderLink(i),
+                    )}
 
                 {showTransactions &&
                   renderGroup({
@@ -704,20 +752,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           ) : (
             <span className="font-semibold flex-1 truncate">CoopAdmin</span>
           )}
+          <button
+            onClick={() => navigate("/dashboard/notifications")}
+            className="relative text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Notifications"
+          >
+            <BellRing className="h-5 w-5" />
+            {notificationsUnreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {notificationsUnreadCount}
+              </span>
+            )}
+          </button>
           <PendingTransferNotification />
-          {canApprove && (
-            <button
-              onClick={() => navigate("/dashboard/account-approvals")}
-              className="relative text-muted-foreground hover:text-foreground"
-            >
-              <Bell className="h-5 w-5" />
-              {pendingCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          )}
         </header>
 
         {/* Desktop header */}
@@ -739,20 +786,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/dashboard/notifications")}
+              className="relative text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Notifications"
+            >
+              <BellRing className="h-5 w-5" />
+              {notificationsUnreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {notificationsUnreadCount}
+                </span>
+              )}
+            </button>
             <PendingTransferNotification />
-            {canApprove && (
-              <button
-                onClick={() => navigate("/dashboard/account-approvals")}
-                className="relative text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Bell className="h-5 w-5" />
-                {pendingCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                    {pendingCount}
-                  </span>
-                )}
-              </button>
-            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -260,6 +260,39 @@ const Dashboard = () => {
     enabled: !!tenantId,
   });
 
+  const { data: poolInvestorStats = [] } = useQuery({
+    queryKey: ["pool_investor_stats", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      try {
+        const { data, error } = await (supabase as any).rpc("get_pool_investor_stats", {
+          p_tenant_id: tenantId,
+        });
+        if (error) {
+          console.warn("[Dashboard] get_pool_investor_stats non-fatal error:", error.message);
+          return [];
+        }
+        return data ?? [];
+      } catch (err: any) {
+        console.warn("[Dashboard] get_pool_investor_stats non-fatal exception:", err?.message ?? err);
+        return [];
+      }
+    },
+    enabled: !!tenantId && isAdmin,
+  });
+
+  const investorStatsByPoolId = useMemo(() => {
+    const map = new Map<string, { investorCount: number; totalInvestors: number }>();
+    for (const row of poolInvestorStats as any[]) {
+      if (!row?.pool_id) continue;
+      map.set(String(row.pool_id), {
+        investorCount: Number(row.investor_count ?? 0),
+        totalInvestors: Number(row.total_investors ?? 0),
+      });
+    }
+    return map;
+  }, [poolInvestorStats]);
+
   const totalAUM = poolSummaries.reduce((sum: number, p: any) => sum + p.totalValue, 0);
 
   // ── Admin: AUM over time (monthly) ──
@@ -977,11 +1010,56 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {currentTenant && !showPendingWelcome && (
-        <>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <MetricCard
-              title={primaryMetric.title}
+	      {currentTenant && !showPendingWelcome && (
+	        <>
+	          {isAdmin && adminStats ? (
+	            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+	              <MiniStatCard
+	                label="Entities"
+	                value={adminStats.totalEntities}
+	                icon={Users}
+	                description="Registered"
+	              />
+	              <MiniStatCard
+	                label="Active Accounts"
+	                value={adminStats.totalAccounts}
+	                icon={CreditCard}
+	                description="Approved & active"
+	              />
+	              <MiniStatCard
+	                label="Active Pools"
+	                value={adminStats.activePools}
+	                icon={Wallet}
+	                description="Investment pools"
+	              />
+	              <MiniStatCard
+	                label="Approvals"
+	                value={adminStats.pendingAccounts}
+	                icon={TrendingUp}
+	                description="Pending items"
+	                highlight
+	              />
+	            </div>
+	          ) : null}
+
+	          {isAdmin && poolSummaries.length > 0 ? (
+	            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+	              {poolSummaries.slice(0, 4).map((p: any) => {
+		                const poolName = String(p?.name ?? "").toLowerCase();
+		                const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
+		                const stats = investorStatsByPoolId.get(String(p.id));
+		                const investorPct =
+		                  showInvestorPct && stats?.totalInvestors
+		                    ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100
+		                    : null;
+		                return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
+		              })}
+		            </div>
+		          ) : null}
+
+	          <div className="grid gap-4 lg:grid-cols-2">
+	            <MetricCard
+	              title={primaryMetric.title}
               subtitle={primaryMetric.subtitle}
               value={primaryMetric.value}
               ringValue={ringPrimary}
@@ -1057,23 +1135,12 @@ const Dashboard = () => {
 	                    )}
 	                  </CardContent>
 	                </Card>
-	              )}
+		              )}
 
-              {isAdmin ? (
-                <PoolSummariesCard pools={poolSummaries} />
-              ) : (
-                <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
-              )}
+	              {!isAdmin ? <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} /> : null}
 
-              {isAdmin && adminStats ? (
-                <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                  <StatCard label="Entities" value={adminStats.totalEntities} icon={Users} description="Registered entities" />
-                  <StatCard label="Active Accounts" value={adminStats.totalAccounts} icon={CreditCard} description="Approved & active" />
-                  <StatCard label="Active Pools" value={adminStats.activePools} icon={Wallet} description="Investment pools" />
-                  <StatCard label="Approvals" value={adminStats.pendingAccounts} icon={TrendingUp} description="Pending activations" />
-                </div>
-              ) : null}
-            </div>
+	              {null}
+	            </div>
 
             <Card className="lg:col-span-1">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1162,9 +1229,9 @@ const Dashboard = () => {
   );
 };
 
-// ── Stat Card Component ──
-const StatCard = ({
-  label, value, icon: Icon, description, highlight,
+	// ── Stat Card Component ──
+	const StatCard = ({
+	  label, value, icon: Icon, description, highlight,
 }: {
   label: string;
   value: string | number;
@@ -1186,7 +1253,38 @@ const StatCard = ({
       <p className="text-xs text-muted-foreground mt-1">{description}</p>
     </CardContent>
   </Card>
-);
+	);
+
+	const MiniStatCard = ({
+	  label,
+	  value,
+	  icon: Icon,
+	  description,
+	  highlight,
+	}: {
+	  label: string;
+	  value: string | number;
+	  icon: React.ElementType;
+	  description: string;
+	  highlight?: boolean;
+	}) => (
+	  <Card className={`hover:bg-muted/30 transition-colors ${highlight ? "border-primary/30 bg-primary/5" : ""}`}>
+	    <CardContent className="p-4">
+	      <div className="flex items-start justify-between gap-3">
+	        <div className="min-w-0">
+	          <p className="text-xs text-muted-foreground">{label}</p>
+	          <p className="text-lg font-semibold leading-tight mt-1">{value}</p>
+	          <p className="text-[11px] text-muted-foreground mt-1 truncate">{description}</p>
+	        </div>
+	        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+	          highlight ? "bg-primary/10" : "bg-accent"
+	        }`}>
+	          <Icon className={`h-4 w-4 ${highlight ? "text-primary" : "text-accent-foreground"}`} />
+	        </div>
+	      </div>
+	    </CardContent>
+	  </Card>
+	);
 
 export default Dashboard;
 
@@ -1596,50 +1694,90 @@ const MemberActivityCard = ({ loanApps, debitOrders }: { loanApps: any[]; debitO
       </CardContent>
     </Card>
   );
-};
+	};
 
-const PoolSummariesCard = ({ pools }: { pools: any[] }) => {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div>
-          <CardTitle className="text-sm">Pool summaries</CardTitle>
-          <CardDescription className="text-xs">Unit prices and total values</CardDescription>
-        </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {pools?.length ? (
-          <div className="space-y-2">
-            {pools.slice(0, 6).map((pool: any) => (
-              <div key={pool.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {pool.iconUrl ? (
-                    <img src={pool.iconUrl} alt={pool.name} className="h-7 w-7 rounded object-cover shrink-0" />
-                  ) : (
-                    <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-                      {pool.name.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{pool.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {Number(pool.totalUnits).toLocaleString("en-ZA", { maximumFractionDigits: 0 })} units
-                      {pool.latestDate ? ` · ${pool.latestDate}` : ""}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right shrink-0 pl-2">
-                  <p className="text-sm font-semibold">{formatCurrency(pool.totalValue)}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(pool.unitPrice, "R", 4)}/unit</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground py-8 text-center">No pool data available.</p>
+		const PoolSummaryMiniCard = ({ pool, investorPct }: { pool: any; investorPct?: number | null }) => {
+		  return (
+		    <Card className="hover:bg-muted/30 transition-colors">
+		      <CardContent className="p-4">
+		        <div className="flex items-center gap-3 min-w-0">
+		          <PoolIcon name={pool.name} iconUrl={pool.iconUrl} size="sm" className="rounded-md" />
+		          <div className="min-w-0 flex-1">
+		            <p className="text-sm font-semibold truncate">{pool.name}</p>
+		            <div className="flex flex-wrap items-center gap-2">
+		              <Badge
+		                variant="outline"
+		                className="text-[10px] gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+		              >
+		                <span className="relative flex h-2 w-2">
+		                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
+		                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+		                </span>
+		                Live unit totals
+		              </Badge>
+		              <p className="text-xs text-muted-foreground font-mono">
+		                {formatCurrency(pool.unitPrice, "R", 4)}/unit
+		              </p>
+		              {pool.latestDate ? (
+	                <Badge variant="outline" className="text-[10px]">
+	                  {pool.latestDate}
+	                </Badge>
+	              ) : null}
+	            </div>
+	          </div>
+	        </div>
+
+		        <div className="mt-3 flex items-end justify-between gap-3">
+		          <div className="min-w-0">
+		            <p className="text-[11px] text-muted-foreground">Total value</p>
+		            <p className="text-sm font-mono truncate">{formatCurrency(pool.totalValue)}</p>
+		          </div>
+		          <div className="flex flex-col items-end gap-1 shrink-0">
+		            <Badge variant="secondary" className="text-[10px]">
+		              {Number(pool.totalUnits).toLocaleString("en-ZA", { maximumFractionDigits: 0 })} units
+		            </Badge>
+		            {typeof investorPct === "number" ? (
+		              <Badge variant="outline" className="text-[10px] gap-1">
+		                <Users className="h-3 w-3" />
+		                {Math.round(investorPct)}% investors
+		              </Badge>
+		            ) : null}
+		          </div>
+		        </div>
+		      </CardContent>
+		    </Card>
+		  );
+		};
+
+	const PoolSummariesCard = ({ pools }: { pools: any[] }) => {
+	  return (
+	    <Card>
+	      <CardHeader className="flex flex-row items-center justify-between pb-2">
+	        <div>
+	          <div className="flex items-center gap-2">
+	            <Wallet className="h-4 w-4 text-primary" />
+	            <CardTitle className="text-sm">Pool summaries</CardTitle>
+	          </div>
+	          <CardDescription className="text-xs">Unit prices and total values</CardDescription>
+	        </div>
+	        <Button variant="outline" size="sm" asChild className="gap-2">
+	          <Link to="/dashboard/pools">
+	            View pools
+	            <ArrowUpRight className="h-4 w-4" />
+	          </Link>
+	        </Button>
+	      </CardHeader>
+	      <CardContent>
+	        {pools?.length ? (
+	          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+	            {pools.slice(0, 6).map((p: any) => (
+	              <PoolSummaryMiniCard key={p.id} pool={p} />
+	            ))}
+	          </div>
+	        ) : (
+	          <div className="py-10 text-center text-sm text-muted-foreground">
+	            No pool data available.
+	          </div>
         )}
       </CardContent>
     </Card>

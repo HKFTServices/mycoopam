@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-label="Member mobile access to cooperative account dashboard">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="0.45" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="38%" cy="25%" r="60%">
+      <stop offset="0" stop-color="rgba(255,255,255,0.30)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="rgba(255,255,255,0.18)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0.08)"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4c7a1"/>
+      <stop offset="1" stop-color="#e7a97e"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#334155"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1200" fill="url(#bg)"/>
+  <rect width="1600" height="1200" fill="url(#glow)"/>
+
+  <!-- Ambient blobs -->
+  <circle cx="310" cy="250" r="220" fill="rgba(255,255,255,0.10)" filter="url(#blur)"/>
+  <circle cx="1320" cy="340" r="300" fill="rgba(255,255,255,0.08)" filter="url(#blur)"/>
+  <circle cx="1020" cy="1060" r="360" fill="rgba(255,255,255,0.06)" filter="url(#blur)"/>
+
+  <!-- Phone -->
+  <g transform="translate(980 190)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="420" height="860" rx="58" fill="rgba(17,24,39,0.88)" stroke="rgba(255,255,255,0.20)"/>
+    <rect x="22" y="54" width="376" height="760" rx="44" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)"/>
+    <rect x="150" y="22" width="120" height="10" rx="5" fill="rgba(255,255,255,0.18)"/>
+
+    <!-- App UI -->
+    <g transform="translate(48 96)">
+      <rect x="0" y="0" width="324" height="120" rx="26" fill="url(#card)" stroke="rgba(255,255,255,0.18)"/>
+      <circle cx="56" cy="60" r="28" fill="rgba(34,197,94,0.45)"/>
+      <path d="M52 60 l10 10 l18-24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="104" y="38" width="188" height="14" rx="7" fill="rgba(255,255,255,0.55)"/>
+      <rect x="104" y="68" width="150" height="12" rx="6" fill="rgba(255,255,255,0.30)"/>
+    </g>
+
+    <g transform="translate(48 250)">
+      <rect x="0" y="0" width="324" height="178" rx="26" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.14)"/>
+      <rect x="22" y="28" width="120" height="12" rx="6" fill="rgba(255,255,255,0.38)"/>
+      <rect x="22" y="56" width="200" height="10" rx="5" fill="rgba(255,255,255,0.24)"/>
+      <rect x="22" y="86" width="180" height="10" rx="5" fill="rgba(255,255,255,0.22)"/>
+      <rect x="22" y="116" width="210" height="10" rx="5" fill="rgba(255,255,255,0.20)"/>
+      <g transform="translate(22 144)">
+        <rect x="0" y="0" width="280" height="12" rx="6" fill="rgba(255,255,255,0.18)"/>
+        <rect x="0" y="0" width="168" height="12" rx="6" fill="rgba(99,102,241,0.55)"/>
+      </g>
+    </g>
+
+    <g transform="translate(48 466)">
+      <rect x="0" y="0" width="324" height="300" rx="26" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.12)"/>
+      <rect x="22" y="28" width="140" height="12" rx="6" fill="rgba(255,255,255,0.36)"/>
+      <g transform="translate(22 70)" fill="none" stroke-width="4" stroke-linecap="round">
+        <path d="M0 198 L62 168 L122 178 L186 140 L250 156 L280 124" stroke="rgba(255,255,255,0.55)"/>
+        <path d="M0 198 L62 168 L122 178 L186 140 L250 156 L280 124" stroke="rgba(34,197,94,0.65)"/>
+        <circle cx="186" cy="140" r="7" fill="rgba(255,255,255,0.85)"/>
+        <circle cx="280" cy="124" r="7" fill="rgba(255,255,255,0.85)"/>
+      </g>
+      <rect x="22" y="254" width="180" height="12" rx="6" fill="rgba(255,255,255,0.22)"/>
+    </g>
+  </g>
+
+  <!-- Person holding phone (stylized) -->
+  <g transform="translate(360 250)">
+    <!-- Back card with icons -->
+    <g opacity="0.98" filter="url(#softShadow)">
+      <rect x="0" y="560" width="560" height="260" rx="44" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.16)"/>
+      <g transform="translate(44 610)">
+        <rect x="0" y="0" width="220" height="46" rx="23" fill="rgba(34,197,94,0.22)" stroke="rgba(34,197,94,0.40)"/>
+        <circle cx="26" cy="23" r="8" fill="rgba(34,197,94,0.85)"/>
+        <rect x="44" y="16" width="150" height="14" rx="7" fill="rgba(255,255,255,0.50)"/>
+      </g>
+      <g transform="translate(44 678)">
+        <rect x="0" y="0" width="472" height="16" rx="8" fill="rgba(255,255,255,0.40)"/>
+        <rect x="0" y="34" width="420" height="12" rx="6" fill="rgba(255,255,255,0.24)"/>
+        <rect x="0" y="58" width="360" height="12" rx="6" fill="rgba(255,255,255,0.22)"/>
+      </g>
+      <g transform="translate(420 612)">
+        <circle cx="40" cy="36" r="34" fill="rgba(99,102,241,0.28)" stroke="rgba(99,102,241,0.45)"/>
+        <path d="M30 38 h20" stroke="rgba(255,255,255,0.75)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M40 28 v20" stroke="rgba(255,255,255,0.75)" stroke-width="4" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <!-- Body -->
+    <path d="M170 520 C140 420 190 340 280 320 C365 302 446 332 486 410 C525 486 510 602 456 660 C414 706 350 720 282 700 C216 680 186 610 170 520 Z" fill="rgba(15,23,42,0.70)"/>
+    <path d="M210 540 C200 466 244 420 300 408 C356 396 416 422 444 474 C470 522 468 588 446 628 C416 682 354 700 300 690 C246 678 220 616 210 540 Z" fill="rgba(255,255,255,0.10)"/>
+
+    <!-- Head -->
+    <g transform="translate(250 170)">
+      <path d="M120 240 C56 240 10 186 10 120 C10 54 58 10 120 10 C184 10 230 54 230 120 C230 190 186 240 120 240 Z" fill="url(#skin)"/>
+      <path d="M60 110 C78 92 104 82 132 82 C156 82 178 90 194 104" fill="none" stroke="rgba(17,24,39,0.25)" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="94" cy="132" r="8" fill="rgba(17,24,39,0.55)"/>
+      <circle cx="158" cy="132" r="8" fill="rgba(17,24,39,0.55)"/>
+      <path d="M96 172 C118 186 136 186 160 172" fill="none" stroke="rgba(17,24,39,0.25)" stroke-width="8" stroke-linecap="round"/>
+
+      <!-- Hair -->
+      <path d="M12 118 C18 44 66 0 132 0 C200 0 246 44 246 118 C246 130 244 142 240 152 C220 120 190 98 156 92 C116 84 78 94 48 124 C32 140 22 158 16 178 C12 160 12 138 12 118 Z" fill="url(#hair)"/>
+    </g>
+
+    <!-- Arm + phone in hand -->
+    <g transform="translate(520 560)">
+      <path d="M0 0 C66 -26 130 -10 166 36 C196 74 188 124 162 156 C140 186 104 206 62 204 C28 202 6 186 -14 160 C-38 130 -40 84 -20 50 C-10 32 -6 20 0 0 Z" fill="url(#skin)"/>
+      <g transform="translate(40 18)" filter="url(#softShadow)">
+        <rect x="0" y="0" width="170" height="310" rx="26" fill="rgba(17,24,39,0.92)" stroke="rgba(255,255,255,0.22)"/>
+        <rect x="12" y="36" width="146" height="234" rx="18" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)"/>
+        <circle cx="86" cy="290" r="10" fill="rgba(255,255,255,0.10)"/>
+        <g transform="translate(26 58)">
+          <rect x="0" y="0" width="116" height="18" rx="9" fill="rgba(255,255,255,0.40)"/>
+          <rect x="0" y="32" width="90" height="12" rx="6" fill="rgba(255,255,255,0.22)"/>
+          <rect x="0" y="54" width="104" height="12" rx="6" fill="rgba(255,255,255,0.20)"/>
+          <g transform="translate(0 92)">
+            <rect x="0" y="0" width="116" height="56" rx="14" fill="rgba(34,197,94,0.22)" stroke="rgba(34,197,94,0.42)"/>
+            <path d="M18 30 l10 10 l18-22" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="56" y="22" width="48" height="12" rx="6" fill="rgba(255,255,255,0.45)"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

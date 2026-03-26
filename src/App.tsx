@@ -72,6 +72,7 @@ import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
 import DebitOrders from "./pages/DebitOrders";
+import Notifications from "./pages/Notifications";
 import LegacyGlAllocation from "./pages/LegacyGlAllocation";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
@@ -142,6 +143,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
               <Route path="/dashboard/memberships" element={<DashboardRoute><Memberships /></DashboardRoute>} />
               <Route path="/dashboard/transactions" element={<DashboardRoute><Transactions /></DashboardRoute>} />
+              <Route path="/dashboard/notifications" element={<DashboardRoute><Notifications /></DashboardRoute>} />
               <Route path="/dashboard/debit-orders" element={<DashboardRoute><DebitOrders /></DashboardRoute>} />
               <Route path="/dashboard/loan-applications" element={<DashboardRoute><LoanApplications /></DashboardRoute>} />
               <Route path="/dashboard/statements" element={<DashboardRoute><Statements /></DashboardRoute>} />

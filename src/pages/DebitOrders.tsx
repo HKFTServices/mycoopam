@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -14,12 +14,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CreditCard, Eye, Pencil, Plus } from "lucide-react";
+import { Loader2, CreditCard, Eye, Pencil, Plus, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
@@ -132,6 +133,38 @@ const DebitOrders = () => {
     enabled: !!currentTenant,
   });
   const sym = tenantConfig?.currency_symbol ?? "R";
+
+  const { data: tenantBanks = [] } = useQuery({
+    queryKey: ["banks_for_logos", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("banks")
+        .select("name, logo_url")
+        .eq("tenant_id", currentTenant.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const bankLogoByName = useMemo(() => {
+    const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+    const map = new Map<string, string>();
+    for (const b of tenantBanks as any[]) {
+      const name = String(b?.name ?? "").trim();
+      const logo = String(b?.logo_url ?? "").trim();
+      if (!name || !logo) continue;
+      map.set(norm(name), logo);
+    }
+    return {
+      get: (bankName: string | null | undefined) => {
+        const k = String(bankName ?? "").trim();
+        if (!k) return "";
+        return map.get(norm(k)) ?? "";
+      },
+    };
+  }, [tenantBanks]);
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, newActive }: { id: string; newActive: boolean }) => {
@@ -378,103 +411,186 @@ const DebitOrders = () => {
 
       {/* View detail dialog */}
       <Dialog open={!!viewOrder} onOpenChange={(o) => { if (!o) setViewOrder(null); }}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
               Debit Order Details
             </DialogTitle>
           </DialogHeader>
-          {viewOrder && (() => {
+          {viewOrder ? (() => {
             const pools = Array.isArray(viewOrder.pool_allocations) ? viewOrder.pool_allocations : [];
             const notes = parseNotes(viewOrder.notes);
+            const memberName = [viewOrder.entities?.name, viewOrder.entities?.last_name].filter(Boolean).join(" ") || "—";
+            const accountNumber = viewOrder.entity_accounts?.account_number || "—";
+            const prettyStatus = String(viewOrder.status || "—")
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (c) => c.toUpperCase());
+
+            const hasLoan = Number(notes?.loan_instalment ?? 0) > 0;
+            const hasFees = Number(notes?.admin_fees ?? 0) > 0;
+
             return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-muted-foreground">Member:</span> <strong>{[viewOrder.entities?.name, viewOrder.entities?.last_name].filter(Boolean).join(" ")}</strong></div>
-                  <div><span className="text-muted-foreground">Account:</span> <strong className="font-mono">{viewOrder.entity_accounts?.account_number || "—"}</strong></div>
-                  <div><span className="text-muted-foreground">Amount:</span> <strong className="font-mono">{formatCurrency(viewOrder.monthly_amount, sym)}</strong></div>
-                  <div><span className="text-muted-foreground">Frequency:</span> <strong className="capitalize">{viewOrder.frequency}</strong></div>
-                  <div><span className="text-muted-foreground">Debit Day:</span> <strong>{viewOrder.debit_day}</strong></div>
-                  <div><span className="text-muted-foreground">Start Date:</span> <strong>{viewOrder.start_date}</strong></div>
-                  <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusColor(viewOrder.status)}>{viewOrder.status}</Badge></div>
-                  <div><span className="text-muted-foreground">Active:</span> <Badge variant={viewOrder.is_active ? "default" : "outline"}>{viewOrder.is_active ? "Active" : "Inactive"}</Badge></div>
-                  <div><span className="text-muted-foreground">Bank:</span> <strong>{viewOrder.bank_name} ({viewOrder.account_type})</strong></div>
-                  <div><span className="text-muted-foreground">Account Name:</span> <strong>{viewOrder.account_name}</strong></div>
-                  <div><span className="text-muted-foreground">Account No:</span> <strong className="font-mono">{viewOrder.account_number}</strong></div>
-                </div>
-
-                {/* Composition breakdown */}
-                <div className="border rounded-md p-4 space-y-2 bg-muted/30">
-                  <h3 className="font-semibold text-sm">Deduction Breakdown</h3>
-                  <div className="text-sm space-y-1">
-                    <div className="flex justify-between">
-                      <span>Gross Amount</span>
-                      <span className="font-mono">{formatCurrency(viewOrder.monthly_amount, sym)}</span>
-                    </div>
-                    {notes?.loan_instalment > 0 && (
-                      <div className="flex justify-between text-destructive">
-                        <span>Less: Loan Instalment</span>
-                        <span className="font-mono">- {formatCurrency(notes.loan_instalment, sym)}</span>
+              <ScrollArea className="max-h-[75vh] pr-4">
+                <div className="space-y-4 pb-2">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <CardTitle className="text-base truncate">{memberName}</CardTitle>
+                          <CardDescription className="text-sm">
+                            Account <span className="font-mono">{accountNumber}</span>
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={statusColor(viewOrder.status)} className="capitalize">
+                            {prettyStatus}
+                          </Badge>
+                          <Badge variant={viewOrder.is_active ? "default" : "outline"}>
+                            {viewOrder.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
                       </div>
-                    )}
-                    {notes?.admin_fees > 0 && (
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Less: Admin Fees</span>
-                        <span className="font-mono">- {formatCurrency(notes.admin_fees, sym)}</span>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Monthly amount</p>
+                        <p className="font-mono text-sm">{formatCurrency(viewOrder.monthly_amount, sym)}</p>
                       </div>
-                    )}
-                    <div className="flex justify-between font-semibold border-t pt-1">
-                      <span>Net to Pools</span>
-                      <span className="font-mono">{formatCurrency(notes?.net_to_pools ?? 0, sym)}</span>
-                    </div>
-                  </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Frequency</p>
+                        <p className="text-sm capitalize">{viewOrder.frequency || "—"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Start date</p>
+                        <p className="text-sm">{viewOrder.start_date || "—"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Debit day</p>
+                        <p className="text-sm">{viewOrder.debit_day || "—"}</p>
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <p className="text-xs text-muted-foreground">Bank</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary" className="gap-2 max-w-full">
+                            {(() => {
+                              const logoUrl = bankLogoByName.get(viewOrder.bank_name);
+                              return logoUrl ? (
+                                <img
+                                  src={logoUrl}
+                                  alt=""
+                                  className="h-4 w-4 rounded-sm object-contain bg-background"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <Landmark className="h-3.5 w-3.5 text-muted-foreground" />
+                              );
+                            })()}
+                            <span className="truncate max-w-[220px]">{viewOrder.bank_name || "—"}</span>
+                          </Badge>
+                          <Badge variant="outline" className="capitalize">{viewOrder.account_type || "—"}</Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-1 sm:col-span-3">
+                        <p className="text-xs text-muted-foreground">Account details</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{viewOrder.account_name || "—"}</Badge>
+                          <Badge variant="outline" className="font-mono">{viewOrder.account_number || "—"}</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Deduction Breakdown</CardTitle>
+                      <CardDescription className="text-sm">How the monthly amount is allocated</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Gross amount</span>
+                        <span className="font-mono">{formatCurrency(viewOrder.monthly_amount, sym)}</span>
+                      </div>
+                      {hasLoan ? (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <Badge variant="destructive" className="h-6">Loan instalment</Badge>
+                          </span>
+                          <span className="font-mono text-destructive">- {formatCurrency(notes.loan_instalment, sym)}</span>
+                        </div>
+                      ) : null}
+                      {hasFees ? (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <Badge variant="secondary" className="h-6">Admin fees</Badge>
+                          </span>
+                          <span className="font-mono text-muted-foreground">- {formatCurrency(notes.admin_fees, sym)}</span>
+                        </div>
+                      ) : null}
+                      <Separator />
+                      <div className="flex items-center justify-between text-sm font-medium">
+                        <span>Net to pools</span>
+                        <span className="font-mono">{formatCurrency(notes?.net_to_pools ?? 0, sym)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {pools.length > 0 ? (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Pool Allocations</CardTitle>
+                        <CardDescription className="text-sm">Pills show percentage and amount per pool</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {pools.map((p: any, i: number) => (
+                            <Badge key={i} variant="secondary" className="gap-2">
+                              <span className="truncate max-w-[220px]">{p.pool_name}</span>
+                              <span className="font-mono text-[11px] text-muted-foreground">{p.percentage}%</span>
+                              <span className="font-mono text-[11px]">{formatCurrency(p.amount, sym)}</span>
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  {viewOrder.signature_data ? (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Signature</CardTitle>
+                        {viewOrder.signed_at ? (
+                          <CardDescription className="text-sm">
+                            Signed {new Date(viewOrder.signed_at).toLocaleString()}
+                          </CardDescription>
+                        ) : null}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="rounded-lg border bg-background p-3">
+                          <img
+                            src={viewOrder.signature_data}
+                            alt="Signature"
+                            className="max-h-28 w-auto bg-white rounded-md"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  {notes?.user_notes ? (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Notes</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {notes.user_notes}
+                      </CardContent>
+                    </Card>
+                  ) : null}
                 </div>
-
-                {/* Pool Allocations */}
-                {pools.length > 0 && (
-                  <div className="border rounded-md p-4 space-y-2">
-                    <h3 className="font-semibold text-sm">Pool Allocations</h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Pool</TableHead>
-                          <TableHead className="text-right">%</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pools.map((p: any, i: number) => (
-                          <TableRow key={i}>
-                            <TableCell>{p.pool_name}</TableCell>
-                            <TableCell className="text-right font-mono">{p.percentage}%</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(p.amount, sym)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {/* Signature */}
-                {viewOrder.signature_data && (
-                  <div className="border rounded-md p-4 space-y-2">
-                    <h3 className="font-semibold text-sm">Signature</h3>
-                    <img src={viewOrder.signature_data} alt="Signature" className="max-h-24 border rounded bg-white p-2" />
-                    {viewOrder.signed_at && (
-                      <p className="text-xs text-muted-foreground">Signed: {new Date(viewOrder.signed_at).toLocaleString()}</p>
-                    )}
-                  </div>
-                )}
-
-                {notes?.user_notes && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Notes:</span> {notes.user_notes}
-                  </div>
-                )}
-              </div>
+              </ScrollArea>
             );
-          })()}
+          })() : null}
         </DialogContent>
       </Dialog>
 
