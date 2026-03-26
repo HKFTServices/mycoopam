@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,9 +9,16 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Briefcase, Plus, UserPlus } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Search, Briefcase, Plus, UserPlus, Pencil } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import CreateEntityAccountDialog from "@/components/entity-accounts/CreateEntityAccountDialog";
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -33,8 +40,13 @@ const EntityAccounts = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState<AccountRow | null>(null);
+  const [editIsActive, setEditIsActive] = useState(false);
+  const [editIsApproved, setEditIsApproved] = useState(false);
+  const [editStatus, setEditStatus] = useState("");
 
   // Check if user is admin
   const { data: isAdmin = false } = useQuery({
@@ -113,6 +125,35 @@ const EntityAccounts = () => {
 
   const isLoading = loadingEntities || loadingAccounts;
 
+  const ACCOUNT_STATUSES = ["active", "approved", "pending_activation", "suspended", "terminated", "declined"];
+
+  const openEditDialog = (row: AccountRow) => {
+    setEditAccount(row);
+    setEditIsActive(row.isActive ?? false);
+    setEditIsApproved(row.isApproved ?? false);
+    setEditStatus(row.status ?? "active");
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editAccount) throw new Error("No account selected");
+      const { error } = await (supabase as any)
+        .from("entity_accounts")
+        .update({
+          is_active: editIsActive,
+          is_approved: editIsApproved,
+          status: editStatus,
+        })
+        .eq("id", editAccount.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Account updated");
+      queryClient.invalidateQueries({ queryKey: ["user_entity_accounts"] });
+      setEditAccount(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   type AccountRow = {
     id: string;
     entityName: string;
@@ -283,11 +324,18 @@ const EntityAccounts = () => {
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">R 0.00</TableCell>
                     <TableCell>
-                      {!r.hasAccount && (
-                        <Button variant="outline" size="sm" className="whitespace-nowrap">
-                          <UserPlus className="h-3.5 w-3.5 mr-1.5" />Apply
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {r.hasAccount && isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {!r.hasAccount && (
+                          <Button variant="outline" size="sm" className="whitespace-nowrap">
+                            <UserPlus className="h-3.5 w-3.5 mr-1.5" />Apply
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -298,6 +346,53 @@ const EntityAccounts = () => {
       </Card>
 
       <CreateEntityAccountDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+      {/* Edit Entity Account Dialog */}
+      <Dialog open={!!editAccount} onOpenChange={(v) => { if (!v) setEditAccount(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Entity Account</DialogTitle>
+          </DialogHeader>
+          {editAccount && (
+            <div className="space-y-5">
+              <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                <p className="text-sm font-semibold">{editAccount.entityName}</p>
+                <p className="text-xs text-muted-foreground font-mono">{editAccount.accountNumber || "No account number"}</p>
+                {editAccount.accountTypeName && <p className="text-xs text-muted-foreground">{editAccount.accountTypeName}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ACCOUNT_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-active">Active</Label>
+                <Switch id="edit-active" checked={editIsActive} onCheckedChange={setEditIsActive} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-approved">Approved</Label>
+                <Switch id="edit-approved" checked={editIsApproved} onCheckedChange={setEditIsApproved} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAccount(null)}>Cancel</Button>
+            <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
