@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { tenant_id } = await req.json();
+    const { tenant_id, entity_account_id } = await req.json();
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
         status: 400,
@@ -73,6 +73,74 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
+    // Resolve entity account name (the company/entity name linked to the account)
+    let entityAccountName = "";
+    let accountNumber = "";
+    if (entity_account_id) {
+      const { data: ea } = await adminClient
+        .from("entity_accounts")
+        .select("account_number, entity_id")
+        .eq("id", entity_account_id)
+        .single();
+      if (ea) {
+        accountNumber = ea.account_number || "";
+        const { data: entity } = await adminClient
+          .from("entities")
+          .select("name, last_name")
+          .eq("id", ea.entity_id)
+          .single();
+        entityAccountName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
+      }
+    }
+    // If no entity_account_id provided, try to find by user's entity
+    if (!entityAccountName) {
+      const { data: uer } = await adminClient
+        .from("user_entity_relationships")
+        .select("entity_id")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .maybeSingle();
+      if (uer?.entity_id) {
+        const { data: accts } = await adminClient
+          .from("entity_accounts")
+          .select("account_number, entity_id, entities!entity_accounts_entity_id_fkey(name, last_name)")
+          .eq("entity_id", uer.entity_id)
+          .eq("tenant_id", tenant_id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (accts && accts.length > 0) {
+          const acct = accts[0] as any;
+          accountNumber = acct.account_number || "";
+          const e = acct.entities;
+          entityAccountName = e ? [e.name, e.last_name].filter(Boolean).join(" ") : "";
+        }
+      }
+    }
+
+    // Resolve tenant legal entity bank details
+    let legalEntityBankDetails = "";
+    if (tenantConfig?.legal_entity_id) {
+      const { data: bankRows } = await adminClient
+        .from("entity_bank_details")
+        .select("account_holder, account_number, bank_id, banks!entity_bank_details_bank_id_fkey(name, branch_code)")
+        .eq("entity_id", tenantConfig.legal_entity_id)
+        .eq("is_active", true)
+        .eq("is_deleted", false)
+        .limit(1);
+      if (bankRows && bankRows.length > 0) {
+        const b = bankRows[0] as any;
+        const bankName = b.banks?.name || "";
+        const branchCode = b.banks?.branch_code || "";
+        legalEntityBankDetails = [
+          bankName ? `Bank: ${bankName}` : "",
+          branchCode ? `Branch Code: ${branchCode}` : "",
+          b.account_holder ? `Account Holder: ${b.account_holder}` : "",
+          b.account_number ? `Account Number: ${b.account_number}` : "",
+        ].filter(Boolean).join(", ");
+      }
+    }
+
     const userLang = profile.language_code || "en";
     const { data: template } = await adminClient
       .from("communication_templates")
@@ -97,6 +165,11 @@ Deno.serve(async (req) => {
       if (legalEntity?.name) tenantName = legalEntity.name;
     }
 
+    // Resolve email signature
+    const emailSignature = userLang === "af"
+      ? (tenantConfig as any)?.email_signature_af || (tenantConfig as any)?.email_signature_en || ""
+      : (tenantConfig as any)?.email_signature_en || "";
+
     let subject = template?.subject || `Welcome to ${tenantName} – Membership Application Received!`;
     let body = template?.body_html ||
       `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
@@ -116,19 +189,18 @@ Deno.serve(async (req) => {
       "{{first_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
       "{{last_name}}": "",
       "{{tenant_name}}": tenantName,
+      "{{legal_entity_name}}": tenantName,
       "{{email}}": profile.email,
+      "{{email_address}}": profile.email,
+      "{{entity_account_name}}": entityAccountName,
+      "{{account_number}}": accountNumber,
+      "{{entity_account_bank_details}}": legalEntityBankDetails,
+      "{{Tenant.LegalEntityBankDetails}}": legalEntityBankDetails,
+      "{{email_signature}}": emailSignature,
     };
     for (const [key, val] of Object.entries(replacements)) {
       subject = subject.replaceAll(key, val);
       body = body.replaceAll(key, val);
-    }
-
-    // Append tenant email signature
-    const emailSignature = userLang === "af"
-      ? (tenantConfig as any)?.email_signature_af || (tenantConfig as any)?.email_signature_en || ""
-      : (tenantConfig as any)?.email_signature_en || "";
-    if (emailSignature) {
-      body = body + emailSignature;
     }
 
     // Send via tenant SMTP
