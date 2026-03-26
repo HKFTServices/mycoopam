@@ -118,6 +118,8 @@ const Communications = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("en");
   const [isTranslating, setIsTranslating] = useState(false);
+  const editorRefEn = useRef<RichTextEditorHandle>(null);
+  const editorRefAf = useRef<RichTextEditorHandle>(null);
 
   // All custom templates for this tenant
   const { data: allTemplates = [], isLoading } = useQuery({
