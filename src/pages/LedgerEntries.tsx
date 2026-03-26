@@ -416,8 +416,8 @@ const LedgerEntries = () => {
 
       if (!bankGlAccountId) throw new Error("Bank GL account not configured in Tenant Setup");
 
-      // Non-approvers submit as pending
-      const entryStatus = isApprover ? "posted" : "pending_approval";
+      // All entries require approval
+      const entryStatus = "pending_approval";
 
       // Row 1: Full amount to Bank GL + Cash Control
       const { data: mainEntry, error } = await (supabase as any).from("cashflow_transactions").insert({
@@ -440,7 +440,6 @@ const LedgerEntries = () => {
           tax_type_id: values.tax_type_id || null,
         }),
         posted_by: user.id,
-        ...(isApprover ? { approved_by: user.id, approved_at: new Date().toISOString() } : {}),
       }).select("id").single();
       if (error) throw error;
 
@@ -516,7 +515,7 @@ const LedgerEntries = () => {
         .maybeSingle();
       const vatGlAccountId = tenantCfg?.vat_gl_account_id || null;
 
-      const entryStatus = isApprover ? "posted" : "pending_approval";
+      const entryStatus = "pending_approval";
 
       // Debit row (parent)
       const { data: parent, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
@@ -538,7 +537,6 @@ const LedgerEntries = () => {
           tax_type_id: values.tax_type_id || null,
         }),
         posted_by: user.id,
-        ...(isApprover ? { approved_by: user.id, approved_at: new Date().toISOString() } : {}),
       }).select("id").single();
       if (e1) throw e1;
 
