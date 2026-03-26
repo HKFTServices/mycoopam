@@ -1,0 +1,2 @@
+ALTER TABLE public.admin_stock_transactions DROP CONSTRAINT admin_stock_transactions_status_check;
+ALTER TABLE public.admin_stock_transactions ADD CONSTRAINT admin_stock_transactions_status_check CHECK (status = ANY (ARRAY['pending','order_sent','invoice_received','stock_received','vault_confirmed','receipt_signed','quote_sent','quote_accepted','invoice_sent','stock_collected','stock_delivered','approved','declined','rolled_back']));
