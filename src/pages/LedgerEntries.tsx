@@ -416,8 +416,8 @@ const LedgerEntries = () => {
 
       if (!bankGlAccountId) throw new Error("Bank GL account not configured in Tenant Setup");
 
-      // Non-approvers submit as pending
-      const entryStatus = isApprover ? "posted" : "pending_approval";
+      // All entries require approval
+      const entryStatus = "pending_approval";
 
       // Row 1: Full amount to Bank GL + Cash Control
       const { data: mainEntry, error } = await (supabase as any).from("cashflow_transactions").insert({
@@ -440,7 +440,6 @@ const LedgerEntries = () => {
           tax_type_id: values.tax_type_id || null,
         }),
         posted_by: user.id,
-        ...(isApprover ? { approved_by: user.id, approved_at: new Date().toISOString() } : {}),
       }).select("id").single();
       if (error) throw error;
 
@@ -497,7 +496,7 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       setBankDialogOpen(false);
       setBankForm({ ...defaultBankForm });
-      toast.success(isApprover ? "Bank entry posted to ledger" : "Bank entry submitted for approval");
+      toast.success("Bank entry submitted for approval");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -516,7 +515,7 @@ const LedgerEntries = () => {
         .maybeSingle();
       const vatGlAccountId = tenantCfg?.vat_gl_account_id || null;
 
-      const entryStatus = isApprover ? "posted" : "pending_approval";
+      const entryStatus = "pending_approval";
 
       // Debit row (parent)
       const { data: parent, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
@@ -538,7 +537,6 @@ const LedgerEntries = () => {
           tax_type_id: values.tax_type_id || null,
         }),
         posted_by: user.id,
-        ...(isApprover ? { approved_by: user.id, approved_at: new Date().toISOString() } : {}),
       }).select("id").single();
       if (e1) throw e1;
 
@@ -615,7 +613,7 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       setJournalDialogOpen(false);
       setJournalForm({ ...defaultJournalForm });
-      toast.success(isApprover ? "Journal entry posted to ledger" : "Journal entry submitted for approval");
+      toast.success("Journal entry submitted for approval");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1136,8 +1134,7 @@ const LedgerEntries = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Landmark className="h-5 w-5" />Post Bank Entry</DialogTitle>
             <DialogDescription>
-              Record a bank debit or credit against a GL and control account.
-              {!isApprover && " This entry will be submitted for approval before posting."}
+              Record a bank debit or credit against a GL and control account. This entry will be submitted for approval before posting.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1234,8 +1231,8 @@ const LedgerEntries = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setBankDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => postBankMutation.mutate(bankForm)} disabled={!canPostBank || postBankMutation.isPending}>
-              {postBankMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> :
-                isApprover ? "Post Bank Entry" : <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
+              {postBankMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting…</> :
+                <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1247,8 +1244,7 @@ const LedgerEntries = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Post Journal Entry</DialogTitle>
             <DialogDescription>
-              Creates a double-entry pair (debit + credit) in the transaction ledger linked to a GL account.
-              {!isApprover && " This entry will be submitted for approval before posting."}
+              Creates a double-entry pair (debit + credit) in the transaction ledger linked to a GL account. This entry will be submitted for approval before posting.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1346,8 +1342,8 @@ const LedgerEntries = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setJournalDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => postJournalMutation.mutate(journalForm)} disabled={!canPostJournal || postJournalMutation.isPending}>
-              {postJournalMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> :
-                isApprover ? "Post Journal Entry" : <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
+              {postJournalMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting…</> :
+                <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
             </Button>
           </DialogFooter>
         </DialogContent>
