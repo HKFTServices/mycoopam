@@ -106,11 +106,18 @@ const ResetPassword = () => {
     }
   };
 
+  const logoBlock = branding?.logo_url ? (
+    <div className="flex justify-center mb-4">
+      <img src={branding.logo_url} alt={`${branding.tenant_name} logo`} className="h-12 w-auto object-contain" />
+    </div>
+  ) : null;
+
   if (!isRecovery) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            {logoBlock}
             <CardTitle>Invalid Link</CardTitle>
             <CardDescription>
               This password reset link is invalid or has expired. Please request a new one.
@@ -131,6 +138,7 @@ const ResetPassword = () => {
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            {logoBlock}
             <div className="flex justify-center mb-4">
               <CheckCircle className="h-12 w-12 text-primary" />
             </div>
@@ -146,6 +154,7 @@ const ResetPassword = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md border-border/50 shadow-lg">
         <CardHeader className="text-center">
+          {logoBlock}
           <CardTitle className="text-2xl">Set New Password</CardTitle>
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
