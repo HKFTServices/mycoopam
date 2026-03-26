@@ -15,8 +15,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard } from "lucide-react";
-import { useState, useMemo } from "react";
+	import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard, Check, X } from "lucide-react";
+	import { useState, useMemo, Fragment } from "react";
 import { toast } from "sonner";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
 import ApplyReferrerDialog from "@/components/membership/ApplyReferrerDialog";
@@ -487,10 +487,10 @@ const Memberships = () => {
     };
   });
 
-  const filteredGroups = entityGroups.filter((g) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
+	  const filteredGroups = entityGroups.filter((g) => {
+	    if (!search.trim()) return true;
+	    const q = search.toLowerCase();
+	    return (
       g.entityName.toLowerCase().includes(q) ||
       (g.identityNumber ?? "").toLowerCase().includes(q) ||
       (g.registrationNumber ?? "").toLowerCase().includes(q) ||
@@ -502,7 +502,27 @@ const Memberships = () => {
           (a.status ?? "").toLowerCase().includes(q)
       )
     );
-  }).sort((a, b) => (entityValueMap[b.entityId] || 0) - (entityValueMap[a.entityId] || 0));
+	  }).sort((a, b) => (entityValueMap[b.entityId] || 0) - (entityValueMap[a.entityId] || 0));
+
+	  const groupedByMemberType = useMemo(() => {
+	    const groups: Record<string, EntityGroup[]> = {};
+	    const uncategorized: EntityGroup[] = [];
+
+	    for (const g of filteredGroups) {
+	      const key = (g.categoryName ?? "").toString().trim();
+	      if (!key) {
+	        uncategorized.push(g);
+	        continue;
+	      }
+	      (groups[key] ??= []).push(g);
+	    }
+
+	    const sortedGroups = Object.entries(groups)
+	      .map(([label, items]) => ({ label, items }))
+	      .sort((a, b) => a.label.localeCompare(b.label));
+
+	    return { sortedGroups, uncategorized };
+	  }, [filteredGroups]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -573,16 +593,21 @@ const Memberships = () => {
                     {search ? "No matching records found." : "No entities yet."}
                   </TableCell>
                 </TableRow>
-              ) : (
-                filteredGroups.map((g, gi) => {
-                  const entityBg = gi % 2 === 0 ? "" : "bg-muted/30";
-                  const existingTypes = new Set(g.accounts.map((a: AccountRow) => a.accountTypeInt).filter(Boolean));
-                  const hasReferralHouseAcct = existingTypes.has(5);
-                  const hasCustomer = existingTypes.has(2);
-                  const hasSupplier = existingTypes.has(3);
+	              ) : (() => {
+	                const { sortedGroups, uncategorized } = groupedByMemberType;
+	                const showTypeHeaders = sortedGroups.length > 0;
 
-                  return (
-                    <TableRow key={g.entityId} className={`${entityBg} hover:bg-muted/50`}>
+	                let rowIndex = 0;
+	                const renderEntityRow = (g: EntityGroup) => {
+	                  const entityBg = rowIndex % 2 === 0 ? "" : "bg-muted/30";
+	                  rowIndex += 1;
+	                  const existingTypes = new Set(g.accounts.map((a: AccountRow) => a.accountTypeInt).filter(Boolean));
+	                  const hasReferralHouseAcct = existingTypes.has(5);
+	                  const hasCustomer = existingTypes.has(2);
+	                  const hasSupplier = existingTypes.has(3);
+
+	                  return (
+	                    <TableRow key={g.entityId} className={`${entityBg} hover:bg-muted/50`}>
                       {/* Actions - first column */}
                       <TableCell className="align-top">
                         <DropdownMenu>
@@ -738,13 +763,13 @@ const Memberships = () => {
                                   {a.accountNumber ? (
                                     <>
                                       <span className="text-muted-foreground">(</span>
-                                      {isActive ? (
-                                        <span className="text-emerald-600 dark:text-emerald-400">✓</span>
-                                      ) : isPending ? (
-                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" />
-                                      ) : (
-                                        <span className="text-destructive">✗</span>
-                                      )}
+	                                      {isActive ? (
+	                                        <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+	                                      ) : isPending ? (
+	                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" />
+	                                      ) : (
+	                                        <X className="h-3 w-3 text-destructive" />
+	                                      )}
                                       <code className="font-mono text-xs">{a.accountNumber}</code>
                                       <span className="text-muted-foreground">)</span>
                                       {!isActive && !isPending && a.status && (
@@ -771,11 +796,45 @@ const Memberships = () => {
                           <span className="text-xs text-muted-foreground italic">No accounts</span>
                         )}
                       </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
+	                    </TableRow>
+	                  );
+	                };
+
+	                const headerRowFor = (label: string, count: number) => {
+	                  const lower = label.toLowerCase();
+	                  const Icon = lower.includes("person") || lower.includes("individual") ? User : lower.includes("trust") ? Briefcase : Building;
+	                  return (
+	                    <TableRow key={`${label}-member-type`} className="bg-muted/40 hover:bg-muted/40">
+	                    <TableCell colSpan={5} className="py-3">
+	                      <div className="flex items-center gap-2">
+	                        <Icon className="h-4 w-4 text-muted-foreground" />
+	                        <span className="text-sm font-semibold">{label}</span>
+	                        <Badge variant="secondary" className="ml-1 text-[11px] px-2 py-0.5">
+	                          {count}
+	                        </Badge>
+	                      </div>
+	                    </TableCell>
+	                  </TableRow>
+	                  );
+	                };
+
+	                if (!showTypeHeaders) {
+	                  return filteredGroups.map(renderEntityRow);
+	                }
+
+	                return (
+	                  <>
+	                    {sortedGroups.map(({ label, items }) => (
+	                      <Fragment key={label}>
+	                        {headerRowFor(label, items.length)}
+	                        {items.map(renderEntityRow)}
+	                      </Fragment>
+	                    ))}
+	                    {uncategorized.length > 0 ? uncategorized.map(renderEntityRow) : null}
+	                  </>
+	                );
+	              })()}
+	            </TableBody>
           </Table>
         </CardContent>
       </Card>
