@@ -706,7 +706,7 @@ const Reports = () => {
                           </TableRow>
                         );
                       })}
-                      {cftData.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
+                      {cftData.length === 0 && <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
                     </TableBody>
                   </Table>
                 );
