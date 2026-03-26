@@ -28,6 +28,17 @@ const ResetPassword = () => {
   const tenantSlug = tenantSlugFromQuery || tenantSlugFromSubdomain || localStorage.getItem("tenantSlug");
 
   useEffect(() => {
+    const fetchBranding = async () => {
+      const { data } = await supabase.rpc("get_tenant_branding" as any);
+      if (data && (data as any[]).length > 0) {
+        const first = (data as any[])[0];
+        setBranding({ tenant_name: first.tenant_name, logo_url: first.logo_url });
+      }
+    };
+    fetchBranding();
+  }, []);
+
+  useEffect(() => {
     const type = searchParams.get("type");
     const hash = window.location.hash;
     const hasRecoveryToken = type === "recovery" || hash.includes("type=recovery") || isPasswordRecovery;
