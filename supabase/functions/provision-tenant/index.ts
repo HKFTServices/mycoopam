@@ -307,7 +307,6 @@ Deno.serve(async (req) => {
           allow_public_registration: eat.allow_public_registration,
           is_active: eat.is_active,
           number_count: eat.number_count,
-          membership_fee: eat.membership_fee,
         };
       });
       const { error } = await admin.from("entity_account_types").insert(eatRows);

@@ -25,7 +25,6 @@ type EntityAccountType = {
   account_type: number;
   is_active: boolean;
   number_count: number;
-  membership_fee: number;
   created_at: string;
   updated_at: string;
 };
@@ -47,7 +46,7 @@ const EntityAccountTypes = () => {
   const [editing, setEditing] = useState<EntityAccountType | null>(null);
   const [form, setForm] = useState({
     name: "", prefix: "", allow_public_registration: false,
-    account_type: 1, is_active: true, number_count: 5, membership_fee: 0,
+    account_type: 1, is_active: true, number_count: 5,
   });
 
   const { data: types = [], isLoading } = useQuery({
@@ -75,7 +74,6 @@ const EntityAccountTypes = () => {
         account_type: values.account_type,
         is_active: values.is_active,
         number_count: values.number_count,
-        membership_fee: values.membership_fee,
         tenant_id: currentTenant.id,
       };
       if (values.id) {
@@ -109,7 +107,7 @@ const EntityAccountTypes = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", prefix: "", allow_public_registration: false, account_type: 1, is_active: true, number_count: 5, membership_fee: 0 });
+    setForm({ name: "", prefix: "", allow_public_registration: false, account_type: 1, is_active: true, number_count: 5 });
     setDialogOpen(true);
   };
 
@@ -119,7 +117,7 @@ const EntityAccountTypes = () => {
       name: t.name, prefix: t.prefix,
       allow_public_registration: t.allow_public_registration,
       account_type: t.account_type, is_active: t.is_active,
-      number_count: t.number_count, membership_fee: t.membership_fee ?? 0,
+      number_count: t.number_count,
     });
     setDialogOpen(true);
   };
@@ -142,7 +140,6 @@ const EntityAccountTypes = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Prefix</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Fee</TableHead>
                 <TableHead>Public Reg.</TableHead>
                 <TableHead>Num Count</TableHead>
                 <TableHead>Active</TableHead>
@@ -151,16 +148,15 @@ const EntityAccountTypes = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
               ) : types.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No account types yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No account types yet.</TableCell></TableRow>
               ) : (
                 types.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.name}</TableCell>
                     <TableCell>{t.prefix}</TableCell>
                     <TableCell>{accountTypeLabels[t.account_type] ?? t.account_type}</TableCell>
-                    <TableCell>{(t.account_type === 1 || t.account_type === 4) ? t.membership_fee.toFixed(2) : "—"}</TableCell>
                     <TableCell>{t.allow_public_registration ? "Yes" : "No"}</TableCell>
                     <TableCell>{t.number_count}</TableCell>
                     <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
@@ -212,12 +208,6 @@ const EntityAccountTypes = () => {
                 <Input type="number" value={form.number_count} onChange={(e) => setForm({ ...form, number_count: parseInt(e.target.value) || 5 })} />
               </div>
             </div>
-            {(form.account_type === 1 || form.account_type === 4) && (
-              <div className="space-y-2">
-                <Label>Membership Fee</Label>
-                <Input type="number" step="0.01" min="0" value={form.membership_fee} onChange={(e) => setForm({ ...form, membership_fee: parseFloat(e.target.value) || 0 })} placeholder="e.g. 250.00" />
-              </div>
-            )}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={form.allow_public_registration} onCheckedChange={(v) => setForm({ ...form, allow_public_registration: v })} />

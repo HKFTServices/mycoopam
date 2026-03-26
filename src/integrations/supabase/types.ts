@@ -1404,7 +1404,6 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
-          membership_fee: number
           name: string
           number_count: number
           prefix: string
@@ -1417,7 +1416,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          membership_fee?: number
           name: string
           number_count?: number
           prefix: string
@@ -1430,7 +1428,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          membership_fee?: number
           name?: string
           number_count?: number
           prefix?: string
