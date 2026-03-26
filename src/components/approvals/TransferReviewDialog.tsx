@@ -63,15 +63,16 @@ const TransferReviewDialog = ({
   const allIds = group ? [group.primary.id, ...group.siblings.map((s: any) => s.id)] : [];
 
   // Build CFT preview lines
-  const transferCftLines = useMemo(() => {
-    if (!group) return [];
-    return buildTransferCftLines({
+  const transferPreview = useMemo(() => {
+    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
+    return buildTransferPreview({
       grossRedemption,
       netTransferAmount,
       poolName,
       feeBreakdown,
       joinShare: meta.receiver_join_share || null,
       commissionAmount: Number(meta.commission_amount || 0),
+      unitPrice: Number(meta.unit_price_sell || primaryTxn?.unit_price || 0),
     });
   }, [group?.primary?.id]);
 

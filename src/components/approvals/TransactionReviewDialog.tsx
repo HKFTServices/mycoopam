@@ -331,17 +331,19 @@ const TransactionReviewDialog = ({
   const canApprove = stockReceivedConfirmed;
 
   // Build CFT preview lines (must be before early return)
-  const depositCftLines = useMemo(() => {
-    if (!group) return [];
+  const depositPreview = useMemo(() => {
+    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
     const txns = [group.primary, ...group.siblings];
     const tAmount = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
     const poolAllocations = txns.filter((t: any) => t.pool_id).map((t: any) => ({
       poolName: t.pools?.name || "Pool",
       amount: Number(t.net_amount),
+      unitPrice: Number(t.unit_price || 0),
+      units: Number(t.units || 0),
     }));
     let m: any = {};
     try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
-    return buildDepositCftLines({
+    return buildDepositPreview({
       grossAmount: tAmount,
       poolAllocations,
       feeBreakdown: m.fee_breakdown || [],

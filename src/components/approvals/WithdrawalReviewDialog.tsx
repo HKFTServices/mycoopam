@@ -78,13 +78,16 @@ const WithdrawalReviewDialog = ({
   const originalDateObj = originalDate ? parseISO(originalDate) : new Date();
 
   // Build CFT preview lines
-  const withdrawalCftLines = useMemo(() => {
-    if (!group) return [];
+  const withdrawalPreview = useMemo(() => {
+    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
     const poolRedemptions = allTxns.map((t: any) => ({
       poolName: t.pools?.name || "Pool",
       amount: Number(t.amount),
+      unitPrice: Number(t.unit_price || 0),
+      netUnits: Number(t.unit_price) > 0 ? Number(t.net_amount) / Number(t.unit_price) : 0,
+      feeUnits: Number(t.unit_price) > 0 ? Math.max(0, Number(t.amount) - Number(t.net_amount)) / Number(t.unit_price) : 0,
     }));
-    return buildWithdrawalCftLines({
+    return buildWithdrawalPreview({
       totalAmount,
       netPayout: totalNet,
       feeBreakdown,
