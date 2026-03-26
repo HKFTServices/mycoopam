@@ -750,8 +750,9 @@ const Reports = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
+                      <TableHead>Txn ID</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Account</TableHead>
                       <TableHead>Pool</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Unit Price</TableHead>
@@ -766,11 +767,16 @@ const Reports = () => {
                       const txnId = r.legacy_transaction_id;
                       const hasGroup = txnId && utTxnCounts[txnId] > 1;
                       const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
+                      const accountName = r.entity_accounts
+                        ? `${[r.entity_accounts.entities?.name, r.entity_accounts.entities?.last_name].filter(Boolean).join(" ")} (${r.entity_accounts.account_number || "—"})`
+                        : "—";
+                      const poolName = r.pools?.name || shortId(r.pool_id);
                       return (
                       <TableRow key={r.id} className={cn(bgColor)}>
-                        <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.transaction_id ? shortId(r.transaction_id) : shortId(r.id)}</TableCell>
                         <TableCell>{r.transaction_date}</TableCell>
-                        <TableCell className="font-mono text-xs">{shortId(r.pool_id)}</TableCell>
+                        <TableCell className="text-xs max-w-[140px] truncate" title={accountName}>{accountName}</TableCell>
+                        <TableCell className="text-xs">{poolName}</TableCell>
                         <TableCell>{r.transaction_type}</TableCell>
                         <TableCell className="text-right">{fmt(r.unit_price)}</TableCell>
                         <TableCell className="text-right">{Number(r.debit) > 0 ? fmt(r.debit) : "—"}</TableCell>
@@ -780,7 +786,7 @@ const Reports = () => {
                       </TableRow>
                       );
                     })}
-                    {utData.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
+                    {utData.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
                   </TableBody>
                 </Table>
               )})()}
