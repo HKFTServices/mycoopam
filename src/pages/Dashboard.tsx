@@ -86,7 +86,6 @@ const Dashboard = () => {
   const { currentTenant, tenants, branding } = useTenant();
   const { profile, user } = useAuth();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
-  const [txnDialogMode, setTxnDialogMode] = useState<"deposit" | "send">("deposit");
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("12m");
@@ -728,29 +727,19 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isAdmin ? (
+        {isAdmin ? (
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               onClick={() => {
-                setTxnDialogMode("deposit");
                 setSelectedPoolId(undefined);
                 setTxnDialogOpen(true);
               }}
             >
               Deposit
             </Button>
-          ) : null}
-          <Button
-            onClick={() => {
-              setTxnDialogMode("send");
-              setSelectedPoolId(undefined);
-              setTxnDialogOpen(true);
-            }}
-          >
-            Send funds
-          </Button>
-        </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1036,8 +1025,8 @@ const Dashboard = () => {
         open={txnDialogOpen}
         onOpenChange={setTxnDialogOpen}
         defaultPoolId={selectedPoolId}
-        depositOnly={txnDialogMode === "deposit"}
-        defaultTxnCode={txnDialogMode === "send" ? "TRANSFER" : "DEPOSIT_FUNDS"}
+        depositOnly
+        defaultTxnCode="DEPOSIT_FUNDS"
       />
 
       <LoanDetailsDialog
