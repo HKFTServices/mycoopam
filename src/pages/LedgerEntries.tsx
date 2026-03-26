@@ -24,7 +24,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays } from "lucide-react";
+import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays, Clock, Check, X, Edit3, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
 
@@ -63,6 +63,50 @@ const defaultJournalForm = {
   tax_type_id: "",
 };
 
+// ── Ledger Preview Component ──
+const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] }) => {
+  const fmt = (v: number) => `R ${v.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (lines.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Ledger Entries Preview</p>
+      <Table>
+        <TableHeader>
+          <TableRow className="text-xs">
+            <TableHead className="h-7 py-1 text-xs">Side</TableHead>
+            <TableHead className="h-7 py-1 text-xs">GL Account</TableHead>
+            <TableHead className="h-7 py-1 text-xs">Control Account</TableHead>
+            <TableHead className="h-7 py-1 text-xs text-right">Debit (+)</TableHead>
+            <TableHead className="h-7 py-1 text-xs text-right">Credit (−)</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lines.map((l, i) => (
+            <TableRow key={i} className="text-xs">
+              <TableCell className="py-1">
+                <Badge variant={l.side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
+                  {l.side}
+                </Badge>
+              </TableCell>
+              <TableCell className="py-1">
+                <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>
+                <span className="text-xs">{l.glName}</span>
+              </TableCell>
+              <TableCell className="py-1 text-xs">{l.controlAccount || "—"}</TableCell>
+              <TableCell className="py-1 text-right text-xs font-medium">
+                {l.side === "DR" ? fmt(l.amount) : ""}
+              </TableCell>
+              <TableCell className="py-1 text-right text-xs font-medium">
+                {l.side === "CR" ? fmt(l.amount) : ""}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
+
 const LedgerEntries = () => {
   const { user, profile } = useAuth();
   const { currentTenant } = useTenant();
@@ -76,6 +120,10 @@ const LedgerEntries = () => {
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
   const [monthEndOpen, setMonthEndOpen] = useState(false);
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
+  const [reviewEntry, setReviewEntry] = useState<any | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<any>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: bankEntries = [], isLoading: bankLoading } = useQuery({
@@ -88,6 +136,7 @@ const LedgerEntries = () => {
         .eq("tenant_id", currentTenant.id)
         .eq("is_bank", true)
         .eq("is_active", true)
+        .eq("status", "posted")
         .not("gl_account_id", "is", null)
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
@@ -107,18 +156,37 @@ const LedgerEntries = () => {
         .eq("tenant_id", currentTenant.id)
         .eq("is_bank", false)
         .eq("is_active", true)
+        .eq("status", "posted")
         .eq("entry_type", "journal")
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Group parent + child rows into journal pairs
       const rows = data ?? [];
       const parents = rows.filter((r: any) => !r.parent_id);
       return parents.map((parent: any) => ({
         ...parent,
         childRow: rows.find((r: any) => r.parent_id === parent.id) || null,
       }));
+    },
+    enabled: !!currentTenant,
+  });
+
+  // Pending approval entries
+  const { data: pendingEntries = [], isLoading: pendingLoading } = useQuery({
+    queryKey: ["cft_pending_entries", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type), profiles:posted_by(first_name, last_name, email)")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .eq("status", "pending_approval")
+        .is("parent_id", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
     },
     enabled: !!currentTenant,
   });
@@ -207,6 +275,128 @@ const LedgerEntries = () => {
 
   const getDefaultTaxTypeId = () => taxTypes.find((t) => t.name.toLowerCase().includes("standard"))?.id || taxTypes[0]?.id || "";
 
+  const getGlLabel = (id: string) => {
+    const gl = glAccounts.find((g) => g.id === id);
+    return gl ? `${gl.code} — ${gl.name}` : "";
+  };
+  const getCAName = (id: string) => controlAccounts.find((c) => c.id === id)?.name || "";
+
+  // Check admin/manager status
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ["user_roles_le", user?.id, currentTenant?.id],
+    queryFn: async () => {
+      if (!user || !currentTenant) return [];
+      const { data } = await (supabase as any)
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id);
+      return data ?? [];
+    },
+    enabled: !!user && !!currentTenant,
+  });
+
+  const isAdmin = userRoles.some((r: any) =>
+    r.role === "super_admin" || (r.role === "tenant_admin" && r.tenant_id === currentTenant?.id)
+  );
+  const isApprover = userRoles.some((r: any) =>
+    ["super_admin", "tenant_admin", "manager"].includes(r.role) &&
+    (r.tenant_id === currentTenant?.id || r.role === "super_admin")
+  );
+
+  // ── Build ledger preview lines ──
+  const buildBankPreview = (form: typeof bankForm) => {
+    if (!form.gl_account_id || form.amount <= 0) return [];
+    const gl = glAccounts.find((g) => g.id === form.gl_account_id);
+    const ca = controlAccounts.find((c) => c.id === form.control_account_id);
+    const vatAmt = isVatRegistered ? calcVat(form.amount, form.tax_type_id) : 0;
+    const exclAmt = isVatRegistered ? calcExclVat(form.amount, form.tax_type_id) : form.amount;
+    const isDebit = form.entry_type === "debit";
+
+    // Find bank GL from tenant config (we'll show placeholder)
+    const bankGlName = "Bank Account (1000)";
+
+    const lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] = [];
+
+    // Row 1: Bank GL (straight)
+    lines.push({
+      side: isDebit ? "DR" : "CR",
+      glCode: "1000",
+      glName: "Bank Account",
+      controlAccount: ca?.name || "—",
+      amount: form.amount,
+    });
+
+    // Row 2: Income/Expense GL (contra)
+    lines.push({
+      side: isDebit ? "CR" : "DR",
+      glCode: gl?.code || "",
+      glName: gl?.name || "",
+      controlAccount: "—",
+      amount: exclAmt,
+    });
+
+    // Row 3: VAT (if applicable)
+    if (vatAmt > 0) {
+      lines.push({
+        side: isDebit ? "CR" : "DR",
+        glCode: "2090",
+        glName: "VAT Control",
+        controlAccount: "—",
+        amount: vatAmt,
+      });
+    }
+
+    return lines;
+  };
+
+  const buildJournalPreview = (form: typeof journalForm) => {
+    if (!form.gl_account_id || form.amount <= 0) return [];
+    const gl = glAccounts.find((g) => g.id === form.gl_account_id);
+    const debitCA = controlAccounts.find((c) => c.id === form.debit_control_account_id);
+    const creditCA = controlAccounts.find((c) => c.id === form.credit_control_account_id);
+    const vatAmt = isVatRegistered ? calcVat(form.amount, form.tax_type_id) : 0;
+
+    const lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] = [];
+
+    // Debit row
+    lines.push({
+      side: "DR",
+      glCode: gl?.code || "",
+      glName: gl?.name || "",
+      controlAccount: debitCA?.name || "—",
+      amount: form.amount,
+    });
+
+    // Credit row
+    lines.push({
+      side: "CR",
+      glCode: gl?.code || "",
+      glName: gl?.name || "",
+      controlAccount: creditCA?.name || "—",
+      amount: form.amount,
+    });
+
+    // VAT rows
+    if (vatAmt > 0) {
+      lines.push({
+        side: "DR",
+        glCode: "2090",
+        glName: "VAT Control",
+        controlAccount: debitCA?.name || "—",
+        amount: vatAmt,
+      });
+      lines.push({
+        side: "CR",
+        glCode: "2090",
+        glName: "VAT Control",
+        controlAccount: creditCA?.name || "—",
+        amount: vatAmt,
+      });
+    }
+
+    return lines;
+  };
+
   // ── Mutations ─────────────────────────────────────────────────────────────
   const postBankMutation = useMutation({
     mutationFn: async (values: typeof bankForm) => {
@@ -216,7 +406,6 @@ const LedgerEntries = () => {
       const isDebit = values.entry_type === "debit";
       const glName = glAccounts.find((g) => g.id === values.gl_account_id)?.name || null;
 
-      // Fetch tenant configuration: bank GL and VAT GL accounts
       const { data: tenantCfg } = await (supabase as any)
         .from("tenant_configuration")
         .select("bank_gl_account_id, vat_gl_account_id")
@@ -227,22 +416,8 @@ const LedgerEntries = () => {
 
       if (!bankGlAccountId) throw new Error("Bank GL account not configured in Tenant Setup");
 
-      // DOUBLE-ENTRY BANK POSTING:
-      // Row 1 (is_bank=true): Always posts to the Bank Account GL (asset) — straight posting
-      //   Debit entry → Bank GL Debit (money in)
-      //   Credit entry → Bank GL Credit (money out)
-      // Row 2 (is_bank=false): Posts to the income/expense GL the user selected — contra posting
-      //   Debit entry → income/expense GL Credit (contra)
-      //   Credit entry → income/expense GL Debit (contra)
-
-      // BANK POSTING STRUCTURE:
-      // Row 1 (is_bank=true): Full amount → Bank GL + Cash Control account (straight posting)
-      //   Debit entry (money in)  → Bank GL Debit, Cash Control Debit
-      //   Credit entry (money out) → Bank GL Credit, Cash Control Credit
-      // Row 2 (is_bank=false, bank_contra): Excl VAT amount → Income/Expense GL (contra posting)
-      //   Debit entry → income/expense GL Credit (contra)
-      //   Credit entry → income/expense GL Debit (contra)
-      // Row 3 (is_bank=false, vat): VAT amount → VAT GL (contra posting)
+      // Non-approvers submit as pending
+      const entryStatus = isApprover ? "posted" : "pending_approval";
 
       // Row 1: Full amount to Bank GL + Cash Control
       const { data: mainEntry, error } = await (supabase as any).from("cashflow_transactions").insert({
@@ -250,6 +425,7 @@ const LedgerEntries = () => {
         transaction_date: values.transaction_date,
         entry_type: "bank",
         is_bank: true,
+        status: entryStatus,
         gl_account_id: bankGlAccountId,
         control_account_id: values.control_account_id || null,
         debit: isDebit ? values.amount : 0,
@@ -258,21 +434,26 @@ const LedgerEntries = () => {
         amount_excl_vat: exclAmt,
         description: glName,
         reference: values.reference || null,
-        notes: values.notes || null,
+        notes: JSON.stringify({
+          original_gl_account_id: values.gl_account_id,
+          entry_type: values.entry_type,
+          tax_type_id: values.tax_type_id || null,
+        }),
         posted_by: user.id,
+        ...(isApprover ? { approved_by: user.id, approved_at: new Date().toISOString() } : {}),
       }).select("id").single();
       if (error) throw error;
 
-      // Row 2: Excl VAT amount to Income/Expense GL (contra, is_bank=false)
+      // Row 2: Excl VAT to Income/Expense GL (contra)
       const { error: contraErr } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
         transaction_date: values.transaction_date,
         entry_type: "bank_contra",
         is_bank: false,
+        status: entryStatus,
         parent_id: mainEntry.id,
         gl_account_id: values.gl_account_id,
         control_account_id: null,
-        // Contra: flip direction for the income/expense GL
         debit: !isDebit ? exclAmt : 0,
         credit: isDebit ? exclAmt : 0,
         vat_amount: 0,
@@ -284,13 +465,14 @@ const LedgerEntries = () => {
       });
       if (contraErr) throw contraErr;
 
-      // Row 3 (optional): VAT amount → VAT GL (contra, is_bank=false)
+      // Row 3: VAT
       if (vatAmt > 0 && vatGlAccountId && mainEntry) {
         const { error: vatErr } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: values.transaction_date,
           entry_type: "vat",
           is_bank: false,
+          status: entryStatus,
           parent_id: mainEntry.id,
           gl_account_id: vatGlAccountId,
           control_account_id: null,
@@ -308,13 +490,14 @@ const LedgerEntries = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cft_bank_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
       queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       setBankDialogOpen(false);
       setBankForm({ ...defaultBankForm });
-      toast.success("Bank entry posted to ledger");
+      toast.success(isApprover ? "Bank entry posted to ledger" : "Bank entry submitted for approval");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -326,7 +509,6 @@ const LedgerEntries = () => {
       const exclAmt = isVatRegistered ? calcExclVat(values.amount, values.tax_type_id) : values.amount;
       const glName = glAccounts.find((g) => g.id === values.gl_account_id)?.name || null;
 
-      // Fetch VAT GL account from tenant configuration
       const { data: tenantCfg } = await (supabase as any)
         .from("tenant_configuration")
         .select("vat_gl_account_id")
@@ -334,12 +516,15 @@ const LedgerEntries = () => {
         .maybeSingle();
       const vatGlAccountId = tenantCfg?.vat_gl_account_id || null;
 
+      const entryStatus = isApprover ? "posted" : "pending_approval";
+
       // Debit row (parent)
       const { data: parent, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
         transaction_date: values.transaction_date,
         entry_type: "journal",
         is_bank: false,
+        status: entryStatus,
         gl_account_id: values.gl_account_id,
         control_account_id: values.debit_control_account_id || null,
         debit: values.amount,
@@ -348,8 +533,12 @@ const LedgerEntries = () => {
         amount_excl_vat: exclAmt,
         description: glName,
         reference: values.reference || null,
-        notes: values.notes || null,
+        notes: JSON.stringify({
+          credit_control_account_id: values.credit_control_account_id || null,
+          tax_type_id: values.tax_type_id || null,
+        }),
         posted_by: user.id,
+        ...(isApprover ? { approved_by: user.id, approved_at: new Date().toISOString() } : {}),
       }).select("id").single();
       if (e1) throw e1;
 
@@ -359,6 +548,7 @@ const LedgerEntries = () => {
         transaction_date: values.transaction_date,
         entry_type: "journal",
         is_bank: false,
+        status: entryStatus,
         parent_id: parent.id,
         gl_account_id: values.gl_account_id,
         control_account_id: values.credit_control_account_id || null,
@@ -373,14 +563,14 @@ const LedgerEntries = () => {
       });
       if (e2) throw e2;
 
-      // Post isolated VAT child entries if VAT applies
+      // VAT rows
       if (vatAmt > 0 && vatGlAccountId) {
-        // VAT debit (mirrors the main debit)
         const { error: eVat1 } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: values.transaction_date,
           entry_type: "vat",
           is_bank: false,
+          status: entryStatus,
           parent_id: parent.id,
           gl_account_id: vatGlAccountId,
           control_account_id: values.debit_control_account_id || null,
@@ -395,12 +585,12 @@ const LedgerEntries = () => {
         });
         if (eVat1) throw eVat1;
 
-        // VAT credit (contra entry)
         const { error: eVat2 } = await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: values.transaction_date,
           entry_type: "vat",
           is_bank: false,
+          status: entryStatus,
           parent_id: parent.id,
           gl_account_id: vatGlAccountId,
           control_account_id: values.credit_control_account_id || null,
@@ -418,51 +608,66 @@ const LedgerEntries = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cft_journal_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
       queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       setJournalDialogOpen(false);
       setJournalForm({ ...defaultJournalForm });
-      toast.success("Journal entry posted to ledger");
+      toast.success(isApprover ? "Journal entry posted to ledger" : "Journal entry submitted for approval");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Check admin status via user_roles
-  const { data: userRoles = [] } = useQuery({
-    queryKey: ["user_roles_le", user?.id, currentTenant?.id],
-    queryFn: async () => {
-      if (!user || !currentTenant) return [];
-      const { data } = await (supabase as any)
-        .from("user_roles")
-        .select("role, tenant_id")
-        .eq("user_id", user.id);
-      return data ?? [];
+  // Approve mutation
+  const approveMutation = useMutation({
+    mutationFn: async (entryId: string) => {
+      if (!user || !currentTenant) throw new Error("Missing context");
+      // Update parent and all children to posted
+      await (supabase as any).from("cashflow_transactions")
+        .update({ status: "posted", approved_by: user.id, approved_at: new Date().toISOString() })
+        .eq("id", entryId).eq("tenant_id", currentTenant.id);
+      await (supabase as any).from("cashflow_transactions")
+        .update({ status: "posted", approved_by: user.id, approved_at: new Date().toISOString() })
+        .eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
     },
-    enabled: !!user && !!currentTenant,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_bank_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_journal_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
+      setReviewEntry(null);
+      toast.success("Entry approved and posted to ledger");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const isAdmin = userRoles.some((r: any) =>
-    r.role === "super_admin" || (r.role === "tenant_admin" && r.tenant_id === currentTenant?.id)
-  );
+  // Decline mutation
+  const declineMutation = useMutation({
+    mutationFn: async ({ entryId, reason }: { entryId: string; reason: string }) => {
+      if (!user || !currentTenant) throw new Error("Missing context");
+      const update = { status: "declined", declined_by: user.id, declined_at: new Date().toISOString(), declined_reason: reason };
+      await (supabase as any).from("cashflow_transactions").update(update).eq("id", entryId).eq("tenant_id", currentTenant.id);
+      await (supabase as any).from("cashflow_transactions").update(update).eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
+      setReviewEntry(null);
+      setDeclineReason("");
+      toast.success("Entry declined");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const deleteEntryMutation = useMutation({
     mutationFn: async ({ id, type }: { id: string; type: "bank" | "journal" }) => {
       if (!currentTenant) throw new Error("Missing context");
-      // Soft-delete: set is_active = false on the parent and all children (VAT rows etc.)
       const { error: childErr } = await (supabase as any)
-        .from("cashflow_transactions")
-        .update({ is_active: false })
-        .eq("parent_id", id)
-        .eq("tenant_id", currentTenant.id);
+        .from("cashflow_transactions").update({ is_active: false }).eq("parent_id", id).eq("tenant_id", currentTenant.id);
       if (childErr) throw childErr;
-
       const { error: parentErr } = await (supabase as any)
-        .from("cashflow_transactions")
-        .update({ is_active: false })
-        .eq("id", id)
-        .eq("tenant_id", currentTenant.id);
+        .from("cashflow_transactions").update({ is_active: false }).eq("id", id).eq("tenant_id", currentTenant.id);
       if (parentErr) throw parentErr;
     },
     onSuccess: (_, { type }) => {
@@ -478,7 +683,6 @@ const LedgerEntries = () => {
     mutationFn: async ({ commission, reference }: { commission: Commission; reference: string }) => {
       if (!currentTenant || !user) throw new Error("Missing context");
 
-      // Fetch commission paid GL account from tenant config
       const { data: tenantCfg } = await (supabase as any)
         .from("tenant_configuration")
         .select("commission_paid_gl_account_id, vat_gl_account_id")
@@ -487,30 +691,22 @@ const LedgerEntries = () => {
       const commissionPaidGlAccountId = tenantCfg?.commission_paid_gl_account_id || null;
       const vatGlAccountId = tenantCfg?.vat_gl_account_id || null;
 
-      // Check if referral house is VAT registered
       const isHouseVatRegistered = commission.referral_house?.is_vat_registered || false;
-      const vatRate = isHouseVatRegistered
-        ? (taxTypes.find((t) => t.percentage > 0)?.percentage || 0)
-        : 0;
+      const vatRate = isHouseVatRegistered ? (taxTypes.find((t) => t.percentage > 0)?.percentage || 0) : 0;
       const commExclVat = commission.commission_amount;
       const commVat = isHouseVatRegistered ? Math.round(commExclVat * (vatRate / 100) * 100) / 100 : 0;
       const commInclVat = commExclVat + commVat;
 
-      // Find admin cash control account for this tenant (or fall back to any cash account)
       const { data: cashAccount } = await (supabase as any)
-        .from("control_accounts")
-        .select("id")
-        .eq("tenant_id", currentTenant.id)
-        .ilike("account_type", "cash")
-        .limit(1)
-        .maybeSingle();
+        .from("control_accounts").select("id").eq("tenant_id", currentTenant.id)
+        .ilike("account_type", "cash").limit(1).maybeSingle();
 
-      // Post CFT for commission payment (full incl-VAT amount)
       const { data: cft, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
         transaction_date: formatLocalDate(),
         entry_type: "commission_payment",
         is_bank: true,
+        status: "posted",
         control_account_id: cashAccount?.id || null,
         debit: 0,
         credit: commInclVat,
@@ -520,15 +716,17 @@ const LedgerEntries = () => {
         reference: reference || null,
         posted_by: user.id,
         gl_account_id: commissionPaidGlAccountId,
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
       }).select("id").single();
       if (e1) throw e1;
 
-      // If VAT registered, post separate VAT child entry
       if (commVat > 0 && vatGlAccountId) {
         await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: formatLocalDate(),
           entry_type: "vat",
+          status: "posted",
           parent_id: cft.id,
           control_account_id: null,
           debit: commVat,
@@ -542,7 +740,6 @@ const LedgerEntries = () => {
         });
       }
 
-      // Mark commission as paid
       const { error: e2 } = await (supabase as any).from("commissions")
         .update({
           status: "paid",
@@ -551,8 +748,7 @@ const LedgerEntries = () => {
           payment_date: formatLocalDate(),
           payment_reference: reference || null,
           cashflow_transaction_id: cft.id,
-        })
-        .eq("id", commission.id);
+        }).eq("id", commission.id);
       if (e2) throw e2;
     },
     onSuccess: () => {
@@ -579,6 +775,12 @@ const LedgerEntries = () => {
   const canPostBank = bankForm.gl_account_id && bankForm.control_account_id && bankForm.amount > 0;
   const canPostJournal = journalForm.gl_account_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
 
+  const getSubmitterName = (entry: any) => {
+    const p = entry.profiles;
+    if (!p) return "Unknown";
+    return `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email || "Unknown";
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-3">
@@ -595,6 +797,14 @@ const LedgerEntries = () => {
         <TabsList>
           <TabsTrigger value="bank">Bank Entries ({bankEntries.length})</TabsTrigger>
           <TabsTrigger value="journal">Journal Entries ({journalEntries.length})</TabsTrigger>
+          {isApprover && (
+            <TabsTrigger value="approvals">
+              Pending Approval
+              {pendingEntries.length > 0 && (
+                <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingEntries.length}</Badge>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="commissions">
             Pay Commissions
             {pendingCommissions.length > 0 && (
@@ -652,11 +862,8 @@ const LedgerEntries = () => {
                         </TableCell>
                         {isAdmin && (
                           <TableCell>
-                            <Button
-                              size="icon" variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}
-                            >
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
@@ -728,11 +935,8 @@ const LedgerEntries = () => {
                         )}
                         {isAdmin && (
                           <TableCell>
-                            <Button
-                              size="icon" variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}
-                            >
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
@@ -746,6 +950,74 @@ const LedgerEntries = () => {
           </Card>
         </TabsContent>
 
+        {/* ── Pending Approvals ── */}
+        {isApprover && (
+          <TabsContent value="approvals" className="space-y-3">
+            {pendingLoading ? (
+              <Card><CardContent className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></CardContent></Card>
+            ) : pendingEntries.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">
+                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-primary/40" />
+                No entries pending approval
+              </CardContent></Card>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>GL Account</TableHead>
+                        <TableHead>Control Account</TableHead>
+                        <TableHead>Submitted By</TableHead>
+                        <TableHead className="text-right">Debit (+)</TableHead>
+                        <TableHead className="text-right">Credit (−)</TableHead>
+                        <TableHead>Reference</TableHead>
+                        <TableHead className="w-28" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingEntries.map((entry: any) => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="text-sm">{entry.transaction_date}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">
+                              {entry.is_bank ? "Bank" : "Journal"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
+                            {entry.gl_accounts?.name || entry.description || "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{getSubmitterName(entry)}</TableCell>
+                          <TableCell className="text-right text-sm font-medium">{entry.debit > 0 ? formatCurrency(entry.debit) : ""}</TableCell>
+                          <TableCell className="text-right text-sm font-medium">{entry.credit > 0 ? formatCurrency(entry.credit) : ""}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="default" className="h-7 px-2 text-xs"
+                                onClick={() => approveMutation.mutate(entry.id)}
+                                disabled={approveMutation.isPending}>
+                                <Check className="h-3 w-3 mr-1" /> Approve
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        )}
+
         {/* ── Pay Commissions ── */}
         <TabsContent value="commissions" className="space-y-3">
           {commLoading ? (
@@ -756,7 +1028,6 @@ const LedgerEntries = () => {
               No pending commissions
             </CardContent></Card>
           ) : (() => {
-            // Group commissions by referral house
             const grouped = (pendingCommissions as Commission[]).reduce((acc: Record<string, Commission[]>, c: Commission) => {
               const key = c.referral_house_entity_id || "unknown";
               if (!acc[key]) acc[key] = [];
@@ -764,7 +1035,6 @@ const LedgerEntries = () => {
               return acc;
             }, {} as Record<string, Commission[]>);
 
-            // Resolve VAT rate for registered houses
             const vatRate = taxTypes.find((t) => t.percentage > 0)?.percentage || 0;
 
             return Object.entries(grouped).map(([houseId, commissions]) => {
@@ -778,7 +1048,6 @@ const LedgerEntries = () => {
 
               return (
                 <Card key={houseId} className="overflow-hidden">
-                  {/* House header */}
                   <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4 text-primary" />
@@ -827,36 +1096,27 @@ const LedgerEntries = () => {
                             </TableCell>
                           </TableRow>
                         ))}
-                        {/* House totals */}
                         <TableRow className="bg-muted/30 border-t-2">
-                          <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            House Total
-                          </TableCell>
+                          <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">House Total</TableCell>
                           <TableCell className="text-right text-sm font-bold">{formatCurrency(totalExclVat)}</TableCell>
                           <TableCell colSpan={2} />
                         </TableRow>
                         {isVatRegistered && (
                           <TableRow className="bg-muted/30">
-                            <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">
-                              VAT ({vatRate}%)
-                            </TableCell>
+                            <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT ({vatRate}%)</TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(totalVat)}</TableCell>
                             <TableCell colSpan={2} />
                           </TableRow>
                         )}
                         {!isVatRegistered && (
                           <TableRow className="bg-muted/30">
-                            <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">
-                              VAT
-                            </TableCell>
+                            <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT</TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">R 0.00</TableCell>
                             <TableCell colSpan={2} />
                           </TableRow>
                         )}
                         <TableRow className="bg-muted/30 border-t">
-                          <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider">
-                            Total Payable (incl VAT)
-                          </TableCell>
+                          <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider">Total Payable (incl VAT)</TableCell>
                           <TableCell className="text-right text-sm font-bold text-primary">{formatCurrency(totalInclVat)}</TableCell>
                           <TableCell colSpan={2} />
                         </TableRow>
@@ -872,10 +1132,13 @@ const LedgerEntries = () => {
 
       {/* ── Bank Entry Dialog ── */}
       <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Landmark className="h-5 w-5" />Post Bank Entry</DialogTitle>
-            <DialogDescription>Record a bank debit or credit against a GL and control account — posted directly to the transaction ledger.</DialogDescription>
+            <DialogDescription>
+              Record a bank debit or credit against a GL and control account.
+              {!isApprover && " This entry will be submitted for approval before posting."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -963,12 +1226,16 @@ const LedgerEntries = () => {
                   <Input value={bankForm.notes} onChange={(e) => setBankForm({ ...bankForm, notes: e.target.value })} placeholder="Optional" />
                 </div>
               </div>
+
+              {/* Ledger Preview */}
+              {canPostBank && <LedgerPreview lines={buildBankPreview(bankForm)} />}
             </>)}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBankDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => postBankMutation.mutate(bankForm)} disabled={!canPostBank || postBankMutation.isPending}>
-              {postBankMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> : "Post Bank Entry"}
+              {postBankMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> :
+                isApprover ? "Post Bank Entry" : <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -976,10 +1243,13 @@ const LedgerEntries = () => {
 
       {/* ── Journal Entry Dialog ── */}
       <Dialog open={journalDialogOpen} onOpenChange={setJournalDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Post Journal Entry</DialogTitle>
-            <DialogDescription>Creates a double-entry pair (debit + credit) in the transaction ledger linked to a GL account.</DialogDescription>
+            <DialogDescription>
+              Creates a double-entry pair (debit + credit) in the transaction ledger linked to a GL account.
+              {!isApprover && " This entry will be submitted for approval before posting."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -1069,11 +1339,56 @@ const LedgerEntries = () => {
                 <Input value={journalForm.notes} onChange={(e) => setJournalForm({ ...journalForm, notes: e.target.value })} placeholder="Optional" />
               </div>
             </div>
+
+            {/* Ledger Preview */}
+            {canPostJournal && <LedgerPreview lines={buildJournalPreview(journalForm)} />}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setJournalDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => postJournalMutation.mutate(journalForm)} disabled={!canPostJournal || postJournalMutation.isPending}>
-              {postJournalMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> : "Post Journal Entry"}
+              {postJournalMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Posting…</> :
+                isApprover ? "Post Journal Entry" : <><Clock className="h-4 w-4 mr-1" /> Submit for Approval</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Decline Dialog ── */}
+      <Dialog open={!!reviewEntry} onOpenChange={(o) => { if (!o) { setReviewEntry(null); setDeclineReason(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><X className="h-5 w-5" /> Decline Entry</DialogTitle>
+            <DialogDescription>
+              Provide a reason for declining this {reviewEntry?.is_bank ? "bank" : "journal"} entry.
+            </DialogDescription>
+          </DialogHeader>
+          {reviewEntry && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Date</span>
+                  <span>{reviewEntry.transaction_date}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">GL Account</span>
+                  <span className="font-mono text-xs">{reviewEntry.gl_accounts?.code} — {reviewEntry.gl_accounts?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span className="font-semibold">{formatCurrency(reviewEntry.debit || reviewEntry.credit)}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Reason for declining *</Label>
+                <Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} placeholder="Explain why this entry is being declined..." rows={3} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setReviewEntry(null); setDeclineReason(""); }}>Cancel</Button>
+            <Button variant="destructive" disabled={!declineReason.trim() || declineMutation.isPending}
+              onClick={() => reviewEntry && declineMutation.mutate({ entryId: reviewEntry.id, reason: declineReason })}>
+              {declineMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Declining…</> : "Decline Entry"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1130,25 +1445,15 @@ const LedgerEntries = () => {
                 })()}
                 <div className="space-y-2">
                   <Label>Payment Reference</Label>
-                  <Input
-                    value={payReference}
-                    onChange={(e) => setPayReference(e.target.value)}
-                    placeholder="e.g. EFT-20240218"
-                    autoFocus
-                  />
+                  <Input value={payReference} onChange={(e) => setPayReference(e.target.value)} placeholder="e.g. EFT-20240218" autoFocus />
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={payCommissionMutation.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={payCommissionMutation.isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                if (payCommDialog) payCommissionMutation.mutate({ commission: payCommDialog, reference: payReference });
-              }}
-            >
+            <AlertDialogAction disabled={payCommissionMutation.isPending}
+              onClick={(e) => { e.preventDefault(); if (payCommDialog) payCommissionMutation.mutate({ commission: payCommDialog, reference: payReference }); }}>
               {payCommissionMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</> : "Confirm Payment"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1166,14 +1471,9 @@ const LedgerEntries = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteEntryMutation.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteEntryMutation.isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                if (deleteConfirmEntry) deleteEntryMutation.mutate(deleteConfirmEntry);
-              }}
-            >
+              onClick={(e) => { e.preventDefault(); if (deleteConfirmEntry) deleteEntryMutation.mutate(deleteConfirmEntry); }}>
               {deleteEntryMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Rolling back…</> : "Roll Back Entry"}
             </AlertDialogAction>
           </AlertDialogFooter>
