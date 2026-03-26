@@ -362,6 +362,7 @@ const SystemEmailTemplates = () => {
                 <Textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} placeholder="<p>Dear {{first_name}},</p>" rows={10} className="font-mono text-xs" />
               ) : (
                 <RichTextEditor
+                  ref={editorRef}
                   value={form.body_html}
                   onChange={(val) => setForm({ ...form, body_html: val })}
                   placeholder="Dear {{first_name}},..."
