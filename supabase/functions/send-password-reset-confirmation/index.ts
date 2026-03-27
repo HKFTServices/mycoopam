@@ -164,16 +164,28 @@ Deno.serve(async (req) => {
 
     if (tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
       try {
-        const requestedPort = tenantConfig.smtp_port || 587;
-        const usePort = requestedPort === 465 ? 587 : requestedPort;
-
-        const transporter = nodemailer.createTransport({
-          host: tenantConfig.smtp_host,
-          port: usePort,
-          secure: false,
-          ignoreTLS: true,
-          auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
-        });
+        const smtpStrategies = [
+          { port: 465, secure: true,  ignoreTLS: false },
+          { port: 587, secure: false, ignoreTLS: false },
+          { port: 587, secure: false, ignoreTLS: true  },
+          { port: 25,  secure: false, ignoreTLS: true  },
+        ];
+        let transporter: any = null;
+        for (const s of smtpStrategies) {
+          try {
+            const t = nodemailer.createTransport({
+              host: tenantConfig.smtp_host, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
+              tls: { rejectUnauthorized: false },
+              auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
+            });
+            await t.verify();
+            transporter = t;
+            break;
+          } catch (err: any) {
+            if (/534|535/.test(err.message)) break;
+          }
+        }
+        if (!transporter) throw new Error("All SMTP strategies failed");
 
         const fromEmail = tenantConfig.smtp_from_email;
         const fromHeader = tenantConfig.smtp_from_name

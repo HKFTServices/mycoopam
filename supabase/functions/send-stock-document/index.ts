@@ -295,18 +295,32 @@ serve(async (req) => {
       );
     }
 
-    const requestedPort = tenantCfg.smtp_port || 587;
-    const usePort = requestedPort === 465 ? 587 : requestedPort;
-
-    const transporter = nodemailer.createTransport({
-      host: tenantCfg.smtp_host,
-      port: usePort,
-      secure: false,
-      ignoreTLS: true,
-      auth: tenantCfg.smtp_username
-        ? { user: tenantCfg.smtp_username, pass: tenantCfg.smtp_password || "" }
-        : undefined,
-    });
+    const smtpStrategies = [
+      { port: 465, secure: true,  ignoreTLS: false },
+      { port: 587, secure: false, ignoreTLS: false },
+      { port: 587, secure: false, ignoreTLS: true  },
+      { port: 25,  secure: false, ignoreTLS: true  },
+    ];
+    let transporter: any = null;
+    for (const s of smtpStrategies) {
+      try {
+        const t = nodemailer.createTransport({
+          host: tenantCfg.smtp_host, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
+          tls: { rejectUnauthorized: false },
+          auth: tenantCfg.smtp_username ? { user: tenantCfg.smtp_username, pass: tenantCfg.smtp_password || "" } : undefined,
+        });
+        await t.verify();
+        transporter = t;
+        break;
+      } catch (err: any) {
+        if (/534|535/.test(err.message)) break;
+      }
+    }
+    if (!transporter) {
+      return new Response(JSON.stringify({ error: "SMTP connection failed" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const subjectMap: Record<string, string> = {
       purchase_order: `Purchase Order ${docNumber} from ${legalEntityName}`,
