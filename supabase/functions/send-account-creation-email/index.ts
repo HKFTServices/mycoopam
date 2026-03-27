@@ -226,9 +226,22 @@ Deno.serve(async (req) => {
         smtpPassword = hoSettings.smtp_password;
         smtpFromEmail = hoSettings.smtp_from_email;
         smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
-        console.log("[send-account-creation-email] Using head office SMTP settings");
+        console.log("[send-account-creation-email] Using head office SMTP settings from DB");
       } else {
-        console.warn("[send-account-creation-email] No SMTP configured in tenant or head office settings");
+        // Fallback to GLOBAL_SMTP_* environment secrets
+        const envHost = Deno.env.get("GLOBAL_SMTP_HOST");
+        const envUsername = Deno.env.get("GLOBAL_SMTP_USERNAME");
+        if (envHost && envUsername) {
+          smtpHost = envHost;
+          smtpPort = parseInt(Deno.env.get("GLOBAL_SMTP_PORT") || "587", 10);
+          smtpUsername = envUsername;
+          smtpPassword = Deno.env.get("GLOBAL_SMTP_PASSWORD") || "";
+          smtpFromEmail = envUsername;
+          smtpFromName = Deno.env.get("GLOBAL_SMTP_FROM_NAME") || hoSettings?.company_name || "My Co-op";
+          console.log("[send-account-creation-email] Using GLOBAL_SMTP_* env secrets");
+        } else {
+          console.warn("[send-account-creation-email] No SMTP configured in tenant, head office DB, or env secrets");
+        }
       }
     }
 
