@@ -262,14 +262,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleSignOut = async () => {
     const tenantSlug = localStorage.getItem("tenantSlug");
+    // Determine target URL BEFORE signing out to prevent ProtectedRoute
+    // from redirecting to /auth mid-flight
+    const targetUrl = tenantSlug
+      ? getTenantUrl(tenantSlug)
+      : isOnProductionDomain()
+        ? "/"
+        : "https://www.myco-op.co.za";
     await signOut();
-    if (tenantSlug) {
-      navigateToTenant(tenantSlug, navigate, { replace: true });
-    } else if (!isOnProductionDomain()) {
-      window.location.replace("https://www.myco-op.co.za");
-    } else {
-      navigate("/", { replace: true });
-    }
+    // Always use window.location.replace for a clean redirect
+    window.location.replace(targetUrl);
   };
 
   const impersonatingFrom = localStorage.getItem("impersonating_from");
