@@ -661,7 +661,7 @@ const Memberships = () => {
                                 {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
                               </DropdownMenuItem>
                             )}
-                            {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved") && (
+                            {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation") && (
                               <>
                                 <DropdownMenuItem onClick={() => {
                                   const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved");
