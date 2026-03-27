@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
       // ── 3) Calculate and save pool prices ──
       const { data: pools } = await supabase
         .from("pools")
-        .select("id, name, fixed_unit_price, cash_control_account_id, vat_control_account_id, loan_control_account_id")
+        .select("id, name, fixed_unit_price, open_unit_price, cash_control_account_id, vat_control_account_id, loan_control_account_id")
         .eq("tenant_id", tenantId)
         .eq("is_deleted", false)
         .eq("is_active", true);
@@ -319,8 +319,9 @@ Deno.serve(async (req) => {
         const memberInterestBuy = totalStockBuy + cashControl + vatControl + loanControl;
 
         const isFixedPrice = pool.fixed_unit_price != null && Number(pool.fixed_unit_price) > 0;
-        const unitPriceSell = isFixedPrice ? Number(pool.fixed_unit_price) : (totalUnits > 0 ? memberInterestSell / totalUnits : 0);
-        const unitPriceBuy = isFixedPrice ? Number(pool.fixed_unit_price) : (totalUnits > 0 ? memberInterestBuy / totalUnits : 0);
+        const openPrice = Number((pool as any).open_unit_price) || 1;
+        const unitPriceSell = isFixedPrice ? Number(pool.fixed_unit_price) : (totalUnits > 0 ? memberInterestSell / totalUnits : openPrice);
+        const unitPriceBuy = isFixedPrice ? Number(pool.fixed_unit_price) : (totalUnits > 0 ? memberInterestBuy / totalUnits : openPrice);
 
         poolRecords.push({
           tenant_id: tenantId,
