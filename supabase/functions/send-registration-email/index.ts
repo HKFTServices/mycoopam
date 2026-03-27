@@ -25,12 +25,6 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     const apiKeyHeader = req.headers.get("apikey") || "";
-    if (!authHeader?.startsWith("Bearer ") && !apiKeyHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -38,7 +32,7 @@ Deno.serve(async (req) => {
     const isServiceRole = token === supabaseServiceKey || apiKeyHeader === supabaseServiceKey;
 
     const reqBody = await req.json();
-    const { tenant_id, user_id: explicitUserId } = reqBody;
+    const { tenant_id, user_id: explicitUserId, self_register_email } = reqBody;
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
         status: 400,
@@ -47,9 +41,48 @@ Deno.serve(async (req) => {
     }
 
     let userId: string;
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // If service role key is used and explicit user_id provided, allow admin resend
-    if (isServiceRole && explicitUserId) {
+    // ── Self-registration mode: unauthenticated call right after signUp ──
+    // Validates the user exists, was created < 5 minutes ago, and belongs to the tenant.
+    if (self_register_email && typeof self_register_email === "string") {
+      console.log("[send-registration-email] Self-register mode for:", self_register_email);
+      const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+      });
+      // Use profile lookup instead (more reliable)
+      const { data: profileMatch } = await adminClient
+        .from("profiles")
+        .select("user_id, created_at")
+        .eq("email", self_register_email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!profileMatch) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Ensure account was created within last 5 minutes (prevents abuse)
+      const createdAt = new Date(profileMatch.created_at);
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (createdAt < fiveMinAgo) {
+        return new Response(JSON.stringify({ error: "Registration window expired" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = profileMatch.user_id;
+    } else if (!authHeader?.startsWith("Bearer ") && !apiKeyHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } else if (isServiceRole && explicitUserId) {
+      // Admin resend via service role
       userId = explicitUserId;
       console.log("[send-registration-email] Admin resend for user:", userId);
     } else {
@@ -89,8 +122,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Use service role to fetch data
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    // adminClient already created above
 
     // Fetch user profile
     const { data: profile } = await adminClient
