@@ -11,7 +11,7 @@ export function getCookieConsent(): ConsentValue {
   return localStorage.getItem(COOKIE_CONSENT_KEY) as ConsentValue;
 }
 
-const CookieConsent = () => {
+const CookieConsent = forwardRef<HTMLDivElement>((_, ref) => {
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -168,6 +168,8 @@ const CookieConsent = () => {
       </div>
     </>
   );
-};
+});
+
+CookieConsent.displayName = "CookieConsent";
 
 export default CookieConsent;
