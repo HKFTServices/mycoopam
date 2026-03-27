@@ -690,6 +690,102 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Create admin entity, address, and bank details ───
+    const admin_details = body.admin_details;
+    if (admin_details && admin_details.user_id) {
+      try {
+        // Find "Myself" relationship type (global table)
+        const { data: relTypes } = await admin
+          .from("relationship_types")
+          .select("id, name, entity_category_id, entity_categories!inner(entity_type, id)")
+          .eq("name", "Myself");
+        const myselfRel = relTypes?.find((r: any) => r.entity_categories?.entity_type === "natural_person");
+        const naturalPersonCategoryId = (myselfRel as any)?.entity_categories?.id;
+
+        // Create entity
+        const entityId = uuid();
+        const { error: entityErr } = await admin.from("entities").insert({
+          id: entityId,
+          tenant_id: tenant_id,
+          name: admin_details.first_name,
+          last_name: admin_details.last_name,
+          title_id: admin_details.title_id,
+          initials: admin_details.initials,
+          known_as: admin_details.known_as,
+          identity_number: admin_details.id_type === "rsa_id" ? admin_details.id_number : null,
+          passport_number: admin_details.id_type === "passport" ? admin_details.id_number : null,
+          gender: admin_details.gender,
+          date_of_birth: admin_details.date_of_birth,
+          contact_number: admin_details.phone,
+          additional_contact_number: admin_details.alt_phone,
+          email_address: admin_details.email,
+          language_code: admin_details.language_code || "en",
+          entity_category_id: naturalPersonCategoryId || null,
+          creator_user_id: admin_details.user_id,
+          is_registration_complete: true,
+          is_active: true,
+        });
+        if (entityErr) {
+          console.error("Entity creation error:", entityErr);
+        } else {
+          results.admin_entity = 1;
+
+          // Create user-entity relationship
+          if (myselfRel) {
+            await admin.from("user_entity_relationships").insert({
+              tenant_id: tenant_id,
+              user_id: admin_details.user_id,
+              entity_id: entityId,
+              relationship_type_id: myselfRel.id,
+              is_primary: true,
+            });
+          }
+
+          // Create address
+          if (admin_details.street_address && admin_details.city) {
+            await admin.from("addresses").insert({
+              tenant_id: tenant_id,
+              entity_id: entityId,
+              street_address: admin_details.street_address,
+              suburb: admin_details.suburb,
+              city: admin_details.city,
+              province: admin_details.province,
+              postal_code: admin_details.postal_code,
+              country: admin_details.address_country || "South Africa",
+              is_primary: true,
+            });
+            results.admin_address = 1;
+          }
+
+          // Create bank details
+          if (admin_details.bank_id && admin_details.account_number) {
+            await admin.from("entity_bank_details").insert({
+              tenant_id: tenant_id,
+              entity_id: entityId,
+              bank_id: admin_details.bank_id,
+              bank_account_type_id: admin_details.bank_account_type_id,
+              account_holder: admin_details.account_name,
+              account_number: admin_details.account_number,
+              creator_user_id: admin_details.user_id,
+              is_active: true,
+            });
+            results.admin_bank = 1;
+          }
+        }
+
+        // Update profile: mark as registered, no onboarding needed
+        await admin.from("profiles").update({
+          registration_status: "registered",
+          needs_onboarding: false,
+          phone: admin_details.phone,
+        }).eq("user_id", admin_details.user_id);
+        results.admin_profile_updated = 1;
+
+      } catch (adminErr: any) {
+        console.error("Admin details error:", adminErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
