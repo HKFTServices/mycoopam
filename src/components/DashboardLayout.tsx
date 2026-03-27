@@ -666,19 +666,79 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                         {filteredAdminOnly.map((i) => renderLink(i))}
 
-                        {isSuperAdmin &&
-                          renderGroup({
-                            label: "Head Office",
-                            icon: Building2,
-                            open: headOfficeOpen,
-                            setOpen: setHeadOfficeOpen,
-                            viewAll: {
-                              label: "Head Office Settings",
-                              icon: Building2,
-                              path: "/dashboard/head-office/settings",
-                            },
-                            items: filteredHeadOfficeAll,
-                          })}
+                        {isSuperAdmin && (() => {
+                          const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
+                          if (!hoShow) return null;
+                          const effectiveOpen = normalizedQuery ? true : headOfficeOpen;
+                          const isActive = [...headOfficeNavItems, ...globalSetupNavItems].some((i) => i.path === location.pathname);
+                          const hoSubItems = filteredHeadOfficeAll.filter((i) => i.path !== "/dashboard/head-office/settings");
+                          const globalEffectiveOpen = normalizedQuery ? true : globalSetupOpen;
+                          const globalShow = sectionHasMatch("Global Setup", globalSetupNavItems, normalizedQuery);
+
+                          return (
+                            <SidebarMenuItem key="head-office">
+                              <SidebarMenuButton asChild isActive={isActive}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (location.pathname !== "/dashboard/head-office/settings") navigate("/dashboard/head-office/settings");
+                                    setHeadOfficeOpen(!headOfficeOpen);
+                                  }}
+                                >
+                                  <Building2 />
+                                  <span>Head Office</span>
+                                  {effectiveOpen ? <ChevronDown className="ml-auto" /> : <ChevronRight className="ml-auto" />}
+                                </button>
+                              </SidebarMenuButton>
+
+                              {effectiveOpen && (
+                                <SidebarMenuSub>
+                                  {hoSubItems.map((item) => (
+                                    <SidebarMenuSubItem key={item.path}>
+                                      <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
+                                        <Link to={item.path}>
+                                          <item.icon />
+                                          <span>{item.label}</span>
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  ))}
+
+                                  {globalShow && (
+                                    <SidebarMenuSubItem>
+                                      <SidebarMenuSubButton asChild isActive={globalSetupNavItems.some((i) => i.path === location.pathname)}>
+                                        <button
+                                          type="button"
+                                          onClick={() => setGlobalSetupOpen(!globalSetupOpen)}
+                                          className="w-full"
+                                        >
+                                          <Settings />
+                                          <span>Global Setup</span>
+                                          {globalEffectiveOpen ? <ChevronDown className="ml-auto h-3 w-3" /> : <ChevronRight className="ml-auto h-3 w-3" />}
+                                        </button>
+                                      </SidebarMenuSubButton>
+
+                                      {globalEffectiveOpen && (
+                                        <SidebarMenuSub>
+                                          {filteredGlobalSetup.map((item) => (
+                                            <SidebarMenuSubItem key={item.path}>
+                                              <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
+                                                <Link to={item.path}>
+                                                  <item.icon />
+                                                  <span>{item.label}</span>
+                                                </Link>
+                                              </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                          ))}
+                                        </SidebarMenuSub>
+                                      )}
+                                    </SidebarMenuSubItem>
+                                  )}
+                                </SidebarMenuSub>
+                              )}
+                            </SidebarMenuItem>
+                          );
+                        })()}
 
                         {isSuperAdmin &&
                           renderGroup({
