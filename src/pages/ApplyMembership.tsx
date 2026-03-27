@@ -190,7 +190,7 @@ const ApplyMembership = () => {
   const isAddressValid = data.streetAddress.trim() && data.city.trim();
   const isReferrerValid = true;
   const isBankFilled = data.bankCountry && data.bankId && data.bankAccountTypeId && data.accountName.trim() && data.accountNumber.trim();
-  const isBankValid = bankProofRequired ? (isBankFilled && data.proofFile) : (data.skipBank || !!isBankFilled);
+  const isBankValid = isLegalEntityMode ? !!isBankFilled : bankProofRequired ? (isBankFilled && data.proofFile) : (data.skipBank || !!isBankFilled);
   const isDocsValid = requiredDocIds.every((id: string) => data.uploadedDocs[id]?.length > 0);
   const isTcValid = membershipTerms.every((t: any) => data.acceptedTerms[t.id]);
   const isMembershipTypeValid = data.selectedMembershipType === "full" || data.selectedMembershipType === "associated";
@@ -530,7 +530,7 @@ const ApplyMembership = () => {
           )}
           {currentKey === "address" && <AddressStep data={data} update={update} tenantId={currentTenant.id} />}
           {currentKey === "referrer" && <ReferrerStep data={data} update={update} tenantId={currentTenant.id} />}
-          {currentKey === "bank" && <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired} />}
+          {currentKey === "bank" && <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired || isLegalEntityMode} />}
           {currentKey === "documents" && <DocumentsStep data={data} update={update} tenantId={currentTenant.id} />}
           {currentKey === "tc" && <TermsStep data={data} update={update} tenantId={currentTenant.id} />}
 
