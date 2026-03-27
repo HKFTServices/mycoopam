@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -313,14 +313,17 @@ Deno.serve(async (req) => {
       .eq("tenant_id", SOURCE_TENANT_ID);
 
     if (srcEATypes && srcEATypes.length > 0) {
+      const prefixOverrides = entity_account_type_prefixes || {};
       const eatRows = srcEATypes.map((eat: any) => {
         const newId = uuid();
         idMap.set(eat.id, newId);
+        // Use custom prefix if provided for this account_type, otherwise clone from template
+        const customPrefix = prefixOverrides[String(eat.account_type)];
         return {
           id: newId,
           tenant_id: tenant_id,
           name: eat.name,
-          prefix: eat.prefix,
+          prefix: customPrefix || eat.prefix,
           account_type: eat.account_type,
           allow_public_registration: eat.allow_public_registration,
           is_active: eat.is_active,
@@ -511,7 +514,7 @@ Deno.serve(async (req) => {
         // Leave these blank for new tenant
         legal_entity_id: null,
         administrator_entity_id: null,
-        logo_url: null,
+        logo_url: logo_url || null,
         directors: null,
         email_signature_en: null,
         email_signature_af: null,
