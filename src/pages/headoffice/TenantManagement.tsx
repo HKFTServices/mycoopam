@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2 } from "lucide-react";
+import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2, Mail } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -280,6 +280,40 @@ const TenantManagement = () => {
                         >
                           <CalendarDays className="h-3.5 w-3.5 mr-1" />
                           Run EOM
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              // Find tenant admin user
+                              const { data: adminRole } = await supabase
+                                .from("user_roles")
+                                .select("user_id")
+                                .eq("tenant_id", tenant.id)
+                                .eq("role", "tenant_admin")
+                                .limit(1)
+                                .maybeSingle();
+                              if (!adminRole?.user_id) {
+                                toast.error("No admin user found for this tenant");
+                                return;
+                              }
+                              const { data, error } = await supabase.functions.invoke("send-registration-email", {
+                                body: { tenant_id: tenant.id, user_id: adminRole.user_id },
+                              });
+                              if (error) throw error;
+                              if (data?.email_sent) {
+                                toast.success(`Activation email sent to ${data.recipient}`);
+                              } else {
+                                toast.error(data?.smtp_error || "Failed to send email");
+                              }
+                            } catch (err: any) {
+                              toast.error(err.message || "Failed to send email");
+                            }
+                          }}
+                        >
+                          <Mail className="h-3.5 w-3.5 mr-1" />
+                          Resend Email
                         </Button>
                         <Button
                           size="sm"

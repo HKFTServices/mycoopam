@@ -23,28 +23,57 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
 
-    // Verify the calling user
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
-
-    const { tenant_id } = await req.json();
+    const reqBody = await req.json();
+    const { tenant_id, user_id: explicitUserId } = reqBody;
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    let userId: string;
+
+    // If service role key is used and explicit user_id provided, allow admin resend
+    if (token === supabaseServiceKey && explicitUserId) {
+      userId = explicitUserId;
+      console.log("[send-registration-email] Admin resend for user:", userId);
+    } else {
+      // Verify the calling user via JWT
+      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const callerUserId = claimsData.claims.sub as string;
+
+      // If explicit user_id provided, check caller is super_admin
+      if (explicitUserId) {
+        const adminClient2 = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: roleCheck } = await adminClient2
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerUserId)
+          .eq("role", "super_admin")
+          .maybeSingle();
+        if (!roleCheck) {
+          return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        userId = explicitUserId;
+        console.log("[send-registration-email] Super admin resend for user:", userId);
+      } else {
+        userId = callerUserId;
+      }
     }
 
     // Use service role to fetch data
@@ -148,6 +177,7 @@ Deno.serve(async (req) => {
 
     if (!smtpHost || !smtpFromEmail) {
       console.log("[send-registration-email] Tenant SMTP not configured, falling back to head office settings");
+      // First try head_office_settings table
       const { data: hoSettings } = await adminClient
         .from("head_office_settings")
         .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, company_name")
@@ -162,6 +192,23 @@ Deno.serve(async (req) => {
         smtpFromEmail = hoSettings.smtp_from_email;
         smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
         console.log("[send-registration-email] Using head office SMTP settings");
+      } else {
+        // Fallback: use the AEM source tenant's SMTP config
+        const { data: sourceTenantConfig } = await adminClient
+          .from("tenant_configuration")
+          .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
+          .eq("tenant_id", "38e204c4-829f-4544-ab53-b2f3f5342662")
+          .maybeSingle();
+
+        if (sourceTenantConfig?.smtp_host && sourceTenantConfig?.smtp_from_email) {
+          smtpHost = sourceTenantConfig.smtp_host;
+          smtpPort = sourceTenantConfig.smtp_port;
+          smtpUsername = sourceTenantConfig.smtp_username;
+          smtpPassword = sourceTenantConfig.smtp_password;
+          smtpFromEmail = sourceTenantConfig.smtp_from_email;
+          smtpFromName = sourceTenantConfig.smtp_from_name;
+          console.log("[send-registration-email] Using AEM source tenant SMTP as fallback");
+        }
       }
     }
 
