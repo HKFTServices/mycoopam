@@ -441,7 +441,7 @@ const NewTransactionDialog = ({
       if (!currentTenant) return [];
       const { data } = await (supabase as any)
         .from("pool_transaction_rules")
-        .select("pool_id, transaction_type_id, allow_to, allow_from")
+        .select("pool_id, transaction_type_code, is_allowed")
         .eq("tenant_id", currentTenant.id);
       return data ?? [];
     },
@@ -787,22 +787,24 @@ const NewTransactionDialog = ({
     if (!selectedTxnTypeId || !allPools.length) return [];
     const selectedCode = txnTypes.find((t: any) => t.id === selectedTxnTypeId)?.code || "";
     const isDepositCode = DEPOSIT_CODES.includes(selectedCode);
-    const isWithdrawalCode = selectedCode === "WITHDRAW_FUNDS";
+    const isWithdrawalCode = selectedCode === "WITHDRAW_FUNDS" || selectedCode === "WITHDRAW_STOCK";
     const isTransferCode = TRANSFER_CODES.includes(selectedCode);
 
-    // If no rules loaded yet, return empty to avoid showing wrong pools
-    if (poolTxnRules.length === 0) return allPools;
+    // Map txn type code (uppercase) to pool rule code (lowercase)
+    const ruleCode = selectedCode.toLowerCase();
 
-    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_id === selectedTxnTypeId);
-    // If this txn type has no rules configured, show all pools only for deposits
-    if (rulesForType.length === 0) return (isDepositCode || isWithdrawalCode) ? allPools : [];
+    // Filter to pools where a rule exists and is_allowed = true for this txn type
+    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_code === ruleCode && r.is_allowed);
+    const allowedPoolIds = new Set(rulesForType.map((r: any) => r.pool_id));
 
-    const allowedPoolIds = new Set(
-      rulesForType
-        .filter((r: any) => isDepositCode ? r.allow_to : r.allow_from)
-        .map((r: any) => r.pool_id)
-    );
-    let filtered = allPools.filter((p: any) => allowedPoolIds.has(p.id));
+    // If no rules configured for this type at all, fall back to showing all pools for deposits/withdrawals only
+    const anyRulesForType = poolTxnRules.some((r: any) => r.transaction_type_code === ruleCode);
+    let filtered: any[];
+    if (!anyRulesForType) {
+      filtered = (isDepositCode || isWithdrawalCode || DEPOSIT_ONLY_CODES.includes(selectedCode)) ? allPools : [];
+    } else {
+      filtered = allPools.filter((p: any) => allowedPoolIds.has(p.id));
+    }
 
     // For transfers & withdrawals: restrict to pools where account has units
     if ((isTransferCode || isWithdrawalCode) && !holdingsLoading) {
@@ -815,16 +817,15 @@ const NewTransactionDialog = ({
   // For switch: to-pools are all pools except the from-pool (apply allow_to rules if set)
   const switchToPools = useMemo(() => {
     if (!isSwitch || !selectedPoolId) return [];
-    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_id === selectedTxnTypeId);
+    // For switch destination pools, check if they have 'switch' rule allowed
+    const switchRules = poolTxnRules.filter((r: any) => r.transaction_type_code === "switch" && r.is_allowed);
     let eligible = allPools.filter((p: any) => p.id !== selectedPoolId);
-    if (rulesForType.length > 0) {
-      const allowedToIds = new Set(
-        rulesForType.filter((r: any) => r.allow_to).map((r: any) => r.pool_id)
-      );
-      if (allowedToIds.size > 0) eligible = eligible.filter((p: any) => allowedToIds.has(p.id));
+    if (switchRules.length > 0) {
+      const allowedIds = new Set(switchRules.map((r: any) => r.pool_id));
+      eligible = eligible.filter((p: any) => allowedIds.has(p.id));
     }
     return eligible;
-  }, [allPools, poolTxnRules, selectedTxnTypeId, isSwitch, selectedPoolId]);
+  }, [allPools, poolTxnRules, isSwitch, selectedPoolId]);
 
   // Fetch daily pool prices for the selected transaction date
   const txnDateStr = format(transactionDate, "yyyy-MM-dd");
