@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Eye } from "lucide-react";
+import { Plus, Pencil, Eye, Info } from "lucide-react";
 import { toast } from "sonner";
+import { resolveTermsMergeFields } from "@/lib/resolveTermsMergeFields";
 
 const CONDITION_TYPES = [
   { value: "registration", label: "Registration" },
@@ -46,7 +47,7 @@ type TermsCondition = {
 };
 
 const TermsConditions = () => {
-  const { currentTenant } = useTenant();
+  const { currentTenant, branding } = useTenant();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -219,6 +220,14 @@ const TermsConditions = () => {
             </div>
             <div className="space-y-2">
               <Label>Content</Label>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <Info className="h-3.5 w-3.5" />
+                <span>
+                  Available merge fields: <code className="bg-muted px-1 rounded">{"{{tenant_name}}"}</code>{" "}
+                  <code className="bg-muted px-1 rounded">{"{{tenant_short_name}}"}</code>{" "}
+                  <code className="bg-muted px-1 rounded">{"{{tenant_slug}}"}</code>
+                </span>
+              </div>
               <RichTextEditor
                 value={form.content}
                 onChange={(val) => setForm({ ...form, content: val })}
@@ -246,7 +255,7 @@ const TermsConditions = () => {
           <DialogHeader>
             <DialogTitle>Preview</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: previewContent }} />
+          <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: resolveTermsMergeFields(previewContent, { tenantName: currentTenant?.name, legalEntityName: branding.legalEntityName, tenantSlug: currentTenant?.slug }) }} />
         </DialogContent>
       </Dialog>
     </div>
