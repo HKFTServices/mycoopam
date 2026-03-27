@@ -1,6 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer@6.9.10";
 
+const PROD_DOMAIN = "myco-op.co.za";
+
+function getTenantSiteUrl(tenantSlug?: string | null) {
+  if (tenantSlug) {
+    return `https://${tenantSlug}.${PROD_DOMAIN}`;
+  }
+
+  return `https://www.${PROD_DOMAIN}`;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -96,7 +106,7 @@ Deno.serve(async (req) => {
     // Fetch tenant info
     const { data: tenant } = await adminClient
       .from("tenants")
-      .select("name")
+      .select("name, slug")
       .eq("id", tenant_id)
       .single();
 
@@ -132,14 +142,34 @@ Deno.serve(async (req) => {
       if (legalEntity?.name) tenantName = legalEntity.name;
     }
 
+    const redirectTo = getTenantSiteUrl(tenant?.slug);
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: "signup",
+      email: profile.email,
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (linkError || !linkData?.properties?.action_link) {
+      throw new Error(linkError?.message || "Failed to generate activation link");
+    }
+
+    const activationLink = linkData.properties.action_link;
+
     // Use template if available, otherwise use a default
-    let subject = template?.subject || `Welcome to ${tenantName} – Registration Complete!`;
+    let subject = template?.subject || `Activate your ${tenantName} account`;
     let body = template?.body_html ||
-      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-        <h2 style="color:#1a1a2e;">Registration Complete!</h2>
+      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#ffffff;">
+        <h2 style="color:#1a1a2e;">Activate your account</h2>
         <p>Dear ${firstName},</p>
-        <p>Congratulations! Your registration with <strong>${tenantName}</strong> has been successfully completed.</p>
-        <p>You now have full access to all features. Log in to your dashboard to get started.</p>
+        <p>Your administrator account for <strong>${tenantName}</strong> has been created.</p>
+        <p>Please click the button below to verify your email address and activate your access.</p>
+        <div style="margin:32px 0;text-align:center;">
+          <a href="{{activation_link}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Activate account</a>
+        </div>
+        <p style="font-size:13px;color:#666;">If the button does not work, copy and paste this link into your browser:</p>
+        <p style="font-size:13px;word-break:break-all;color:#1a1a2e;">{{activation_link}}</p>
         <br/>
         <p>Best regards,<br/><strong>${tenantName}</strong></p>
       </div>`;
@@ -153,6 +183,8 @@ Deno.serve(async (req) => {
       "{{last_name}}": "",
       "{{tenant_name}}": tenantName,
       "{{email}}": profile.email,
+      "{{activation_link}}": activationLink,
+      "{{confirmation_link}}": activationLink,
     };
     for (const [key, val] of Object.entries(replacements)) {
       subject = subject.replaceAll(key, val);
@@ -260,6 +292,21 @@ Deno.serve(async (req) => {
       console.warn(`[send-registration-email] ${smtpError}`);
     }
 
+    await adminClient.from("email_logs").insert({
+      application_event: "user_registration_completed",
+      recipient_email: profile.email,
+      recipient_user_id: userId,
+      status: emailSent ? "sent" : "failed",
+      subject,
+      error_message: smtpError || null,
+      tenant_id,
+      metadata: {
+        message_id: messageId || null,
+        email_type: "activation",
+        redirect_to: redirectTo,
+      },
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -268,6 +315,7 @@ Deno.serve(async (req) => {
         smtp_error: smtpError || undefined,
         recipient: profile.email,
         subject,
+        activation_link_generated: true,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
