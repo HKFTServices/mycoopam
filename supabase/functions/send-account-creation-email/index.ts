@@ -228,20 +228,7 @@ Deno.serve(async (req) => {
         smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
         console.log("[send-account-creation-email] Using head office SMTP settings");
       } else {
-        const { data: sourceTenantConfig } = await adminClient
-          .from("tenant_configuration")
-          .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
-          .eq("tenant_id", "38e204c4-829f-4544-ab53-b2f3f5342662")
-          .maybeSingle();
-        if (sourceTenantConfig?.smtp_host && sourceTenantConfig?.smtp_from_email) {
-          smtpHost = sourceTenantConfig.smtp_host;
-          smtpPort = sourceTenantConfig.smtp_port;
-          smtpUsername = sourceTenantConfig.smtp_username;
-          smtpPassword = sourceTenantConfig.smtp_password;
-          smtpFromEmail = sourceTenantConfig.smtp_from_email;
-          smtpFromName = sourceTenantConfig.smtp_from_name;
-          console.log("[send-account-creation-email] Using AEM source tenant SMTP as fallback");
-        }
+        console.warn("[send-account-creation-email] No SMTP configured in tenant or head office settings");
       }
     }
 
