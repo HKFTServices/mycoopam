@@ -85,12 +85,12 @@ const ShareClassesSection = ({ tenantId, glAccounts }: { tenantId?: string; glAc
   return (
     <>
       <div className="border rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-base font-semibold">Additional Share Classes</Label>
-            <p className="text-xs text-muted-foreground mt-0.5">Custom share classes beyond standard membership types, each with their own GL account.</p>
+        <div className="flex items-start sm:items-center justify-between gap-2">
+          <div className="min-w-0">
+            <Label className="text-sm sm:text-base font-semibold">Additional Share Classes</Label>
+            <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">Custom share classes beyond standard membership types, each with their own GL account.</p>
           </div>
-          <Button size="sm" variant="outline" onClick={openAdd}><Plus className="h-4 w-4 mr-1" />Add Share Class</Button>
+          <Button size="sm" variant="outline" onClick={openAdd} className="whitespace-nowrap"><Plus className="h-4 w-4 mr-1" />Add</Button>
         </div>
         {isLoading ? (
           <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -211,9 +211,9 @@ const VaultLocationsSection = ({ tenantId }: { tenantId?: string }) => {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Define physical vault/storage locations where stock is held.</p>
-          <Button size="sm" variant="outline" onClick={openAdd}><Plus className="h-4 w-4 mr-1" />Add Location</Button>
+        <div className="flex items-start sm:items-center justify-between gap-2">
+          <p className="text-xs sm:text-sm text-muted-foreground">Define physical vault/storage locations.</p>
+          <Button size="sm" variant="outline" onClick={openAdd} className="whitespace-nowrap shrink-0"><Plus className="h-4 w-4 mr-1" />Add</Button>
         </div>
         {isLoading ? (
           <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -725,22 +725,24 @@ const TenantConfiguration = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tenant Configuration</h1>
-        <p className="text-muted-foreground text-sm mt-1">Financial and organisational settings for {currentTenant?.name ?? "this cooperative"}.</p>
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Tenant Configuration</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">Financial and organisational settings for {currentTenant?.name ?? "this cooperative"}.</p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="general" className="gap-1.5"><Settings className="h-4 w-4" />General</TabsTrigger>
-          <TabsTrigger value="logo" className="gap-1.5"><Upload className="h-4 w-4" />Logo</TabsTrigger>
-          <TabsTrigger value="security" className="gap-1.5"><Shield className="h-4 w-4" />Security</TabsTrigger>
-          <TabsTrigger value="smtp" className="gap-1.5"><Mail className="h-4 w-4" />Email SMTP</TabsTrigger>
-          <TabsTrigger value="memberships" className="gap-1.5"><Users className="h-4 w-4" />Membership &amp; Shares</TabsTrigger>
-          <TabsTrigger value="gl" className="gap-1.5"><BookOpen className="h-4 w-4" />GL Entries</TabsTrigger>
-          <TabsTrigger value="vault" className="gap-1.5"><Vault className="h-4 w-4" />Vault &amp; Invoice</TabsTrigger>
-          <TabsTrigger value="signature" className="gap-1.5"><FileSignature className="h-4 w-4" />Email Signature</TabsTrigger>
-          <TabsTrigger value="theme" className="gap-1.5"><Palette className="h-4 w-4" />Theme</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 h-auto flex-wrap sm:flex-nowrap">
+            <TabsTrigger value="general" className="gap-1.5 text-xs sm:text-sm"><Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">General</span><span className="sm:hidden">General</span></TabsTrigger>
+            <TabsTrigger value="logo" className="gap-1.5 text-xs sm:text-sm"><Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Logo</TabsTrigger>
+            <TabsTrigger value="security" className="gap-1.5 text-xs sm:text-sm"><Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Security</TabsTrigger>
+            <TabsTrigger value="smtp" className="gap-1.5 text-xs sm:text-sm"><Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email SMTP</span><span className="sm:hidden">SMTP</span></TabsTrigger>
+            <TabsTrigger value="memberships" className="gap-1.5 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Membership &amp; Shares</span><span className="sm:hidden">Members</span></TabsTrigger>
+            <TabsTrigger value="gl" className="gap-1.5 text-xs sm:text-sm"><BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />GL</TabsTrigger>
+            <TabsTrigger value="vault" className="gap-1.5 text-xs sm:text-sm"><Vault className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Vault &amp; Invoice</span><span className="sm:hidden">Vault</span></TabsTrigger>
+            <TabsTrigger value="signature" className="gap-1.5 text-xs sm:text-sm"><FileSignature className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email Signature</span><span className="sm:hidden">Sig.</span></TabsTrigger>
+            <TabsTrigger value="theme" className="gap-1.5 text-xs sm:text-sm"><Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Theme</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ── General ── */}
         <TabsContent value="general">
@@ -787,7 +789,7 @@ const TenantConfiguration = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Select Legal Entity</Label>
-                    <div className="flex gap-2">
+                   <div className="flex flex-col sm:flex-row gap-2">
                       <Select value={form.legal_entity_id || "none"} onValueChange={(v) => setForm({ ...form, legal_entity_id: v === "none" ? "" : v })}>
                         <SelectTrigger className="flex-1"><SelectValue placeholder="Select an entity…" /></SelectTrigger>
                         <SelectContent>
@@ -795,12 +797,12 @@ const TenantConfiguration = () => {
                           {tenantEntities.map((e: any) => <SelectItem key={e.id} value={e.id}>{entityLabel(e)}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Button type="button" variant="outline" size="sm" className="whitespace-nowrap" onClick={() => window.open("/apply-membership?type=entity&accountType=6", "_blank")}><Plus className="h-4 w-4 mr-1" />Create Now</Button>
+                      <Button type="button" variant="outline" size="sm" className="whitespace-nowrap w-full sm:w-auto" onClick={() => window.open("/apply-membership?type=entity&accountType=6", "_blank")}><Plus className="h-4 w-4 mr-1" />Create Now</Button>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Select Administrator</Label>
-                    <div className="flex gap-2">
+                   <div className="flex flex-col sm:flex-row gap-2">
                       <Select value={form.administrator_entity_id || "none"} onValueChange={(v) => setForm({ ...form, administrator_entity_id: v === "none" ? "" : v })}>
                         <SelectTrigger className="flex-1"><SelectValue placeholder="Select an entity…" /></SelectTrigger>
                         <SelectContent>
@@ -808,7 +810,7 @@ const TenantConfiguration = () => {
                           {tenantEntities.map((e: any) => <SelectItem key={e.id} value={e.id}>{entityLabel(e)}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Button type="button" variant="outline" size="sm" className="whitespace-nowrap" onClick={() => window.open("/apply-membership?type=entity&accountType=7", "_blank")}><Plus className="h-4 w-4 mr-1" />Create Now</Button>
+                      <Button type="button" variant="outline" size="sm" className="whitespace-nowrap w-full sm:w-auto" onClick={() => window.open("/apply-membership?type=entity&accountType=7", "_blank")}><Plus className="h-4 w-4 mr-1" />Create Now</Button>
                     </div>
                   </div>
                 </div>
@@ -912,12 +914,12 @@ const TenantConfiguration = () => {
                 <div className="space-y-2"><Label>From Email</Label><Input value={form.smtp_from_email} onChange={(e) => setForm({ ...form, smtp_from_email: e.target.value })} placeholder="noreply@example.com" /></div>
                 <div className="space-y-2"><Label>From Name</Label><Input value={form.smtp_from_name} onChange={(e) => setForm({ ...form, smtp_from_name: e.target.value })} placeholder="My Cooperative" /></div>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Switch checked={form.smtp_enable_ssl} onCheckedChange={(v) => setForm({ ...form, smtp_enable_ssl: v })} />
                   <Label>Enable SSL/TLS</Label>
                 </div>
-                <Button variant="outline" onClick={() => setTestEmailOpen(true)} disabled={!form.smtp_host}>
+                <Button variant="outline" className="w-full sm:w-auto" onClick={() => setTestEmailOpen(true)} disabled={!form.smtp_host}>
                   <SendHorizonal className="h-4 w-4 mr-1.5" />Send Test Email
                 </Button>
               </div>
