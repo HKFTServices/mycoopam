@@ -26,6 +26,7 @@ export default function TenantSetupWizard() {
   const [contactNumber, setContactNumber] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [website, setWebsite] = useState("");
+  const [directors, setDirectors] = useState("");
 
   // Address
   const [streetAddress, setStreetAddress] = useState("");
@@ -105,6 +106,7 @@ export default function TenantSetupWizard() {
           contact_number: contactNumber.trim() || null,
           email_address: emailAddress.trim() || null,
           website: website.trim() || null,
+          directors: directors.trim() || null,
           street_address: streetAddress.trim() || null,
           suburb: suburb.trim() || null,
           city: city.trim() || null,
@@ -221,6 +223,11 @@ export default function TenantSetupWizard() {
                     {isVatRegistered && (
                       <Input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} placeholder="VAT Number" className="flex-1" maxLength={20} />
                     )}
+                   </div>
+                  <div className="space-y-2">
+                    <Label>Directors</Label>
+                    <Input value={directors} onChange={(e) => setDirectors(e.target.value)} placeholder="e.g. John Smith, Jane Doe" maxLength={500} />
+                    <p className="text-xs text-muted-foreground">Enter names separated by commas</p>
                   </div>
                 </div>
 
