@@ -185,6 +185,7 @@ Deno.serve(async (req) => {
       .from("items")
       .select("*")
       .eq("tenant_id", SOURCE_TENANT_ID)
+      .eq("is_deleted", false)
       .in("pool_id", selected_pool_ids);
 
     if (srcItems && srcItems.length > 0) {
