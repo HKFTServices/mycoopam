@@ -44,19 +44,25 @@ export default function TenantSetupWizard() {
   }, [tenantId]);
 
   const loadPools = async () => {
-    const { data } = await (supabase as any)
-      .from("pools")
-      .select("id, name, description")
-      .eq("tenant_id", SOURCE_TENANT_ID)
-      .eq("is_active", true)
-      .order("name");
-    if (data) {
-      const enriched: PoolOption[] = data.map((p: PoolOption) => ({
-        ...p,
+    // Fetch template pools via edge function (bypasses RLS)
+    const { data, error } = await supabase.functions.invoke("provision-tenant", {
+      body: { action: "list_pools" },
+    });
+    if (error) {
+      console.error("Failed to load pools:", error);
+      setLoading(false);
+      return;
+    }
+    const poolList = data?.pools ?? [];
+    if (poolList.length > 0) {
+      const enriched: PoolOption[] = poolList.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
         isAdmin: p.name.toLowerCase() === ADMIN_POOL_NAME.toLowerCase(),
       }));
       setPools(enriched);
-      setSelectedPools(data.map((p: PoolOption) => p.id));
+      setSelectedPools(poolList.map((p: any) => p.id));
     }
     setLoading(false);
   };
