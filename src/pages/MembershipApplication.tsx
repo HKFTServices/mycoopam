@@ -200,8 +200,9 @@ const MembershipApplication = () => {
       }
 
       const { data: userEntity } = await (supabase as any)
-        .from("user_entity_relationships").select("entity_id")
-        .eq("user_id", user.id).eq("tenant_id", currentTenant.id).eq("is_primary", true).maybeSingle();
+        .from("user_entity_relationships").select("entity_id, relationship_types!inner(name)")
+        .eq("user_id", user.id).eq("tenant_id", currentTenant.id)
+        .eq("relationship_types.name", "Myself").limit(1).maybeSingle();
       if (!userEntity?.entity_id) throw new Error("Entity not found. Please complete registration first.");
 
       // Use selected membership type: 1 = Full, 4 = Associated

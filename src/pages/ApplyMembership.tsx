@@ -286,10 +286,11 @@ const ApplyMembership = () => {
         // Find existing entity
         const { data: rel } = await (supabase as any)
           .from("user_entity_relationships")
-          .select("entity_id")
+          .select("entity_id, relationship_types!inner(name)")
           .eq("user_id", user.id)
           .eq("tenant_id", currentTenant.id)
-          .eq("is_primary", true)
+          .eq("relationship_types.name", "Myself")
+          .limit(1)
           .maybeSingle();
         if (!rel?.entity_id) throw new Error("Entity not found. Please complete registration first.");
         entityId = rel.entity_id;
