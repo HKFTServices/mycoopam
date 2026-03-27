@@ -292,8 +292,39 @@ const ApplyMembership = () => {
           .eq("relationship_types.name", "Myself")
           .limit(1)
           .maybeSingle();
-        if (!rel?.entity_id) throw new Error("Entity not found. Please complete registration first.");
-        entityId = rel.entity_id;
+
+        if (rel?.entity_id) {
+          entityId = rel.entity_id;
+        } else {
+          // Auto-create entity from profile data for new users who haven't been through onboarding
+          const naturalPersonCategoryId = (myselfRelType as any)?.entity_categories?.id || data.entityCategoryId || null;
+          const entityPayload: any = {
+            tenant_id: currentTenant.id,
+            name: profile?.first_name || user.email?.split("@")[0] || "Member",
+            last_name: profile?.last_name || null,
+            email_address: profile?.email || user.email || null,
+            contact_number: (profile as any)?.phone || null,
+            language_code: data.languageCode || "en",
+            entity_category_id: naturalPersonCategoryId,
+            creator_user_id: user.id,
+            is_registration_complete: false,
+          };
+          const { data: newEntity, error: newEntityErr } = await (supabase as any)
+            .from("entities").insert(entityPayload).select("id").single();
+          if (newEntityErr) throw newEntityErr;
+          entityId = newEntity.id;
+
+          // Create "Myself" relationship
+          if (myselfRelType) {
+            await (supabase as any).from("user_entity_relationships").insert({
+              tenant_id: currentTenant.id,
+              user_id: user.id,
+              entity_id: entityId,
+              relationship_type_id: myselfRelType.id,
+              is_primary: true,
+            });
+          }
+        }
 
         // Update address if changed
         const { data: existingAddr } = await supabase.from("addresses").select("id").eq("user_id", user.id).eq("tenant_id", currentTenant.id).eq("is_primary", true).maybeSingle();
