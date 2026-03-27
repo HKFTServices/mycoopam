@@ -67,7 +67,6 @@ import HeadOfficeSettings from "./pages/headoffice/HeadOfficeSettings";
 import TenantManagement from "./pages/headoffice/TenantManagement";
 import TenantInvoices from "./pages/headoffice/TenantInvoices";
 import RegisterTenant from "./pages/RegisterTenant";
-import TenantSetupWizard from "./pages/TenantSetupWizard";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
@@ -130,7 +129,6 @@ const App = () => (
               <Route path="/" element={<PublicRoot />} />
               <Route path="/t/:slug" element={<TenantLanding />} />
               <Route path="/register-tenant" element={<RegisterTenant />} />
-              <Route path="/setup-tenant" element={<TenantSetupWizard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 

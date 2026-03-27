@@ -308,11 +308,11 @@ const RegisterTenant = () => {
 
       toast({
         title: "Co-operative registered!",
-        description: "Check your email to verify your account. Now let's set up your company details.",
+        description: "Check your email to verify your account, then sign in to complete your setup.",
       });
 
-      // Redirect to legal entity setup
-      navigate(`/setup-tenant?tenant_id=${tenant.id}&slug=${slug}`);
+      // Redirect to auth page for the tenant
+      navigate(`/auth?tenant=${slug}`);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
