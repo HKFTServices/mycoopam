@@ -138,33 +138,60 @@ Deno.serve(async (req) => {
       body = body + emailSignature;
     }
 
-    // Send via tenant SMTP
+    // Determine SMTP config: use tenant's own, or fall back to head_office_settings
+    let smtpHost = tenantConfig?.smtp_host;
+    let smtpPort = tenantConfig?.smtp_port;
+    let smtpUsername = tenantConfig?.smtp_username;
+    let smtpPassword = tenantConfig?.smtp_password;
+    let smtpFromEmail = tenantConfig?.smtp_from_email;
+    let smtpFromName = tenantConfig?.smtp_from_name;
+
+    if (!smtpHost || !smtpFromEmail) {
+      console.log("[send-registration-email] Tenant SMTP not configured, falling back to head office settings");
+      const { data: hoSettings } = await adminClient
+        .from("head_office_settings")
+        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, company_name")
+        .limit(1)
+        .maybeSingle();
+
+      if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
+        smtpHost = hoSettings.smtp_host;
+        smtpPort = hoSettings.smtp_port;
+        smtpUsername = hoSettings.smtp_username;
+        smtpPassword = hoSettings.smtp_password;
+        smtpFromEmail = hoSettings.smtp_from_email;
+        smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
+        console.log("[send-registration-email] Using head office SMTP settings");
+      }
+    }
+
+    // Send via SMTP
     let emailSent = false;
     let messageId = "";
     let smtpError = "";
 
-    if (tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
+    if (smtpHost && smtpFromEmail) {
       try {
-        const requestedPort = tenantConfig.smtp_port || 587;
+        const requestedPort = smtpPort || 587;
         const usePort = requestedPort === 465 ? 587 : requestedPort;
 
-        console.log(`[send-registration-email] Sending via ${tenantConfig.smtp_host}:${usePort} to ${profile.email}`);
+        console.log(`[send-registration-email] Sending via ${smtpHost}:${usePort} to ${profile.email}`);
 
         const transporter = nodemailer.createTransport({
-          host: tenantConfig.smtp_host,
+          host: smtpHost,
           port: usePort,
           secure: false,
           ignoreTLS: true,
-          auth: tenantConfig.smtp_username ? {
-            user: tenantConfig.smtp_username,
-            pass: tenantConfig.smtp_password || "",
+          auth: smtpUsername ? {
+            user: smtpUsername,
+            pass: smtpPassword || "",
           } : undefined,
         });
 
-        const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
-        const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
-        const fromHeader = tenantConfig.smtp_from_name
-          ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
+        const isSmtpUserEmail = smtpUsername?.includes("@");
+        const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
+        const fromHeader = smtpFromName
+          ? `"${smtpFromName}" <${effectiveFromEmail}>`
           : effectiveFromEmail;
 
         const info = await transporter.sendMail({
@@ -182,7 +209,7 @@ Deno.serve(async (req) => {
         console.error(`[send-registration-email] SMTP error: ${smtpError}`);
       }
     } else {
-      smtpError = "SMTP not configured for this tenant";
+      smtpError = "SMTP not configured for this tenant or head office";
       console.warn(`[send-registration-email] ${smtpError}`);
     }
 
