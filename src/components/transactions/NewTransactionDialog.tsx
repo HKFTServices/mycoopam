@@ -381,39 +381,44 @@ const NewTransactionDialog = ({
     ? `${[selectedAccount.entities?.name, selectedAccount.entities?.last_name].filter(Boolean).join(" ")} — ${selectedAccount.account_number || "Pending"}`
     : "";
 
-  const { data: joinShareClass } = useQuery({
-    queryKey: ["join_share_class", currentTenant?.id],
+  // Fetch join share cost + membership fee from tenant_configuration (not share_classes).
+  // share_classes are optional additional share instruments — the join share is a fixed
+  // membership requirement defined in tenant_configuration.
+  const { data: membershipConfig } = useQuery({
+    queryKey: ["membership_config", currentTenant?.id, selectedAccount?.entity_account_types?.account_type],
     queryFn: async () => {
-      if (!currentTenant) return null;
-      const { data } = await (supabase as any)
-        .from("share_classes")
-        .select("id, name, price_per_share")
-        .eq("tenant_id", currentTenant.id)
-        .eq("is_active", true)
-        .ilike("name", "%join%")
-        .limit(1);
-      return data?.[0] ?? null;
-    },
-    enabled: !!currentTenant && open,
-  });
-
-  const { data: membershipFeeAmount = 0 } = useQuery({
-    queryKey: ["membership_fee", currentTenant?.id, selectedAccount?.entity_account_types?.account_type],
-    queryFn: async () => {
-      if (!currentTenant || !selectedAccount?.entity_account_types?.account_type) return 0;
+      if (!currentTenant || !selectedAccount?.entity_account_types?.account_type) return null;
       const { data } = await (supabase as any)
         .from("tenant_configuration")
-        .select("full_membership_fee, associated_membership_fee")
+        .select("full_membership_share_amount, associated_membership_share_amount, full_membership_fee, associated_membership_fee, share_gl_account_id")
         .eq("tenant_id", currentTenant.id)
         .maybeSingle();
+      if (!data) return null;
 
       const accountType = Number(selectedAccount.entity_account_types.account_type);
-      if (accountType === 1) return Number(data?.full_membership_fee ?? 0);
-      if (accountType === 4) return Number(data?.associated_membership_fee ?? 0);
-      return 0;
+      const shareCost = accountType === 1
+        ? Number(data.full_membership_share_amount ?? 0)
+        : accountType === 4
+          ? Number(data.associated_membership_share_amount ?? 0)
+          : 0;
+      const membershipFee = accountType === 1
+        ? Number(data.full_membership_fee ?? 0)
+        : accountType === 4
+          ? Number(data.associated_membership_fee ?? 0)
+          : 0;
+
+      return {
+        shareCost,
+        membershipFee,
+        shareGlAccountId: data.share_gl_account_id || null,
+      };
     },
     enabled: !!currentTenant && !!selectedAccount?.entity_account_types?.account_type && open,
   });
+
+  const membershipFeeAmount = membershipConfig?.membershipFee ?? 0;
+  const joinShareCost = membershipConfig?.shareCost ?? 0;
+  const joinShareGlAccountId = membershipConfig?.shareGlAccountId ?? null;
 
   // joinShareInfo is computed after vatRate is available (see below)
 
