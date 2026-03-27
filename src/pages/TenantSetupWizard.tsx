@@ -91,117 +91,35 @@ export default function TenantSetupWizard() {
 
     setSaving(true);
     try {
-      // 1. Find the Legal Entity account type for this tenant
-      const { data: legalEntityType } = await (supabase as any)
-        .from("entity_account_types")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("account_type", 6) // Legal Entity
-        .maybeSingle();
-
-      if (!legalEntityType) {
-        toast.error("Legal Entity account type not found. Please contact support.");
-        setSaving(false);
-        return;
-      }
-
-      // 2. Find the entity category for legal entities
-      const { data: entityCategory } = await supabase
-        .from("entity_categories")
-        .select("id")
-        .eq("entity_type", "legal_entity")
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-
-      // 3. Create the legal entity
-      // Get current user id
+      // Get user if authenticated (may not be during initial setup)
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
 
-      const { data: entity, error: entityError } = await supabase
-        .from("entities")
-        .insert({
-          tenant_id: tenantId!,
-          name: companyName.trim(),
+      const { data, error } = await supabase.functions.invoke("setup-legal-entity", {
+        body: {
+          tenant_id: tenantId,
+          user_id: user?.id || null,
+          company_name: companyName.trim(),
           registration_number: registrationNumber.trim() || null,
           is_vat_registered: isVatRegistered,
           vat_number: isVatRegistered ? vatNumber.trim() : null,
           contact_number: contactNumber.trim() || null,
           email_address: emailAddress.trim() || null,
           website: website.trim() || null,
-          entity_category_id: entityCategory?.id || null,
-          is_active: true,
-          is_registration_complete: true,
-          creator_user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (entityError) throw entityError;
-
-      // 4. Create entity account (Legal Entity type)
-      const { data: existingTypes } = await (supabase as any)
-        .from("entity_account_types")
-        .select("prefix, number_count")
-        .eq("id", legalEntityType.id)
-        .single();
-
-      const prefix = existingTypes?.prefix || "LE";
-      const numCount = existingTypes?.number_count || 5;
-      const accountNum = `${prefix}${"1".padStart(numCount, "0")}`;
-
-      const { error: accountError } = await supabase
-        .from("entity_accounts")
-        .insert({
-          tenant_id: tenantId!,
-          entity_id: entity.id,
-          entity_account_type_id: legalEntityType.id,
-          account_number: accountNum,
-          is_active: true,
-          is_approved: true,
-          status: "active",
-        });
-
-      if (accountError) throw accountError;
-
-      // 5. Create address if provided
-      if (streetAddress.trim() && city.trim()) {
-        await supabase.from("addresses").insert({
-          tenant_id: tenantId!,
-          entity_id: entity.id,
-          street_address: streetAddress.trim(),
+          street_address: streetAddress.trim() || null,
           suburb: suburb.trim() || null,
-          city: city.trim(),
+          city: city.trim() || null,
           province: province.trim() || null,
           postal_code: postalCode.trim() || null,
           country: country.trim(),
-          address_type: "physical",
-          is_primary: true,
-        });
-      }
-
-      // 6. Create bank details if provided
-      if (bankId && bankAccountTypeId && accountNumber.trim()) {
-        await supabase.from("entity_bank_details").insert({
-          tenant_id: tenantId!,
-          entity_id: entity.id,
-          bank_id: bankId,
-          bank_account_type_id: bankAccountTypeId,
+          bank_id: bankId || null,
+          bank_account_type_id: bankAccountTypeId || null,
           account_holder: accountName.trim() || companyName.trim(),
-          account_number: accountNumber.trim(),
-          is_active: true,
-        });
-      }
+          account_number: accountNumber.trim() || null,
+        },
+      });
 
-      // 7. Update tenant_configuration with legal_entity_id
-      await (supabase as any)
-        .from("tenant_configuration")
-        .update({
-          legal_entity_id: entity.id,
-          vat_number: isVatRegistered ? vatNumber.trim() : null,
-        })
-        .eq("tenant_id", tenantId);
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setDone(true);
       toast.success("Company details saved successfully!");
