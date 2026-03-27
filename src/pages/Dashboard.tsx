@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import {
@@ -379,6 +381,7 @@ const Dashboard = () => {
         .from("transactions")
         .select(`
           id, amount, status, transaction_date, created_at, user_id, approved_by, receiver_approved_by,
+          fee_amount, net_amount, payment_method, notes, unit_price, units, approved_at, receiver_approved_at,
           pools!transactions_pool_id_fkey(name),
           transaction_types!transactions_transaction_type_id_fkey(name, code),
           entity_accounts!transactions_entity_account_id_fkey(
@@ -1669,6 +1672,9 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
     return <p className="text-sm text-muted-foreground py-8 text-center">No transactions yet.</p>;
   }
 
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedTxn, setSelectedTxn] = useState<any | null>(null);
+
   const ScrollShadow = ({ children }: { children: React.ReactNode }) => {
     const [showFade, setShowFade] = useState(false);
     const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -1706,20 +1712,26 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
     );
   };
 
+  const DetailsRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div className="flex items-start justify-between gap-6 text-sm">
+      <p className="text-muted-foreground">{label}</p>
+      <div className="text-right font-medium text-foreground max-w-[70%] break-words">{value}</div>
+    </div>
+  );
+
   return (
     <div className="space-y-2">
       <ScrollShadow>
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[980px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[320px]">Transaction</TableHead>
-                <TableHead>Member</TableHead>
-                <TableHead className="hidden md:table-cell">Account</TableHead>
-                <TableHead className="hidden lg:table-cell">Initiated</TableHead>
-                <TableHead className="hidden lg:table-cell">Approved</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="hidden sm:table-cell text-right">Date</TableHead>
+                <TableHead className="min-w-[360px]">Transaction</TableHead>
+                <TableHead className="min-w-[240px]">Member</TableHead>
+                <TableHead className="w-[140px] whitespace-nowrap">Status</TableHead>
+                <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
+                <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
+                <TableHead className="w-[56px] text-right whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1745,10 +1757,18 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-foreground";
 
-                const initiated = txn?._meta?.initiator ?? "—";
-                const approved = txn?._meta?.approver ?? "Pending";
-                const payout = txn?._meta?.receiverApprover ?? null;
-                const accountType = txn?._meta?.accountType ?? "—";
+                const status = String(txn.status ?? "");
+                const statusLabel = status
+                  ? status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+                  : "—";
+                const statusTone =
+                  status === "declined"
+                    ? "border-destructive/30 bg-destructive/10 text-destructive"
+                    : status === "approved" || status === "payout_confirmed"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : status === "pending" || status === "first_approved" || status === "stock_value_verified" || status === "courier_arranged"
+                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                        : "border-border bg-muted/30 text-muted-foreground";
 
                 return (
                   <TableRow key={txn.id} className="hover:bg-muted/40">
@@ -1762,7 +1782,7 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                             {poolName ? `${typeName} · ${poolName}` : typeName}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            Status: {String(txn.status ?? "—").replace(/_/g, " ")}
+                            {code ? `Code: ${code}` : "—"}
                           </p>
                         </div>
                       </div>
@@ -1777,35 +1797,34 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                       </div>
                     </TableCell>
 
-                    <TableCell className="hidden md:table-cell py-3">
-                      <div className="min-w-[140px]">
-                        <Badge variant="outline" className="text-[10px]">Type: {accountType}</Badge>
-                      </div>
+                    <TableCell className="py-3 whitespace-nowrap">
+                      <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${statusTone}`}>
+                        {statusLabel}
+                      </Badge>
                     </TableCell>
 
-                    <TableCell className="hidden lg:table-cell py-3">
-                      <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={initiated}>
-                        {initiated}
-                      </p>
-                    </TableCell>
-
-                    <TableCell className="hidden lg:table-cell py-3">
-                      <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={approved}>
-                        {approved}
-                      </p>
-                      {payout ? (
-                        <p className="text-[11px] text-muted-foreground/80 truncate max-w-[220px]" title={payout}>
-                          Payout: {payout}
-                        </p>
-                      ) : null}
-                    </TableCell>
-
-                    <TableCell className={`py-3 text-right font-medium ${amountTone}`}>
+                    <TableCell className={`py-3 text-right font-medium whitespace-nowrap ${amountTone}`}>
                       {formatCurrency(Number(txn.amount))}
                     </TableCell>
 
-                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
                       {txn.transaction_date ?? "—"}
+                    </TableCell>
+
+                    <TableCell className="py-3 text-right whitespace-nowrap">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="View transaction"
+                        onClick={() => {
+                          setSelectedTxn(txn);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -1814,6 +1833,123 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
           </Table>
         </div>
       </ScrollShadow>
+
+      <Dialog
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) setSelectedTxn(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Transaction details</DialogTitle>
+          </DialogHeader>
+
+          {selectedTxn ? (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <DetailsRow
+                  label="Transaction"
+                  value={
+                    <span>
+                      {selectedTxn.pools?.name
+                        ? `${selectedTxn.transaction_types?.name ?? "Transaction"} · ${selectedTxn.pools.name}`
+                        : selectedTxn.transaction_types?.name ?? "Transaction"}
+                    </span>
+                  }
+                />
+                <DetailsRow label="Code" value={String(selectedTxn.transaction_types?.code ?? "—")} />
+                <DetailsRow label="Status" value={String(selectedTxn.status ?? "—").replace(/_/g, " ")} />
+              </div>
+
+              <Separator />
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Amounts</p>
+                  <div className="space-y-2">
+                    <DetailsRow label="Amount" value={formatCurrency(Number(selectedTxn.amount ?? 0))} />
+                    <DetailsRow label="Fees" value={formatCurrency(Number(selectedTxn.fee_amount ?? 0))} />
+                    <DetailsRow label="Net amount" value={formatCurrency(Number(selectedTxn.net_amount ?? 0))} />
+                    {selectedTxn.units ? (
+                      <DetailsRow label="Units" value={Number(selectedTxn.units).toLocaleString("en-ZA")} />
+                    ) : null}
+                    {selectedTxn.unit_price ? (
+                      <DetailsRow label="Unit price" value={formatCurrency(Number(selectedTxn.unit_price))} />
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Parties</p>
+                  <div className="space-y-2">
+                    <DetailsRow
+                      label="Member"
+                      value={
+                        [selectedTxn.entity_accounts?.entities?.name, selectedTxn.entity_accounts?.entities?.last_name]
+                          .filter(Boolean)
+                          .join(" ") || "—"
+                      }
+                    />
+                    <DetailsRow
+                      label="Account"
+                      value={
+                        selectedTxn.entity_accounts?.account_number
+                          ? `Acc ${selectedTxn.entity_accounts.account_number}`
+                          : "—"
+                      }
+                    />
+                    <DetailsRow label="Account type" value={selectedTxn?._meta?.accountType ?? "—"} />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Auth</p>
+                  <div className="space-y-2">
+                    <DetailsRow label="Initiated by" value={selectedTxn?._meta?.initiator ?? "—"} />
+                    <DetailsRow label="Approved by" value={selectedTxn?._meta?.approver ?? "Pending"} />
+                    {selectedTxn?._meta?.receiverApprover ? (
+                      <DetailsRow label="Payout confirmed by" value={selectedTxn._meta.receiverApprover} />
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Timeline</p>
+                  <div className="space-y-2">
+                    <DetailsRow label="Transaction date" value={selectedTxn.transaction_date ?? "—"} />
+                    <DetailsRow label="Created" value={selectedTxn.created_at ?? "—"} />
+                    <DetailsRow label="Approved at" value={selectedTxn.approved_at ?? "—"} />
+                    <DetailsRow label="Payout confirmed at" value={selectedTxn.receiver_approved_at ?? "—"} />
+                  </div>
+                </div>
+              </div>
+
+              {selectedTxn.payment_method || selectedTxn.notes ? (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <DetailsRow label="Payment method" value={selectedTxn.payment_method ?? "—"} />
+                    {selectedTxn.notes ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-muted-foreground">Notes</p>
+                        <div className="rounded-lg border bg-muted/20 p-3 text-sm whitespace-pre-wrap">
+                          {selectedTxn.notes}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -1864,12 +2000,12 @@ const RecentMemberDeposits = ({ items }: { items: any[] }) => {
     <div className="space-y-2">
       <ScrollShadow>
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[520px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Deposit</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="hidden sm:table-cell text-right">Date</TableHead>
+                <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
+                <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1886,10 +2022,10 @@ const RecentMemberDeposits = ({ items }: { items: any[] }) => {
                         <p className="text-sm truncate">{poolName}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="py-3 text-right text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    <TableCell className="py-3 text-right text-sm font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                       +{formatCurrency(amount)}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
                       {row.transaction_date ?? "—"}
                     </TableCell>
                   </TableRow>
