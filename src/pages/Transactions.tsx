@@ -38,6 +38,7 @@ type ConfirmAction = {
 };
 
 const Transactions = () => {
+  const isMobile = useIsMobile();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
