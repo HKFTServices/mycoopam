@@ -96,6 +96,8 @@ const Dashboard = () => {
   const [debitOrderOpen, setDebitOrderOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(true);
 
+  // Will be initialized after roles are loaded; default to false initially
+  const [isAdminResolved, setIsAdminResolved] = useState(false);
   const tenantId = currentTenant?.id;
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
