@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import heroImage from "@/assets/hero-image.jpg";
+import dashboardWeb from "@/assets/dashboard-web.jpg";
+import dashboardMobile from "@/assets/dashboard-mobile.jpg";
 import { navigateToTenant } from "@/lib/getSiteUrl";
 
 interface Tenant {
