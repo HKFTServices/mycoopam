@@ -189,27 +189,32 @@ const Landing = () => {
 
         {/* Trusted By — tenant logos */}
         {tenants.length > 0 && (
-          <section className="border-t border-border bg-muted/20 py-12">
+          <section className="border-t border-border bg-muted/20 py-16 lg:py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <p className="text-sm text-muted-foreground mb-8">
-                Trusted by {tenants.length}+ co-operatives
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-10">
+                Trusted by {tenants.length}+ co-operatives across South Africa
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 lg:gap-8">
                 {tenants.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity">
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-center rounded-xl border border-border/60 bg-card/50 p-6 h-24 hover:border-primary/30 hover:shadow-md transition-all duration-200 group cursor-default"
+                  >
                     {t.logo_url ? (
                       <img
                         src={t.logo_url}
                         alt={t.name}
-                        className="h-8 w-auto max-w-[120px] object-contain grayscale hover:grayscale-0 transition-all"
+                        className="max-h-14 w-auto max-w-[140px] object-contain grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.style.display = "none";
+                          (e.currentTarget.nextSibling as HTMLElement)?.classList.remove("hidden");
                         }}
                       />
-                    ) : (
-                      <span className="text-sm font-semibold text-foreground/60">{t.name}</span>
-                    )}
+                    ) : null}
+                    <span className={`text-sm font-semibold text-foreground/50 group-hover:text-foreground transition-colors ${t.logo_url ? "hidden" : ""}`}>
+                      {t.name}
+                    </span>
                   </div>
                 ))}
               </div>
