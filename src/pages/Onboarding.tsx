@@ -526,7 +526,7 @@ const Onboarding = () => {
     if (!user || !currentTenant || !entityId) return;
     setSaving(true);
     try {
-      // Save T&C acceptances
+      // Save T&C acceptances (only if there are terms)
       for (const termId of Object.keys(acceptedTerms).filter((k) => acceptedTerms[k])) {
         const { error: tcErr } = await supabase.from("tc_acceptances").insert({
           user_id: user.id,
@@ -536,13 +536,28 @@ const Onboarding = () => {
         if (tcErr) throw tcErr;
       }
 
+      // Check if this user is already a tenant admin (first admin of a new tenant)
+      const { data: existingRoles } = await (supabase as any)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("tenant_id", currentTenant.id)
+        .in("role", ["tenant_admin", "super_admin"]);
+      const isTenantAdmin = (existingRoles ?? []).length > 0;
+
       // For legacy users who are already registered, just mark onboarding complete
-      // For new users, set status to pending_approval for admin review
+      // For tenant admins (first user), auto-approve
+      // For new regular users, set status to pending_approval for admin review
       const currentStatus = (profile as any)?.registration_status;
+      const isLegacyUser = currentStatus === "registered";
       const profileUpdate: any = { needs_onboarding: false };
-      if (currentStatus !== "registered") {
+
+      if (isLegacyUser || isTenantAdmin) {
+        profileUpdate.registration_status = "registered";
+      } else {
         profileUpdate.registration_status = "pending_approval";
       }
+
       const { error: statusErr } = await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
       if (statusErr) throw statusErr;
 
@@ -568,9 +583,8 @@ const Onboarding = () => {
         });
       }
 
-      // Only create membership application for new users (not legacy)
-      const isLegacyUser = currentStatus === "registered";
-      if (!isLegacyUser) {
+      // Only create membership application for regular new users (not legacy or tenant admin)
+      if (!isLegacyUser && !isTenantAdmin) {
         const { data: existingApp } = await (supabase as any)
           .from("membership_applications")
           .select("id")
@@ -598,8 +612,8 @@ const Onboarding = () => {
         body: { tenant_id: currentTenant.id },
       }).catch((err) => console.error("Failed to send registration email:", err));
 
-      if (isLegacyUser) {
-        toast.success("Onboarding complete! Welcome back.");
+      if (isLegacyUser || isTenantAdmin) {
+        toast.success(isTenantAdmin ? "Registration complete! Welcome to your co-operative." : "Onboarding complete! Welcome back.");
         navigate("/dashboard");
       } else {
         toast.success("Registration submitted for approval! You'll be notified once approved.");
