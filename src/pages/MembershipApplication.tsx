@@ -207,10 +207,13 @@ const MembershipApplication = () => {
 
       // Use selected membership type: 1 = Full, 4 = Associated
       const accountTypeCode = selectedMembershipType === "associated" ? 4 : 1;
-      const { data: membershipAccountType } = await (supabase as any)
+      console.log("Looking up entity_account_types with tenant_id:", currentTenant.id, "account_type:", accountTypeCode);
+      const { data: membershipAccountType, error: eatErr } = await (supabase as any)
         .from("entity_account_types").select("id")
         .eq("tenant_id", currentTenant.id).eq("account_type", accountTypeCode).eq("is_active", true).maybeSingle();
-      if (!membershipAccountType?.id) throw new Error("Membership account type not configured. Contact your administrator.");
+      console.log("entity_account_types result:", membershipAccountType, "error:", eatErr);
+      if (eatErr) throw new Error(`Account type lookup failed: ${eatErr.message}`);
+      if (!membershipAccountType?.id) throw new Error(`Membership account type not configured for tenant ${currentTenant.id}, type ${accountTypeCode}. Contact your administrator.`);
 
       const { error: eaErr } = await (supabase as any).from("entity_accounts").insert({
         tenant_id: currentTenant.id, entity_id: userEntity.entity_id,
