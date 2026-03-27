@@ -76,6 +76,9 @@ import LegacyGlAllocation from "./pages/LegacyGlAllocation";
 import CookiePolicy from "./pages/CookiePolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import PaiaManual from "./pages/PaiaManual";
+import AcceptableUsePolicy from "./pages/AcceptableUsePolicy";
+import Disclaimer from "./pages/Disclaimer";
 import CookieConsent from "./components/CookieConsent";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
@@ -138,6 +141,9 @@ const App = () => (
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/paia-manual" element={<PaiaManual />} />
+              <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
+              <Route path="/disclaimer" element={<Disclaimer />} />
 
               {/* Auth-only (no role restriction) */}
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
