@@ -279,14 +279,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const handleEndImpersonation = async () => {
     localStorage.removeItem("impersonating_from");
     const tenantSlug = localStorage.getItem("tenantSlug");
+    const targetUrl = tenantSlug
+      ? getTenantUrl(tenantSlug)
+      : isOnProductionDomain()
+        ? "/auth"
+        : "https://www.myco-op.co.za";
     await supabase.auth.signOut();
-    if (tenantSlug) {
-      navigateToTenant(tenantSlug, navigate, { replace: true });
-    } else if (!isOnProductionDomain()) {
-      window.location.replace("https://www.myco-op.co.za");
-    } else {
-      navigate("/auth", { replace: true });
-    }
+    window.location.replace(targetUrl);
   };
 
   // Check current user roles
