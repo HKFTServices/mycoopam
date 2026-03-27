@@ -349,6 +349,11 @@ export async function postDepositApproval(
           reference: primaryFull.payment_method?.replace(/_/g, " ") || "",
         },
       });
+
+      // Send account-creation (member activation) email (fire-and-forget)
+      supabase.functions.invoke("send-account-creation-email", {
+        body: { tenant_id: tenantId, entity_account_id: entityAccountId },
+      }).catch((err: any) => console.warn("[postDepositApproval] Account creation email failed:", err.message));
     }
   }
 
