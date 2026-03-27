@@ -118,6 +118,18 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 
+  /* Override Ionic scroll containment for web */
+  ion-app {
+    overflow: auto !important;
+    position: relative !important;
+    contain: none !important;
+  }
+
+  ion-app .ion-page {
+    position: relative !important;
+    contain: none !important;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
