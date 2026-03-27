@@ -250,12 +250,12 @@ const TenantLanding = () => {
 
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight">
-                  {isLogin ? "Welcome back" : "Register as Member"}
+                  {isLogin ? "Welcome back" : "Sign Up as User"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {isLogin
                     ? `Sign in to access your ${tenantName} account`
-                    : `Register to join ${tenantName}. Please have your ID / Passport and Proof of address ready to upload.`}
+                    : `Sign up to apply for membership at ${tenantName}.`}
                 </p>
               </div>
 
@@ -372,18 +372,18 @@ const TenantLanding = () => {
 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLogin ? "Sign in" : "Register as Member"}
+                  {isLogin ? "Sign in" : "Sign Up as User"}
                 </Button>
               </form>
 
               <div className="text-center text-sm text-muted-foreground">
-                {isLogin ? "Not a member yet?" : "Already registered?"}{" "}
+                {isLogin ? "Don't have an account yet?" : "Already have an account?"}{" "}
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
                   className="font-medium text-primary hover:underline"
                 >
-                  {isLogin ? "Register" : "Sign in"}
+                  {isLogin ? "Sign up" : "Sign in"}
                 </button>
               </div>
 
