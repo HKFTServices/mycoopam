@@ -67,6 +67,7 @@ const Memberships = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [editEntity, setEditEntity] = useState<{ id: string; type?: string } | null>(null);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
