@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Loader2, ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Upload, X, Coins, Plus, ShieldCheck,
-  User, MapPin, CreditCard, FileText, Shield, CheckCircle2, AlertCircle,
+  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
