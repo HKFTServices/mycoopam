@@ -125,6 +125,18 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
       setTenants(list);
 
+      // If on a tenant subdomain, force that tenant regardless of localStorage
+      const subdomainSlug = getTenantSlugFromSubdomain();
+      if (subdomainSlug) {
+        const subdomainTenant = list.find((t) => t.slug === subdomainSlug);
+        if (subdomainTenant) {
+          setCurrentTenant(subdomainTenant);
+          localStorage.setItem("currentTenantId", subdomainTenant.id);
+          setLoading(false);
+          return;
+        }
+      }
+
       // restore saved tenant or pick first
       const savedId = localStorage.getItem("currentTenantId");
       const saved = list.find((t) => t.id === savedId);
