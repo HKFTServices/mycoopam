@@ -535,7 +535,7 @@ const ApplyMembership = () => {
 
           {/* Navigation */}
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => step > 0 ? setStep(step - 1) : navigate("/dashboard/memberships", { replace: true })}>
+            <Button variant="outline" onClick={() => step > 0 ? setStep(step - 1) : navigate(isLegalEntityMode ? "/dashboard" : "/dashboard/memberships", { replace: true })}>
               {step === 0 ? "Cancel" : "Back"}
             </Button>
             {step < steps.length - 1 ? (
@@ -543,7 +543,7 @@ const ApplyMembership = () => {
             ) : (
               <Button onClick={handleSubmit} disabled={!canProceed || saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Application
+                {isLegalEntityMode ? "Register Legal Entity" : "Submit Application"}
               </Button>
             )}
           </div>
