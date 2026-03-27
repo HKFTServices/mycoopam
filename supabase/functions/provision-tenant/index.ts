@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { tenant_id, selected_pool_ids } = await req.json();
+    const { tenant_id, selected_pool_ids, custom_pools } = await req.json();
 
     if (!tenant_id || !selected_pool_ids || !Array.isArray(selected_pool_ids)) {
       return new Response(
@@ -537,6 +537,31 @@ Deno.serve(async (req) => {
       const { error } = await admin.from("income_expense_items").insert(ieiRows);
       if (error) console.error("Income/expense items error:", error);
       results.income_expense_items = ieiRows.length;
+    }
+
+    // ─── Create custom pools (user-defined, not from template) ───
+    if (custom_pools && Array.isArray(custom_pools) && custom_pools.length > 0) {
+      let customCount = 0;
+      for (const poolName of custom_pools) {
+        const trimmed = (poolName as string).trim();
+        if (!trimmed) continue;
+        const newPoolId = uuid();
+        const { error } = await admin.from("pools").insert({
+          id: newPoolId,
+          tenant_id: tenant_id,
+          name: trimmed,
+          description: trimmed,
+          is_active: true,
+        });
+        if (error) {
+          console.error(`Custom pool ${trimmed} error:`, error);
+        } else {
+          customCount++;
+        }
+      }
+      if (customCount > 0) {
+        results.custom_pools = customCount;
+      }
     }
 
     return new Response(
