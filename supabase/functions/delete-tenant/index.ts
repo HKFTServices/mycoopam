@@ -70,7 +70,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Deleting tenant: ${tenant.name} (${tenant_id})`);
+    // Capture tenant member user IDs BEFORE we delete memberships
+    const { data: tenantMembers } = await admin
+      .from("tenant_memberships")
+      .select("user_id")
+      .eq("tenant_id", tenant_id);
+    const tenantUserIds = (tenantMembers || []).map((m: any) => m.user_id);
+
+    console.log(`Deleting tenant: ${tenant.name} (${tenant_id}), ${tenantUserIds.length} members`);
+
 
     // Delete in dependency order (children first, parent last)
     // Order matters for foreign key constraints
@@ -226,8 +234,41 @@ Deno.serve(async (req) => {
       errors.push(`pool/control cleanup: ${e.message}`);
     }
 
-    // Also delete auth users who ONLY belong to this tenant
-    // (We skip this for safety — users might belong to multiple tenants)
+    // Delete auth users who ONLY belonged to this tenant
+    if (tenantUserIds.length > 0) {
+      let authUsersDeleted = 0;
+      for (const uid of tenantUserIds) {
+        // Check if this user has any remaining tenant memberships (already deleted for this tenant)
+        const { data: remaining } = await admin
+          .from("tenant_memberships")
+          .select("id")
+          .eq("user_id", uid)
+          .limit(1);
+
+        // Never delete super admins
+        const { data: superRole } = await admin
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", uid)
+          .eq("role", "super_admin")
+          .limit(1);
+
+        if ((!remaining || remaining.length === 0) && (!superRole || superRole.length === 0)) {
+          // Delete any remaining user_roles for this user
+          await admin.from("user_roles").delete().eq("user_id", uid);
+          // Delete profile
+          await admin.from("profiles").delete().eq("user_id", uid);
+          // Delete auth user
+          const { error: delErr } = await admin.auth.admin.deleteUser(uid);
+          if (delErr) {
+            console.warn(`Failed to delete auth user ${uid}: ${delErr.message}`);
+          } else {
+            authUsersDeleted++;
+          }
+        }
+      }
+      results["auth_users"] = authUsersDeleted;
+    }
 
     const totalDeleted = Object.values(results).reduce((a, b) => a + b, 0);
     console.log(`Tenant ${tenant.name} deleted. ${totalDeleted} records removed.`);
