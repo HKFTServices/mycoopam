@@ -391,6 +391,44 @@ const TenantManagement = () => {
         onOpenChange={(open) => !open && setFeaturesTenant(null)}
         tenant={featuresTenant}
       />
+
+      {/* Delete Tenant Confirmation */}
+      <AlertDialog open={!!deleteTenant} onOpenChange={(open) => { if (!open) { setDeleteTenant(null); setDeleteConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Delete Tenant — {deleteTenant?.name}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This will <strong>permanently delete</strong> the tenant and <strong>ALL</strong> associated data including
+                members, transactions, pools, documents, and configuration. This action cannot be undone.
+              </p>
+              <p>
+                Type <strong className="font-mono text-foreground">{deleteTenant?.name}</strong> to confirm:
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type tenant name to confirm"
+                className="mt-2"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirmText !== deleteTenant?.name || deleteTenantMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteTenant) deleteTenantMutation.mutate(deleteTenant.id);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteTenantMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
