@@ -6,17 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle2, Building2, Coins, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, CheckCircle2, Building2, Coins, AlertCircle, Plus, X, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import { navigateToTenant } from "@/lib/getSiteUrl";
 
 const SOURCE_TENANT_ID = "38e204c4-829f-4544-ab53-b2f3f5342662"; // AEM
+const ADMIN_POOL_NAME = "Admin";
 
 interface PoolOption {
   id: string;
   name: string;
   description: string | null;
+  isAdmin?: boolean;
 }
 
 export default function TenantSetupWizard() {
@@ -27,6 +30,8 @@ export default function TenantSetupWizard() {
 
   const [pools, setPools] = useState<PoolOption[]>([]);
   const [selectedPools, setSelectedPools] = useState<string[]>([]);
+  const [customPools, setCustomPools] = useState<string[]>([]);
+  const [newPoolName, setNewPoolName] = useState("");
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -46,17 +51,42 @@ export default function TenantSetupWizard() {
       .eq("is_active", true)
       .order("name");
     if (data) {
-      setPools(data);
-      // Pre-select all pools by default
+      const enriched: PoolOption[] = data.map((p: PoolOption) => ({
+        ...p,
+        isAdmin: p.name.toLowerCase() === ADMIN_POOL_NAME.toLowerCase(),
+      }));
+      setPools(enriched);
       setSelectedPools(data.map((p: PoolOption) => p.id));
     }
     setLoading(false);
   };
 
+  const adminPoolId = pools.find((p) => p.isAdmin)?.id;
+
   const togglePool = (id: string) => {
+    if (id === adminPoolId) return;
     setSelectedPools((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
+  };
+
+  const addCustomPool = () => {
+    const trimmed = newPoolName.trim();
+    if (!trimmed) return;
+    if (customPools.some((p) => p.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error("Pool name already added");
+      return;
+    }
+    if (pools.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error("A template pool with this name already exists");
+      return;
+    }
+    setCustomPools((prev) => [...prev, trimmed]);
+    setNewPoolName("");
+  };
+
+  const removeCustomPool = (name: string) => {
+    setCustomPools((prev) => prev.filter((p) => p !== name));
   };
 
   const handleProvision = async () => {
@@ -69,7 +99,6 @@ export default function TenantSetupWizard() {
     setProgress(10);
 
     try {
-      // Simulate progress while waiting
       const interval = setInterval(() => {
         setProgress((prev) => Math.min(prev + 8, 90));
       }, 500);
@@ -78,6 +107,7 @@ export default function TenantSetupWizard() {
         body: {
           tenant_id: tenantId,
           selected_pool_ids: selectedPools,
+          custom_pools: customPools.length > 0 ? customPools : undefined,
         },
       });
 
@@ -140,7 +170,7 @@ export default function TenantSetupWizard() {
             <CardDescription>
               {done
                 ? "Your co-operative has been provisioned with the selected data. You can now sign in and start configuring."
-                : "Select which investment pools to include. All related data (stock items, fees, GL accounts, templates, etc.) will be automatically set up for you."}
+                : "Select which investment pools to include. The Admin pool is always included. You can also create custom pools."}
             </CardDescription>
           </CardHeader>
 
@@ -152,43 +182,107 @@ export default function TenantSetupWizard() {
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                        Investment Pools
-                      </h3>
-                      <Badge variant="secondary">
-                        {selectedPools.length} / {pools.length} selected
-                      </Badge>
+                  <div className="space-y-5">
+                    {/* Template pools */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                          Investment Pools
+                        </h3>
+                        <Badge variant="secondary">
+                          {selectedPools.length} / {pools.length} selected
+                        </Badge>
+                      </div>
+
+                      <div className="grid gap-3">
+                        {pools.map((pool) => (
+                          <label
+                            key={pool.id}
+                            className={`flex items-center gap-4 border rounded-lg p-4 transition-colors ${
+                              pool.isAdmin
+                                ? "border-primary/50 bg-primary/5 cursor-default"
+                                : selectedPools.includes(pool.id)
+                                  ? "border-primary bg-primary/5 cursor-pointer"
+                                  : "border-border hover:border-muted-foreground/30 cursor-pointer"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={selectedPools.includes(pool.id)}
+                              onCheckedChange={() => togglePool(pool.id)}
+                              disabled={pool.isAdmin}
+                            />
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                                pool.isAdmin ? "bg-primary/20" : "bg-primary/10"
+                              }`}>
+                                {pool.isAdmin ? (
+                                  <ShieldCheck className="h-5 w-5 text-primary" />
+                                ) : (
+                                  <Coins className="h-5 w-5 text-primary" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{pool.name}</p>
+                                  {pool.isAdmin && (
+                                    <Badge variant="outline" className="text-xs">Required</Badge>
+                                  )}
+                                </div>
+                                {pool.description && (
+                                  <p className="text-sm text-muted-foreground">{pool.description}</p>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="grid gap-3">
-                      {pools.map((pool) => (
-                        <label
-                          key={pool.id}
-                          className={`flex items-center gap-4 border rounded-lg p-4 cursor-pointer transition-colors ${
-                            selectedPools.includes(pool.id)
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-muted-foreground/30"
-                          }`}
+                    {/* Custom pools section */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                        Create Additional Pools
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Need pools not listed above? Add them here and they'll be created with their own control accounts.
+                      </p>
+
+                      {customPools.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {customPools.map((name) => (
+                            <Badge key={name} variant="secondary" className="gap-1 py-1.5 px-3">
+                              <Coins className="h-3.5 w-3.5" />
+                              {name}
+                              <button
+                                type="button"
+                                onClick={() => removeCustomPool(name)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Input
+                          value={newPoolName}
+                          onChange={(e) => setNewPoolName(e.target.value)}
+                          placeholder="e.g. Platinum, Property, Crypto"
+                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomPool())}
+                          maxLength={50}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addCustomPool}
+                          disabled={!newPoolName.trim()}
                         >
-                          <Checkbox
-                            checked={selectedPools.includes(pool.id)}
-                            onCheckedChange={() => togglePool(pool.id)}
-                          />
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Coins className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{pool.name}</p>
-                              {pool.description && (
-                                <p className="text-sm text-muted-foreground">{pool.description}</p>
-                              )}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="bg-muted/50 rounded-lg p-4 space-y-2">
@@ -232,7 +326,7 @@ export default function TenantSetupWizard() {
                   ) : (
                     <>
                       <Building2 className="mr-2 h-4 w-4" />
-                      Set Up Co-operative ({selectedPools.length} pool{selectedPools.length !== 1 ? "s" : ""})
+                      Set Up Co-operative ({selectedPools.length + customPools.length} pool{selectedPools.length + customPools.length !== 1 ? "s" : ""})
                     </>
                   )}
                 </Button>
