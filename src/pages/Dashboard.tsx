@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +85,7 @@ const DONUT_COLORS = [
 const Dashboard = () => {
   const { currentTenant, tenants, branding, loading: tenantLoading } = useTenant();
   const { profile, user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
@@ -116,6 +117,23 @@ const Dashboard = () => {
     return !r.tenant_id || r.tenant_id === tenantId;
   });
   const isAdmin = isSuperAdmin || isTenantAdmin;
+
+  // Check if tenant has a legal entity configured (for tenant_admin prompt)
+  const { data: tenantHasLegalEntity, isLoading: legalEntityCheckLoading } = useQuery({
+    queryKey: ["tenant_legal_entity_check", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return true; // default to true to avoid showing prompt
+      const { data } = await (supabase as any)
+        .from("tenant_configuration")
+        .select("legal_entity_id")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      return !!data?.legal_entity_id;
+    },
+    enabled: !!tenantId && isTenantAdmin,
+  });
+
+  const showLegalEntityPrompt = isTenantAdmin && !isSuperAdmin && tenantHasLegalEntity === false && !legalEntityCheckLoading;
 
   const { data: myEntityRel, isLoading: myEntityRelLoading } = useQuery({
     queryKey: ["dashboard_myself_entity", user?.id, tenantId],
@@ -999,6 +1017,34 @@ const Dashboard = () => {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Legal Entity Registration Prompt */}
+      {showLegalEntityPrompt && (
+        <Dialog open={true}>
+          <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Register Legal Entity
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Your co-operative needs a registered legal entity before you can start managing members.
+                This will set up your company details, address, and bank information.
+              </p>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => navigate("/apply-membership?type=entity&mode=legal_entity")}
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                Register Legal Entity
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Required documents (member) */}
