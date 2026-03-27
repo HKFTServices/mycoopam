@@ -958,7 +958,7 @@ const Dashboard = () => {
   if (showSkeleton) return isAdmin ? <AdminDashboardSkeleton /> : <UserDashboardSkeleton />;
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
@@ -1228,8 +1228,8 @@ const Dashboard = () => {
 	          {isAdmin && poolSummaries.length > 0 && isWidgetVisible("pool-summaries") ? (
 	            isMobile ? (
 	              /* Mobile: horizontal scroll for pool cards */
-	              <div className="overflow-x-auto -mx-4 px-4 pb-2">
-	                <div className="flex gap-3" style={{ minWidth: "max-content" }}>
+	              <div className="overflow-x-auto -mx-4 px-4 pb-2 max-w-[100vw]">
+	                <div className="flex gap-3 w-max">
 	                  {poolSummaries.slice(0, 4).map((p: any) => {
 	                    const poolName = String(p?.name ?? "").toLowerCase();
 	                    const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
@@ -1307,7 +1307,7 @@ const Dashboard = () => {
 	              {/* Widget: recent-transactions */}
 	              {isWidgetVisible("recent-transactions") && (
 	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen}>
-	                  <Card>
+	                  <Card className="overflow-hidden">
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div className="flex items-start gap-2">
 	                        <CollapsibleTrigger asChild>
@@ -1322,7 +1322,7 @@ const Dashboard = () => {
 	                      </div>
 	                    </CardHeader>
 	                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-	                      <CardContent className={isMobile ? "px-2" : ""}>
+	                      <CardContent className={isMobile ? "px-0" : ""}>
 	                        <RecentAdminTransactions items={recentTransactions} />
 	                      </CardContent>
 	                    </CollapsibleContent>
@@ -1394,7 +1394,7 @@ const Dashboard = () => {
 	              {/* Widget: recent-deposits */}
 	              {isWidgetVisible("recent-deposits") && (
 	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className={isMobile ? "" : "lg:col-span-1"}>
-	                  <Card>
+	                  <Card className="overflow-hidden">
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div className="flex items-start gap-2">
 	                        <CollapsibleTrigger asChild>
