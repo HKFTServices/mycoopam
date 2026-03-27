@@ -687,7 +687,7 @@ const NewTransactionDialog = ({
   // Active courier fee for calculations
   const activeCourierFee = stockCourierOption === "insured" ? courierFeeInsured : stockCourierOption === "uninsured" ? courierFeeUninsured : 0;
 
-  // joinShareInfo — membership fees always carry VAT regardless of tenant VAT registration
+  // joinShareInfo — membership fees only carry VAT if the tenant is VAT registered
   const joinShareInfo = useMemo(() => {
     // A first-time deposit needs membership deductions if:
     // 1. No existing join share record exists (hasJoinShare = false), AND
@@ -696,7 +696,8 @@ const NewTransactionDialog = ({
     const needsMembershipFee = !hasJoinShare && membershipFeeAmount > 0;
     const needed = needsShareDeduction || needsMembershipFee;
     const rawMembershipFee = needsMembershipFee ? membershipFeeAmount : 0;
-    const membershipFeeVat = rawMembershipFee > 0 && vatRate > 0
+    // Only calculate VAT on membership fee if the tenant is VAT registered
+    const membershipFeeVat = rawMembershipFee > 0 && isVatRegistered && vatRate > 0
       ? Math.round((rawMembershipFee / (1 + vatRate / 100)) * (vatRate / 100) * 100) / 100
       : 0;
     return {
@@ -706,7 +707,7 @@ const NewTransactionDialog = ({
       membershipFeeVat,
       shareClassName: "Join Share",
     };
-  }, [hasJoinShare, joinShareCost, membershipFeeAmount, vatRate]);
+  }, [hasJoinShare, joinShareCost, membershipFeeAmount, isVatRegistered, vatRate]);
 
   // All pool holdings for the selected account — computed live directly from unit_transactions
   // Filtered strictly by entity_account_id AND tenant_id on the server side for full isolation

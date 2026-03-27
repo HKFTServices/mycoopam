@@ -64,9 +64,13 @@ export function buildDepositPreview(params: {
   }
 
   // Fees — contra: CFT debit → GL Ct (revenue)
+  // Skip Join Share and Membership Fee entries — they are handled above via the joinShare param
   for (const fee of feeBreakdown) {
     const feeAmt = Number(fee.amount || 0);
     if (feeAmt <= 0) continue;
+    // Skip entries already handled by joinShare logic above
+    const nameLower = (fee.name || "").toLowerCase();
+    if (joinShare && (nameLower.includes("join share") || nameLower === "membership fee")) continue;
     const feeVat = Number(fee.vat || 0);
     const feeBase = feeAmt - feeVat;
     const recalcVat = isVatRegistered && vatRate > 0 ? Math.round(feeBase * (vatRate / 100) * 100) / 100 : 0;
