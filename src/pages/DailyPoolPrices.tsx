@@ -293,8 +293,9 @@ const DailyPoolPrices = () => {
         const memberInterestSell = totalStockSell + cashControl + vatControl + loanControl;
         const memberInterestBuy = totalStockBuy + cashControl + vatControl + loanControl;
         const isFixedPrice = pool.fixed_unit_price != null && pool.fixed_unit_price > 0;
-        const unitPriceSell = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestSell / totalUnits : 0);
-        const unitPriceBuy = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestBuy / totalUnits : 0);
+        const openPrice = Number(pool.open_unit_price) || 1;
+        const unitPriceSell = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestSell / totalUnits : openPrice);
+        const unitPriceBuy = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestBuy / totalUnits : openPrice);
         return {
           pool,
           totalStockCost,
@@ -319,8 +320,9 @@ const DailyPoolPrices = () => {
       const memberInterestBuy = totalStockBuy + cashControl + vatControl + loanControl;
       const totalUnits = (unitsByPool as Record<string, number>)[pool.id] || 0;
       const isFixedPrice = pool.fixed_unit_price != null && pool.fixed_unit_price > 0;
-      const unitPriceSell = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestSell / totalUnits : 0);
-      const unitPriceBuy = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestBuy / totalUnits : 0);
+      const openPrice = Number(pool.open_unit_price) || 1;
+      const unitPriceSell = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestSell / totalUnits : openPrice);
+      const unitPriceBuy = isFixedPrice ? pool.fixed_unit_price : (totalUnits > 0 ? memberInterestBuy / totalUnits : openPrice);
 
       return {
         pool,
