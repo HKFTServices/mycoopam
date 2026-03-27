@@ -74,6 +74,7 @@ import DebitOrders from "./pages/DebitOrders";
 import Notifications from "./pages/Notifications";
 import LegacyGlAllocation from "./pages/LegacyGlAllocation";
 import CookiePolicy from "./pages/CookiePolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookieConsent from "./components/CookieConsent";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
@@ -134,6 +135,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
               {/* Auth-only (no role restriction) */}
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
