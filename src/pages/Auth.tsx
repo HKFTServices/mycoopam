@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,8 @@ const Auth = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { session, isPasswordRecovery } = useAuth();
 
   useEffect(() => {
@@ -46,6 +48,23 @@ const Auth = () => {
       }
     }
   }, [session, navigate, isPasswordRecovery]);
+
+  useEffect(() => {
+    if (searchParams.get("reset") !== "success") return;
+    toast({
+      title: "Password updated",
+      description: "Please sign in again using your new credentials.",
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete("reset");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: next.toString() ? `?${next.toString()}` : "",
+      },
+      { replace: true }
+    );
+  }, [location.pathname, navigate, searchParams, toast]);
 
   // Fetch tenant branding (public RPC, no auth needed)
   useEffect(() => {

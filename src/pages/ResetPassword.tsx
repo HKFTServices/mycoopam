@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getSiteUrl } from "@/lib/getSiteUrl";
+import { getSiteUrl, getTenantUrl } from "@/lib/getSiteUrl";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 
 const ResetPassword = () => {
@@ -16,10 +16,21 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [isRecovery, setIsRecovery] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type");
+    const code = params.get("code");
+    const hash = window.location.hash;
+    return (
+      type === "recovery" ||
+      hash.includes("type=recovery") ||
+      hash.includes("access_token=") ||
+      !!code
+    );
+  });
+  const [exchanging, setExchanging] = useState(false);
   const [branding, setBranding] = useState<{ tenant_name: string; logo_url: string | null } | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
@@ -40,12 +51,16 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const type = searchParams.get("type");
+    const code = searchParams.get("code");
     const hash = window.location.hash;
-    const hasRecoveryToken = type === "recovery" || hash.includes("type=recovery") || isPasswordRecovery;
+    const hasRecoveryToken =
+      type === "recovery" ||
+      hash.includes("type=recovery") ||
+      hash.includes("access_token=") ||
+      !!code ||
+      isPasswordRecovery;
 
-    if (hasRecoveryToken) {
-      setIsRecovery(true);
-    }
+    if (hasRecoveryToken) setIsRecovery(true);
 
     if (tenantSlug) {
       localStorage.setItem("tenantSlug", tenantSlug);
@@ -62,6 +77,66 @@ const ResetPassword = () => {
       window.location.replace(targetUrl);
     }
   }, [isPasswordRecovery, searchParams, tenantSlug]);
+
+  useEffect(() => {
+    if (!window.location.hash.includes("access_token=")) return;
+    let cancelled = false;
+
+    const scrubHashAfterSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (data.session) {
+          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void scrubHashAfterSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (!code) return;
+    let cancelled = false;
+
+    const exchange = async () => {
+      setExchanging(true);
+      try {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+        if (cancelled) return;
+
+        // Remove the auth code from the URL to reduce leakage via screenshots/history.
+        const next = new URLSearchParams(searchParams);
+        next.delete("code");
+        const nextQuery = next.toString();
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`
+        );
+        setIsRecovery(true);
+      } catch (error: any) {
+        if (!cancelled) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
+      } finally {
+        if (!cancelled) setExchanging(false);
+      }
+    };
+
+    void exchange();
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally depend on searchParams so we can safely remove "code" once.
+  }, [searchParams, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,13 +166,17 @@ const ResetPassword = () => {
         console.warn("Could not send password reset confirmation email:", emailErr);
       }
 
-      const dashboardUrl = tenantSlug ? `${getSiteUrl(tenantSlug)}/dashboard` : "/dashboard";
+      // Force re-authentication after changing password.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+
+      const loginUrl = tenantSlug ? getTenantUrl(tenantSlug) : "/auth";
+      const targetUrl = `${loginUrl}?reset=success`;
       setTimeout(() => {
-        if (tenantSlug) {
-          window.location.replace(dashboardUrl);
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
+        window.location.replace(targetUrl);
       }, 2000);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -124,7 +203,13 @@ const ResetPassword = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full" onClick={() => navigate("/auth")}>
+            <Button
+              className="w-full"
+              onClick={() => {
+                const url = tenantSlug ? getTenantUrl(tenantSlug) : "/auth";
+                window.location.replace(url);
+              }}
+            >
               Back to Sign In
             </Button>
           </CardContent>
@@ -143,7 +228,7 @@ const ResetPassword = () => {
               <CheckCircle className="h-12 w-12 text-primary" />
             </div>
             <CardTitle>Password Updated</CardTitle>
-            <CardDescription>Redirecting you to your dashboard…</CardDescription>
+            <CardDescription>Please sign in again with your new password…</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -184,8 +269,8 @@ const ResetPassword = () => {
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={loading || exchanging}>
+              {(loading || exchanging) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update Password
             </Button>
           </form>

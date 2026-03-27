@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchTenantBySlug, getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ const HCAPTCHA_SITE_KEY = "344a0cf0-5280-4e30-911e-c2c8ad2e4b48";
 const TenantLanding = () => {
   const { slug: pathSlug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
@@ -52,6 +53,23 @@ const TenantLanding = () => {
   useEffect(() => {
     if (session) navigate("/dashboard", { replace: true });
   }, [session, navigate]);
+
+  useEffect(() => {
+    if (searchParams.get("reset") !== "success") return;
+    toast({
+      title: "Password updated",
+      description: "Please sign in again using your new credentials.",
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete("reset");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: next.toString() ? `?${next.toString()}` : "",
+      },
+      { replace: true }
+    );
+  }, [location.pathname, navigate, searchParams, toast]);
 
   // Resolve tenant
   useEffect(() => {
