@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
+import heroImage from "@/assets/hero-image.jpg";
 import { navigateToTenant } from "@/lib/getSiteUrl";
 
 interface Tenant {
@@ -40,32 +41,48 @@ const Landing = () => {
     }
   }, [session, loading, navigate]);
 
+  // Fetch tenants on mount for the trusted-by section
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const [{ data: tenantRows }, { data: brandingRows }] = await Promise.all([
+          supabase.from("tenants").select("id, name, slug").eq("is_active", true).order("name"),
+          supabase.rpc("get_tenant_branding" as any),
+        ]);
+        const logoByTenantId = new Map(
+          ((brandingRows as TenantBrandingRow[] | null) ?? []).map((b) => [b.tenant_id, b.logo_url])
+        );
+        const merged: Tenant[] = (tenantRows ?? []).map((t) => ({
+          ...t,
+          logo_url: logoByTenantId.get(t.id) ?? null,
+        }));
+        setTenants(merged);
+      } catch {
+        // silent
+      }
+    };
+    fetchTenants();
+  }, []);
+
   const openTenantPicker = async () => {
     setShowTenantPicker(true);
+    if (tenants.length > 0) return; // already loaded
     setLoadingTenants(true);
     try {
       const [{ data: tenantRows, error: tenantErr }, { data: brandingRows, error: brandingErr }] =
         await Promise.all([
-          supabase
-            .from("tenants")
-            .select("id, name, slug")
-            .eq("is_active", true)
-            .order("name"),
+          supabase.from("tenants").select("id, name, slug").eq("is_active", true).order("name"),
           supabase.rpc("get_tenant_branding" as any),
         ]);
-
       if (tenantErr) throw tenantErr;
       if (brandingErr) throw brandingErr;
-
       const logoByTenantId = new Map(
         ((brandingRows as TenantBrandingRow[] | null) ?? []).map((b) => [b.tenant_id, b.logo_url])
       );
-
       const merged: Tenant[] = (tenantRows ?? []).map((t) => ({
         ...t,
         logo_url: logoByTenantId.get(t.id) ?? null,
       }));
-
       setTenants(merged);
     } finally {
       setLoadingTenants(false);
@@ -109,7 +126,7 @@ const Landing = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={myCoopLogo} alt="My Co-Op logo" className="h-10 w-auto" />
           </div>
@@ -122,34 +139,82 @@ const Landing = () => {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero — split layout */}
       <main className="flex-1">
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32 text-center">
-          <img src={myCoopLogo} alt="My Co-Op" className="h-24 sm:h-32 mx-auto mb-8" />
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-            Modern Co-operative
-            <br />
-            <span className="text-primary">Management Platform</span>
-          </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground leading-relaxed">
-            MyCoop provides a complete digital platform for co-operatives to manage memberships,
-            transactions, pooled investments, and regulatory compliance — all in one place.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-base px-8" onClick={() => navigate("/register-tenant")}>
-              Register Your Co-operative
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="text-base px-8" onClick={openTenantPicker}>
-              <LogIn className="mr-2 h-4 w-4" />
-              Member Login
-            </Button>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-32">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left — text */}
+            <div className="space-y-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1]">
+                People who care
+                <br />
+                about your{" "}
+                <span className="text-primary">growth</span>
+              </h1>
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
+                Powerful, self-serve co-operative management platform to help you onboard members,
+                manage investments, and grow your organisation.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <Button size="lg" className="text-base px-8" onClick={() => navigate("/register-tenant")}>
+                  Register Your Co-operative
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button size="lg" variant="outline" className="text-base px-8" onClick={openTenantPicker}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Member Login
+                </Button>
+              </div>
+            </div>
+
+            {/* Right — hero image */}
+            <div className="relative">
+              <div className="rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={heroImage}
+                  alt="Co-operative team collaborating on financial dashboards"
+                  className="w-full h-auto object-cover"
+                  width={1024}
+                  height={768}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
+        {/* Trusted By — tenant logos */}
+        {tenants.length > 0 && (
+          <section className="border-t border-border bg-muted/20 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <p className="text-sm text-muted-foreground mb-8">
+                Trusted by {tenants.length}+ co-operatives
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+                {tenants.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity">
+                    {t.logo_url ? (
+                      <img
+                        src={t.logo_url}
+                        alt={t.name}
+                        className="h-8 w-auto max-w-[120px] object-contain grayscale hover:grayscale-0 transition-all"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-foreground/60">{t.name}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Features */}
         <section className="border-t border-border bg-muted/30">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
             <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
               Everything your co-operative needs
             </h2>
@@ -168,7 +233,7 @@ const Landing = () => {
         </section>
 
         {/* CTA */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
             Ready to digitise your co-operative?
           </h2>
@@ -185,7 +250,7 @@ const Landing = () => {
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center gap-2">
           <img src={myCoopLogo} alt="My Co-Op" className="h-8 opacity-60" />
           <span className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} MyCoop. All rights reserved.
