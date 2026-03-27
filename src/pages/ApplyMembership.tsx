@@ -33,7 +33,7 @@ const ApplyMembership = () => {
   // Force entity type when in legal entity mode
   const appType = isLegalEntityMode ? "entity" as ApplicationType : rawAppType;
   const { user, profile } = useAuth();
-  const { currentTenant } = useTenant();
+  const { currentTenant, company } = useTenant();
   const navigate = useNavigate();
   const [data, setData] = useState<ApplicationData>(createInitialData(appType));
   const [step, setStep] = useState(0);
@@ -483,10 +483,14 @@ const ApplyMembership = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg gradient-brand flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold">CoopAdmin</span>
+          {company.logoUrl ? (
+            <img src={company.logoUrl} alt={company.name} className="h-9 max-w-[120px] object-contain" />
+          ) : (
+            <div className="h-9 w-9 rounded-lg gradient-brand flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
+          <span className="text-xl font-bold">{company.name}</span>
         </div>
       </header>
 
