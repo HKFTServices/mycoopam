@@ -430,7 +430,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredGlobalSetup = useMemo(() => filterItems(globalSetupNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
   const filteredHeadOffice = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
   const filteredMam = useMemo(() => filterItems(mamNavItems, normalizedQuery), [normalizedQuery]);
 
