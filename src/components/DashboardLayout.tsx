@@ -17,7 +17,7 @@ import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDi
 import PendingTransferNotification from "@/components/transfers/PendingTransferNotification";
 import ChangePasswordDialog from "@/components/profile/ChangePasswordDialog";
 import { Badge } from "@/components/ui/badge";
-import { navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
+import { navigateToTenant, isOnProductionDomain, getTenantUrl } from "@/lib/getSiteUrl";
 import {
   Sidebar,
   SidebarContent,
@@ -262,14 +262,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleSignOut = async () => {
     const tenantSlug = localStorage.getItem("tenantSlug");
+    // Determine target URL BEFORE signing out to prevent ProtectedRoute
+    // from redirecting to /auth mid-flight
+    const targetUrl = tenantSlug
+      ? getTenantUrl(tenantSlug)
+      : isOnProductionDomain()
+        ? "/"
+        : "https://www.myco-op.co.za";
     await signOut();
-    if (tenantSlug) {
-      navigateToTenant(tenantSlug, navigate, { replace: true });
-    } else if (!isOnProductionDomain()) {
-      window.location.replace("https://www.myco-op.co.za");
-    } else {
-      navigate("/", { replace: true });
-    }
+    // Always use window.location.replace for a clean redirect
+    window.location.replace(targetUrl);
   };
 
   const impersonatingFrom = localStorage.getItem("impersonating_from");
@@ -277,14 +279,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const handleEndImpersonation = async () => {
     localStorage.removeItem("impersonating_from");
     const tenantSlug = localStorage.getItem("tenantSlug");
+    const targetUrl = tenantSlug
+      ? getTenantUrl(tenantSlug)
+      : isOnProductionDomain()
+        ? "/auth"
+        : "https://www.myco-op.co.za";
     await supabase.auth.signOut();
-    if (tenantSlug) {
-      navigateToTenant(tenantSlug, navigate, { replace: true });
-    } else if (!isOnProductionDomain()) {
-      window.location.replace("https://www.myco-op.co.za");
-    } else {
-      navigate("/auth", { replace: true });
-    }
+    window.location.replace(targetUrl);
   };
 
   // Check current user roles
