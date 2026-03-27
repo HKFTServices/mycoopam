@@ -817,16 +817,15 @@ const NewTransactionDialog = ({
   // For switch: to-pools are all pools except the from-pool (apply allow_to rules if set)
   const switchToPools = useMemo(() => {
     if (!isSwitch || !selectedPoolId) return [];
-    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_id === selectedTxnTypeId);
+    // For switch destination pools, check if they have 'switch' rule allowed
+    const switchRules = poolTxnRules.filter((r: any) => r.transaction_type_code === "switch" && r.is_allowed);
     let eligible = allPools.filter((p: any) => p.id !== selectedPoolId);
-    if (rulesForType.length > 0) {
-      const allowedToIds = new Set(
-        rulesForType.filter((r: any) => r.allow_to).map((r: any) => r.pool_id)
-      );
-      if (allowedToIds.size > 0) eligible = eligible.filter((p: any) => allowedToIds.has(p.id));
+    if (switchRules.length > 0) {
+      const allowedIds = new Set(switchRules.map((r: any) => r.pool_id));
+      eligible = eligible.filter((p: any) => allowedIds.has(p.id));
     }
     return eligible;
-  }, [allPools, poolTxnRules, selectedTxnTypeId, isSwitch, selectedPoolId]);
+  }, [allPools, poolTxnRules, isSwitch, selectedPoolId]);
 
   // Fetch daily pool prices for the selected transaction date
   const txnDateStr = format(transactionDate, "yyyy-MM-dd");
