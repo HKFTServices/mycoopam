@@ -793,23 +793,23 @@ Deno.serve(async (req) => {
       body = body + resolvedSignature;
     }
 
-    const requestedPort = tenantConfig.smtp_port || 587;
+    const requestedPort = smtpPort || 587;
     const usePort = requestedPort === 465 ? 587 : requestedPort;
 
     const transporter = nodemailer.createTransport({
-      host: tenantConfig.smtp_host,
+      host: smtpHost,
       port: usePort,
       secure: false,
       ignoreTLS: true,
-      auth: tenantConfig.smtp_username
-        ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" }
+      auth: smtpUsername
+        ? { user: smtpUsername, pass: smtpPassword || "" }
         : undefined,
     });
 
-    const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
-    const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
-    const fromHeader = tenantConfig.smtp_from_name
-      ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
+    const isSmtpUserEmail = smtpUsername?.includes("@");
+    const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
+    const fromHeader = smtpFromName
+      ? `"${smtpFromName}" <${effectiveFromEmail}>`
       : effectiveFromEmail;
 
     const logEmail = async (recipientEmail: string, recipientUserId: string | null, emailSubject: string, emailStatus: string, errorMsg: string | null, msgId: string | null) => {
