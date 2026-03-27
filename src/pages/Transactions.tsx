@@ -11,7 +11,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle } from "lucide-react";
+import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle, Monitor } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
