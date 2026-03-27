@@ -1843,119 +1843,186 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
     return String(v ?? "—");
   };
 
+  const isMobileView = typeof window !== "undefined" && window.innerWidth < 640;
+
   return (
     <div className="space-y-2">
       <ScrollShadow>
-        <div className="overflow-x-auto">
-          <Table className="min-w-[980px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[360px]">Transaction</TableHead>
-                <TableHead className="min-w-[240px]">Member</TableHead>
-                <TableHead className="w-[140px] whitespace-nowrap">Status</TableHead>
-                <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
-                <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
-                <TableHead className="w-[56px] text-right whitespace-nowrap">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((txn: any) => {
-                const typeName = txn.transaction_types?.name || "Transaction";
-                const code = String(txn.transaction_types?.code ?? "").toUpperCase();
-                const isWithdrawal = code.includes("WITHDRAW");
-                const isDeposit = code.includes("DEPOSIT");
-                const poolName = txn.pools?.name || "";
-                const entity = txn.entity_accounts?.entities;
-                const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ") || "—";
-                const accountNumber = txn.entity_accounts?.account_number;
+        {isMobileView ? (
+          <div className="space-y-2">
+            {items.map((txn: any) => {
+              const typeName = txn.transaction_types?.name || "Transaction";
+              const code = String(txn.transaction_types?.code ?? "").toUpperCase();
+              const isWithdrawal = code.includes("WITHDRAW");
+              const isDeposit = code.includes("DEPOSIT");
+              const poolName = txn.pools?.name || "";
+              const entity = txn.entity_accounts?.entities;
+              const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ") || "—";
+              const Icon = isWithdrawal ? ArrowUpFromLine : isDeposit ? ArrowDownToLine : ArrowUpRight;
+              const iconTone = isWithdrawal
+                ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                : isDeposit
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-primary/10 text-primary";
+              const amountTone = isWithdrawal
+                ? "text-orange-600 dark:text-orange-400"
+                : isDeposit
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-foreground";
+              const status = String(txn.status ?? "");
+              const statusLabel = status
+                ? status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+                : "—";
+              const statusTone =
+                status === "declined"
+                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                  : status === "approved" || status === "payout_confirmed"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : status === "pending" || status === "first_approved" || status === "stock_value_verified" || status === "courier_arranged"
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      : "border-border bg-muted/30 text-muted-foreground";
 
-                const Icon = isWithdrawal ? ArrowUpFromLine : isDeposit ? ArrowDownToLine : ArrowUpRight;
-                const iconTone = isWithdrawal
-                  ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-                  : isDeposit
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-primary/10 text-primary";
-                const amountTone = isWithdrawal
-                  ? "text-orange-600 dark:text-orange-400"
-                  : isDeposit
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-foreground";
-
-                const status = String(txn.status ?? "");
-                const statusLabel = status
-                  ? status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
-                  : "—";
-                const statusTone =
-                  status === "declined"
-                    ? "border-destructive/30 bg-destructive/10 text-destructive"
-                    : status === "approved" || status === "payout_confirmed"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                      : status === "pending" || status === "first_approved" || status === "stock_value_verified" || status === "courier_arranged"
-                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                        : "border-border bg-muted/30 text-muted-foreground";
-
-                return (
-                  <TableRow key={txn.id} className="hover:bg-muted/40">
-                    <TableCell className="py-3">
-                      <div className="flex items-center gap-3 min-w-[280px]">
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${iconTone}`}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {poolName ? `${typeName} · ${poolName}` : typeName}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {code ? `Code: ${code}` : "—"}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="py-3">
-                      <div className="min-w-[200px]">
-                        <p className="text-sm truncate" title={memberName}>{memberName}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {accountNumber ? `Acc ${accountNumber}` : "—"}
-                        </p>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="py-3 whitespace-nowrap">
-                      <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${statusTone}`}>
+              return (
+                <div
+                  key={txn.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors cursor-pointer"
+                  onClick={() => { setSelectedTxn(txn); setDetailsOpen(true); }}
+                >
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${iconTone}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">
+                        {poolName ? `${typeName} · ${poolName}` : typeName}
+                      </p>
+                      <p className={`text-sm font-semibold shrink-0 ${amountTone}`}>
+                        {formatCurrency(Number(txn.amount))}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <p className="text-xs text-muted-foreground truncate">{memberName}</p>
+                      <Badge variant="outline" className={`text-[9px] shrink-0 ${statusTone}`}>
                         {statusLabel}
                       </Badge>
-                    </TableCell>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[980px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[360px]">Transaction</TableHead>
+                  <TableHead className="min-w-[240px]">Member</TableHead>
+                  <TableHead className="w-[140px] whitespace-nowrap">Status</TableHead>
+                  <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
+                  <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
+                  <TableHead className="w-[56px] text-right whitespace-nowrap">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((txn: any) => {
+                  const typeName = txn.transaction_types?.name || "Transaction";
+                  const code = String(txn.transaction_types?.code ?? "").toUpperCase();
+                  const isWithdrawal = code.includes("WITHDRAW");
+                  const isDeposit = code.includes("DEPOSIT");
+                  const poolName = txn.pools?.name || "";
+                  const entity = txn.entity_accounts?.entities;
+                  const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ") || "—";
+                  const accountNumber = txn.entity_accounts?.account_number;
 
-                    <TableCell className={`py-3 text-right font-medium whitespace-nowrap ${amountTone}`}>
-                      {formatCurrency(Number(txn.amount))}
-                    </TableCell>
+                  const Icon = isWithdrawal ? ArrowUpFromLine : isDeposit ? ArrowDownToLine : ArrowUpRight;
+                  const iconTone = isWithdrawal
+                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                    : isDeposit
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-primary/10 text-primary";
+                  const amountTone = isWithdrawal
+                    ? "text-orange-600 dark:text-orange-400"
+                    : isDeposit
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-foreground";
 
-                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
-                      {txn.transaction_date ?? "—"}
-                    </TableCell>
+                  const status = String(txn.status ?? "");
+                  const statusLabel = status
+                    ? status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+                    : "—";
+                  const statusTone =
+                    status === "declined"
+                      ? "border-destructive/30 bg-destructive/10 text-destructive"
+                      : status === "approved" || status === "payout_confirmed"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : status === "pending" || status === "first_approved" || status === "stock_value_verified" || status === "courier_arranged"
+                          ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                          : "border-border bg-muted/30 text-muted-foreground";
 
-                    <TableCell className="py-3 text-right whitespace-nowrap">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        aria-label="View transaction"
-                        onClick={() => {
-                          setSelectedTxn(txn);
-                          setDetailsOpen(true);
-                        }}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                  return (
+                    <TableRow key={txn.id} className="hover:bg-muted/40">
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-3 min-w-[280px]">
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${iconTone}`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {poolName ? `${typeName} · ${poolName}` : typeName}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {code ? `Code: ${code}` : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-3">
+                        <div className="min-w-[200px]">
+                          <p className="text-sm truncate" title={memberName}>{memberName}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {accountNumber ? `Acc ${accountNumber}` : "—"}
+                          </p>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-3 whitespace-nowrap">
+                        <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${statusTone}`}>
+                          {statusLabel}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell className={`py-3 text-right font-medium whitespace-nowrap ${amountTone}`}>
+                        {formatCurrency(Number(txn.amount))}
+                      </TableCell>
+
+                      <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
+                        {txn.transaction_date ?? "—"}
+                      </TableCell>
+
+                      <TableCell className="py-3 text-right whitespace-nowrap">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="View transaction"
+                          onClick={() => {
+                            setSelectedTxn(txn);
+                            setDetailsOpen(true);
+                          }}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </ScrollShadow>
 
       <Dialog
@@ -2212,44 +2279,71 @@ const RecentMemberDeposits = ({ items }: { items: any[] }) => {
     );
   };
 
+  const isMobileView = typeof window !== "undefined" && window.innerWidth < 640;
+
   return (
     <div className="space-y-2">
       <ScrollShadow>
-        <div className="overflow-x-auto">
-          <Table className="min-w-[520px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Deposit</TableHead>
-                <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
-                <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((row: any) => {
-                const poolName = row.pools?.name || "Deposit";
-                const amount = Number(row.value ?? 0) || Number(row.credit ?? 0);
-                return (
-                  <TableRow key={row.id} className="hover:bg-muted/40">
-                    <TableCell className="py-3">
-                      <div className="flex items-center gap-3 min-w-[240px]">
-                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                          <ArrowDownToLine className="h-4 w-4" />
+        {isMobileView ? (
+          <div className="space-y-2">
+            {items.map((row: any) => {
+              const poolName = row.pools?.name || "Deposit";
+              const amount = Number(row.value ?? 0) || Number(row.credit ?? 0);
+              return (
+                <div key={row.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                  <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <ArrowDownToLine className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{poolName}</p>
+                      <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        +{formatCurrency(amount)}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{row.transaction_date ?? "—"}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[520px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Deposit</TableHead>
+                  <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
+                  <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((row: any) => {
+                  const poolName = row.pools?.name || "Deposit";
+                  const amount = Number(row.value ?? 0) || Number(row.credit ?? 0);
+                  return (
+                    <TableRow key={row.id} className="hover:bg-muted/40">
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-3 min-w-[240px]">
+                          <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <ArrowDownToLine className="h-4 w-4" />
+                          </div>
+                          <p className="text-sm truncate">{poolName}</p>
                         </div>
-                        <p className="text-sm truncate">{poolName}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3 text-right text-sm font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                      +{formatCurrency(amount)}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
-                      {row.transaction_date ?? "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                      </TableCell>
+                      <TableCell className="py-3 text-right text-sm font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                        +{formatCurrency(amount)}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
+                        {row.transaction_date ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </ScrollShadow>
     </div>
   );
