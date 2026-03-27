@@ -31,6 +31,7 @@ type Pool = {
   name: string;
   is_active: boolean;
   fixed_unit_price: number;
+  open_unit_price: number;
   icon_url: string | null;
   cash_control_account_id: string | null;
   vat_control_account_id: string | null;
