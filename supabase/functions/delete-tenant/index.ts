@@ -70,7 +70,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Deleting tenant: ${tenant.name} (${tenant_id})`);
+    // Capture tenant member user IDs BEFORE we delete memberships
+    const { data: tenantMembers } = await admin
+      .from("tenant_memberships")
+      .select("user_id")
+      .eq("tenant_id", tenant_id);
+    const tenantUserIds = (tenantMembers || []).map((m: any) => m.user_id);
+
+    console.log(`Deleting tenant: ${tenant.name} (${tenant_id}), ${tenantUserIds.length} members`);
+
 
     // Delete in dependency order (children first, parent last)
     // Order matters for foreign key constraints
