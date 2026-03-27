@@ -357,7 +357,7 @@ const RegisterTenant = () => {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(), password,
         options: {
-          emailRedirectTo: getSiteUrl(),
+          emailRedirectTo: getTenantUrl(slug),
           data: { first_name: firstName.trim(), last_name: lastName.trim() },
         },
       });
@@ -450,7 +450,9 @@ const RegisterTenant = () => {
         description: "Check your email to verify your account, then sign in to complete your setup.",
       });
 
-      navigate(`/auth?tenant=${slug}`);
+      // Redirect to the tenant's subdomain
+      const tenantUrl = getTenantUrl(slug);
+      window.location.href = tenantUrl;
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
