@@ -155,6 +155,9 @@ const headOfficeNavItems: NavItem[] = [
   { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
   { label: "Tenant Management", icon: Users, path: "/dashboard/head-office/tenants" },
   { label: "Tenant Invoices", icon: FileText, path: "/dashboard/head-office/invoices" },
+];
+
+const globalSetupNavItems: NavItem[] = [
   { label: "Countries", icon: Globe, path: "/dashboard/setup/countries" },
   { label: "Titles", icon: Users, path: "/dashboard/setup/titles" },
   { label: "Entity Categories", icon: Building2, path: "/dashboard/setup/entity-categories" },
