@@ -11,9 +11,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle, Monitor } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -319,10 +319,9 @@ const Transactions = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <ArrowLeftRight className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <ArrowLeftRight className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <div>
             <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Transactions</h1>
             <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage your investment transactions</p>
@@ -342,27 +341,19 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Mobile hint */}
-      {isMobile && (
-        <Alert className="border-primary/20 bg-primary/5">
-          <Monitor className="h-4 w-4 text-primary" />
-          <AlertDescription className="text-xs text-muted-foreground">
-            This view is optimised for desktop. Scroll horizontally to see all columns.
-          </AlertDescription>
-        </Alert>
-      )}
+      <MobileTableHint />
 
       <Tabs defaultValue="member">
-        <TabsList>
-          <TabsTrigger value="member" className="gap-1.5">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="member" className="gap-1.5 text-xs sm:text-sm">
             <ArrowLeftRight className="h-3.5 w-3.5" />
-            Member Transactions
+            {isMobile ? "Member" : "Member Transactions"}
             {transactions.length > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-[10px]">{transactions.length}</Badge>}
           </TabsTrigger>
           {canAccessStock && (
-            <TabsTrigger value="stock" className="gap-1.5">
+            <TabsTrigger value="stock" className="gap-1.5 text-xs sm:text-sm">
               <Package className="h-3.5 w-3.5" />
-              Admin Stock
+              {isMobile ? "Stock" : "Admin Stock"}
               {adminStockTxns.length > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-[10px]">{adminStockTxns.length}</Badge>}
             </TabsTrigger>
           )}

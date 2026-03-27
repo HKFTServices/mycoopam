@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { ArrowRight, Loader2, Banknote, Eye, Plus, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
 import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
@@ -134,34 +136,36 @@ const LoanApplications = () => {
     try { return new Date(d).toLocaleDateString("en-ZA"); } catch { return d; }
   };
 
+  const isMobile = useIsMobile();
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Banknote className="h-6 w-6 text-primary" />
+          <Banknote className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold">Loan Applications</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-lg sm:text-2xl font-bold">Loan Applications</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {isAdmin ? "Review and manage loan applications" : "Your loan applications"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="accepted">Accepted</SelectItem>
-              <SelectItem value="disbursed">Disbursed</SelectItem>
-              <SelectItem value="declined">Declined</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="accepted">Accepted</SelectItem>
+            <SelectItem value="disbursed">Disbursed</SelectItem>
+            <SelectItem value="declined">Declined</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      <MobileTableHint />
 
       {memberPrimaryAccount ? (
         <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
