@@ -171,21 +171,37 @@ Deno.serve(async (req) => {
 
     // 8. If user_id provided, create user_entity_relationship
     if (user_id) {
-      const { data: relType } = await admin
-        .from("relationship_types")
-        .select("id")
-        .eq("name", "Authorised Representative")
-        .eq("is_active", true)
-        .maybeSingle();
+      // Try multiple relationship type names in priority order
+      const relTypeNames = [
+        "Director of Co-operative",
+        "Authorised Representative",
+        "Director of Company",
+      ];
+      let relType: any = null;
+      for (const name of relTypeNames) {
+        const { data: rt } = await admin
+          .from("relationship_types")
+          .select("id")
+          .eq("name", name)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (rt) {
+          relType = rt;
+          break;
+        }
+      }
 
       if (relType) {
-        await admin.from("user_entity_relationships").insert({
+        const { error: relErr } = await admin.from("user_entity_relationships").insert({
           tenant_id,
           user_id,
           entity_id: entity.id,
           relationship_type_id: relType.id,
           is_active: true,
         });
+        if (relErr) console.warn("User-entity relationship error:", relErr.message);
+      } else {
+        console.warn("No suitable relationship type found for legal entity link");
       }
     }
 
