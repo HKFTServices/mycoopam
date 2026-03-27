@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Building2, ArrowRight, LogIn } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import heroImage from "@/assets/hero-image.jpg";
+import dashboardWeb from "@/assets/dashboard-web.jpg";
+import dashboardMobile from "@/assets/dashboard-mobile.jpg";
 import { navigateToTenant } from "@/lib/getSiteUrl";
 
 interface Tenant {
@@ -91,34 +93,16 @@ const Landing = () => {
 
   const features = [
     {
-      icon: Users,
       title: "Membership Management",
-      desc: "Onboard members, manage documents, track registrations and approvals seamlessly.",
+      desc: "Whether you have 10 or 10,000 members, our membership tools keep everyone onboarded, compliant, and engaged.",
     },
     {
-      icon: Shield,
-      title: "Pooled Investments",
-      desc: "Manage investment pools with daily pricing, unit tracking, and transparent reporting.",
+      title: "Pooled Investment Tracking",
+      desc: "A complete investment management platform that helps you track pools, unit prices, and member holdings with full transparency.",
     },
     {
-      icon: Building2,
-      title: "Multi-Tenant Architecture",
-      desc: "Each co-operative operates independently with its own branding, configuration, and data isolation.",
-    },
-    {
-      icon: Shield,
-      title: "Regulatory Compliance",
-      desc: "Built-in document requirements, KYC processes, and audit trails for full compliance.",
-    },
-    {
-      icon: Users,
-      title: "Transaction Processing",
-      desc: "Deposits, withdrawals, switches, and transfers with multi-level approval workflows.",
-    },
-    {
-      icon: Building2,
-      title: "Role-Based Access",
-      desc: "Granular permissions for members, clerks, managers, tenant admins, and super admins.",
+      title: "Reporting & Compliance",
+      desc: "Measure what matters with easy-to-use reports. Filter, export, and drill down on member data, transactions, and financials in a couple of clicks.",
     },
   ];
 
@@ -213,21 +197,56 @@ const Landing = () => {
         )}
 
         {/* Features */}
-        <section className="border-t border-border bg-muted/30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-              Everything your co-operative needs
-            </h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {features.map((feature, i) => (
-                <div key={i} className="rounded-xl border border-border bg-card p-6 space-y-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <feature.icon className="h-5 w-5 text-primary" />
+        <section className="border-t border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+            {/* Section header */}
+            <div className="max-w-2xl mb-16">
+              <p className="text-sm font-semibold text-primary mb-3">Features</p>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+                Overflowing with useful features
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Powerful, self-serve co-operative management tools to help you onboard, engage, and grow your member base.
+              </p>
+            </div>
+
+            {/* Content: left features + right screenshots */}
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+              {/* Left — stacked feature items */}
+              <div className="space-y-10">
+                {features.map((feature, i) => (
+                  <div key={i} className="border-l-2 border-border pl-6 space-y-2">
+                    <h3 className="font-semibold text-lg">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-md">{feature.desc}</p>
                   </div>
-                  <h3 className="font-semibold text-lg">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+                ))}
+              </div>
+
+              {/* Right — overlapping dashboard screenshots */}
+              <div className="relative h-[500px] sm:h-[550px] lg:h-[600px]">
+                {/* Web dashboard — back layer */}
+                <div className="absolute top-0 right-0 w-[85%] rounded-xl shadow-2xl border border-border overflow-hidden bg-card">
+                  <img
+                    src={dashboardWeb}
+                    alt="MyCoop web dashboard"
+                    className="w-full h-auto"
+                    loading="lazy"
+                    width={1200}
+                    height={800}
+                  />
                 </div>
-              ))}
+                {/* Mobile dashboard — front layer, overlapping bottom-left */}
+                <div className="absolute bottom-0 left-0 w-[45%] sm:w-[40%] rounded-2xl shadow-2xl border border-border overflow-hidden bg-card z-10">
+                  <img
+                    src={dashboardMobile}
+                    alt="MyCoop mobile dashboard"
+                    className="w-full h-auto"
+                    loading="lazy"
+                    width={512}
+                    height={1024}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>
