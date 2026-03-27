@@ -122,6 +122,14 @@ const Dashboard = () => {
   });
   const isAdmin = isSuperAdmin || isTenantAdmin;
 
+  // Track resolved admin state for widget hook
+  useEffect(() => {
+    if (!rolesLoading) setIsAdminResolved(true);
+  }, [rolesLoading]);
+
+  const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
+    useDashboardWidgets(isAdmin);
+
   // Check if tenant has a legal entity configured (for tenant_admin prompt)
   const { data: tenantHasLegalEntity, isLoading: legalEntityCheckLoading } = useQuery({
     queryKey: ["tenant_legal_entity_check", tenantId],
