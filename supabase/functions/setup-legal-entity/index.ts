@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
       contact_number,
       email_address,
       website,
+      directors,
       street_address,
       suburb,
       city,
@@ -164,6 +165,7 @@ Deno.serve(async (req) => {
       .update({
         legal_entity_id: entity.id,
         vat_number: is_vat_registered ? vat_number?.trim() : null,
+        directors: directors?.trim() || null,
       })
       .eq("tenant_id", tenant_id);
 
