@@ -797,11 +797,11 @@ const NewTransactionDialog = ({
     const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_code === ruleCode && r.is_allowed);
     const allowedPoolIds = new Set(rulesForType.map((r: any) => r.pool_id));
 
-    // If no rules configured for this type at all, fall back to showing all pools for deposits only
+    // If no rules configured for this type at all, fall back to showing all pools for deposits/withdrawals only
     const anyRulesForType = poolTxnRules.some((r: any) => r.transaction_type_code === ruleCode);
     let filtered: any[];
     if (!anyRulesForType) {
-      filtered = (isDepositCode || isWithdrawalCode) ? allPools : [];
+      filtered = (isDepositCode || isWithdrawalCode || DEPOSIT_ONLY_CODES.includes(selectedCode)) ? allPools : [];
     } else {
       filtered = allPools.filter((p: any) => allowedPoolIds.has(p.id));
     }
