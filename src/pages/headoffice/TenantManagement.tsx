@@ -7,7 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2 } from "lucide-react";
+import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -24,6 +28,8 @@ const TenantManagement = () => {
   const [feeForm, setFeeForm] = useState<Record<string, string>>({});
   const [eomTenant, setEomTenant] = useState<{ id: string; name: string } | null>(null);
   const [featuresTenant, setFeaturesTenant] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTenant, setDeleteTenant] = useState<{ id: string; name: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   // Fetch all tenants with stats
   const { data: tenants = [], isLoading } = useQuery({
@@ -113,6 +119,27 @@ const TenantManagement = () => {
       setFeeForm({});
     },
     onError: (err: any) => toast.error(err.message),
+  });
+
+  const deleteTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const { data, error } = await supabase.functions.invoke("delete-tenant", {
+        body: { tenant_id: tenantId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["ho_tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["ho_member_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["ho_pool_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["ho_tenant_fees"] });
+      toast.success(`Tenant "${data.tenant_name}" deleted — ${data.total_deleted} records removed`);
+      setDeleteTenant(null);
+      setDeleteConfirmText("");
+    },
+    onError: (err: any) => toast.error(`Delete failed: ${err.message}`),
   });
 
   const filtered = tenants.filter((t: any) =>
@@ -254,6 +281,14 @@ const TenantManagement = () => {
                           <CalendarDays className="h-3.5 w-3.5 mr-1" />
                           Run EOM
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleteTenant({ id: tenant.id, name: tenant.name })}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Delete
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -356,6 +391,44 @@ const TenantManagement = () => {
         onOpenChange={(open) => !open && setFeaturesTenant(null)}
         tenant={featuresTenant}
       />
+
+      {/* Delete Tenant Confirmation */}
+      <AlertDialog open={!!deleteTenant} onOpenChange={(open) => { if (!open) { setDeleteTenant(null); setDeleteConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Delete Tenant — {deleteTenant?.name}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This will <strong>permanently delete</strong> the tenant and <strong>ALL</strong> associated data including
+                members, transactions, pools, documents, and configuration. This action cannot be undone.
+              </p>
+              <p>
+                Type <strong className="font-mono text-foreground">{deleteTenant?.name}</strong> to confirm:
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type tenant name to confirm"
+                className="mt-2"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirmText !== deleteTenant?.name || deleteTenantMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteTenant) deleteTenantMutation.mutate(deleteTenant.id);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteTenantMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
