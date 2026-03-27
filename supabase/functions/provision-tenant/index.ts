@@ -401,11 +401,10 @@ Deno.serve(async (req) => {
       const tcRows = srcTerms.map((tc: any) => ({
         id: uuid(),
         tenant_id: tenant_id,
-        name: tc.name,
         condition_type: tc.condition_type,
         language_code: tc.language_code,
-        content_html: tc.content_html,
-        version: tc.version,
+        content: tc.content,
+        effective_from: tc.effective_from,
         is_active: tc.is_active,
       }));
       const { error } = await admin.from("terms_conditions").insert(tcRows);
@@ -558,6 +557,111 @@ Deno.serve(async (req) => {
       const { error } = await admin.from("income_expense_items").insert(ieiRows);
       if (error) console.error("Income/expense items error:", error);
       results.income_expense_items = ieiRows.length;
+    }
+
+    // ─── 15. Transaction Fee Types ───
+    const { data: srcFeeTypes } = await admin
+      .from("transaction_fee_types")
+      .select("*")
+      .eq("tenant_id", SOURCE_TENANT_ID);
+
+    if (srcFeeTypes && srcFeeTypes.length > 0) {
+      const ftRows = srcFeeTypes.map((ft: any) => {
+        const newId = uuid();
+        idMap.set(ft.id, newId);
+        return {
+          id: newId,
+          tenant_id: tenant_id,
+          name: ft.name,
+          code: ft.code,
+          description: ft.description,
+          is_active: ft.is_active,
+          gl_account_id: mapId(ft.gl_account_id),
+          cash_control_account_id: mapId(ft.cash_control_account_id),
+          credit_control_account_id: mapId(ft.credit_control_account_id),
+          based_on: ft.based_on,
+          payment_method: ft.payment_method,
+        };
+      });
+      const { error } = await admin.from("transaction_fee_types").insert(ftRows);
+      if (error) console.error("Transaction fee types error:", error);
+      results.transaction_fee_types = ftRows.length;
+    }
+
+    // ─── 16. Transaction Fee Rules ───
+    const { data: srcFeeRules } = await admin
+      .from("transaction_fee_rules")
+      .select("*")
+      .eq("tenant_id", SOURCE_TENANT_ID);
+
+    if (srcFeeRules && srcFeeRules.length > 0) {
+      const frRows = srcFeeRules.map((fr: any) => {
+        const newId = uuid();
+        idMap.set(fr.id, newId);
+        return {
+          id: newId,
+          tenant_id: tenant_id,
+          fee_type_id: mapId(fr.fee_type_id) || fr.fee_type_id,
+          transaction_type_id: mapId(fr.transaction_type_id) || fr.transaction_type_id,
+          calculation_method: fr.calculation_method,
+          fixed_amount: fr.fixed_amount,
+          percentage: fr.percentage,
+          is_active: fr.is_active,
+          admin_share_percentage: fr.admin_share_percentage,
+        };
+      });
+      const { error } = await admin.from("transaction_fee_rules").insert(frRows);
+      if (error) console.error("Transaction fee rules error:", error);
+      results.transaction_fee_rules = frRows.length;
+    }
+
+    // ─── 17. Transaction Fee Tiers ───
+    const { data: srcFeeTiers } = await admin
+      .from("transaction_fee_tiers")
+      .select("*")
+      .eq("tenant_id", SOURCE_TENANT_ID);
+
+    if (srcFeeTiers && srcFeeTiers.length > 0) {
+      const tierRows = srcFeeTiers.map((tier: any) => ({
+        id: uuid(),
+        tenant_id: tenant_id,
+        fee_rule_id: mapId(tier.fee_rule_id) || tier.fee_rule_id,
+        min_amount: tier.min_amount,
+        max_amount: tier.max_amount,
+        percentage: tier.percentage,
+        admin_percentage: tier.admin_percentage,
+      }));
+      const { error } = await admin.from("transaction_fee_tiers").insert(tierRows);
+      if (error) console.error("Transaction fee tiers error:", error);
+      results.transaction_fee_tiers = tierRows.length;
+    }
+
+    // ─── 18. Pool Fee Configurations ───
+    const { data: srcPoolFees } = await admin
+      .from("pool_fee_configurations")
+      .select("*")
+      .eq("tenant_id", SOURCE_TENANT_ID);
+
+    if (srcPoolFees && srcPoolFees.length > 0) {
+      const pfRows = srcPoolFees
+        .filter((pf: any) => mapId(pf.pool_id)) // only for selected pools
+        .map((pf: any) => ({
+          id: uuid(),
+          tenant_id: tenant_id,
+          fee_type_id: mapId(pf.fee_type_id) || pf.fee_type_id,
+          pool_id: mapId(pf.pool_id)!,
+          frequency: pf.frequency,
+          percentage: pf.percentage,
+          fixed_amount: pf.fixed_amount,
+          is_active: pf.is_active,
+          admin_share_percentage: pf.admin_share_percentage,
+          invoice_by_administrator: pf.invoice_by_administrator,
+        }));
+      if (pfRows.length > 0) {
+        const { error } = await admin.from("pool_fee_configurations").insert(pfRows);
+        if (error) console.error("Pool fee configurations error:", error);
+        results.pool_fee_configurations = pfRows.length;
+      }
     }
 
     // ─── Create custom pools (user-defined, not from template) ───
