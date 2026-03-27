@@ -1661,14 +1661,14 @@ const AdminChartsCard = ({
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-5">
-          <div className="rounded-xl border bg-card p-4 shadow-sm h-full md:col-span-2">
+        <div className={compact ? "space-y-4" : "grid gap-4 md:grid-cols-5"}>
+          <div className={`rounded-xl border bg-card p-4 shadow-sm h-full ${compact ? "" : "md:col-span-2"}`}>
             <DonutBlock title="AUM allocation" data={aumData} emptyLabel="No AUM data yet." />
           </div>
-          <div className="rounded-xl border bg-card p-4 shadow-sm h-full md:col-span-2">
+          <div className={`rounded-xl border bg-card p-4 shadow-sm h-full ${compact ? "" : "md:col-span-2"}`}>
             <DonutBlock title="Loan book" data={loanData} emptyLabel="No outstanding loans." />
           </div>
-          <div className="rounded-xl border bg-card p-4 shadow-sm h-full md:col-span-1">
+          <div className={`rounded-xl border bg-card p-4 shadow-sm h-full ${compact ? "" : "md:col-span-1"}`}>
             <DonutBlock
               title="Accounts status"
               data={accountsData}
