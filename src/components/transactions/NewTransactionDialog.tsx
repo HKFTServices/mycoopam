@@ -441,7 +441,7 @@ const NewTransactionDialog = ({
       if (!currentTenant) return [];
       const { data } = await (supabase as any)
         .from("pool_transaction_rules")
-        .select("pool_id, transaction_type_id, allow_to, allow_from")
+        .select("pool_id, transaction_type_code, is_allowed")
         .eq("tenant_id", currentTenant.id);
       return data ?? [];
     },
