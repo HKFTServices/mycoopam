@@ -787,7 +787,7 @@ const NewTransactionDialog = ({
     if (!selectedTxnTypeId || !allPools.length) return [];
     const selectedCode = txnTypes.find((t: any) => t.id === selectedTxnTypeId)?.code || "";
     const isDepositCode = DEPOSIT_CODES.includes(selectedCode);
-    const isWithdrawalCode = selectedCode === "WITHDRAW_FUNDS";
+    const isWithdrawalCode = selectedCode === "WITHDRAW_FUNDS" || selectedCode === "WITHDRAW_STOCK";
     const isTransferCode = TRANSFER_CODES.includes(selectedCode);
 
     // Map txn type code (uppercase) to pool rule code (lowercase)
