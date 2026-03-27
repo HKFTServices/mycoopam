@@ -1753,22 +1753,22 @@ const NewTransactionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] p-0">
-        <div className="flex flex-col max-h-[90vh]">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+      <DialogContent className="sm:max-w-3xl sm:max-h-[90vh] p-0 overflow-hidden">
+        <div className="flex flex-col h-full sm:max-h-[90vh]">
+          <DialogHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 border-b border-border shrink-0">
             <DialogTitle className="text-lg">New Transaction</DialogTitle>
 
             {/* Visual Step Indicator */}
-            <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-1">
+            <div className="flex items-center gap-1 sm:gap-2 mt-3 sm:mt-4 overflow-x-auto pb-1">
               {STEPS.map((s, i) => {
                 const meta = STEP_META[s];
                 const Icon = meta.icon;
                 const isCurrent = step === s;
                 const isPast = STEPS.indexOf(s) < STEPS.indexOf(step);
                 return (
-                  <div key={s} className="flex items-center gap-2 shrink-0">
+                  <div key={s} className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <div
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-[11px] font-medium ${
+                      className={`flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg transition-all text-[10px] sm:text-[11px] font-medium ${
                         isCurrent
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : isPast
@@ -1777,20 +1777,21 @@ const NewTransactionDialog = ({
                       }`}
                     >
                       {isPast ? (
-                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                        <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                       ) : (
-                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                       )}
-                      <span>{meta.label}</span>
+                      <span className="hidden sm:inline">{meta.label}</span>
+                      <span className="sm:hidden">{meta.label.slice(0, 4)}</span>
                     </div>
-                    {i < STEPS.length - 1 ? <div className={`h-px w-6 ${isPast ? "bg-primary/30" : "bg-border"}`} /> : null}
+                    {i < STEPS.length - 1 ? <div className={`h-px w-3 sm:w-6 ${isPast ? "bg-primary/30" : "bg-border"}`} /> : null}
                   </div>
                 );
               })}
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 min-h-0">
           {step === "account" && (
             <AccountSelectionStep
               accounts={allAccounts}
@@ -2104,7 +2105,7 @@ const NewTransactionDialog = ({
           )}
           </div>
 
-          <DialogFooter className="flex gap-2 px-6 py-4 border-t border-border bg-background">
+          <DialogFooter className="flex gap-2 px-4 py-3 sm:px-6 sm:py-4 border-t border-border bg-background shrink-0">
             {step !== "account" ? (
               <Button variant="outline" onClick={prevStep} disabled={submitMutation.isPending} className="gap-1.5">
                 <ArrowLeft className="h-4 w-4" />
