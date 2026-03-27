@@ -1307,7 +1307,7 @@ const Dashboard = () => {
 	              {/* Widget: recent-transactions */}
 	              {isWidgetVisible("recent-transactions") && (
 	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen}>
-	                  <Card>
+	                  <Card className="overflow-hidden">
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div className="flex items-start gap-2">
 	                        <CollapsibleTrigger asChild>
@@ -1394,7 +1394,7 @@ const Dashboard = () => {
 	              {/* Widget: recent-deposits */}
 	              {isWidgetVisible("recent-deposits") && (
 	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className={isMobile ? "" : "lg:col-span-1"}>
-	                  <Card>
+	                  <Card className="overflow-hidden">
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div className="flex items-start gap-2">
 	                        <CollapsibleTrigger asChild>
