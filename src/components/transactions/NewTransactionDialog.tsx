@@ -691,8 +691,8 @@ const NewTransactionDialog = ({
   const joinShareInfo = useMemo(() => {
     // A first-time deposit needs membership deductions if:
     // 1. No existing join share record exists (hasJoinShare = false), AND
-    // 2. Either a share class is configured OR a membership fee is configured
-    const needsShareDeduction = !hasJoinShare && !!joinShareClass;
+    // 2. Either a join share cost or membership fee is configured in tenant_configuration
+    const needsShareDeduction = !hasJoinShare && joinShareCost > 0;
     const needsMembershipFee = !hasJoinShare && membershipFeeAmount > 0;
     const needed = needsShareDeduction || needsMembershipFee;
     const rawMembershipFee = needsMembershipFee ? membershipFeeAmount : 0;
@@ -701,12 +701,12 @@ const NewTransactionDialog = ({
       : 0;
     return {
       needed,
-      shareCost: needsShareDeduction ? Number(joinShareClass?.price_per_share || 0) : 0,
+      shareCost: needsShareDeduction ? joinShareCost : 0,
       membershipFee: rawMembershipFee,
       membershipFeeVat,
-      shareClassName: joinShareClass?.name || "Join Share",
+      shareClassName: "Join Share",
     };
-  }, [hasJoinShare, joinShareClass, membershipFeeAmount, vatRate]);
+  }, [hasJoinShare, joinShareCost, membershipFeeAmount, vatRate]);
 
   // All pool holdings for the selected account — computed live directly from unit_transactions
   // Filtered strictly by entity_account_id AND tenant_id on the server side for full isolation
@@ -1137,7 +1137,7 @@ const NewTransactionDialog = ({
   // ─── Receiver-side deductions (join share, membership fee, commission) ───
   // These are deducted from the net amount credited to the receiver's pool.
   const receiverNeedsJoinShare = receiverJoinShareData?.needed ?? false;
-  const receiverJoinShareCost = receiverNeedsJoinShare ? Number(joinShareClass?.price_per_share || 0) : 0;
+  const receiverJoinShareCost = receiverNeedsJoinShare ? joinShareCost : 0;
   const receiverMembershipFeeRaw = receiverNeedsJoinShare ? (receiverJoinShareData?.membershipFee ?? 0) : 0;
   const receiverMembershipFeeVat = receiverMembershipFeeRaw > 0 && vatRate > 0
     ? Math.round((receiverMembershipFeeRaw / (1 + vatRate / 100)) * (vatRate / 100) * 100) / 100
@@ -1248,7 +1248,7 @@ const NewTransactionDialog = ({
       const totalVatAmount = depositFees.totalVat + (joinShareInfo.needed ? joinShareInfo.membershipFeeVat : 0) + commissionVat;
       const metaJson = JSON.stringify({
         fee_breakdown: feeBreakdown,
-        join_share: joinShareInfo.needed ? { share_class_id: joinShareClass?.id || null, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee, membership_fee_vat: joinShareInfo.membershipFeeVat } : null,
+        join_share: joinShareInfo.needed ? { share_gl_account_id: joinShareGlAccountId, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee, membership_fee_vat: joinShareInfo.membershipFeeVat } : null,
         loan_repayment: effectiveLoanRepayment > 0 ? {
           amount: effectiveLoanRepayment,
           loan_ids: outstandingLoanInfo?.loanIds || [],
@@ -1351,7 +1351,7 @@ const NewTransactionDialog = ({
         // Transfer: save full metadata including receiver-side deductions (join share, commission)
         const receiverFeeBreakdown: { name: string; amount: number; vat: number; gl_account_id?: string | null }[] = [];
         if (receiverNeedsJoinShare && receiverJoinShareCost > 0) {
-          receiverFeeBreakdown.push({ name: `Join Share (${joinShareClass?.name || "Join Share"})`, amount: receiverJoinShareCost, vat: 0 });
+          receiverFeeBreakdown.push({ name: "Join Share", amount: receiverJoinShareCost, vat: 0 });
         }
         if (receiverNeedsJoinShare && receiverMembershipFee > 0) {
           receiverFeeBreakdown.push({ name: "Membership Fee", amount: receiverMembershipFee, vat: receiverMembershipFeeVat });
@@ -1387,7 +1387,7 @@ const NewTransactionDialog = ({
           user_notes: notes || "",
           // Receiver-side deductions
           receiver_join_share: receiverNeedsJoinShare ? {
-            share_class_id: joinShareClass?.id || null,
+            share_gl_account_id: joinShareGlAccountId,
             cost: receiverJoinShareCost,
             membership_fee: receiverMembershipFee,
             membership_fee_vat: receiverMembershipFeeVat,
@@ -1424,7 +1424,7 @@ const NewTransactionDialog = ({
           transaction_kind: "stock_deposit",
           stock_lines: stockDepositLines,
           fee_breakdown: stockDepositFees.breakdown,
-          join_share: joinShareInfo.needed ? { share_class_id: joinShareClass?.id, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee } : null,
+          join_share: joinShareInfo.needed ? { share_gl_account_id: joinShareGlAccountId, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee } : null,
           courier: stockCourierOption !== "collect" ? {
             option: stockCourierOption,
             fee: activeCourierFee,
