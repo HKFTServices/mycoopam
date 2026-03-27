@@ -401,11 +401,10 @@ Deno.serve(async (req) => {
       const tcRows = srcTerms.map((tc: any) => ({
         id: uuid(),
         tenant_id: tenant_id,
-        name: tc.name,
         condition_type: tc.condition_type,
         language_code: tc.language_code,
-        content_html: tc.content_html,
-        version: tc.version,
+        content: tc.content,
+        effective_from: tc.effective_from,
         is_active: tc.is_active,
       }));
       const { error } = await admin.from("terms_conditions").insert(tcRows);
