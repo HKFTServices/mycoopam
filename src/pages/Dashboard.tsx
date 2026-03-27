@@ -243,7 +243,10 @@ const Dashboard = () => {
 
       const latestByPool: Record<string, any> = {};
       for (const p of (prices ?? [])) {
-        if (!latestByPool[p.pool_id]) latestByPool[p.pool_id] = p;
+        // Skip rows where both buy and sell prices are 0 (incomplete price data)
+        if (!latestByPool[p.pool_id] && (Number(p.unit_price_sell) > 0 || Number(p.unit_price_buy) > 0)) {
+          latestByPool[p.pool_id] = p;
+        }
       }
 
       const unitsByPool: Record<string, number> = {};
@@ -695,11 +698,12 @@ const Dashboard = () => {
         .eq("is_active", true)
         .eq("is_deleted", false);
 
-      // Get latest prices — pin to single most-recent totals_date (matches Memberships page)
+      // Get latest prices — pin to single most-recent totals_date with non-zero prices
       const { data: latestDateRow } = await (supabase as any)
         .from("daily_pool_prices")
         .select("totals_date")
         .eq("tenant_id", tenantId)
+        .gt("unit_price_buy", 0)
         .order("totals_date", { ascending: false })
         .limit(1);
       const latestDate = latestDateRow?.[0]?.totals_date ?? null;
@@ -714,7 +718,7 @@ const Dashboard = () => {
 
       const latestPrice: Record<string, number> = {};
       for (const p of (prices ?? [])) {
-        latestPrice[p.pool_id] = Number(p.unit_price_buy);
+        if (Number(p.unit_price_buy) > 0) latestPrice[p.pool_id] = Number(p.unit_price_buy);
       }
 
       const poolMap: Record<string, any> = {};
