@@ -17,7 +17,7 @@ import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDi
 import PendingTransferNotification from "@/components/transfers/PendingTransferNotification";
 import ChangePasswordDialog from "@/components/profile/ChangePasswordDialog";
 import { Badge } from "@/components/ui/badge";
-import { navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
+import { navigateToTenant, isOnProductionDomain, getTenantUrl } from "@/lib/getSiteUrl";
 import {
   Sidebar,
   SidebarContent,
