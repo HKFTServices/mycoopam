@@ -238,23 +238,8 @@ Deno.serve(async (req) => {
       console.log("[send-registration-email] Using tenant SMTP settings (fallback)");
     }
 
-    // 3. AEM source tenant fallback
     if (!smtpHost || !smtpFromEmail) {
-      const { data: sourceTenantConfig } = await adminClient
-        .from("tenant_configuration")
-        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
-        .eq("tenant_id", "38e204c4-829f-4544-ab53-b2f3f5342662")
-        .maybeSingle();
-
-      if (sourceTenantConfig?.smtp_host && sourceTenantConfig?.smtp_from_email) {
-        smtpHost = sourceTenantConfig.smtp_host;
-        smtpPort = sourceTenantConfig.smtp_port;
-        smtpUsername = sourceTenantConfig.smtp_username;
-        smtpPassword = sourceTenantConfig.smtp_password;
-        smtpFromEmail = sourceTenantConfig.smtp_from_email;
-        smtpFromName = sourceTenantConfig.smtp_from_name;
-        console.log("[send-registration-email] Using AEM source tenant SMTP as final fallback");
-      }
+      console.warn("[send-registration-email] No SMTP configured in head office or tenant settings");
     }
 
     // Send via SMTP
