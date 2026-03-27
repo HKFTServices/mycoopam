@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { cleanupExpiredRememberMe } from "@/lib/supabaseAuthStorage";
 
 type Profile = Tables<"profiles">;
 
@@ -46,6 +47,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    cleanupExpiredRememberMe(30);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === ("TOKEN_REFRESH_FAILED" as any)) {

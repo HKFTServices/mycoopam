@@ -13,6 +13,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { getSiteUrl } from "@/lib/getSiteUrl";
 import { MarketingPanel } from "@/components/auth/MarketingPanel";
+import { getCaptchaBypassUntil, setCaptchaBypass } from "@/lib/captchaBypass";
+import {
+  clearRememberMeIssuedAt,
+  getAuthStorageMode,
+  markRememberMeIssuedAt,
+  setAuthStorageMode,
+} from "@/lib/supabaseAuthStorage";
 
 const HCAPTCHA_SITE_KEY = "344a0cf0-5280-4e30-911e-c2c8ad2e4b48";
 
@@ -40,7 +47,7 @@ const TenantLanding = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(getAuthStorageMode() === "local");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [captchaKey, setCaptchaKey] = useState(0);
@@ -113,12 +120,14 @@ const TenantLanding = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-          options: { captchaToken: token },
-        });
+        const args: any = { email, password };
+        if (token) args.options = { captchaToken: token };
+        const { error } = await supabase.auth.signInWithPassword(args);
         if (error) throw error;
+        if (rememberMe) markRememberMeIssuedAt();
+        else clearRememberMeIssuedAt();
+        // If they passed captcha, allow skipping for the next 5 hours (per tenant + email).
+        if (token) setCaptchaBypass(slug || "tenant", email, 5);
         navigate("/dashboard");
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -151,10 +160,28 @@ const TenantLanding = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Remember-me determines whether the Supabase session is persisted across browser restarts.
+    if (isLogin) {
+      setAuthStorageMode(rememberMe ? "local" : "session");
+    }
+
     if (!isLogin && password !== confirmPassword) {
       toast({ title: "Passwords do not match", variant: "destructive" });
       return;
     }
+
+    // Captcha policy:
+    // - Register: always require captcha.
+    // - Login: require captcha at most once every 5 hours (per tenant + email).
+    if (isLogin) {
+      const bypassUntil = getCaptchaBypassUntil(slug || "tenant", email);
+      if (bypassUntil && Date.now() < bypassUntil) {
+        void submitAuth("");
+        return;
+      }
+    }
+
     if (!captchaToken) {
       setCaptchaOpen(true);
       return;
