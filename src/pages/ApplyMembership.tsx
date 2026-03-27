@@ -530,7 +530,7 @@ const ApplyMembership = () => {
           )}
           {currentKey === "address" && <AddressStep data={data} update={update} tenantId={currentTenant.id} />}
           {currentKey === "referrer" && <ReferrerStep data={data} update={update} tenantId={currentTenant.id} />}
-          {currentKey === "bank" && <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired} />}
+          {currentKey === "bank" && <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired || isLegalEntityMode} />}
           {currentKey === "documents" && <DocumentsStep data={data} update={update} tenantId={currentTenant.id} />}
           {currentKey === "tc" && <TermsStep data={data} update={update} tenantId={currentTenant.id} />}
 
