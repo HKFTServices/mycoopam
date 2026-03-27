@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import { Tables } from "@/integrations/supabase/types";
@@ -123,6 +124,18 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setTenants(list);
+
+      // If on a tenant subdomain, force that tenant regardless of localStorage
+      const subdomainSlug = getTenantSlugFromSubdomain();
+      if (subdomainSlug) {
+        const subdomainTenant = list.find((t) => t.slug === subdomainSlug);
+        if (subdomainTenant) {
+          setCurrentTenant(subdomainTenant);
+          localStorage.setItem("currentTenantId", subdomainTenant.id);
+          setLoading(false);
+          return;
+        }
+      }
 
       // restore saved tenant or pick first
       const savedId = localStorage.getItem("currentTenantId");
