@@ -12,7 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
-import loginScreenImage from "@/assets/Login-screen-image.png";
+import heroPerson from "@/assets/hero-person.jpg";
 import dashboardWeb from "@/assets/dashboard-web.jpg";
 import dashboardMobile from "@/assets/dashboard-mobile.jpg";
 import { navigateToTenant } from "@/lib/getSiteUrl";
@@ -155,8 +155,8 @@ const Landing = () => {
             <div className="relative">
               <div className="rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src={loginScreenImage}
-                  alt="MyCoop platform preview"
+                  src={heroPerson}
+                  alt="Professional using MyCoop platform"
                   className="w-full h-auto object-cover"
                   width={1024}
                   height={768}
@@ -222,33 +222,21 @@ const Landing = () => {
                 ))}
               </div>
 
-              {/* Right — laptop mockup with login screen + mobile overlay */}
+              {/* Right — overlapping web + mobile screenshots (no PC frame) */}
               <div className="relative h-[500px] sm:h-[550px] lg:h-[600px]">
-                {/* Laptop mockup — back layer */}
-                <div className="absolute top-0 right-0 w-[85%]">
-                  <div className="rounded-t-xl bg-[#2d2d2d] p-[6px] pb-0 shadow-2xl">
-                    <div className="flex items-center gap-1.5 px-3 py-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-                    </div>
-                    <div className="overflow-hidden rounded-t-sm">
-                      <img
-                        src={dashboardWeb}
-                        alt="MyCoop web dashboard"
-                        className="w-full h-auto block"
-                        loading="lazy"
-                        width={1200}
-                        height={800}
-                      />
-                    </div>
-                  </div>
-                  <div className="relative mx-auto h-3 rounded-b-xl bg-gradient-to-b from-[#c0c0c0] to-[#a0a0a0] shadow-md" style={{ width: "110%", marginLeft: "-5%" }}>
-                    <div className="absolute left-1/2 top-0.5 h-1 w-12 -translate-x-1/2 rounded-full bg-[#888]" />
-                  </div>
+                {/* Web dashboard — back layer, top-right */}
+                <div className="absolute top-0 right-0 w-[75%] rounded-xl shadow-2xl border border-border overflow-hidden bg-card">
+                  <img
+                    src={dashboardWeb}
+                    alt="MyCoop web dashboard"
+                    className="w-full h-auto"
+                    loading="lazy"
+                    width={1200}
+                    height={800}
+                  />
                 </div>
-                {/* Mobile dashboard — front layer, overlapping bottom-left */}
-                <div className="absolute bottom-0 left-0 w-[45%] sm:w-[40%] rounded-2xl shadow-2xl border border-border overflow-hidden bg-card z-10">
+                {/* Mobile dashboard — front layer, bottom-left */}
+                <div className="absolute bottom-4 left-0 w-[42%] sm:w-[38%] rounded-2xl shadow-2xl border border-border overflow-hidden bg-card z-10">
                   <img
                     src={dashboardMobile}
                     alt="MyCoop mobile dashboard"
