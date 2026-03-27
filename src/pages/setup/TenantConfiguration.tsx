@@ -97,33 +97,35 @@ const ShareClassesSection = ({ tenantId, glAccounts }: { tenantId?: string; glAc
         ) : shareClasses.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No additional share classes configured yet.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Price per Share</TableHead>
-                <TableHead>Max per Member</TableHead>
-                <TableHead>GL Account</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-20"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shareClasses.map((sc: any) => (
-                <TableRow key={sc.id}>
-                  <TableCell className="font-medium">{sc.name}</TableCell>
-                  <TableCell>{sc.price_per_share}</TableCell>
-                  <TableCell>{sc.max_per_member}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{sc.gl_account_id ? glLabel(sc.gl_account_id) : <span className="italic">None</span>}</TableCell>
-                  <TableCell><Badge variant={sc.is_active ? "default" : "secondary"}>{sc.is_active ? "Yes" : "No"}</Badge></TableCell>
-                  <TableCell className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(sc)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(sc.id)}><Trash2 className="h-4 w-4" /></Button>
-                  </TableCell>
+          <div className="overflow-x-auto -mx-4 px-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Max</TableHead>
+                  <TableHead className="hidden sm:table-cell">GL Account</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {shareClasses.map((sc: any) => (
+                  <TableRow key={sc.id}>
+                    <TableCell className="font-medium text-xs sm:text-sm">{sc.name}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{sc.price_per_share}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{sc.max_per_member}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{sc.gl_account_id ? glLabel(sc.gl_account_id) : <span className="italic">None</span>}</TableCell>
+                    <TableCell><Badge variant={sc.is_active ? "default" : "secondary"} className="text-xs">{sc.is_active ? "Yes" : "No"}</Badge></TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => openEdit(sc)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-destructive" onClick={() => handleDelete(sc.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -220,29 +222,31 @@ const VaultLocationsSection = ({ tenantId }: { tenantId?: string }) => {
         ) : locations.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No vault locations configured yet.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-20"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {locations.map((loc: any) => (
-                <TableRow key={loc.id}>
-                  <TableCell className="font-medium">{loc.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{loc.description || <span className="italic">—</span>}</TableCell>
-                  <TableCell><Switch checked={loc.is_active} onCheckedChange={() => handleToggleActive(loc)} /></TableCell>
-                  <TableCell className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(loc)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(loc.id)}><Trash2 className="h-4 w-4" /></Button>
-                  </TableCell>
+          <div className="overflow-x-auto -mx-4 px-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden sm:table-cell">Description</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {locations.map((loc: any) => (
+                  <TableRow key={loc.id}>
+                    <TableCell className="font-medium text-xs sm:text-sm">{loc.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{loc.description || <span className="italic">—</span>}</TableCell>
+                    <TableCell><Switch checked={loc.is_active} onCheckedChange={() => handleToggleActive(loc)} /></TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => openEdit(loc)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-destructive" onClick={() => handleDelete(loc.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -355,15 +359,14 @@ const EmailSignatureSection = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <p className="text-sm text-muted-foreground">
-          This signature is automatically appended to all outgoing emails for this tenant.
-          You can auto-generate it from the legal entity details or customise the HTML manually.
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          Auto-generate from the legal entity or customise manually.
         </p>
 
-        <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={generateSignature} disabled={generating || !legalEntityId}>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={generateSignature} disabled={generating || !legalEntityId}>
             {generating ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
-            Auto-Generate from Legal Entity
+            Auto-Generate
           </Button>
           {!legalEntityId && (
             <p className="text-xs text-destructive self-center">Set a Legal Entity in the General tab first.</p>
@@ -436,7 +439,7 @@ const EmailSignatureSection = ({
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5"><Eye className="h-4 w-4" />Preview</Label>
             <div
-              className="border rounded-lg p-4 bg-white"
+              className="border rounded-lg p-3 sm:p-4 bg-white overflow-x-auto text-xs sm:text-sm"
               dangerouslySetInnerHTML={{ __html: currentSig }}
             />
           </div>
@@ -1103,14 +1106,14 @@ const TenantConfiguration = () => {
               </div>
               <div className="rounded-lg border p-4 bg-muted/30">
                 <p className="text-xs font-medium mb-2">Preview</p>
-                <div className="flex gap-3 items-center">
-                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_primary_hsl || "222 60% 28%"})` }}>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="h-10 flex-1 min-w-[60px] rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_primary_hsl || "222 60% 28%"})` }}>
                     Primary
                   </div>
-                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium" style={{ backgroundColor: `hsl(${form.theme_accent_hsl || "45 80% 52%"})` }}>
+                  <div className="h-10 flex-1 min-w-[60px] rounded-md flex items-center justify-center text-xs font-medium" style={{ backgroundColor: `hsl(${form.theme_accent_hsl || "45 80% 52%"})` }}>
                     Accent
                   </div>
-                  <div className="h-10 w-24 rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_sidebar_hsl || "222 60% 14%"})` }}>
+                  <div className="h-10 flex-1 min-w-[60px] rounded-md flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: `hsl(${form.theme_sidebar_hsl || "222 60% 14%"})` }}>
                     Sidebar
                   </div>
                 </div>
