@@ -298,8 +298,10 @@ export async function postDepositApproval(
 
       // BK entries removed — CFT child entries are the source of truth
     }
+  }
 
-    // Activate the membership account on first deposit
+  // ─── 3b. Activate membership account on first deposit (always runs, not gated on joinShareInfo) ───
+  {
     const { data: acctData } = await (supabase as any)
       .from("entity_accounts")
       .select("id, status, account_number, entity_account_type_id, entity_account_types(prefix, number_count)")
@@ -332,7 +334,6 @@ export async function postDepositApproval(
         .eq("id", entityAccountId);
 
       // Send first-membership confirmation email (fire-and-forget)
-      // Keep using first_membership events — these have special templates
       const firstMembershipEvent = isStockDeposit
         ? "first_membership_dep_stock"
         : "first_membership_dep_funds";
