@@ -107,7 +107,7 @@ const DailyPoolPrices = () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("pools")
-        .select("id, name, is_active, fixed_unit_price, icon_url, cash_control_account_id, vat_control_account_id, loan_control_account_id")
+        .select("id, name, is_active, fixed_unit_price, open_unit_price, icon_url, cash_control_account_id, vat_control_account_id, loan_control_account_id")
         .eq("tenant_id", currentTenant.id)
         .eq("is_deleted", false)
         .eq("is_active", true)
