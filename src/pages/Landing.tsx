@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Github, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Twitter } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Github, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Search, Twitter, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -35,6 +36,7 @@ const Landing = () => {
   const [showTenantPicker, setShowTenantPicker] = useState(false);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
+  const [tenantSearch, setTenantSearch] = useState("");
 
   useEffect(() => {
     if (!loading && session) {
@@ -448,53 +450,124 @@ const Landing = () => {
       </footer>
 
       {/* Tenant Picker Dialog */}
-      <Dialog open={showTenantPicker} onOpenChange={setShowTenantPicker}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Your Co-operative</DialogTitle>
-            <DialogDescription>
-              Choose the co-operative you belong to in order to sign in or register.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 mt-2">
-            {loadingTenants ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>
-            ) : tenants.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No co-operatives found. Register yours to get started.
-              </p>
-            ) : (
-              tenants.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    setShowTenantPicker(false);
-                    navigateToTenant(t.slug, navigate);
-                  }}
-                  className="w-full flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-left hover:bg-accent transition-colors"
-                >
-                  <div className="h-10 w-10 rounded-lg bg-background/60 ring-1 ring-border flex items-center justify-center shrink-0 overflow-hidden">
-                    <img
-                      src={t.logo_url || myCoopLogo}
-                      alt={`${t.name} logo`}
-                      className="h-full w-full object-contain p-1"
-                      loading="lazy"
-                      onError={(e) => {
-                        const img = e.currentTarget;
-                        img.onerror = null;
-                        img.src = myCoopLogo;
-                      }}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.slug}</p>
-                  </div>
-                  <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground shrink-0" />
-                </button>
-              ))
-            )}
+      <Dialog open={showTenantPicker} onOpenChange={(open) => { setShowTenantPicker(open); if (!open) setTenantSearch(""); }}>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 border-b border-border">
+            <DialogHeader>
+              <DialogTitle className="text-lg">Find Your Co-operative</DialogTitle>
+              <DialogDescription>
+                Search by name to find and access your co-operative.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search co-operatives…"
+                value={tenantSearch}
+                onChange={(e) => setTenantSearch(e.target.value)}
+                className="pl-9 h-10"
+                autoFocus
+              />
+            </div>
           </div>
+
+          {/* Scrollable tenant list */}
+          <div className="max-h-[360px] overflow-y-auto">
+            {loadingTenants ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="text-sm">Loading co-operatives…</p>
+              </div>
+            ) : (() => {
+              const query = tenantSearch.toLowerCase().trim();
+              const filtered = query
+                ? tenants.filter((t) => t.name.toLowerCase().includes(query) || t.slug.toLowerCase().includes(query))
+                : tenants;
+
+              if (tenants.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                    <Building2 className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm font-medium text-foreground">No co-operatives yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Register yours to get started.</p>
+                  </div>
+                );
+              }
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                    <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm font-medium text-foreground">No results for "{tenantSearch}"</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try a different search term.</p>
+                  </div>
+                );
+              }
+
+              // Group by first letter
+              const groups: Record<string, Tenant[]> = {};
+              filtered.forEach((t) => {
+                const letter = t.name.charAt(0).toUpperCase();
+                if (!groups[letter]) groups[letter] = [];
+                groups[letter].push(t);
+              });
+              const sortedLetters = Object.keys(groups).sort();
+
+              return (
+                <div className="py-2">
+                  {sortedLetters.map((letter) => (
+                    <div key={letter}>
+                      {!query && (
+                        <div className="sticky top-0 bg-muted/60 backdrop-blur-sm px-6 py-1.5 border-b border-border/40">
+                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{letter}</span>
+                        </div>
+                      )}
+                      {groups[letter].map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            setShowTenantPicker(false);
+                            setTenantSearch("");
+                            navigateToTenant(t.slug, navigate);
+                          }}
+                          className="w-full flex items-center gap-3 px-6 py-3 text-left hover:bg-accent/60 transition-colors group"
+                        >
+                          <div className="h-9 w-9 rounded-lg bg-background ring-1 ring-border flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={t.logo_url || myCoopLogo}
+                              alt={`${t.name} logo`}
+                              className="h-full w-full object-contain p-1"
+                              loading="lazy"
+                              onError={(e) => {
+                                const img = e.currentTarget;
+                                img.onerror = null;
+                                img.src = myCoopLogo;
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{t.name}</p>
+                            <p className="text-xs text-muted-foreground">{t.slug}.myco-op.co.za</p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Footer */}
+          {tenants.length > 0 && (
+            <div className="border-t border-border px-6 py-3 bg-muted/30">
+              <p className="text-xs text-muted-foreground text-center">
+                {tenants.length} co-operative{tenants.length !== 1 ? "s" : ""} registered
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
