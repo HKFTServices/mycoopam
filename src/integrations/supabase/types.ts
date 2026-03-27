@@ -2971,6 +2971,65 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_user_id: string | null
+          body: string | null
+          category: string
+          created_at: string
+          event: string
+          id: string
+          meta: Json | null
+          read_at: string | null
+          recipient_user_id: string
+          related_id: string | null
+          related_table: string | null
+          status: string | null
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          body?: string | null
+          category?: string
+          created_at?: string
+          event?: string
+          id?: string
+          meta?: Json | null
+          read_at?: string | null
+          recipient_user_id: string
+          related_id?: string | null
+          related_table?: string | null
+          status?: string | null
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          body?: string | null
+          category?: string
+          created_at?: string
+          event?: string
+          id?: string
+          meta?: Json | null
+          read_at?: string | null
+          recipient_user_id?: string
+          related_id?: string | null
+          related_table?: string | null
+          status?: string | null
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operating_journals: {
         Row: {
           amount: number
@@ -6231,6 +6290,14 @@ export type Database = {
           parent_id: string
           transaction_date: string
           tx_type: string
+        }[]
+      }
+      get_pool_investor_stats: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          investor_count: number
+          pool_id: string
+          total_investors: number
         }[]
       }
       get_pool_units: {
