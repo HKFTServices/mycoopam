@@ -4,7 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown } from "lucide-react";
+import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown, ChevronDown } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -486,64 +491,70 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
       )}
 
       {/* Other Documents Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Other Documents</CardTitle>
-          <CardDescription>
-            Optional — upload documents for future use or reference
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {otherDocTypes.length > 0 ? (
-            <div className="space-y-6">
-              {CATEGORY_ORDER.map((cat) => {
-                const items = otherDocTypesByCategory[cat] || [];
-                if (items.length === 0) return null;
-                return (
-                  <div key={cat} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-medium text-muted-foreground">{cat}</p>
-                      <span className="text-[10px] text-muted-foreground">{items.length}</span>
-                    </div>
-                    <div className="space-y-3">
-                      {items.map((dt: any) => renderDocTypeRow(dt.id, dt.name, false))}
-                    </div>
+      {(otherDocTypes.length > 0 || untypedDocs.length > 0) && (
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Other Documents</CardTitle>
+                    <CardDescription>
+                      Optional — click to expand and upload additional documents
+                    </CardDescription>
                   </div>
-                );
-              })}
-            </div>
-          ) : allDocTypes.length === 0 ? (
-            <div className="text-center py-6">
-              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40" />
-              <p className="text-muted-foreground text-sm">No document types configured.</p>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-sm py-2">All document types are required — no optional types available.</p>
-          )}
-
-          {/* Untyped existing docs */}
-          {untypedDocs.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <p className="text-xs font-medium text-muted-foreground">Unclassified Documents</p>
-              {untypedDocs.map((doc: any) => (
-                <div key={doc.id} className="flex items-center gap-2 text-xs border border-border rounded-lg p-3">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate font-medium">{doc.file_name}</p>
-                    <p className="text-muted-foreground">
-                      {doc.document_types?.name || "No type"}
-                      {doc.file_size ? ` · ${(doc.file_size / 1024).toFixed(0)} KB` : ""}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleViewDocument(doc.file_path)}>
-                    <Eye className="h-3.5 w-3.5 mr-1" /> View
-                  </Button>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-3 pt-0">
+                {otherDocTypes.length > 0 ? (
+                  <div className="space-y-6">
+                    {CATEGORY_ORDER.map((cat) => {
+                      const items = otherDocTypesByCategory[cat] || [];
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={cat} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium text-muted-foreground">{cat}</p>
+                            <span className="text-[10px] text-muted-foreground">{items.length}</span>
+                          </div>
+                          <div className="space-y-3">
+                            {items.map((dt: any) => renderDocTypeRow(dt.id, dt.name, false))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm py-2">All document types are required — no optional types available.</p>
+                )}
+                {untypedDocs.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <p className="text-xs font-medium text-muted-foreground">Unclassified Documents</p>
+                    {untypedDocs.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center gap-2 text-xs border border-border rounded-lg p-3">
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate font-medium">{doc.file_name}</p>
+                          <p className="text-muted-foreground">
+                            {doc.document_types?.name || "No type"}
+                            {doc.file_size ? ` · ${(doc.file_size / 1024).toFixed(0)} KB` : ""}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleViewDocument(doc.file_path)}>
+                          <Eye className="h-3.5 w-3.5 mr-1" /> View
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
 
       <AlertDialog open={!!pendingFile} onOpenChange={(open) => { if (!open) setPendingFile(null); }}>
         <AlertDialogContent>
