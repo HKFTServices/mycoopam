@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Briefcase, Plus, UserPlus, Pencil } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { useState } from "react";
 import { toast } from "sonner";
 import CreateEntityAccountDialog from "@/components/entity-accounts/CreateEntityAccountDialog";
