@@ -431,7 +431,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
   const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredHeadOffice = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
+  
   const filteredMam = useMemo(() => filterItems(mamNavItems, normalizedQuery), [normalizedQuery]);
 
   const renderLink = (item: NavItem, opts?: { badge?: React.ReactNode }) => {
