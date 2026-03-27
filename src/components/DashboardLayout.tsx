@@ -214,7 +214,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     location.pathname.includes("/dashboard/send-message") || location.pathname.includes("/dashboard/message-history"),
   );
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
-  const [_globalSetupOpen, _setGlobalSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
+  const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office") || location.pathname.includes("/dashboard/setup"));
   const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office"));
   const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
 
