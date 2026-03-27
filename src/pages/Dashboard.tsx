@@ -958,60 +958,88 @@ const Dashboard = () => {
   if (showSkeleton) return isAdmin ? <AdminDashboardSkeleton /> : <UserDashboardSkeleton />;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 truncate">{greeting}</p>
-          <p className="text-xs text-muted-foreground mt-1 truncate">
-            {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
-          </p>
+          <p className="text-muted-foreground text-sm mt-1 truncate">{greeting}</p>
+          {!isMobile && (
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
+            </p>
+          )}
         </div>
 
         {currentTenant ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedPoolId(undefined);
-                setTxnDialogOpen(true);
-              }}
-            >
-              New Transaction
-            </Button>
+            <DashboardCustomizer
+              widgets={widgets}
+              onToggle={toggleWidget}
+              onReorder={reorderWidgets}
+              onReset={resetToDefault}
+            />
 
-            {isAdmin ? (
-              <Button variant="outline" onClick={() => setLoanDialogOpen(true)}>
-                Loan Transactions
-              </Button>
-            ) : (
-              <Button variant="outline" asChild>
-                <Link to="/dashboard/loan-applications">Loan Transactions</Link>
-              </Button>
-            )}
-
-            <Button variant="outline" asChild>
-              <Link to="/dashboard/debit-orders">Debit Orders</Link>
-            </Button>
-
-            {!isAdmin ? (
+            {isMobile ? (
+              /* Mobile: compact action buttons */
               <>
                 <Button
                   variant="outline"
-                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                  onClick={() => setLoanApplyOpen(true)}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedPoolId(undefined);
+                    setTxnDialogOpen(true);
+                  }}
                 >
-                  Loan Application
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                  onClick={() => setDebitOrderOpen(true)}
-                >
-                  New Debit Order
+                  New Txn
                 </Button>
               </>
-            ) : null}
+            ) : (
+              /* Desktop: full action bar */
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedPoolId(undefined);
+                    setTxnDialogOpen(true);
+                  }}
+                >
+                  New Transaction
+                </Button>
+
+                {isAdmin ? (
+                  <Button variant="outline" onClick={() => setLoanDialogOpen(true)}>
+                    Loan Transactions
+                  </Button>
+                ) : (
+                  <Button variant="outline" asChild>
+                    <Link to="/dashboard/loan-applications">Loan Transactions</Link>
+                  </Button>
+                )}
+
+                <Button variant="outline" asChild>
+                  <Link to="/dashboard/debit-orders">Debit Orders</Link>
+                </Button>
+
+                {!isAdmin ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                      onClick={() => setLoanApplyOpen(true)}
+                    >
+                      Loan Application
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                      onClick={() => setDebitOrderOpen(true)}
+                    >
+                      New Debit Order
+                    </Button>
+                  </>
+                ) : null}
+              </>
+            )}
           </div>
         ) : null}
       </div>
