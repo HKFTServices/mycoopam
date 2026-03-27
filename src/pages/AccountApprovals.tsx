@@ -744,11 +744,12 @@ const AccountApprovals = () => {
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Approvals</h1>
-        <p className="text-muted-foreground text-sm mt-1">Review and approve pending requests</p>
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Approvals</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">Review and approve pending requests</p>
       </div>
+      <MobileTableHint />
 
       <Tabs defaultValue="registrations">
         <TabsList>
