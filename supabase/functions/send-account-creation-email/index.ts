@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import nodemailer from "npm:nodemailer@6.9.10";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -252,16 +253,37 @@ Deno.serve(async (req) => {
 
     if (smtpHost && smtpFromEmail) {
       try {
-        const { default: nodemailer } = await import("npm:nodemailer@6.9.10");
-        const requestedPort = smtpPort || 587;
-        const usePort = requestedPort === 465 ? 587 : requestedPort;
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: usePort,
-          secure: false,
-          ignoreTLS: true,
-          auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword || "" } : undefined,
-        });
+        const portStrategies = [
+          { port: 465, secure: true,  ignoreTLS: false },
+          { port: 587, secure: false, ignoreTLS: false },
+          { port: 587, secure: false, ignoreTLS: true  },
+          { port: 25,  secure: false, ignoreTLS: true  },
+        ];
+
+        let transporter: any = null;
+        for (const strategy of portStrategies) {
+          try {
+            const t = nodemailer.createTransport({
+              host: smtpHost,
+              port: strategy.port,
+              secure: strategy.secure,
+              ignoreTLS: strategy.ignoreTLS,
+              tls: { rejectUnauthorized: false },
+              auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword || "" } : undefined,
+            });
+            await t.verify();
+            transporter = t;
+            console.log(`[send-account-creation-email] Connected via ${smtpHost}:${strategy.port}`);
+            break;
+          } catch (err: any) {
+            console.log(`[send-account-creation-email] Strategy ${smtpHost}:${strategy.port} failed: ${err.message}`);
+            if (/534|535/.test(err.message)) break;
+          }
+        }
+
+        if (!transporter) {
+          throw new Error("All SMTP connection strategies failed");
+        }
 
         const isSmtpUserEmail = smtpUsername?.includes("@");
         const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;

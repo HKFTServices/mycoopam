@@ -136,19 +136,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Setup SMTP transporter
-    const requestedPort = tenantConfig.smtp_port || 587;
-    const usePort = requestedPort === 465 ? 587 : requestedPort;
-
-    const transporter = nodemailer.createTransport({
-      host: tenantConfig.smtp_host,
-      port: usePort,
-      secure: false,
-      ignoreTLS: true,
-      auth: tenantConfig.smtp_username
-        ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" }
-        : undefined,
-    });
+    // Multi-port SMTP fallback strategy
+    const smtpStrategies = [
+      { port: 465, secure: true,  ignoreTLS: false },
+      { port: 587, secure: false, ignoreTLS: false },
+      { port: 587, secure: false, ignoreTLS: true  },
+      { port: 25,  secure: false, ignoreTLS: true  },
+    ];
+    let transporter: any = null;
+    for (const s of smtpStrategies) {
+      try {
+        const t = nodemailer.createTransport({
+          host: tenantConfig.smtp_host, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
+          tls: { rejectUnauthorized: false },
+          auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
+        });
+        await t.verify();
+        transporter = t;
+        console.log(`[send-approval-notification] Connected via ${tenantConfig.smtp_host}:${s.port}`);
+        break;
+      } catch (err: any) {
+        console.log(`[send-approval-notification] ${tenantConfig.smtp_host}:${s.port} failed: ${err.message}`);
+        if (/534|535/.test(err.message)) break;
+      }
+    }
+    if (!transporter) {
+      return new Response(JSON.stringify({ error: "SMTP connection failed" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
     const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;

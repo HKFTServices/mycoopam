@@ -275,21 +275,30 @@ Deno.serve(async (req) => {
 
     if (smtpHost && smtpFromEmail) {
       try {
-        const requestedPort = smtpPort || 587;
-        const usePort = requestedPort === 465 ? 587 : requestedPort;
-
-        console.log(`[send-registration-email] Sending via ${smtpHost}:${usePort} to ${profile.email}`);
-
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: usePort,
-          secure: false,
-          ignoreTLS: true,
-          auth: smtpUsername ? {
-            user: smtpUsername,
-            pass: smtpPassword || "",
-          } : undefined,
-        });
+        const smtpStrategies = [
+          { port: 465, secure: true,  ignoreTLS: false },
+          { port: 587, secure: false, ignoreTLS: false },
+          { port: 587, secure: false, ignoreTLS: true  },
+          { port: 25,  secure: false, ignoreTLS: true  },
+        ];
+        let transporter: any = null;
+        for (const s of smtpStrategies) {
+          try {
+            const t = nodemailer.createTransport({
+              host: smtpHost, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
+              tls: { rejectUnauthorized: false },
+              auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword || "" } : undefined,
+            });
+            await t.verify();
+            transporter = t;
+            console.log(`[send-registration-email] Connected via ${smtpHost}:${s.port}`);
+            break;
+          } catch (err: any) {
+            console.log(`[send-registration-email] ${smtpHost}:${s.port} failed: ${err.message}`);
+            if (/534|535/.test(err.message)) break;
+          }
+        }
+        if (!transporter) throw new Error("All SMTP strategies failed");
 
         const isSmtpUserEmail = smtpUsername?.includes("@");
         const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
