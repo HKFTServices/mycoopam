@@ -1193,8 +1193,9 @@ const Dashboard = () => {
 
 	      {currentTenant && !showPendingWelcome && (
 	        <>
-	          {isAdmin && adminStats ? (
-	            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+	          {/* Widget: stat-cards (admin only) */}
+	          {isAdmin && adminStats && isWidgetVisible("stat-cards") ? (
+	            <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
 	              <MiniStatCard
 	                label="Entities"
 	                value={adminStats.totalEntities}
@@ -1223,66 +1224,95 @@ const Dashboard = () => {
 	            </div>
 	          ) : null}
 
-	          {isAdmin && poolSummaries.length > 0 ? (
-	            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-	              {poolSummaries.slice(0, 4).map((p: any) => {
-		                const poolName = String(p?.name ?? "").toLowerCase();
-		                const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
-		                const stats = investorStatsByPoolId.get(String(p.id));
-		                const investorPct =
-		                  showInvestorPct && stats?.totalInvestors
-		                    ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100
-		                    : null;
-		                return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
-		              })}
-		            </div>
-		          ) : null}
-
-	          <div className="grid gap-4 lg:grid-cols-2">
-	            <MetricCard
-	              title={primaryMetric.title}
-              subtitle={primaryMetric.subtitle}
-              value={primaryMetric.value}
-              ringValue={ringPrimary}
-              changePct={primaryChangePct}
-              variant="primary"
-            />
-            <MetricCard
-              title={secondaryMetric.title}
-              subtitle={secondaryMetric.subtitle}
-              value={secondaryMetric.value}
-              ringValue={ringSecondary}
-              changePct={null}
-              variant="neutral"
-              onClick={isAdmin && totalLoansOutstanding > 0 ? () => setLoanDialogOpen(true) : undefined}
-            />
-          </div>
-
-	          <div className="grid gap-4 lg:grid-cols-3">
-	            {isAdmin ? (
-	              <>
-	                <div className="lg:col-span-3">
-	                  <AdminChartsCard
-	                    aumData={aumAllocationData}
-	                    loanData={loanBookData}
-	                    accountsData={accountsStatusData}
-	                  />
+	          {/* Widget: pool-summaries (admin only) */}
+	          {isAdmin && poolSummaries.length > 0 && isWidgetVisible("pool-summaries") ? (
+	            isMobile ? (
+	              /* Mobile: horizontal scroll for pool cards */
+	              <div className="overflow-x-auto -mx-4 px-4 pb-2">
+	                <div className="flex gap-3" style={{ minWidth: "max-content" }}>
+	                  {poolSummaries.slice(0, 4).map((p: any) => {
+	                    const poolName = String(p?.name ?? "").toLowerCase();
+	                    const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
+	                    const stats = investorStatsByPoolId.get(String(p.id));
+	                    const investorPct =
+	                      showInvestorPct && stats?.totalInvestors
+	                        ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100
+	                        : null;
+	                    return (
+	                      <div key={p.id} className="w-[260px] shrink-0">
+	                        <PoolSummaryMiniCard pool={p} investorPct={investorPct} />
+	                      </div>
+	                    );
+	                  })}
 	                </div>
+	              </div>
+	            ) : (
+	              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+	                {poolSummaries.slice(0, 4).map((p: any) => {
+	                  const poolName = String(p?.name ?? "").toLowerCase();
+	                  const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
+	                  const stats = investorStatsByPoolId.get(String(p.id));
+	                  const investorPct =
+	                    showInvestorPct && stats?.totalInvestors
+	                      ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100
+	                      : null;
+	                  return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
+	                })}
+	              </div>
+	            )
+	          ) : null}
 
-	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className="lg:col-span-3">
+	          {/* Widget: metric cards */}
+	          {(isWidgetVisible("metric-primary") || isWidgetVisible("metric-secondary")) && (
+	            <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "lg:grid-cols-2"}`}>
+	              {isWidgetVisible("metric-primary") && (
+	                <MetricCard
+	                  title={primaryMetric.title}
+	                  subtitle={primaryMetric.subtitle}
+	                  value={primaryMetric.value}
+	                  ringValue={ringPrimary}
+	                  changePct={primaryChangePct}
+	                  variant="primary"
+	                  compact={isMobile}
+	                />
+	              )}
+	              {isWidgetVisible("metric-secondary") && (
+	                <MetricCard
+	                  title={secondaryMetric.title}
+	                  subtitle={secondaryMetric.subtitle}
+	                  value={secondaryMetric.value}
+	                  ringValue={ringSecondary}
+	                  changePct={null}
+	                  variant="neutral"
+	                  onClick={isAdmin && totalLoansOutstanding > 0 ? () => setLoanDialogOpen(true) : undefined}
+	                  compact={isMobile}
+	                />
+	              )}
+	            </div>
+	          )}
+
+	          {/* Admin-specific widgets */}
+	          {isAdmin ? (
+	            <div className="space-y-4">
+	              {/* Widget: financial-overview */}
+	              {isWidgetVisible("financial-overview") && (
+	                <AdminChartsCard
+	                  aumData={aumAllocationData}
+	                  loanData={loanBookData}
+	                  accountsData={accountsStatusData}
+	                  compact={isMobile}
+	                />
+	              )}
+
+	              {/* Widget: recent-transactions */}
+	              {isWidgetVisible("recent-transactions") && (
+	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen}>
 	                  <Card>
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div className="flex items-start gap-2">
 	                        <CollapsibleTrigger asChild>
-	                          <Button
-	                            variant="ghost"
-	                            size="icon"
-	                            className="h-8 w-8 -ml-2"
-	                            aria-label={recentOpen ? "Collapse recent transactions" : "Expand recent transactions"}
-	                          >
-	                            <ChevronDown
-	                              className={`h-4 w-4 transition-transform ${recentOpen ? "rotate-0" : "-rotate-90"}`}
-	                            />
+	                          <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2">
+	                            <ChevronDown className={`h-4 w-4 transition-transform ${recentOpen ? "rotate-0" : "-rotate-90"}`} />
 	                          </Button>
 	                        </CollapsibleTrigger>
 	                        <div>
@@ -1290,36 +1320,34 @@ const Dashboard = () => {
 	                          <CardDescription className="text-xs">Latest transactions</CardDescription>
 	                        </div>
 	                      </div>
-	                      <Button variant="ghost" size="icon" className="h-8 w-8">
-	                        <MoreHorizontal className="h-4 w-4" />
-	                      </Button>
 	                    </CardHeader>
 	                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-	                      <CardContent>
+	                      <CardContent className={isMobile ? "px-2" : ""}>
 	                        <RecentAdminTransactions items={recentTransactions} />
 	                      </CardContent>
 	                    </CollapsibleContent>
 	                  </Card>
 	                </Collapsible>
-	              </>
-	            ) : (
-	              <>
-	                <div className="lg:col-span-2 space-y-4">
+	              )}
+	            </div>
+	          ) : (
+	            /* Member-specific widgets - stacked on mobile */
+	            <div className={isMobile ? "space-y-4" : "grid gap-4 lg:grid-cols-3"}>
+	              <div className={isMobile ? "space-y-4" : "lg:col-span-2 space-y-4"}>
+	                {/* Widget: deposits-chart */}
+	                {isWidgetVisible("deposits-chart") && (
 	                  <Card>
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div>
 	                        <CardTitle className="text-sm">Deposits over time</CardTitle>
 	                        <CardDescription className="text-xs">Monthly deposits</CardDescription>
 	                      </div>
-	                      <Button variant="ghost" size="icon" className="h-8 w-8">
-	                        <MoreHorizontal className="h-4 w-4" />
-	                      </Button>
 	                    </CardHeader>
 	                    <CardContent>
 	                      {memberChartSeries?.length ? (
-	                        <div className="h-[220px]">
+	                        <div className={isMobile ? "h-[180px]" : "h-[220px]"}>
 	                          <ResponsiveContainer width="100%" height="100%">
-	                            <AreaChart data={memberChartSeries} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
+	                            <AreaChart data={memberChartSeries} margin={{ left: 4, right: 4, top: 8, bottom: 0 }}>
 	                              <defs>
 	                                <linearGradient id="depositsFill" x1="0" y1="0" x2="0" y2="1">
 	                                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
@@ -1331,8 +1359,9 @@ const Dashboard = () => {
 	                                dataKey="label"
 	                                tickLine={false}
 	                                axisLine={false}
-	                                fontSize={11}
+	                                fontSize={isMobile ? 10 : 11}
 	                                stroke="hsl(var(--muted-foreground))"
+	                                interval={isMobile ? 1 : 0}
 	                              />
 	                              <Tooltip content={<ChartTooltip />} />
 	                              <Area
@@ -1348,32 +1377,29 @@ const Dashboard = () => {
 	                          </ResponsiveContainer>
 	                        </div>
 	                      ) : (
-	                        <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
+	                        <div className={`${isMobile ? "h-[120px]" : "h-[220px]"} flex items-center justify-center text-sm text-muted-foreground`}>
 	                          No chart data yet.
 	                        </div>
 	                      )}
 	                    </CardContent>
 	                  </Card>
+	                )}
 
+	                {/* Widget: member-activity */}
+	                {isWidgetVisible("member-activity") && (
 	                  <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
+	                )}
+	              </div>
 
-	                  {null}
-	                </div>
-
-	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className="lg:col-span-1">
+	              {/* Widget: recent-deposits */}
+	              {isWidgetVisible("recent-deposits") && (
+	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className={isMobile ? "" : "lg:col-span-1"}>
 	                  <Card>
 	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
 	                      <div className="flex items-start gap-2">
 	                        <CollapsibleTrigger asChild>
-	                          <Button
-	                            variant="ghost"
-	                            size="icon"
-	                            className="h-8 w-8 -ml-2"
-	                            aria-label={recentOpen ? "Collapse recent deposits" : "Expand recent deposits"}
-	                          >
-	                            <ChevronDown
-	                              className={`h-4 w-4 transition-transform ${recentOpen ? "rotate-0" : "-rotate-90"}`}
-	                            />
+	                          <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2">
+	                            <ChevronDown className={`h-4 w-4 transition-transform ${recentOpen ? "rotate-0" : "-rotate-90"}`} />
 	                          </Button>
 	                        </CollapsibleTrigger>
 	                        <div>
@@ -1381,20 +1407,17 @@ const Dashboard = () => {
 	                          <CardDescription className="text-xs">Latest account deposits</CardDescription>
 	                        </div>
 	                      </div>
-	                      <Button variant="ghost" size="icon" className="h-8 w-8">
-	                        <MoreHorizontal className="h-4 w-4" />
-	                      </Button>
 	                    </CardHeader>
 	                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
 	                      <CardContent>
-	                    <RecentMemberDeposits items={memberRecentDeposits} />
+	                        <RecentMemberDeposits items={memberRecentDeposits} />
 	                      </CardContent>
 	                    </CollapsibleContent>
 	                  </Card>
 	                </Collapsible>
-	              </>
-	            )}
-	          </div>
+	              )}
+	            </div>
+	          )}
         </>
       )}
 
