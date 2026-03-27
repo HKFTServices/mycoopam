@@ -134,23 +134,6 @@ const adminOnlyNavItems: NavItem[] = [
   { label: "Reports", icon: FileText, path: "/dashboard/reports" },
 ];
 
-const globalSetupNavItems: NavItem[] = [
-  { label: "Countries", icon: Globe, path: "/dashboard/setup/countries" },
-  { label: "Titles", icon: Users, path: "/dashboard/setup/titles" },
-  { label: "Entity Categories", icon: Building2, path: "/dashboard/setup/entity-categories" },
-  { label: "Relationship Types", icon: Link2, path: "/dashboard/setup/relationship-types" },
-  { label: "Banks", icon: Landmark, path: "/dashboard/setup/banks" },
-  { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
-  
-  { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
-  { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
-  { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
-  { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
-  { label: "System Email Templates", icon: Mail, path: "/dashboard/setup/system-email-templates" },
-  
-  { label: "API Providers", icon: Globe, path: "/dashboard/setup/api-providers" },
-];
-
 const tenantSetupNavItems: NavItem[] = [
   { label: "Pools", icon: Wallet, path: "/dashboard/pools" },
   { label: "Items", icon: Gem, path: "/dashboard/items" },
@@ -172,6 +155,18 @@ const headOfficeNavItems: NavItem[] = [
   { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
   { label: "Tenant Management", icon: Users, path: "/dashboard/head-office/tenants" },
   { label: "Tenant Invoices", icon: FileText, path: "/dashboard/head-office/invoices" },
+  { label: "Countries", icon: Globe, path: "/dashboard/setup/countries" },
+  { label: "Titles", icon: Users, path: "/dashboard/setup/titles" },
+  { label: "Entity Categories", icon: Building2, path: "/dashboard/setup/entity-categories" },
+  { label: "Relationship Types", icon: Link2, path: "/dashboard/setup/relationship-types" },
+  { label: "Banks", icon: Landmark, path: "/dashboard/setup/banks" },
+  { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
+  { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
+  { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
+  { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
+  { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
+  { label: "System Email Templates", icon: Mail, path: "/dashboard/setup/system-email-templates" },
+  { label: "API Providers", icon: Globe, path: "/dashboard/setup/api-providers" },
 ];
 
 const mamNavItems: NavItem[] = [
