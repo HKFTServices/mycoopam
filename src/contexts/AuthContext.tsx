@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .eq("user_id", userId)
       .single();
     setProfile(data);
+    return data;
   };
 
   useEffect(() => {
@@ -70,13 +71,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // defer profile fetch to avoid deadlock
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          // Fetch profile before setting loading=false so ProtectedRoute sees correct registration_status
+          await fetchProfile(session.user.id);
           // Auto-set email_verified when user has confirmed email
           if (session.user.email_confirmed_at) {
-            setTimeout(async () => {
-              await supabase.from("profiles").update({ email_verified: true } as any).eq("user_id", session.user.id);
-            }, 100);
+            supabase.from("profiles").update({ email_verified: true } as any).eq("user_id", session.user.id).then(() => {});
           }
         } else {
           setProfile(null);
@@ -102,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
       }
       setLoading(false);
     });
