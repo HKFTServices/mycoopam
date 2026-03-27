@@ -46,11 +46,11 @@ Deno.serve(async (req) => {
         admin.from("terms_conditions").select("id, condition_type, language_code, content")
           .eq("tenant_id", SOURCE_TENANT_ID).eq("is_active", true).eq("condition_type", "registration").eq("language_code", "en"),
         admin.from("document_entity_requirements")
-          .select("id, document_type_id, is_required_for_registration, document_types!inner(id, name)")
+          .select("id, document_type_id, relationship_type_id, is_required_for_registration, document_types!inner(id, name)")
           .eq("tenant_id", SOURCE_TENANT_ID).eq("is_active", true).eq("is_required_for_registration", true),
       ]);
 
-      // Filter doc requirements to natural person "Myself" relationship type
+      // Filter doc requirements to natural person "Myself" relationship type and deduplicate by document_type_id
       const { data: relTypes } = await admin
         .from("relationship_types")
         .select("id, name, entity_category_id, entity_categories!inner(entity_type)")
@@ -59,8 +59,15 @@ Deno.serve(async (req) => {
       
       let filteredDocReqs = docReqsRes.data ?? [];
       if (myselfRel) {
-        filteredDocReqs = filteredDocReqs.filter((r: any) => r.relationship_type_id === myselfRel.id || !r.relationship_type_id);
+        filteredDocReqs = filteredDocReqs.filter((r: any) => r.relationship_type_id === myselfRel.id);
       }
+      // Deduplicate by document_type_id
+      const seen = new Set<string>();
+      filteredDocReqs = filteredDocReqs.filter((r: any) => {
+        if (seen.has(r.document_type_id)) return false;
+        seen.add(r.document_type_id);
+        return true;
+      });
 
       return new Response(
         JSON.stringify({
