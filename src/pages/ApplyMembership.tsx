@@ -430,6 +430,7 @@ const ApplyMembership = () => {
       const { data: membershipType } = await (supabase as any)
         .from("entity_account_types")
         .select("id")
+        .eq("tenant_id", currentTenant.id)
         .eq("account_type", accountTypeCode)
         .eq("is_active", true)
         .maybeSingle();
