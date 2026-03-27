@@ -1137,6 +1137,7 @@ const Onboarding = () => {
                     </div>
                   </div>
                 ))}
+              
               </CardContent>
             </Card>
           )}
