@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 	import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard, Check, X } from "lucide-react";
 	import { useState, useMemo, Fragment } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
 import ApplyReferrerDialog from "@/components/membership/ApplyReferrerDialog";
@@ -66,6 +67,7 @@ const Memberships = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [editEntity, setEditEntity] = useState<{ id: string; type?: string } | null>(null);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
@@ -526,10 +528,10 @@ const Memberships = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Memberships</h1>
-          <p className="text-muted-foreground text-sm mt-1">All entities and their account memberships</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Memberships</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">All entities and their account memberships</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -567,277 +569,370 @@ const Memberships = () => {
       </div>
 
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-28">Actions</TableHead>
-                <TableHead className="w-[30%]">Name</TableHead>
-                <TableHead className="text-right w-[18%]">Combined Unit Value</TableHead>
-                <TableHead className="w-[15%]">Referred By</TableHead>
-                <TableHead>Accounts</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12">
-                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ) : filteredGroups.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                    <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                    {search ? "No matching records found." : "No entities yet."}
-                  </TableCell>
-                </TableRow>
-	              ) : (() => {
-	                const { sortedGroups, uncategorized } = groupedByMemberType;
-	                const showTypeHeaders = sortedGroups.length > 0;
+      {/* Shared actions dropdown renderer */}
+      {(() => {
+        const renderActionsDropdown = (g: EntityGroup, triggerEl?: React.ReactNode) => {
+          const existingTypes = new Set(g.accounts.map((a: AccountRow) => a.accountTypeInt).filter(Boolean));
+          const hasReferralHouseAcct = existingTypes.has(5);
+          const hasCustomer = existingTypes.has(2);
+          const hasSupplier = existingTypes.has(3);
 
-	                let rowIndex = 0;
-	                const renderEntityRow = (g: EntityGroup) => {
-	                  const entityBg = rowIndex % 2 === 0 ? "" : "bg-muted/30";
-	                  rowIndex += 1;
-	                  const existingTypes = new Set(g.accounts.map((a: AccountRow) => a.accountTypeInt).filter(Boolean));
-	                  const hasReferralHouseAcct = existingTypes.has(5);
-	                  const hasCustomer = existingTypes.has(2);
-	                  const hasSupplier = existingTypes.has(3);
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                {triggerEl || (
+                  <Button size="sm" className="h-8 px-3 text-xs">
+                    Actions
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setEditEntity({ id: g.entityId, type: g.entityType })}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </DropdownMenuItem>
+                {!hasReferralHouseAcct && (
+                  <DropdownMenuItem disabled={applyMutation.isPending} onClick={() => applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 5 })}>
+                    <Home className="h-4 w-4 mr-2" />
+                    Apply for Referral House
+                  </DropdownMenuItem>
+                )}
+                {g.entityType === "natural_person" && (
+                  <DropdownMenuItem onClick={() => setReferrerDialogEntity({ id: g.entityId, name: g.entityName })}>
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Apply as Referrer
+                  </DropdownMenuItem>
+                )}
+                {!hasCustomer && (
+                  <DropdownMenuItem disabled={!isTenantAdmin || applyMutation.isPending} onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 2 })}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Apply for Customer
+                    {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
+                  </DropdownMenuItem>
+                )}
+                {!hasSupplier && (
+                  <DropdownMenuItem disabled={!isTenantAdmin || applyMutation.isPending} onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 3 })}>
+                    <Truck className="h-4 w-4 mr-2" />
+                    Apply for Supplier
+                    {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
+                  </DropdownMenuItem>
+                )}
+                {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation") && (
+                  <>
+                    <DropdownMenuItem onClick={() => {
+                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
+                      setTxnDefaultAccountId(activeAcct?.id);
+                      setTxnDialogOpen(true);
+                    }}>
+                      <ArrowLeftRight className="h-4 w-4 mr-2" />
+                      New Transaction
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
+                      if (activeAcct) setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
+                    }}>
+                      <Banknote className="h-4 w-4 mr-2" />
+                      Apply for Loan
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
+                      if (activeAcct) setDebitOrderEntity({ entityId: g.entityId, entityName: g.entityName, entityAccountId: activeAcct.id, accountNumber: activeAcct.accountNumber });
+                    }}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Debit Order Sign Up
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {g.accounts.length === 0 && (
+                  <DropdownMenuItem onClick={() => navigate("/apply-membership?type=myself")}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Apply for Membership
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        };
 
-	                  return (
-	                    <TableRow key={g.entityId} className={`${entityBg} hover:bg-muted/50`}>
-                      {/* Actions - first column */}
-                      <TableCell className="align-top">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm" className="h-8 px-3 text-xs">
-                              Actions
-                              <ChevronDown className="h-3 w-3 ml-1" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
-                            <DropdownMenuItem
-                              onClick={() => setEditEntity({ id: g.entityId, type: g.entityType })}
-                            >
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit Profile
-                            </DropdownMenuItem>
-                            {!hasReferralHouseAcct && (
-                              <DropdownMenuItem
-                                disabled={applyMutation.isPending}
-                                onClick={() => applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 5 })}
-                              >
-                                <Home className="h-4 w-4 mr-2" />
-                                Apply for Referral House
-                              </DropdownMenuItem>
-                            )}
-                            {g.entityType === "natural_person" && (
-                              <DropdownMenuItem
-                                onClick={() => setReferrerDialogEntity({ id: g.entityId, name: g.entityName })}
-                              >
-                                <UserCheck className="h-4 w-4 mr-2" />
-                                Apply as Referrer
-                              </DropdownMenuItem>
-                            )}
-                            {!hasCustomer && (
-                              <DropdownMenuItem
-                                disabled={!isTenantAdmin || applyMutation.isPending}
-                                onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 2 })}
-                              >
-                                <ShoppingCart className="h-4 w-4 mr-2" />
-                                Apply for Customer
-                                {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
-                              </DropdownMenuItem>
-                            )}
-                            {!hasSupplier && (
-                              <DropdownMenuItem
-                                disabled={!isTenantAdmin || applyMutation.isPending}
-                                onClick={() => isTenantAdmin && applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 3 })}
-                              >
-                                <Truck className="h-4 w-4 mr-2" />
-                                Apply for Supplier
-                                {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
-                              </DropdownMenuItem>
-                            )}
-                            {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation") && (
-                              <>
-                                <DropdownMenuItem onClick={() => {
-                                   const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                                  setTxnDefaultAccountId(activeAcct?.id);
-                                  setTxnDialogOpen(true);
-                                }}>
-                                  <ArrowLeftRight className="h-4 w-4 mr-2" />
-                                  New Transaction
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                   const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                                  if (activeAcct) {
-                                    setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
-                                  }
-                                }}>
-                                  <Banknote className="h-4 w-4 mr-2" />
-                                  Apply for Loan
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                                  if (activeAcct) {
-                                    setDebitOrderEntity({ entityId: g.entityId, entityName: g.entityName, entityAccountId: activeAcct.id, accountNumber: activeAcct.accountNumber });
-                                  }
-                                }}>
-                                  <CreditCard className="h-4 w-4 mr-2" />
-                                  Debit Order Sign Up
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {g.accounts.length === 0 && (
-                              <DropdownMenuItem onClick={() => navigate("/apply-membership?type=myself")}>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Apply for Membership
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+        const renderAccountBadge = (a: AccountRow) => {
+          const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
+          const isPending = a.status === "pending_activation" || a.status === "pending";
+          const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
+          return (
+            <div key={a.id} className="flex items-center gap-1.5 text-sm">
+              {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" /> : <X className="h-3 w-3 text-destructive shrink-0" />}
+              <span className={`text-xs ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
+              {a.accountNumber && <code className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</code>}
+              {!isActive && !isPending && a.status && (
+                <Badge variant="destructive" className="text-[9px] px-1 py-0">{isDeactivated ? "Inactive" : statusLabel(a.status)}</Badge>
+              )}
+              {isPending && <Badge variant="secondary" className="text-[9px] px-1 py-0">{statusLabel(a.status ?? "Pending")}</Badge>}
+            </div>
+          );
+        };
 
-                      {/* Name - entity info consolidated */}
-                      <TableCell className="align-top">
-                        <div>
-                          <span className="font-medium">{g.entityName}</span>
-                          {(g.identityNumber || g.registrationNumber) && (
-                            <p className="text-xs text-muted-foreground font-mono">{g.identityNumber || g.registrationNumber}</p>
-                          )}
-                          {g.categoryName && (
-                            <p className="text-xs text-muted-foreground">({g.categoryName})</p>
-                          )}
-                          {g.relationshipName && (
-                            <p className="text-xs text-muted-foreground">{g.relationshipName}</p>
-                          )}
-                        </div>
-                      </TableCell>
+        const renderMobileCard = (g: EntityGroup) => (
+          <Card key={g.entityId} className="overflow-hidden">
+            <CardContent className="p-4 space-y-3">
+              {/* Header: name + actions */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm truncate">{g.entityName}</p>
+                  {(g.identityNumber || g.registrationNumber) && (
+                    <p className="text-[11px] text-muted-foreground font-mono">{g.identityNumber || g.registrationNumber}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {g.categoryName && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{g.categoryName}</Badge>}
+                    {g.relationshipName && <span className="text-[11px] text-muted-foreground">{g.relationshipName}</span>}
+                  </div>
+                </div>
+                {renderActionsDropdown(g, (
+                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                ))}
+              </div>
 
-                      {/* Combined Unit Value */}
-                      <TableCell className="align-top text-right">
-                        <div className="space-y-1">
-                          {entityValueMap[g.entityId] ? (
-                            <button
-                              onClick={() => navigate(`/dashboard/entity-pool-details?entityId=${g.entityId}`)}
-                              className="font-mono text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors cursor-pointer"
-                            >
-                              {formatCurrency(entityValueMap[g.entityId], sym)}
-                            </button>
+              {/* Value + Loan */}
+              <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg px-3 py-2">
+                <span className="text-xs text-muted-foreground">Unit Value</span>
+                {entityValueMap[g.entityId] ? (
+                  <button
+                    onClick={() => navigate(`/dashboard/entity-pool-details?entityId=${g.entityId}`)}
+                    className="font-mono text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40"
+                  >
+                    {formatCurrency(entityValueMap[g.entityId], sym)}
+                  </button>
+                ) : (
+                  <span className="font-mono text-sm text-muted-foreground">{formatCurrency(0, sym)}</span>
+                )}
+              </div>
+
+              {entityLoanMap[g.entityId] != null && (
+                <div className="flex items-center justify-between gap-2 px-3">
+                  <span className="text-xs text-muted-foreground">Loan</span>
+                  <button
+                    onClick={() => { setLoanEntityId(g.entityId); setLoanDialogOpen(true); }}
+                    className={`font-mono text-xs hover:underline cursor-pointer ${entityLoanMap[g.entityId] >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
+                  >
+                    {formatCurrency(entityLoanMap[g.entityId], sym)}
+                  </button>
+                </div>
+              )}
+
+              {/* Referred By */}
+              {g.referredBy && (
+                <div className="flex items-center justify-between gap-2 px-3">
+                  <span className="text-xs text-muted-foreground">Referred by</span>
+                  <span className="text-xs text-muted-foreground truncate max-w-[60%] text-right">{g.referredBy}</span>
+                </div>
+              )}
+
+              {/* Accounts */}
+              {g.accounts.length > 0 && (
+                <div className="border-t border-border pt-2 space-y-1.5 px-1">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Accounts</p>
+                  {g.accounts.map(renderAccountBadge)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+        if (isLoading) {
+          return isMobile ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Card><CardContent className="p-0">
+              <Table><TableBody>
+                <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+              </TableBody></Table>
+            </CardContent></Card>
+          );
+        }
+
+        if (filteredGroups.length === 0) {
+          return (
+            <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              {search ? "No matching records found." : "No entities yet."}
+            </CardContent></Card>
+          );
+        }
+
+        // MOBILE: Card layout
+        if (isMobile) {
+          const { sortedGroups, uncategorized } = groupedByMemberType;
+          const showTypeHeaders = sortedGroups.length > 0;
+
+          if (!showTypeHeaders) {
+            return <div className="space-y-3">{filteredGroups.map(renderMobileCard)}</div>;
+          }
+
+          return (
+            <div className="space-y-4">
+              {sortedGroups.map(({ label, items }) => {
+                const lower = label.toLowerCase();
+                const Icon = lower.includes("person") || lower.includes("individual") ? User : lower.includes("trust") ? Briefcase : Building;
+                return (
+                  <div key={label} className="space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold">{label}</span>
+                      <Badge variant="secondary" className="text-[11px] px-2 py-0.5">{items.length}</Badge>
+                    </div>
+                    {items.map(renderMobileCard)}
+                  </div>
+                );
+              })}
+              {uncategorized.length > 0 && (
+                <div className="space-y-2">{uncategorized.map(renderMobileCard)}</div>
+              )}
+            </div>
+          );
+        }
+
+        // DESKTOP: Table layout
+        let rowIndex = 0;
+        const renderEntityRow = (g: EntityGroup) => {
+          const entityBg = rowIndex % 2 === 0 ? "" : "bg-muted/30";
+          rowIndex += 1;
+
+          return (
+            <TableRow key={g.entityId} className={`${entityBg} hover:bg-muted/50`}>
+              <TableCell className="align-top">
+                {renderActionsDropdown(g)}
+              </TableCell>
+              <TableCell className="align-top">
+                <div>
+                  <span className="font-medium">{g.entityName}</span>
+                  {(g.identityNumber || g.registrationNumber) && (
+                    <p className="text-xs text-muted-foreground font-mono">{g.identityNumber || g.registrationNumber}</p>
+                  )}
+                  {g.categoryName && <p className="text-xs text-muted-foreground">({g.categoryName})</p>}
+                  {g.relationshipName && <p className="text-xs text-muted-foreground">{g.relationshipName}</p>}
+                </div>
+              </TableCell>
+              <TableCell className="align-top text-right">
+                <div className="space-y-1">
+                  {entityValueMap[g.entityId] ? (
+                    <button
+                      onClick={() => navigate(`/dashboard/entity-pool-details?entityId=${g.entityId}`)}
+                      className="font-mono text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors cursor-pointer"
+                    >
+                      {formatCurrency(entityValueMap[g.entityId], sym)}
+                    </button>
+                  ) : (
+                    <span className="font-mono text-sm text-muted-foreground">{formatCurrency(0, sym)}</span>
+                  )}
+                  {entityLoanMap[g.entityId] != null && (
+                    <button
+                      onClick={() => { setLoanEntityId(g.entityId); setLoanDialogOpen(true); }}
+                      className={`block ml-auto font-mono text-[10px] hover:underline cursor-pointer ${entityLoanMap[g.entityId] >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
+                    >
+                      <Banknote className="h-3 w-3 inline mr-0.5" />
+                      Loan: {formatCurrency(entityLoanMap[g.entityId], sym)}
+                    </button>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="align-top">
+                {g.referredBy ? <span className="text-sm text-muted-foreground">{g.referredBy}</span> : null}
+              </TableCell>
+              <TableCell className="align-top">
+                {g.accounts.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {g.accounts.map((a: AccountRow) => {
+                      const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
+                      const isPending = a.status === "pending_activation" || a.status === "pending";
+                      const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
+                      return (
+                        <div key={a.id} className="flex items-center gap-1.5 text-sm">
+                          <span className={`font-medium ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
+                          {a.accountNumber ? (
+                            <>
+                              <span className="text-muted-foreground">(</span>
+                              {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" /> : <X className="h-3 w-3 text-destructive" />}
+                              <code className="font-mono text-xs">{a.accountNumber}</code>
+                              <span className="text-muted-foreground">)</span>
+                              {!isActive && !isPending && a.status && (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">{isDeactivated ? "Inactive" : statusLabel(a.status)}</Badge>
+                              )}
+                              {isPending && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status ?? "Pending")}</Badge>}
+                            </>
                           ) : (
-                            <span className="font-mono text-sm text-muted-foreground">{formatCurrency(0, sym)}</span>
-                          )}
-                          {entityLoanMap[g.entityId] != null && (
-                            <button
-                              onClick={() => { setLoanEntityId(g.entityId); setLoanDialogOpen(true); }}
-                              className={`block ml-auto font-mono text-[10px] hover:underline cursor-pointer ${entityLoanMap[g.entityId] >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}
-                            >
-                              <Banknote className="h-3 w-3 inline mr-0.5" />
-                              Loan: {formatCurrency(entityLoanMap[g.entityId], sym)}
-                            </button>
+                            <span className="text-xs text-muted-foreground italic">
+                              ({isPending ? <><Loader2 className="h-3 w-3 animate-spin inline mr-0.5" />{statusLabel(a.status ?? "")}</> : statusLabel(a.status ?? "No account")})
+                            </span>
                           )}
                         </div>
-                      </TableCell>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">No accounts</span>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+        };
 
-                      {/* Referred By */}
-                      <TableCell className="align-top">
-                        {g.referredBy ? (
-                          <span className="text-sm text-muted-foreground">{g.referredBy}</span>
-                        ) : null}
-                      </TableCell>
+        const { sortedGroups, uncategorized } = groupedByMemberType;
+        const showTypeHeaders = sortedGroups.length > 0;
 
-                      {/* Accounts - consolidated */}
-                      <TableCell className="align-top">
-                        {g.accounts.length > 0 ? (
-                          <div className="space-y-1.5">
-                            {g.accounts.map((a: AccountRow) => {
-                              const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
-                              const isPending = a.status === "pending_activation" || a.status === "pending";
-                              const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
-                              return (
-                                <div key={a.id} className="flex items-center gap-1.5 text-sm">
-                                  <span className={`font-medium ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
-                                  {a.accountNumber ? (
-                                    <>
-                                      <span className="text-muted-foreground">(</span>
-	                                      {isActive ? (
-	                                        <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-	                                      ) : isPending ? (
-	                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" />
-	                                      ) : (
-	                                        <X className="h-3 w-3 text-destructive" />
-	                                      )}
-                                      <code className="font-mono text-xs">{a.accountNumber}</code>
-                                      <span className="text-muted-foreground">)</span>
-                                      {!isActive && !isPending && a.status && (
-                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">
-                                          {isDeactivated ? "Inactive" : statusLabel(a.status)}
-                                        </Badge>
-                                      )}
-                                      {isPending && (
-                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{statusLabel(a.status ?? "Pending")}</Badge>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground italic">
-                                      ({isPending ? (
-                                        <><Loader2 className="h-3 w-3 animate-spin inline mr-0.5" />{statusLabel(a.status ?? "")}</>
-                                      ) : statusLabel(a.status ?? "No account")})
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">No accounts</span>
-                        )}
-                      </TableCell>
-	                    </TableRow>
-	                  );
-	                };
+        const headerRowFor = (label: string, count: number) => {
+          const lower = label.toLowerCase();
+          const Icon = lower.includes("person") || lower.includes("individual") ? User : lower.includes("trust") ? Briefcase : Building;
+          return (
+            <TableRow key={`${label}-member-type`} className="bg-muted/40 hover:bg-muted/40">
+              <TableCell colSpan={5} className="py-3">
+                <div className="flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold">{label}</span>
+                  <Badge variant="secondary" className="ml-1 text-[11px] px-2 py-0.5">{count}</Badge>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        };
 
-	                const headerRowFor = (label: string, count: number) => {
-	                  const lower = label.toLowerCase();
-	                  const Icon = lower.includes("person") || lower.includes("individual") ? User : lower.includes("trust") ? Briefcase : Building;
-	                  return (
-	                    <TableRow key={`${label}-member-type`} className="bg-muted/40 hover:bg-muted/40">
-	                    <TableCell colSpan={5} className="py-3">
-	                      <div className="flex items-center gap-2">
-	                        <Icon className="h-4 w-4 text-muted-foreground" />
-	                        <span className="text-sm font-semibold">{label}</span>
-	                        <Badge variant="secondary" className="ml-1 text-[11px] px-2 py-0.5">
-	                          {count}
-	                        </Badge>
-	                      </div>
-	                    </TableCell>
-	                  </TableRow>
-	                  );
-	                };
-
-	                if (!showTypeHeaders) {
-	                  return filteredGroups.map(renderEntityRow);
-	                }
-
-	                return (
-	                  <>
-	                    {sortedGroups.map(({ label, items }) => (
-	                      <Fragment key={label}>
-	                        {headerRowFor(label, items.length)}
-	                        {items.map(renderEntityRow)}
-	                      </Fragment>
-	                    ))}
-	                    {uncategorized.length > 0 ? uncategorized.map(renderEntityRow) : null}
-	                  </>
-	                );
-	              })()}
-	            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        return (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-28">Actions</TableHead>
+                    <TableHead className="w-[30%]">Name</TableHead>
+                    <TableHead className="text-right w-[18%]">Combined Unit Value</TableHead>
+                    <TableHead className="w-[15%]">Referred By</TableHead>
+                    <TableHead>Accounts</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!showTypeHeaders
+                    ? filteredGroups.map(renderEntityRow)
+                    : (
+                      <>
+                        {sortedGroups.map(({ label, items }) => (
+                          <Fragment key={label}>
+                            {headerRowFor(label, items.length)}
+                            {items.map(renderEntityRow)}
+                          </Fragment>
+                        ))}
+                        {uncategorized.length > 0 ? uncategorized.map(renderEntityRow) : null}
+                      </>
+                    )
+                  }
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <EditEntityProfileDialog
         open={!!editEntity}
