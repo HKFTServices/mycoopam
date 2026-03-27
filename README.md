@@ -93,6 +93,29 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Ionic (Capacitor) for Android builds
+
+## Android app (Capacitor)
+
+This repo is set up to package the existing web app as an Android app using Capacitor.
+
+Prereqs:
+
+- Android Studio + Android SDK installed
+- Java 17 (recommended for recent Android Gradle tooling)
+
+Commands:
+
+```sh
+# Build web + sync into native projects
+npm run cap:sync
+
+# One-time: create the Android native project
+npm run cap:add:android
+
+# Open Android Studio
+npm run cap:open:android
+```
 
 ## How can I deploy this project?
 

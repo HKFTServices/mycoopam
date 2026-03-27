@@ -1,5 +1,13 @@
 import { createRoot } from "react-dom/client";
+import { IonApp, setupIonicReact } from "@ionic/react";
 import App from "./App.tsx";
 import "./index.css";
+import "@ionic/react/css/core.css";
 
-createRoot(document.getElementById("root")!).render(<App />);
+setupIonicReact();
+
+createRoot(document.getElementById("root")!).render(
+  <IonApp>
+    <App />
+  </IonApp>
+);
