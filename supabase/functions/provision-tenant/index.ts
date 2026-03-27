@@ -664,6 +664,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Create custom pools (user-defined, not from template) ───
     if (custom_pools && Array.isArray(custom_pools) && custom_pools.length > 0) {
       let customCount = 0;
       for (const poolName of custom_pools) {
