@@ -528,10 +528,10 @@ const Memberships = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Memberships</h1>
-          <p className="text-muted-foreground text-sm mt-1">All entities and their account memberships</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Memberships</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">All entities and their account memberships</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
