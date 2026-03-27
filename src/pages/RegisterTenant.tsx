@@ -44,13 +44,13 @@ function generatePrefixes(tenantName: string): Record<number, string> {
 interface PoolOption { id: string; name: string; description: string | null; isAdmin?: boolean; }
 type AddressSuggestion = { description: string; place_id: string };
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 7;
 const stepTitles = [
   "Co-operative & Admin", "Branding & Prefixes", "Investment Pools",
-  "Personal Details", "Residential Address", "Bank Details",
-  "Terms & Conditions", "Documents",
+  "Personal Details", "Residential Address", "Documents",
+  "Terms & Conditions",
 ];
-const stepIcons = [Building2, Upload, Coins, User, MapPin, CreditCard, Shield, FileText];
+const stepIcons = [Building2, Upload, Coins, User, MapPin, FileText, Shield];
 
 const toSentenceCase = (val: string): string =>
   val.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/(?<=\w)\w*/g, (c) => c.toLowerCase());
@@ -124,18 +124,11 @@ const RegisterTenant = () => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  // ─── Step 6: Bank Details ───
-  const [skipBank, setSkipBank] = useState(false);
-  const [bankId, setBankId] = useState("");
-  const [bankAccountTypeId, setBankAccountTypeId] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
+  // ─── Step 6: Documents ───
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
   // ─── Step 7: T&Cs ───
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
-
-  // ─── Step 8: Documents ───
-  const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
   // ─── Reference data (fetched once) ───
   const [refData, setRefData] = useState<any>(null);
@@ -156,12 +149,6 @@ const RegisterTenant = () => {
     if (step >= 4 && !refData && !refLoading) loadRefData();
   }, [step]);
 
-  // Pre-fill account name
-  useEffect(() => {
-    if (!accountName && firstName && lastName) {
-      setAccountName(`${firstName} ${lastName}`);
-    }
-  }, [firstName, lastName]);
 
   const loadPools = async () => {
     setPoolsLoading(true);
@@ -319,7 +306,7 @@ const RegisterTenant = () => {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 6: return true; // bank is optional
+      case 6: return true; // documents optional
       case 7: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
@@ -327,7 +314,6 @@ const RegisterTenant = () => {
         }
         return true;
       }
-      case 8: return true; // documents optional
       default: return true;
     }
   };
