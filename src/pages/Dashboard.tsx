@@ -1019,6 +1019,34 @@ const Dashboard = () => {
         </Card>
       )}
 
+      {/* Legal Entity Registration Prompt */}
+      {showLegalEntityPrompt && (
+        <Dialog open={true}>
+          <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Register Legal Entity
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Your co-operative needs a registered legal entity before you can start managing members.
+                This will set up your company details, address, and bank information.
+              </p>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => navigate("/apply-membership?type=entity&mode=legal_entity")}
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                Register Legal Entity
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Required documents (member) */}
       {currentTenant && !isAdmin && missingCriticalDocs.length > 0 && (
         <Card className="border-amber-500/30 bg-amber-500/5">
