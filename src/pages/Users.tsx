@@ -11,9 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Loader2, LogIn, ShieldCheck } from "lucide-react";
+import { Loader2, LogIn, ShieldCheck, MoreHorizontal } from "lucide-react";
 import ManageRolesDialog from "@/components/users/ManageRolesDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -35,6 +39,7 @@ const roleBadgeVariant = (role: string) => {
 const Users = () => {
   const { currentTenant } = useTenant();
   const { user: currentUser } = useAuth();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -169,10 +174,10 @@ const Users = () => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Users</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
           View users and their roles for the current cooperative.
         </p>
       </div>
@@ -181,35 +186,91 @@ const Users = () => {
         <Input placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Roles</TableHead>
-                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">No users found.</div>
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {filtered.map((u) => {
+            const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
+            return (
+              <Card key={u.user_id}>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isAdmin ? (
+                        <Switch
+                          checked={u.is_active}
+                          disabled={toggleActiveMutation.isPending || u.user_id === currentUser?.id}
+                          onCheckedChange={(checked) =>
+                            toggleActiveMutation.mutate({ userId: u.user_id, newActive: checked })
+                          }
+                        />
+                      ) : (
+                        <Badge variant={u.is_active ? "default" : "secondary"} className="text-[10px]">
+                          {u.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      )}
+                      {isAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setRoleDialogUser({ userId: u.user_id, name })}>
+                              <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Manage Roles
+                            </DropdownMenuItem>
+                            {u.user_id !== currentUser?.id && (
+                              <DropdownMenuItem onClick={() => impersonateMutation.mutate(u.user_id)}>
+                                <LogIn className="h-3.5 w-3.5 mr-2" /> Login as
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant={u.registration_status === "registered" ? "default" : "secondary"} className="text-[10px]">
+                      {u.registration_status}
+                    </Badge>
+                    {u.roles.map((r: string) => (
+                      <Badge key={r} variant={roleBadgeVariant(r)} className="text-[10px]">
+                        {r.replace("_", " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                  </TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Roles</TableHead>
+                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-muted-foreground">
-                    No users found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((u) => (
+              </TableHeader>
+              <TableBody>
+                {filtered.map((u) => (
                   <TableRow key={u.user_id}>
                     <TableCell className="font-medium">
                       {[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}
@@ -239,7 +300,7 @@ const Users = () => {
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
                         {u.roles.length > 0
-                          ? u.roles.map((r) => (
+                          ? u.roles.map((r: string) => (
                               <span key={r} className="inline-flex items-center gap-1">
                                 <Badge variant={roleBadgeVariant(r)}>{r.replace("_", " ")}</Badge>
                                 {r === "referrer" && u.referrerNumber && (
@@ -303,12 +364,12 @@ const Users = () => {
                       </TableCell>
                     )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {roleDialogUser && currentTenant && (
         <ManageRolesDialog
