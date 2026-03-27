@@ -126,8 +126,9 @@ async function fetchProviderPrices(
   }
 
   // Determine endpoint (support historical dates)
+  // Use "latest" for today or future dates (APIs reject future dates)
   const today = new Date().toISOString().slice(0, 10);
-  const isHistorical = priceDate && priceDate !== today;
+  const isHistorical = priceDate && priceDate < today;
   const endpoint = isHistorical ? priceDate : "latest";
 
   // Build URL based on auth method
