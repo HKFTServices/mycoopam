@@ -219,7 +219,12 @@ export async function postDepositApproval(
     const membershipFee = Number(joinShareInfo.membership_fee || 0);
     const shareClassId = joinShareInfo.share_class_id || null;
 
-    const membershipFeeVat = Number(joinShareInfo.membership_fee_vat || 0);
+    // Recalculate membership fee VAT at approval time using current tenant VAT status
+    const oldMembershipFeeVat = Number(joinShareInfo.membership_fee_vat || 0);
+    const membershipFeeBase = membershipFee - oldMembershipFeeVat;
+    const membershipFeeVat = isVatRegistered && vatRate > 0
+      ? Math.round(membershipFeeBase * (vatRate / 100) * 100) / 100
+      : 0;
 
     // CFT child: Join Share — no VAT
     if (shareCost > 0) {

@@ -52,15 +52,15 @@ export function buildDepositPreview(params: {
 
   // Membership Fee — contra: CFT debit → GL Ct (revenue)
   if (joinShare && joinShare.membership_fee > 0) {
-    const mfVat = joinShare.membership_fee_vat || 0;
-    const mfExcl = joinShare.membership_fee - mfVat;
-    gl.push({ glCode: "4010", glName: "Membership Fee Income", side: "Ct", amount: mfExcl });
-    // Membership Fee VAT — CFT credit → non-bank → but VAT is liability (GL Ct)
+    const oldMfVat = joinShare.membership_fee_vat || 0;
+    const mfBase = joinShare.membership_fee - oldMfVat;
+    const mfVat = isVatRegistered && vatRate > 0 ? Math.round(mfBase * (vatRate / 100) * 100) / 100 : 0;
+    gl.push({ glCode: "4010", glName: "Membership Fee Income", side: "Ct", amount: mfBase });
     if (mfVat > 0) {
       gl.push({ glCode: "2090", glName: "VAT Control", side: "Ct", amount: mfVat });
     }
     // Control: Admin Cash Dt
-    ctrl.push({ controlAccount: "Admin Cash", side: "Dt", amount: mfExcl });
+    ctrl.push({ controlAccount: "Admin Cash", side: "Dt", amount: mfBase });
   }
 
   // Fees — contra: CFT debit → GL Ct (revenue)
