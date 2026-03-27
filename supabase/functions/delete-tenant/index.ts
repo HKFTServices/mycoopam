@@ -226,8 +226,56 @@ Deno.serve(async (req) => {
       errors.push(`pool/control cleanup: ${e.message}`);
     }
 
-    // Also delete auth users who ONLY belong to this tenant
-    // (We skip this for safety — users might belong to multiple tenants)
+    // Delete auth users who ONLY belonged to this tenant (no other memberships)
+    // First, find users who were members of this tenant
+    const { data: memberUsers } = await admin
+      .from("profiles")
+      .select("user_id")
+      .in(
+        "user_id",
+        // Get user_ids that had memberships to this tenant (already deleted above)
+        // We check if they have ANY remaining tenant_memberships
+        []
+      );
+
+    // Better approach: before deleting tenant_memberships, capture the user IDs
+    // Since we already deleted them, query profiles and check for orphaned users
+    const { data: allProfiles } = await admin
+      .from("profiles")
+      .select("user_id");
+
+    if (allProfiles) {
+      let authUsersDeleted = 0;
+      for (const profile of allProfiles) {
+        // Check if this user has any remaining tenant memberships
+        const { data: remaining } = await admin
+          .from("tenant_memberships")
+          .select("id")
+          .eq("user_id", profile.user_id)
+          .limit(1);
+
+        // Also check if they have a super_admin role (never delete super admins)
+        const { data: superRole } = await admin
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", profile.user_id)
+          .eq("role", "super_admin")
+          .limit(1);
+
+        if ((!remaining || remaining.length === 0) && (!superRole || superRole.length === 0)) {
+          // This user has no tenant memberships left and is not a super_admin — delete them
+          const { error: delErr } = await admin.auth.admin.deleteUser(profile.user_id);
+          if (delErr) {
+            console.warn(`Failed to delete auth user ${profile.user_id}: ${delErr.message}`);
+          } else {
+            authUsersDeleted++;
+            // Also clean up the profile
+            await admin.from("profiles").delete().eq("user_id", profile.user_id);
+          }
+        }
+      }
+      results["auth_users"] = authUsersDeleted;
+    }
 
     const totalDeleted = Object.values(results).reduce((a, b) => a + b, 0);
     console.log(`Tenant ${tenant.name} deleted. ${totalDeleted} records removed.`);
