@@ -4,7 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown } from "lucide-react";
+import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown, ChevronDown } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogContent,
