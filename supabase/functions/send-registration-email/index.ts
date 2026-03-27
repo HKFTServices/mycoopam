@@ -55,16 +55,17 @@ Deno.serve(async (req) => {
     } else {
       // Verify the calling user via JWT
       const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: authHeader } },
+        global: { headers: { Authorization: `Bearer ${token}` } },
       });
-      const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
-      if (claimsErr || !claimsData?.claims) {
+      const { data: userData, error: userErr } = await anonClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        console.error("[send-registration-email] Auth error:", userErr?.message);
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const callerUserId = claimsData.claims.sub as string;
+      const callerUserId = userData.user.id;
 
       // If explicit user_id provided, check caller is super_admin
       if (explicitUserId) {
