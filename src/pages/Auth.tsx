@@ -40,6 +40,15 @@ const Auth = () => {
     // Don't redirect to dashboard during password recovery
     if (isPasswordRecovery) return;
     if (session) {
+      // Check if we need to switch to a specific tenant before going to dashboard
+      const pendingSlug = localStorage.getItem("pendingTenantSlug");
+      if (pendingSlug) {
+        localStorage.removeItem("pendingTenantSlug");
+        localStorage.setItem("tenantSlug", pendingSlug);
+        // Redirect to the tenant's subdomain/path so TenantContext picks it up
+        navigateToTenant(pendingSlug, navigate, { replace: true });
+        return;
+      }
       navigate("/dashboard", { replace: true });
     } else {
       const tenantSlug = localStorage.getItem("tenantSlug");

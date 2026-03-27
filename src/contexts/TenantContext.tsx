@@ -155,6 +155,19 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // Check for pending tenant slug (from registration flow)
+      const pendingSlug = localStorage.getItem("pendingTenantSlug");
+      if (pendingSlug) {
+        const pendingTenant = list.find((t) => t.slug === pendingSlug);
+        if (pendingTenant) {
+          setCurrentTenant(pendingTenant);
+          localStorage.setItem("currentTenantId", pendingTenant.id);
+          localStorage.removeItem("pendingTenantSlug");
+          setLoading(false);
+          return;
+        }
+      }
+
       // restore saved tenant or pick first
       const savedId = localStorage.getItem("currentTenantId");
       const saved = list.find((t) => t.id === savedId);
