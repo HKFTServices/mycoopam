@@ -36,6 +36,7 @@ const Landing = () => {
   const [showTenantPicker, setShowTenantPicker] = useState(false);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
+  const [tenantSearch, setTenantSearch] = useState("");
 
   useEffect(() => {
     if (!loading && session) {
