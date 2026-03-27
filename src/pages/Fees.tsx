@@ -543,6 +543,8 @@ const Fees = () => {
         </div>
       </div>
 
+      <MobileTableHint />
+
       <Tabs defaultValue="fee-types" className="w-full">
         <TabsList>
           <TabsTrigger value="fee-types">Fee Types</TabsTrigger>
