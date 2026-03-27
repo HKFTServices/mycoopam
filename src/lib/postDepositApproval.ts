@@ -238,19 +238,20 @@ export async function postDepositApproval(
         amount_excl_vat: shareCost,
         gl_account_id: shareGlAccountId || tenantShareGlAccountId,
       });
-
-      // Insert into member_shares
-      await (supabase as any).from("member_shares").insert({
-        tenant_id: tenantId,
-        entity_account_id: entityAccountId,
-        share_class_id: shareClassId,
-        transaction_date: txnDate,
-        quantity: 1,
-        value: shareCost,
-        membership_type: "full",
-        creator_user_id: approvedBy,
-      });
     }
+
+    // Insert into member_shares to mark account as "joined" (prevents repeat charges).
+    // Created even if shareCost is 0 (membership-fee-only scenario with no share class).
+    await (supabase as any).from("member_shares").insert({
+      tenant_id: tenantId,
+      entity_account_id: entityAccountId,
+      share_class_id: shareClassId,
+      transaction_date: txnDate,
+      quantity: shareCost > 0 ? 1 : 0,
+      value: shareCost,
+      membership_type: "full",
+      creator_user_id: approvedBy,
+    });
 
     // CFT child: Membership Fee — carries VAT
     if (membershipFee > 0) {
