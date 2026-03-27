@@ -423,118 +423,51 @@ const ApplyMembership = () => {
         });
       }
 
-      if (isLegalEntityMode) {
-        // Legal entity mode: use the setup-legal-entity edge function
-        const { data: result, error: fnError } = await supabase.functions.invoke("setup-legal-entity", {
-          body: {
-            tenant_id: currentTenant.id,
-            user_id: user.id,
-            company_name: data.entityName.trim(),
-            registration_number: data.registrationNumber.trim() || null,
-            is_vat_registered: data.isVatRegistered,
-            vat_number: data.isVatRegistered ? data.vatNumber.trim() : null,
-            contact_number: data.contactNumber.trim() || null,
-            email_address: data.emailAddress.trim() || null,
-            website: data.website.trim() || null,
-            street_address: data.streetAddress.trim() || null,
-            suburb: data.suburb.trim() || null,
-            city: data.city.trim() || null,
-            province: data.province.trim() || null,
-            postal_code: data.postalCode.trim() || null,
-            country: data.country.trim(),
-            bank_id: data.bankId || null,
-            bank_account_type_id: data.bankAccountTypeId || null,
-            account_holder: data.accountName.trim() || data.entityName.trim(),
-            account_number: data.accountNumber.trim() || null,
-          },
-        });
+      // Find correct Membership account type based on selection
+      // account_type 1 = Full Membership, account_type 4 = Associated Membership
+      const accountTypeCode = data.selectedMembershipType === "associated" ? 4 : 1;
+      const { data: membershipType } = await (supabase as any)
+        .from("entity_account_types")
+        .select("id")
+        .eq("account_type", accountTypeCode)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!membershipType?.id) throw new Error("Membership account type not configured.");
 
-        if (fnError) throw fnError;
-        if (result?.error) throw new Error(result.error);
+      // Create entity account
+      await (supabase as any).from("entity_accounts").insert({
+        tenant_id: currentTenant.id,
+        entity_id: entityId,
+        entity_account_type_id: membershipType.id,
+        status: "pending_activation",
+      });
 
-        const legalEntityId = result?.entity_id;
+      // Create membership application with entity_id for per-entity referrer tracking
+      await supabase.from("membership_applications").insert({
+        user_id: user.id,
+        tenant_id: currentTenant.id,
+        entity_id: entityId,
+        has_referrer: data.hasReferrer,
+        referrer_id: data.hasReferrer && data.referrerId ? data.referrerId : null,
+        commission_percentage: parseFloat(data.commissionPercentage),
+        status: "pending_activation",
+      } as any);
 
-        // Upload documents for the legal entity
-        if (legalEntityId) {
-          for (const [docTypeId, rawDocFiles] of Object.entries(data.uploadedDocs)) {
-            const docFiles = Array.isArray(rawDocFiles) ? rawDocFiles : rawDocFiles ? [rawDocFiles] : [];
-            for (const docInfo of docFiles) {
-              if (!docInfo.file) continue;
-              const filePath = `${currentTenant.id}/${legalEntityId}/${docTypeId}/${Date.now()}_${docInfo.name}`;
-              await supabase.storage.from("member-documents").upload(filePath, docInfo.file);
-              await (supabase as any).from("entity_documents").insert({
-                tenant_id: currentTenant.id,
-                entity_id: legalEntityId,
-                document_type_id: docTypeId,
-                file_name: docInfo.name,
-                file_path: filePath,
-                file_size: docInfo.file.size,
-                mime_type: docInfo.file.type,
-                creator_user_id: user.id,
-              });
-            }
-          }
-
-          // Save T&C acceptances
-          for (const termId of Object.keys(data.acceptedTerms).filter((k) => data.acceptedTerms[k])) {
-            await supabase.from("tc_acceptances").insert({
-              user_id: user.id,
-              tenant_id: currentTenant.id,
-              terms_condition_id: termId,
-            });
-          }
-        }
-
-        toast.success("Legal entity registered and linked to your co-operative!");
-        navigate("/dashboard", { replace: true });
-      } else {
-        // Normal membership flow
-        // Find correct Membership account type based on selection
-        // account_type 1 = Full Membership, account_type 4 = Associated Membership
-        const accountTypeCode = data.selectedMembershipType === "associated" ? 4 : 1;
-        const { data: membershipType } = await (supabase as any)
-          .from("entity_account_types")
-          .select("id")
-          .eq("account_type", accountTypeCode)
-          .eq("is_active", true)
-          .maybeSingle();
-        if (!membershipType?.id) throw new Error("Membership account type not configured.");
-
-        // Create entity account
-        await (supabase as any).from("entity_accounts").insert({
-          tenant_id: currentTenant.id,
-          entity_id: entityId,
-          entity_account_type_id: membershipType.id,
-          status: "pending_activation",
-        });
-
-        // Create membership application with entity_id for per-entity referrer tracking
-        await supabase.from("membership_applications").insert({
-          user_id: user.id,
-          tenant_id: currentTenant.id,
-          entity_id: entityId,
-          has_referrer: data.hasReferrer,
-          referrer_id: data.hasReferrer && data.referrerId ? data.referrerId : null,
-          commission_percentage: parseFloat(data.commissionPercentage),
-          status: "pending_activation",
-        } as any);
-
-        // Also persist referrer link on the entity itself
-        if (data.hasReferrer && data.referrerId) {
-          await (supabase as any).from("entities").update({
-            agent_house_agent_id: data.referrerId,
-            agent_commission_percentage: parseFloat(data.commissionPercentage) || 0,
-          }).eq("id", entityId);
-        }
-
-        // Send email
-        supabase.functions.invoke("send-account-creation-email", {
-          body: { tenant_id: currentTenant.id },
-        }).catch(console.error);
-
-        toast.success("Membership application submitted successfully!");
-        navigate("/dashboard/memberships", { replace: true });
+      // Also persist referrer link on the entity itself
+      if (data.hasReferrer && data.referrerId) {
+        await (supabase as any).from("entities").update({
+          agent_house_agent_id: data.referrerId,
+          agent_commission_percentage: parseFloat(data.commissionPercentage) || 0,
+        }).eq("id", entityId);
       }
+
+      // Send email
+      supabase.functions.invoke("send-account-creation-email", {
+        body: { tenant_id: currentTenant.id },
+      }).catch(console.error);
+
+      toast.success("Membership application submitted successfully!");
+      navigate("/dashboard/memberships", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit application.");
     } finally {
