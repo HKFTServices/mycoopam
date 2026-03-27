@@ -78,6 +78,7 @@ export async function postTransferApproval(
   // Receiver-side deduction metadata (set by wizard if receiver is first-time / has commission)
   const receiverJoinShareInfo: {
     share_class_id?: string;
+    share_gl_account_id?: string;
     cost: number;
     membership_fee: number;
     membership_fee_vat: number;
@@ -219,8 +220,9 @@ export async function postTransferApproval(
 
   // ── 4. Receiver-side: Join Share (if first-time member) ──
   if (receiverJoinShareCost > 0) {
-    let shareGlAccountId: string | null = tenantShareGlAccountId;
-    if (receiverJoinShareInfo?.share_class_id) {
+    // Resolve GL account: prefer metadata share_gl_account_id, fallback to share_class lookup, then tenant config
+    let shareGlAccountId: string | null = receiverJoinShareInfo?.share_gl_account_id || tenantShareGlAccountId;
+    if (!shareGlAccountId && receiverJoinShareInfo?.share_class_id) {
       const { data: sc } = await (supabase as any)
         .from("share_classes")
         .select("gl_account_id")
@@ -244,13 +246,17 @@ export async function postTransferApproval(
       amount_excl_vat: receiverJoinShareCost,
       gl_account_id: shareGlAccountId,
     });
+  }
 
+  // Insert member_shares marker for receiver (prevents repeat charges on future deposits).
+  // Created even if shareCost is 0 (membership-fee-only scenario).
+  if (receiverJoinShareInfo && (receiverJoinShareCost > 0 || receiverMembershipFee > 0)) {
     await (supabase as any).from("member_shares").insert({
       tenant_id: tenantId,
       entity_account_id: toAccountId,
       share_class_id: receiverJoinShareInfo?.share_class_id || null,
       transaction_date: txnDate,
-      quantity: 1,
+      quantity: receiverJoinShareCost > 0 ? 1 : 0,
       value: receiverJoinShareCost,
       membership_type: "full",
       creator_user_id: approvedBy,
