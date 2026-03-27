@@ -1801,6 +1801,13 @@ export type Database = {
           postal_code: string | null
           province: string | null
           registration_number: string | null
+          smtp_enable_ssl: boolean | null
+          smtp_from_email: string | null
+          smtp_from_name: string | null
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_username: string | null
           street_address: string | null
           updated_at: string
           vat_number: string | null
@@ -1825,6 +1832,13 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           registration_number?: string | null
+          smtp_enable_ssl?: boolean | null
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
           street_address?: string | null
           updated_at?: string
           vat_number?: string | null
@@ -1849,6 +1863,13 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           registration_number?: string | null
+          smtp_enable_ssl?: boolean | null
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
           street_address?: string | null
           updated_at?: string
           vat_number?: string | null
