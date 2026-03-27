@@ -209,7 +209,7 @@ const MembershipApplication = () => {
       const accountTypeCode = selectedMembershipType === "associated" ? 4 : 1;
       const { data: membershipAccountType } = await (supabase as any)
         .from("entity_account_types").select("id")
-        .eq("account_type", accountTypeCode).eq("is_active", true).maybeSingle();
+        .eq("tenant_id", currentTenant.id).eq("account_type", accountTypeCode).eq("is_active", true).maybeSingle();
       if (!membershipAccountType?.id) throw new Error("Membership account type not configured. Contact your administrator.");
 
       const { error: eaErr } = await (supabase as any).from("entity_accounts").insert({
