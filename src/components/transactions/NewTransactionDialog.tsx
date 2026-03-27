@@ -790,19 +790,21 @@ const NewTransactionDialog = ({
     const isWithdrawalCode = selectedCode === "WITHDRAW_FUNDS";
     const isTransferCode = TRANSFER_CODES.includes(selectedCode);
 
-    // If no rules loaded yet, return empty to avoid showing wrong pools
-    if (poolTxnRules.length === 0) return allPools;
+    // Map txn type code (uppercase) to pool rule code (lowercase)
+    const ruleCode = selectedCode.toLowerCase();
 
-    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_id === selectedTxnTypeId);
-    // If this txn type has no rules configured, show all pools only for deposits
-    if (rulesForType.length === 0) return (isDepositCode || isWithdrawalCode) ? allPools : [];
+    // Filter to pools where a rule exists and is_allowed = true for this txn type
+    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_code === ruleCode && r.is_allowed);
+    const allowedPoolIds = new Set(rulesForType.map((r: any) => r.pool_id));
 
-    const allowedPoolIds = new Set(
-      rulesForType
-        .filter((r: any) => isDepositCode ? r.allow_to : r.allow_from)
-        .map((r: any) => r.pool_id)
-    );
-    let filtered = allPools.filter((p: any) => allowedPoolIds.has(p.id));
+    // If no rules configured for this type at all, fall back to showing all pools for deposits only
+    const anyRulesForType = poolTxnRules.some((r: any) => r.transaction_type_code === ruleCode);
+    let filtered: any[];
+    if (!anyRulesForType) {
+      filtered = (isDepositCode || isWithdrawalCode) ? allPools : [];
+    } else {
+      filtered = allPools.filter((p: any) => allowedPoolIds.has(p.id));
+    }
 
     // For transfers & withdrawals: restrict to pools where account has units
     if ((isTransferCode || isWithdrawalCode) && !holdingsLoading) {
