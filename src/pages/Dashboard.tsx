@@ -243,7 +243,10 @@ const Dashboard = () => {
 
       const latestByPool: Record<string, any> = {};
       for (const p of (prices ?? [])) {
-        if (!latestByPool[p.pool_id]) latestByPool[p.pool_id] = p;
+        // Skip rows where both buy and sell prices are 0 (incomplete price data)
+        if (!latestByPool[p.pool_id] && (Number(p.unit_price_sell) > 0 || Number(p.unit_price_buy) > 0)) {
+          latestByPool[p.pool_id] = p;
+        }
       }
 
       const unitsByPool: Record<string, number> = {};
