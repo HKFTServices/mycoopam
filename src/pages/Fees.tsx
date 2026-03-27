@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, Pencil, Trash2, Settings2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 type GlAccount = {
   id: string;
@@ -531,16 +532,18 @@ const Fees = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <DollarSign className="h-8 w-8 text-primary" />
+          <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Fees</h1>
-            <p className="text-muted-foreground">Configure fee types and their rules per transaction type</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Fees</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">Configure fee types and their rules</p>
           </div>
         </div>
       </div>
+
+      <MobileTableHint />
 
       <Tabs defaultValue="fee-types" className="w-full">
         <TabsList>

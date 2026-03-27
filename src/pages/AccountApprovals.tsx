@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote, Send, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import DocumentReviewDialog from "@/components/approvals/DocumentReviewDialog";
 import TransactionReviewDialog, { type DateOverride, type StockApprovalMeta } from "@/components/approvals/TransactionReviewDialog";
 import WithdrawalReviewDialog from "@/components/approvals/WithdrawalReviewDialog";
@@ -743,11 +744,12 @@ const AccountApprovals = () => {
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Approvals</h1>
-        <p className="text-muted-foreground text-sm mt-1">Review and approve pending requests</p>
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Approvals</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">Review and approve pending requests</p>
       </div>
+      <MobileTableHint />
 
       <Tabs defaultValue="registrations">
         <TabsList>

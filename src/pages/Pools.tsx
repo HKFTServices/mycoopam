@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { toast } from "sonner";
 import { GlobalPriceScheduleCard } from "@/components/pools/GlobalPriceScheduleCard";
 import { PoolTransactionRulesTab } from "@/components/pools/PoolTransactionRulesTab";
@@ -216,11 +217,11 @@ const Pools = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pools</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Pools</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             Manage investment pools. Each pool auto-creates Cash, VAT and Loan control accounts.
           </p>
         </div>
@@ -228,6 +229,8 @@ const Pools = () => {
           <Plus className="h-4 w-4 mr-1.5" />Add Pool
         </Button>
       </div>
+
+      <MobileTableHint />
 
       {/* Global Price Update Schedule */}
       <GlobalPriceScheduleCard />

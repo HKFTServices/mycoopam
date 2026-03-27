@@ -15,6 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Loader2, CreditCard, Eye, Pencil, Plus, Landmark } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -251,24 +252,28 @@ const DebitOrders = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <CreditCard className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Debit Orders</h1>
+          <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
+          <h1 className="text-lg sm:text-2xl font-bold">Debit Orders</h1>
         </div>
         {isAdmin ? (
-          <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2">
+          <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2" size="sm">
             <Plus className="h-4 w-4" />
-            Create Debit Order
+            <span className="hidden sm:inline">Create Debit Order</span>
+            <span className="sm:hidden">New</span>
           </Button>
         ) : (
-          <Button onClick={handleSignUpClick} className="gap-2">
+          <Button onClick={handleSignUpClick} className="gap-2" size="sm">
             <Plus className="h-4 w-4" />
-            Sign Up for Debit Order
+            <span className="hidden sm:inline">Sign Up for Debit Order</span>
+            <span className="sm:hidden">Sign Up</span>
           </Button>
         )}
       </div>
+
+      <MobileTableHint />
 
       {debitOrders.length === 0 && !isAdmin ? (
         <Card>

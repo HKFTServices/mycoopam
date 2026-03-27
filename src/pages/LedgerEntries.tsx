@@ -27,6 +27,7 @@ import {
 import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays, Clock, Check, X, Edit3, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
@@ -802,16 +803,18 @@ const LedgerEntries = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div className="flex items-center gap-3">
-        <BookOpen className="h-8 w-8 text-primary" />
+        <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Ledger Entries</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Post ad-hoc bank &amp; journal entries directly to the transaction ledger, and pay commissions
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Ledger Entries</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+            Post ad-hoc bank &amp; journal entries directly to the transaction ledger
           </p>
         </div>
       </div>
+
+      <MobileTableHint />
 
       <Tabs defaultValue="bank">
         <TabsList>

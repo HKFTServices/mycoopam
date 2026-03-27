@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 type Item = {
   id: string;
@@ -323,13 +324,15 @@ const DailyStockPrices = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Stock Price Update</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          View and manage daily stock item prices. Prices are fetched automatically from configured APIs.
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Stock Price Update</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+          View and manage daily stock item prices.
         </p>
       </div>
+
+      <MobileTableHint />
 
       {/* Date Picker & Refresh */}
       <div className="flex items-center gap-3">

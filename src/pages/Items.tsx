@@ -18,6 +18,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2, Zap } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -247,16 +248,18 @@ const Items = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Items / Instruments</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage tradeable items and instruments within pools. Configure pricing methods, margins, and API feeds.
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Items / Instruments</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+            Manage tradeable items and instruments within pools.
           </p>
         </div>
         <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Item</Button>
       </div>
+
+      <MobileTableHint />
 
       <div className="flex gap-3 max-w-lg">
         <Input placeholder="Search items..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1" />

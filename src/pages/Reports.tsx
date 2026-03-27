@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, RotateCcw } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
@@ -361,16 +362,17 @@ const Reports = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Reports</h1>
-        <div className="flex items-center gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-lg sm:text-2xl font-bold">Reports</h1>
+        <div className="flex items-center gap-2 flex-wrap">
           {presets.map((p) => (
             <Button
               key={p.days}
               size="sm"
               variant="outline"
               onClick={() => setDateRange({ from: subDays(new Date(), p.days), to: new Date() })}
+              className="text-xs sm:text-sm"
             >
               {p.label}
             </Button>
@@ -399,6 +401,8 @@ const Reports = () => {
           </Popover>
         </div>
       </div>
+
+      <MobileTableHint />
 
       <Tabs defaultValue="is">
         <TabsList className="flex-wrap">

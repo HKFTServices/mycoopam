@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 type Pool = {
   id: string;
@@ -407,13 +408,15 @@ const DailyPoolPrices = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pool Price Updates</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Pool Price Updates</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
           Daily pool valuations calculated from stock prices and control account balances.
         </p>
       </div>
+
+      <MobileTableHint />
 
       {/* Date Picker */}
       <div className="flex items-center gap-3">

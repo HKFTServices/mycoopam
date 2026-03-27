@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { CheckCircle2, XCircle, Clock, Eye, Mail, RefreshCw } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 export default function MessageHistory() {
   const { currentTenant } = useTenant();
@@ -65,16 +66,18 @@ export default function MessageHistory() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Message History</h1>
-          <p className="text-muted-foreground">View campaign progress and delivery logs.</p>
+          <h1 className="text-lg sm:text-2xl font-bold">Message History</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">View campaign progress and delivery logs.</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4 mr-2" /> Refresh
         </Button>
       </div>
+
+      <MobileTableHint />
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading campaigns...</p>

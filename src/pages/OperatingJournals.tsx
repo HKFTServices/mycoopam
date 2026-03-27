@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Plus, BookOpen, RotateCcw, Landmark, Archive } from "lucide-react";
 import { toast } from "sonner";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
@@ -256,16 +257,18 @@ const OperatingJournals = () => {
     ) : null;
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-4 sm:space-y-8 animate-fade-in">
       <div className="flex items-center gap-3">
-        <BookOpen className="h-8 w-8 text-muted-foreground" />
+        <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground shrink-0" />
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-muted-foreground">Operating Journals</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-muted-foreground">Operating Journals</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             Legacy read-only view — new entries are posted via <strong>Ledger Entries</strong>
           </p>
         </div>
       </div>
+
+      <MobileTableHint />
 
       {/* Legacy notice */}
       <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
