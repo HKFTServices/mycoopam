@@ -17,7 +17,7 @@ import RelationshipTypes from "./pages/setup/RelationshipTypes";
 import DocumentRequirements from "./pages/setup/DocumentRequirements";
 import Titles from "./pages/setup/Titles";
 import TermsConditions from "./pages/setup/TermsConditions";
-import SystemSettings from "./pages/setup/SystemSettings";
+
 
 import Communications from "./pages/setup/Communications";
 import SystemEmailTemplates from "./pages/setup/SystemEmailTemplates";
@@ -183,7 +183,7 @@ const App = () => (
               <Route path="/dashboard/setup/document-types" element={<SuperAdminRoute><DocumentTypes /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/relationship-types" element={<SuperAdminRoute><RelationshipTypes /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/titles" element={<SuperAdminRoute><Titles /></SuperAdminRoute>} />
-              <Route path="/dashboard/setup/system-settings" element={<SuperAdminRoute><SystemSettings /></SuperAdminRoute>} />
+              
               
               <Route path="/dashboard/setup/countries" element={<SuperAdminRoute><Countries /></SuperAdminRoute>} />
               <Route path="/dashboard/setup/banks" element={<SuperAdminRoute><Banks /></SuperAdminRoute>} />
