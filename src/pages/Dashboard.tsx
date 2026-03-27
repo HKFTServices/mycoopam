@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import {
@@ -1719,6 +1720,26 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
     </div>
   );
 
+  const parseNotesJson = (notes: unknown) => {
+    if (typeof notes !== "string") return null;
+    const trimmed = notes.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return null;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!parsed || typeof parsed !== "object") return null;
+      return parsed as any;
+    } catch {
+      return null;
+    }
+  };
+
+  const formatMaybeNumber = (v: any) => {
+    if (typeof v === "number") return v.toLocaleString("en-ZA");
+    if (typeof v === "string") return v;
+    if (typeof v === "boolean") return v ? "Yes" : "No";
+    return String(v ?? "—");
+  };
+
   return (
     <div className="space-y-2">
       <ScrollShadow>
@@ -1841,13 +1862,14 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
           if (!open) setSelectedTxn(null);
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[85vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Transaction details</DialogTitle>
           </DialogHeader>
 
           {selectedTxn ? (
-            <div className="space-y-5">
+            <ScrollArea className="h-full pr-4">
+              <div className="space-y-5">
               <div className="space-y-2">
                 <DetailsRow
                   label="Transaction"
@@ -1938,15 +1960,106 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                     {selectedTxn.notes ? (
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-muted-foreground">Notes</p>
-                        <div className="rounded-lg border bg-muted/20 p-3 text-sm whitespace-pre-wrap">
-                          {selectedTxn.notes}
-                        </div>
+                        {(() => {
+                          const parsed = parseNotesJson(selectedTxn.notes);
+                          if (!parsed) {
+                            return (
+                              <div className="rounded-lg border bg-muted/20 p-3 text-sm whitespace-pre-wrap">
+                                {selectedTxn.notes}
+                              </div>
+                            );
+                          }
+
+                          const feeBreakdown = Array.isArray(parsed.fee_breakdown) ? parsed.fee_breakdown : [];
+                          const userNotes = typeof parsed.user_notes === "string" ? parsed.user_notes.trim() : "";
+
+                          const knownKeys = new Set([
+                            "fee_breakdown",
+                            "vat_rate",
+                            "is_vat_registered",
+                            "total_pools",
+                            "user_notes",
+                            "stock_meta",
+                          ]);
+                          const extraEntries = Object.entries(parsed).filter(([k]) => !knownKeys.has(k));
+
+                          return (
+                            <div className="rounded-lg border bg-muted/20 p-3 space-y-4">
+                              <div className="flex flex-wrap gap-2">
+                                {typeof parsed.vat_rate !== "undefined" ? (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    VAT rate: {formatMaybeNumber(parsed.vat_rate)}%
+                                  </Badge>
+                                ) : null}
+                                {typeof parsed.is_vat_registered !== "undefined" ? (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    VAT registered: {formatMaybeNumber(parsed.is_vat_registered)}
+                                  </Badge>
+                                ) : null}
+                                {typeof parsed.total_pools !== "undefined" ? (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    Pools: {formatMaybeNumber(parsed.total_pools)}
+                                  </Badge>
+                                ) : null}
+                              </div>
+
+                              {userNotes ? (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-muted-foreground">User notes</p>
+                                  <p className="text-sm whitespace-pre-wrap">{userNotes}</p>
+                                </div>
+                              ) : null}
+
+                              {feeBreakdown.length ? (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-muted-foreground">Fee breakdown</p>
+                                  <div className="overflow-x-auto rounded-md border bg-background">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Fee</TableHead>
+                                          <TableHead className="text-right whitespace-nowrap">Amount</TableHead>
+                                          <TableHead className="text-right whitespace-nowrap">VAT</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {feeBreakdown.map((f: any, idx: number) => (
+                                          <TableRow key={idx}>
+                                            <TableCell className="text-sm">{String(f?.name ?? "—")}</TableCell>
+                                            <TableCell className="text-right text-sm whitespace-nowrap">
+                                              {formatCurrency(Number(f?.amount ?? 0))}
+                                            </TableCell>
+                                            <TableCell className="text-right text-sm whitespace-nowrap">
+                                              {formatCurrency(Number(f?.vat ?? 0))}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {extraEntries.length ? (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-muted-foreground">Other</p>
+                                  <div className="space-y-1.5">
+                                    {extraEntries.slice(0, 8).map(([k, v]) => (
+                                      <DetailsRow key={k} label={k} value={formatMaybeNumber(v)} />
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : null}
                   </div>
                 </>
               ) : null}
-            </div>
+              </div>
+            </ScrollArea>
           ) : null}
         </DialogContent>
       </Dialog>
