@@ -52,7 +52,28 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = claimsData.claims.sub as string;
+      const callerUserId = claimsData.claims.sub as string;
+
+      // If explicit user_id provided, check caller is super_admin
+      if (explicitUserId) {
+        const adminClient2 = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: roleCheck } = await adminClient2
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerUserId)
+          .eq("role", "super_admin")
+          .maybeSingle();
+        if (!roleCheck) {
+          return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        userId = explicitUserId;
+        console.log("[send-registration-email] Super admin resend for user:", userId);
+      } else {
+        userId = callerUserId;
+      }
     }
 
     // Use service role to fetch data
