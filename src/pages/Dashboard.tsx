@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
+import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
+import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
 import {
   Users,
   Wallet,
