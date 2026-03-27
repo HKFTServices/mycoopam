@@ -255,7 +255,7 @@ const TenantLanding = () => {
                 <p className="text-sm text-muted-foreground">
                   {isLogin
                     ? `Sign in to access your ${tenantName} account`
-                    : `Register to join ${tenantName}. Please have your ID / Passport and Proof of address ready to upload.`}
+                    : `Sign up to apply for membership at ${tenantName}.`}
                 </p>
               </div>
 
@@ -377,13 +377,13 @@ const TenantLanding = () => {
               </form>
 
               <div className="text-center text-sm text-muted-foreground">
-                {isLogin ? "Not a member yet?" : "Already registered?"}{" "}
+                {isLogin ? "Don't have an account yet?" : "Already have an account?"}{" "}
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
                   className="font-medium text-primary hover:underline"
                 >
-                  {isLogin ? "Register" : "Sign in"}
+                  {isLogin ? "Sign up" : "Sign in"}
                 </button>
               </div>
 
