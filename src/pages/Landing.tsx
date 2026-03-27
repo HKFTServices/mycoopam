@@ -382,6 +382,7 @@ const Landing = () => {
               <div className="space-y-3">
                 <p className="text-sm font-semibold">Legal</p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a className="hover:text-foreground" href="/privacy-policy">Privacy Policy</a></li>
                   <li><a className="hover:text-foreground" href="/cookie-policy">Cookie Policy</a></li>
                 </ul>
               </div>
