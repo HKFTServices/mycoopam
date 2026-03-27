@@ -116,6 +116,13 @@ const RegisterTenant = () => {
 
       localStorage.setItem("currentTenantId", tenant.id);
 
+      // Send activation/registration email via head office SMTP (fire-and-forget)
+      if (authData.user) {
+        supabase.functions.invoke("send-registration-email", {
+          body: { tenant_id: tenant.id },
+        }).catch((err) => console.error("Failed to send registration email:", err));
+      }
+
       toast({
         title: "Co-operative registered!",
         description: "Check your email to verify your account. Now let's set up your data.",
