@@ -85,6 +85,7 @@ const DONUT_COLORS = [
 const Dashboard = () => {
   const { currentTenant, tenants, branding, loading: tenantLoading } = useTenant();
   const { profile, user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
