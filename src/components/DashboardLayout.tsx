@@ -538,7 +538,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </kbd>
           </div>
 
-          {currentTenant && tenants.length > 1 && (
+          {currentTenant && tenants.length > 1 && isSuperAdmin && (
             <div className="pt-1">
               <Select
                 value={currentTenant.id}
