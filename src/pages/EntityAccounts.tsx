@@ -230,17 +230,20 @@ const EntityAccounts = () => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Entity Accounts</h1>
-          <p className="text-muted-foreground text-sm mt-1">All entities and their accounts</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Entity Accounts</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">All entities and their accounts</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1.5" />
-          Create Entity Account
+          <span className="hidden sm:inline">Create Entity Account</span>
+          <span className="sm:hidden">New Account</span>
         </Button>
       </div>
+
+      <MobileTableHint />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -12,6 +12,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Archive, AlertTriangle } from "lucide-react";
+import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 
 type IncomeExpenseItem = {
   id: string;
@@ -88,18 +89,18 @@ const IncomeExpenseItems = () => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Archive className="h-8 w-8 text-muted-foreground" />
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Income / Expense Items (Legacy Archive)</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Read-only view of historical accounting rules. New entries are posted via Operating Journals.
-            </p>
-          </div>
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <Archive className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground shrink-0" />
+        <div>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Income / Expense Items</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+            Read-only view of historical accounting rules.
+          </p>
         </div>
       </div>
+
+      <MobileTableHint />
 
       <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3">
         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
