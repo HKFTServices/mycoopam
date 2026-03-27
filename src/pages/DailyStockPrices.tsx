@@ -170,8 +170,14 @@ const DailyStockPrices = () => {
       if (res.error) throw res.error;
       
       const { prices } = res.data;
-      setFetchedPrices(prices || {});
-      toast.success("Prices fetched successfully from APIs");
+      const priceEntries = prices || {};
+      setFetchedPrices(priceEntries);
+      const nonZeroCount = Object.values(priceEntries).filter((p: any) => p.cost_excl_vat > 0).length;
+      if (nonZeroCount > 0) {
+        toast.success(`${nonZeroCount} prices fetched successfully from APIs`);
+      } else {
+        toast.warning("Prices fetched but all values are zero — check API provider configuration");
+      }
     } catch (err: any) {
       console.error("Error fetching prices:", err);
       toast.error("Failed to fetch prices: " + (err.message || "Unknown error"));
