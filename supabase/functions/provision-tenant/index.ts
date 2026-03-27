@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, admin_details, admin_documents } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,14 +36,51 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ─── List reference data for registration wizard ───
+    if (action === "list_reference_data") {
+      const [titlesRes, countriesRes, banksRes, bankAccountTypesRes, termsRes, docReqsRes] = await Promise.all([
+        admin.from("titles").select("id, description").eq("is_active", true).order("description"),
+        admin.from("countries").select("id, name, iso_code").eq("is_active", true).order("name"),
+        admin.from("banks").select("id, name, branch_code, country_id").eq("is_active", true).order("name"),
+        admin.from("bank_account_types").select("id, name").eq("is_active", true).order("name"),
+        admin.from("terms_conditions").select("id, condition_type, language_code, content")
+          .eq("tenant_id", SOURCE_TENANT_ID).eq("is_active", true).eq("condition_type", "registration").eq("language_code", "en"),
+        admin.from("document_entity_requirements")
+          .select("id, document_type_id, is_required_for_registration, document_types!inner(id, name)")
+          .eq("tenant_id", SOURCE_TENANT_ID).eq("is_active", true).eq("is_required_for_registration", true),
+      ]);
+
+      // Filter doc requirements to natural person "Myself" relationship type
+      const { data: relTypes } = await admin
+        .from("relationship_types")
+        .select("id, name, entity_category_id, entity_categories!inner(entity_type)")
+        .eq("name", "Myself");
+      const myselfRel = relTypes?.find((r: any) => r.entity_categories?.entity_type === "natural_person");
+      
+      let filteredDocReqs = docReqsRes.data ?? [];
+      if (myselfRel) {
+        filteredDocReqs = filteredDocReqs.filter((r: any) => r.relationship_type_id === myselfRel.id || !r.relationship_type_id);
+      }
+
+      return new Response(
+        JSON.stringify({
+          titles: titlesRes.data ?? [],
+          countries: countriesRes.data ?? [],
+          banks: banksRes.data ?? [],
+          bank_account_types: bankAccountTypesRes.data ?? [],
+          terms: termsRes.data ?? [],
+          document_requirements: filteredDocReqs,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!tenant_id || !selected_pool_ids || !Array.isArray(selected_pool_ids)) {
       return new Response(
         JSON.stringify({ error: "tenant_id and selected_pool_ids are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // ID mapping: source_id → new_id for cross-references (admin client already created above)
 
     // ID mapping: source_id → new_id for cross-references
     const idMap = new Map<string, string>();
@@ -58,7 +95,7 @@ Deno.serve(async (req) => {
       return idMap.get(oldId) || null;
     };
 
-    // ─── 1. GL Accounts (no pool dependency, but control_account_id needs mapping later) ───
+    // ─── 1. GL Accounts ───
     const { data: srcGl } = await admin
       .from("gl_accounts")
       .select("*")
@@ -77,7 +114,6 @@ Deno.serve(async (req) => {
           default_entry_type: g.default_entry_type,
           entry_type_tag: g.entry_type_tag,
           is_active: g.is_active,
-          // control_account_id will be updated after control accounts are created
           control_account_id: null,
         };
       });
@@ -111,7 +147,6 @@ Deno.serve(async (req) => {
     }
 
     // ─── 3. Pools (only selected ones) ───
-    // The create_pool_control_accounts trigger will auto-create control accounts
     const { data: srcPools } = await admin
       .from("pools")
       .select("*")
@@ -122,8 +157,6 @@ Deno.serve(async (req) => {
       for (const pool of srcPools) {
         const newPoolId = uuid();
         idMap.set(pool.id, newPoolId);
-
-        // Insert pool — the trigger creates control accounts automatically
         const { error } = await admin.from("pools").insert({
           id: newPoolId,
           tenant_id: tenant_id,
@@ -140,7 +173,6 @@ Deno.serve(async (req) => {
       }
       results.pools = srcPools.length;
 
-      // Fetch newly created control accounts to build the mapping
       const { data: newControlAccounts } = await admin
         .from("control_accounts")
         .select("*")
@@ -151,7 +183,6 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("tenant_id", SOURCE_TENANT_ID);
 
-      // Map source control accounts to new ones by matching pool + account_type
       if (newControlAccounts && srcControlAccounts) {
         for (const srcCa of srcControlAccounts) {
           const newPoolId = mapId(srcCa.pool_id);
@@ -166,7 +197,6 @@ Deno.serve(async (req) => {
         results.control_accounts = newControlAccounts.length;
       }
 
-      // Now update GL accounts that reference control accounts
       if (srcGl) {
         for (const g of srcGl) {
           if (g.control_account_id) {
@@ -180,7 +210,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── 4. Items (stock items linked to selected pools) ───
+    // ─── 4. Items ───
     const { data: srcItems } = await admin
       .from("items")
       .select("*")
@@ -204,7 +234,7 @@ Deno.serve(async (req) => {
           sell_margin_percentage: item.sell_margin_percentage,
           show_item_price_on_statement: item.show_item_price_on_statement,
           tax_type_id: mapId(item.tax_type_id),
-          api_provider_id: item.api_provider_id, // global
+          api_provider_id: item.api_provider_id,
           api_code: item.api_code,
           api_key: item.api_key,
           api_link: item.api_link,
@@ -212,14 +242,12 @@ Deno.serve(async (req) => {
           price_formula: item.price_formula,
           use_fixed_price: item.use_fixed_price,
           calculate_price_with_factor: item.calculate_price_with_factor,
-          // calculate_price_with_item_id will be mapped after all items created
         };
       });
       const { error } = await admin.from("items").insert(itemRows);
       if (error) console.error("Items error:", error);
       results.items = itemRows.length;
 
-      // Fix cross-item references (calculate_price_with_item_id)
       for (const item of srcItems) {
         if (item.calculate_price_with_item_id) {
           const newItemId = idMap.get(item.id);
@@ -294,11 +322,10 @@ Deno.serve(async (req) => {
         id: uuid(),
         tenant_id: tenant_id,
         document_type_id: mapId(dr.document_type_id) || dr.document_type_id,
-        relationship_type_id: dr.relationship_type_id, // global table
+        relationship_type_id: dr.relationship_type_id,
         is_active: dr.is_active,
         is_required_for_registration: dr.is_required_for_registration,
       }));
-      // Insert in batches of 50 to avoid payload limits
       for (let i = 0; i < drRows.length; i += 50) {
         const batch = drRows.slice(i, i + 50);
         const { error } = await admin.from("document_entity_requirements").insert(batch);
@@ -318,7 +345,6 @@ Deno.serve(async (req) => {
       const eatRows = srcEATypes.map((eat: any) => {
         const newId = uuid();
         idMap.set(eat.id, newId);
-        // Use custom prefix if provided for this account_type, otherwise clone from template
         const customPrefix = prefixOverrides[String(eat.account_type)];
         return {
           id: newId,
@@ -360,7 +386,7 @@ Deno.serve(async (req) => {
       results.budget_categories = bcRows.length;
     }
 
-    // ─── 9. Communication Templates (EN + AF pairs) ───
+    // ─── 10. Communication Templates ───
     const { data: srcTemplates } = await admin
       .from("communication_templates")
       .select("*")
@@ -392,28 +418,32 @@ Deno.serve(async (req) => {
       results.communication_templates = tplRows.length;
     }
 
-    // ─── 10. Terms & Conditions ───
+    // ─── 11. Terms & Conditions ───
     const { data: srcTerms } = await admin
       .from("terms_conditions")
       .select("*")
       .eq("tenant_id", SOURCE_TENANT_ID);
 
     if (srcTerms && srcTerms.length > 0) {
-      const tcRows = srcTerms.map((tc: any) => ({
-        id: uuid(),
-        tenant_id: tenant_id,
-        condition_type: tc.condition_type,
-        language_code: tc.language_code,
-        content: tc.content,
-        effective_from: tc.effective_from,
-        is_active: tc.is_active,
-      }));
+      const tcRows = srcTerms.map((tc: any) => {
+        const newId = uuid();
+        idMap.set(tc.id, newId);
+        return {
+          id: newId,
+          tenant_id: tenant_id,
+          condition_type: tc.condition_type,
+          language_code: tc.language_code,
+          content: tc.content,
+          effective_from: tc.effective_from,
+          is_active: tc.is_active,
+        };
+      });
       const { error } = await admin.from("terms_conditions").insert(tcRows);
       if (error) console.error("Terms & conditions error:", error);
       results.terms_conditions = tcRows.length;
     }
 
-    // ─── 11. Loan Settings ───
+    // ─── 12. Loan Settings ───
     const { data: srcLoan } = await admin
       .from("loan_settings")
       .select("*")
@@ -439,7 +469,7 @@ Deno.serve(async (req) => {
       results.loan_settings = 1;
     }
 
-    // ─── 12. Permissions ───
+    // ─── 13. Permissions ───
     const { data: srcPerms } = await admin
       .from("permissions")
       .select("*")
@@ -459,7 +489,7 @@ Deno.serve(async (req) => {
       results.permissions = permRows.length;
     }
 
-    // ─── 13. Tenant Configuration (structure only, no entity/logo) ───
+    // ─── 14. Tenant Configuration ───
     const { data: srcConfig } = await admin
       .from("tenant_configuration")
       .select("*")
@@ -502,7 +532,6 @@ Deno.serve(async (req) => {
         require_lowercase: srcConfig.require_lowercase,
         require_uppercase: srcConfig.require_uppercase,
         require_non_alphanumeric: srcConfig.require_non_alphanumeric,
-        // Map GL account references
         bank_gl_account_id: mapId(srcConfig.bank_gl_account_id),
         vat_gl_account_id: mapId(srcConfig.vat_gl_account_id),
         membership_fee_gl_account_id: mapId(srcConfig.membership_fee_gl_account_id),
@@ -511,7 +540,6 @@ Deno.serve(async (req) => {
         stock_control_gl_account_id: mapId(srcConfig.stock_control_gl_account_id),
         commission_income_gl_account_id: mapId(srcConfig.commission_income_gl_account_id),
         commission_paid_gl_account_id: mapId(srcConfig.commission_paid_gl_account_id),
-        // Leave these blank for new tenant
         legal_entity_id: null,
         administrator_entity_id: null,
         logo_url: logo_url || null,
@@ -532,7 +560,7 @@ Deno.serve(async (req) => {
       results.tenant_configuration = 1;
     }
 
-    // ─── 14. Income/Expense Items (if any exist) ───
+    // ─── 15. Income/Expense Items ───
     const { data: srcIei } = await admin
       .from("income_expense_items")
       .select("*")
@@ -560,7 +588,7 @@ Deno.serve(async (req) => {
       results.income_expense_items = ieiRows.length;
     }
 
-    // ─── 15. Transaction Fee Types ───
+    // ─── 16. Transaction Fee Types ───
     const { data: srcFeeTypes } = await admin
       .from("transaction_fee_types")
       .select("*")
@@ -589,7 +617,7 @@ Deno.serve(async (req) => {
       results.transaction_fee_types = ftRows.length;
     }
 
-    // ─── 16. Transaction Fee Rules ───
+    // ─── 17. Transaction Fee Rules ───
     const { data: srcFeeRules } = await admin
       .from("transaction_fee_rules")
       .select("*")
@@ -616,7 +644,7 @@ Deno.serve(async (req) => {
       results.transaction_fee_rules = frRows.length;
     }
 
-    // ─── 17. Transaction Fee Tiers ───
+    // ─── 18. Transaction Fee Tiers ───
     const { data: srcFeeTiers } = await admin
       .from("transaction_fee_tiers")
       .select("*")
@@ -637,7 +665,7 @@ Deno.serve(async (req) => {
       results.transaction_fee_tiers = tierRows.length;
     }
 
-    // ─── 18. Pool Fee Configurations ───
+    // ─── 19. Pool Fee Configurations ───
     const { data: srcPoolFees } = await admin
       .from("pool_fee_configurations")
       .select("*")
@@ -645,7 +673,7 @@ Deno.serve(async (req) => {
 
     if (srcPoolFees && srcPoolFees.length > 0) {
       const pfRows = srcPoolFees
-        .filter((pf: any) => mapId(pf.pool_id)) // only for selected pools
+        .filter((pf: any) => mapId(pf.pool_id))
         .map((pf: any) => ({
           id: uuid(),
           tenant_id: tenant_id,
@@ -665,7 +693,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── Create custom pools (user-defined, not from template) ───
+    // ─── Create custom pools ───
     if (custom_pools && Array.isArray(custom_pools) && custom_pools.length > 0) {
       let customCount = 0;
       for (const poolName of custom_pools) {
@@ -687,6 +715,152 @@ Deno.serve(async (req) => {
       }
       if (customCount > 0) {
         results.custom_pools = customCount;
+      }
+    }
+
+    // ─── 20. Create admin user entity, address, bank details ───
+    if (admin_details && admin_details.user_id) {
+      try {
+        // Find "Myself" relationship type for natural person
+        const { data: relTypes } = await admin
+          .from("relationship_types")
+          .select("id, name, entity_category_id, entity_categories!inner(entity_type, id)")
+          .eq("name", "Myself");
+        const myselfRel = relTypes?.find((r: any) => r.entity_categories?.entity_type === "natural_person");
+        const naturalPersonCategoryId = (myselfRel as any)?.entity_categories?.id;
+
+        // Create entity
+        const entityId = uuid();
+        const { error: entityErr } = await admin.from("entities").insert({
+          id: entityId,
+          tenant_id: tenant_id,
+          name: admin_details.first_name,
+          last_name: admin_details.last_name,
+          initials: admin_details.initials || null,
+          known_as: admin_details.known_as || null,
+          identity_number: admin_details.id_type === "rsa_id" ? admin_details.id_number : null,
+          passport_number: admin_details.id_type === "passport" ? admin_details.id_number : null,
+          gender: admin_details.gender || null,
+          date_of_birth: admin_details.date_of_birth || null,
+          contact_number: admin_details.contact_number || null,
+          additional_contact_number: admin_details.alt_contact_number || null,
+          email_address: admin_details.email || null,
+          additional_email_address: admin_details.cc_email || null,
+          title_id: admin_details.title_id || null,
+          language_code: admin_details.language_code || "en",
+          entity_category_id: naturalPersonCategoryId || null,
+          creator_user_id: admin_details.user_id,
+          is_registration_complete: true,
+        });
+        if (entityErr) console.error("Admin entity error:", entityErr);
+
+        // Link user to entity
+        if (myselfRel) {
+          const { error: linkErr } = await admin.from("user_entity_relationships").insert({
+            tenant_id: tenant_id,
+            user_id: admin_details.user_id,
+            entity_id: entityId,
+            relationship_type_id: myselfRel.id,
+            is_primary: true,
+          });
+          if (linkErr) console.error("User-entity link error:", linkErr);
+        }
+
+        // Create address
+        if (admin_details.street_address && admin_details.city) {
+          const { error: addrErr } = await admin.from("addresses").insert({
+            entity_id: entityId,
+            tenant_id: tenant_id,
+            street_address: admin_details.street_address,
+            suburb: admin_details.suburb || null,
+            city: admin_details.city,
+            province: admin_details.province || null,
+            postal_code: admin_details.postal_code || null,
+            country: admin_details.country || "South Africa",
+            is_primary: true,
+            address_type: "residential",
+          });
+          if (addrErr) console.error("Admin address error:", addrErr);
+        }
+
+        // Create bank details
+        if (!admin_details.skip_bank && admin_details.bank_id && admin_details.account_number) {
+          const { error: bankErr } = await admin.from("entity_bank_details").insert({
+            entity_id: entityId,
+            tenant_id: tenant_id,
+            bank_id: admin_details.bank_id,
+            bank_account_type_id: admin_details.bank_account_type_id,
+            account_holder: admin_details.account_name || `${admin_details.first_name} ${admin_details.last_name}`,
+            account_number: admin_details.account_number,
+            creator_user_id: admin_details.user_id,
+            is_active: true,
+          });
+          if (bankErr) console.error("Admin bank details error:", bankErr);
+        }
+
+        // Save T&C acceptances (map source term IDs to new tenant term IDs)
+        if (admin_details.accepted_term_ids && Array.isArray(admin_details.accepted_term_ids)) {
+          for (const sourceTermId of admin_details.accepted_term_ids) {
+            const newTermId = mapId(sourceTermId);
+            if (newTermId) {
+              await admin.from("tc_acceptances").insert({
+                user_id: admin_details.user_id,
+                tenant_id: tenant_id,
+                terms_condition_id: newTermId,
+              });
+            }
+          }
+        }
+
+        // Upload documents
+        if (admin_documents && Array.isArray(admin_documents)) {
+          for (const doc of admin_documents) {
+            if (!doc.file_data || !doc.file_name) continue;
+            // Decode base64
+            const binaryStr = atob(doc.file_data);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+              bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const filePath = `${admin_details.user_id}/${entityId}/${doc.doc_type_id}/${Date.now()}_${doc.file_name}`;
+            const { error: uploadErr } = await admin.storage
+              .from("member-documents")
+              .upload(filePath, bytes, { contentType: doc.mime_type || "application/octet-stream" });
+            if (uploadErr) {
+              console.error("Doc upload error:", uploadErr);
+              continue;
+            }
+            // Map the source document_type_id to the new tenant's document_type_id
+            const newDocTypeId = mapId(doc.doc_type_id);
+            await admin.from("entity_documents").insert({
+              entity_id: entityId,
+              tenant_id: tenant_id,
+              document_type_id: newDocTypeId || doc.doc_type_id,
+              file_name: doc.file_name,
+              file_path: filePath,
+              file_size: doc.file_size || bytes.length,
+              mime_type: doc.mime_type || null,
+              creator_user_id: admin_details.user_id,
+            });
+          }
+        }
+
+        // Update profile: mark as registered, no onboarding needed
+        await admin.from("profiles").update({
+          registration_status: "registered",
+          needs_onboarding: false,
+          phone: admin_details.contact_number || null,
+        }).eq("user_id", admin_details.user_id);
+
+        // Set administrator_entity_id in tenant_configuration
+        await admin.from("tenant_configuration")
+          .update({ administrator_entity_id: entityId })
+          .eq("tenant_id", tenant_id);
+
+        results.admin_entity = 1;
+      } catch (adminErr: any) {
+        console.error("Admin entity creation error:", adminErr);
+        // Don't fail the whole provisioning for this
       }
     }
 
