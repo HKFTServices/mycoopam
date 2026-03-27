@@ -155,6 +155,9 @@ const headOfficeNavItems: NavItem[] = [
   { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
   { label: "Tenant Management", icon: Users, path: "/dashboard/head-office/tenants" },
   { label: "Tenant Invoices", icon: FileText, path: "/dashboard/head-office/invoices" },
+];
+
+const globalSetupNavItems: NavItem[] = [
   { label: "Countries", icon: Globe, path: "/dashboard/setup/countries" },
   { label: "Titles", icon: Users, path: "/dashboard/setup/titles" },
   { label: "Entity Categories", icon: Building2, path: "/dashboard/setup/entity-categories" },
@@ -215,6 +218,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   );
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
   const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office") || location.pathname.includes("/dashboard/setup"));
+  const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
   const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -430,6 +434,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
   const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredGlobalSetup = useMemo(() => filterItems(globalSetupNavItems, normalizedQuery), [normalizedQuery]);
   
   const filteredMam = useMemo(() => filterItems(mamNavItems, normalizedQuery), [normalizedQuery]);
 
@@ -661,19 +666,79 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                         {filteredAdminOnly.map((i) => renderLink(i))}
 
-                        {isSuperAdmin &&
-                          renderGroup({
-                            label: "Head Office",
-                            icon: Building2,
-                            open: headOfficeOpen,
-                            setOpen: setHeadOfficeOpen,
-                            viewAll: {
-                              label: "Head Office Settings",
-                              icon: Building2,
-                              path: "/dashboard/head-office/settings",
-                            },
-                            items: filteredHeadOfficeAll,
-                          })}
+                        {isSuperAdmin && (() => {
+                          const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
+                          if (!hoShow) return null;
+                          const effectiveOpen = normalizedQuery ? true : headOfficeOpen;
+                          const isActive = [...headOfficeNavItems, ...globalSetupNavItems].some((i) => i.path === location.pathname);
+                          const hoSubItems = filteredHeadOfficeAll.filter((i) => i.path !== "/dashboard/head-office/settings");
+                          const globalEffectiveOpen = normalizedQuery ? true : globalSetupOpen;
+                          const globalShow = sectionHasMatch("Global Setup", globalSetupNavItems, normalizedQuery);
+
+                          return (
+                            <SidebarMenuItem key="head-office">
+                              <SidebarMenuButton asChild isActive={isActive}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (location.pathname !== "/dashboard/head-office/settings") navigate("/dashboard/head-office/settings");
+                                    setHeadOfficeOpen(!headOfficeOpen);
+                                  }}
+                                >
+                                  <Building2 />
+                                  <span>Head Office</span>
+                                  {effectiveOpen ? <ChevronDown className="ml-auto" /> : <ChevronRight className="ml-auto" />}
+                                </button>
+                              </SidebarMenuButton>
+
+                              {effectiveOpen && (
+                                <SidebarMenuSub>
+                                  {hoSubItems.map((item) => (
+                                    <SidebarMenuSubItem key={item.path}>
+                                      <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
+                                        <Link to={item.path}>
+                                          <item.icon />
+                                          <span>{item.label}</span>
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  ))}
+
+                                  {globalShow && (
+                                    <SidebarMenuSubItem>
+                                      <SidebarMenuSubButton asChild isActive={globalSetupNavItems.some((i) => i.path === location.pathname)}>
+                                        <button
+                                          type="button"
+                                          onClick={() => setGlobalSetupOpen(!globalSetupOpen)}
+                                          className="w-full"
+                                        >
+                                          <Settings />
+                                          <span>Global Setup</span>
+                                          {globalEffectiveOpen ? <ChevronDown className="ml-auto h-3 w-3" /> : <ChevronRight className="ml-auto h-3 w-3" />}
+                                        </button>
+                                      </SidebarMenuSubButton>
+
+                                      {globalEffectiveOpen && (
+                                        <SidebarMenuSub>
+                                          {filteredGlobalSetup.map((item) => (
+                                            <SidebarMenuSubItem key={item.path}>
+                                              <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
+                                                <Link to={item.path}>
+                                                  <item.icon />
+                                                  <span>{item.label}</span>
+                                                </Link>
+                                              </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                          ))}
+                                        </SidebarMenuSub>
+                                      )}
+                                    </SidebarMenuSubItem>
+                                  )}
+                                </SidebarMenuSub>
+                              )}
+                            </SidebarMenuItem>
+                          );
+                        })()}
 
                         {isSuperAdmin &&
                           renderGroup({
