@@ -187,9 +187,9 @@ const NewTransactionDialog = ({
       if (isStaff) {
         const { data } = await (supabase as any)
           .from("entity_accounts")
-          .select("id, account_number, entity_id, entity_account_type_id, entity_account_types!inner(name, account_type), entities!inner(name, last_name)")
+          .select("id, account_number, entity_id, entity_account_type_id, status, entity_account_types!inner(name, account_type), entities!inner(name, last_name)")
           .eq("tenant_id", currentTenant.id)
-          .eq("is_approved", true)
+          .in("status", ["active", "approved", "pending_activation"])
           .eq("entity_account_types.account_type", 1)
           .order("entities(name)");
         return data ?? [];
@@ -203,10 +203,10 @@ const NewTransactionDialog = ({
         if (!rels?.length) return [];
         const { data } = await (supabase as any)
           .from("entity_accounts")
-          .select("id, account_number, entity_id, entity_account_type_id, entity_account_types!inner(name, account_type), entities!inner(name, last_name)")
+          .select("id, account_number, entity_id, entity_account_type_id, status, entity_account_types!inner(name, account_type), entities!inner(name, last_name)")
           .in("entity_id", rels.map((r: any) => r.entity_id))
           .eq("tenant_id", currentTenant.id)
-          .eq("is_approved", true)
+          .in("status", ["active", "approved", "pending_activation"])
           .eq("entity_account_types.account_type", 1);
         return data ?? [];
       }
