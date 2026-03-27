@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2 } from "lucide-react";
+import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2, Mail } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
