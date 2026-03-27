@@ -135,6 +135,7 @@ const Dashboard = () => {
 
   const showLegalEntityPrompt = isTenantAdmin && !isSuperAdmin && tenantHasLegalEntity === false && !legalEntityCheckLoading;
 
+  const { data: myEntityRel, isLoading: myEntityRelLoading } = useQuery({
     queryKey: ["dashboard_myself_entity", user?.id, tenantId],
     queryFn: async () => {
       if (!user || !tenantId) return null;
