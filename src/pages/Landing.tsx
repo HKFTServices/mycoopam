@@ -385,6 +385,9 @@ const Landing = () => {
                   <li><a className="hover:text-foreground" href="/terms-of-service">Terms of Service</a></li>
                   <li><a className="hover:text-foreground" href="/privacy-policy">Privacy Policy</a></li>
                   <li><a className="hover:text-foreground" href="/cookie-policy">Cookie Policy</a></li>
+                  <li><a className="hover:text-foreground" href="/acceptable-use-policy">Acceptable Use</a></li>
+                  <li><a className="hover:text-foreground" href="/paia-manual">PAIA Manual</a></li>
+                  <li><a className="hover:text-foreground" href="/disclaimer">Disclaimer</a></li>
                 </ul>
               </div>
               <div className="space-y-3">
