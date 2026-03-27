@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
-import { getSiteUrl } from "@/lib/getSiteUrl";
+import { getSiteUrl, getTenantUrl } from "@/lib/getSiteUrl";
 import { validateRsaId } from "@/lib/rsaIdValidation";
 
 const ADMIN_POOL_NAME = "Admin";
