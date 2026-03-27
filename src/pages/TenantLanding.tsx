@@ -198,11 +198,8 @@ const TenantLanding = () => {
             size="sm"
             className="absolute left-6 top-6 lg:left-12 lg:top-8"
             onClick={() => {
-              if (window.history.length > 1) {
-                navigate(-1);
-              } else {
-                navigate("/", { replace: true });
-              }
+              // Use `replace` so the browser back button doesn't bounce back to the tenant login.
+              navigate("/", { replace: true });
             }}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
