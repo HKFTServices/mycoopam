@@ -370,32 +370,19 @@ const Landing = () => {
             </div>
 
             {/* Link columns */}
-            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-8">
               <div className="space-y-3">
                 <p className="text-sm font-semibold">Product</p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li><a className="hover:text-foreground" href="#features">Overview</a></li>
                   <li><a className="hover:text-foreground" href="#features">Features</a></li>
                   <li><a className="hover:text-foreground" href="/register-tenant">Register</a></li>
-                  <li><a className="hover:text-foreground" href="#support">Support</a></li>
-                </ul>
-              </div>
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">Company</p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li><a className="hover:text-foreground" href="#about">About us</a></li>
-                  <li><a className="hover:text-foreground" href="#careers">Careers</a></li>
-                  <li><a className="hover:text-foreground" href="#news">News</a></li>
                   <li><a className="hover:text-foreground" href="#contact">Contact</a></li>
                 </ul>
               </div>
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Resources</p>
+                <p className="text-sm font-semibold">Legal</p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li><a className="hover:text-foreground" href="#blog">Blog</a></li>
-                  <li><a className="hover:text-foreground" href="#newsletter">Newsletter</a></li>
-                  <li><a className="hover:text-foreground" href="#help">Help centre</a></li>
-                  <li><a className="hover:text-foreground" href="#support">Support</a></li>
+                  <li><a className="hover:text-foreground" href="/cookie-policy">Cookie Policy</a></li>
                 </ul>
               </div>
               <div className="space-y-3">
@@ -403,15 +390,6 @@ const Landing = () => {
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li><a className="hover:text-foreground" href="https://x.com" target="_blank" rel="noreferrer">X</a></li>
                   <li><a className="hover:text-foreground" href="https://linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a></li>
-                  <li><a className="hover:text-foreground" href="https://github.com" target="_blank" rel="noreferrer">GitHub</a></li>
-                </ul>
-              </div>
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">Legal</p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li><a className="hover:text-foreground" href="#terms">Terms</a></li>
-                  <li><a className="hover:text-foreground" href="#privacy">Privacy</a></li>
-                  <li><a className="hover:text-foreground" href="#cookies">Cookies</a></li>
                 </ul>
               </div>
             </div>
