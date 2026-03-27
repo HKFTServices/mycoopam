@@ -73,6 +73,8 @@ import LoanApplications from "./pages/LoanApplications";
 import DebitOrders from "./pages/DebitOrders";
 import Notifications from "./pages/Notifications";
 import LegacyGlAllocation from "./pages/LegacyGlAllocation";
+import CookiePolicy from "./pages/CookiePolicy";
+import CookieConsent from "./components/CookieConsent";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 
@@ -131,6 +133,7 @@ const App = () => (
               <Route path="/register-tenant" element={<RegisterTenant />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
 
               {/* Auth-only (no role restriction) */}
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
@@ -210,6 +213,7 @@ const App = () => (
               <Route path="/dashboard/settings" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <CookieConsent />
           </TenantProvider>
         </AuthProvider>
       </BrowserRouter>
