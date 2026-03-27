@@ -245,6 +245,42 @@ const HeadOfficeSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email / SMTP Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Email / SMTP Settings</CardTitle>
+          <CardDescription>Global SMTP configuration used for registration and activation emails</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>SMTP Host</Label>
+              <Input value={getVal("smtp_host")} onChange={(e) => setField("smtp_host", e.target.value)} placeholder="e.g. smtp.gmail.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>SMTP Port</Label>
+              <Input type="number" value={getVal("smtp_port")} onChange={(e) => setField("smtp_port", e.target.value)} placeholder="587" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>SMTP Username</Label>
+              <Input value={getVal("smtp_username")} onChange={(e) => setField("smtp_username", e.target.value)} placeholder="user@domain.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>SMTP Password</Label>
+              <Input type="password" value={getVal("smtp_password")} onChange={(e) => setField("smtp_password", e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>From Email</Label>
+              <Input type="email" value={getVal("smtp_from_email")} onChange={(e) => setField("smtp_from_email", e.target.value)} placeholder="noreply@domain.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>From Name</Label>
+              <Input value={getVal("smtp_from_name")} onChange={(e) => setField("smtp_from_name", e.target.value)} placeholder="MyCo-op" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
