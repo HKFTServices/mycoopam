@@ -606,13 +606,13 @@ const Onboarding = () => {
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           {branding.logoUrl ? (
-            <img src={branding.logoUrl} alt={branding.legalEntityName ?? "Logo"} className="h-9 w-auto object-contain" />
+            <img src={branding.logoUrl} alt={branding.legalEntityName ?? currentTenant?.name ?? "Logo"} className="h-9 w-auto object-contain" />
           ) : (
             <div className="h-9 w-9 rounded-lg gradient-brand flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-primary-foreground" />
             </div>
           )}
-          {branding.legalEntityName && <span className="text-xl font-bold">{branding.legalEntityName}</span>}
+          <span className="text-xl font-bold">{branding.legalEntityName || currentTenant?.name || ""}</span>
         </div>
       </header>
 
@@ -1112,6 +1112,25 @@ const Onboarding = () => {
           )}
 
           {/* Navigation */}
+          {step === 0 && !canProceed && (
+            <div className="text-sm text-destructive flex items-center gap-1.5 bg-destructive/10 p-3 rounded-lg">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>
+                Please complete:{" "}
+                {[
+                  !titleId && "Title",
+                  !firstName.trim() && "Full Names",
+                  !lastName.trim() && "Last Name",
+                  !idNumber.trim() && (idType === "rsa_id" ? "RSA ID Number" : "Passport Number"),
+                  idError && "Fix ID number error",
+                  !gender && "Gender",
+                  !dateOfBirth && "Date of Birth",
+                  !phone.trim() && "Mobile Number",
+                  phoneError && "Fix mobile number format",
+                ].filter(Boolean).join(", ")}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(step - 1)} disabled={step === 0}>
               Back
