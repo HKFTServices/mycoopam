@@ -28,6 +28,8 @@ const TenantManagement = () => {
   const [feeForm, setFeeForm] = useState<Record<string, string>>({});
   const [eomTenant, setEomTenant] = useState<{ id: string; name: string } | null>(null);
   const [featuresTenant, setFeaturesTenant] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTenant, setDeleteTenant] = useState<{ id: string; name: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   // Fetch all tenants with stats
   const { data: tenants = [], isLoading } = useQuery({
