@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Loader2, ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Upload, X, Coins, Plus, ShieldCheck,
-  User, MapPin, CreditCard, FileText, Shield, CheckCircle2, AlertCircle,
+  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
@@ -44,13 +44,13 @@ function generatePrefixes(tenantName: string): Record<number, string> {
 interface PoolOption { id: string; name: string; description: string | null; isAdmin?: boolean; }
 type AddressSuggestion = { description: string; place_id: string };
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 7;
 const stepTitles = [
   "Co-operative & Admin", "Branding & Prefixes", "Investment Pools",
-  "Personal Details", "Residential Address", "Bank Details",
-  "Terms & Conditions", "Documents",
+  "Personal Details", "Residential Address", "Documents",
+  "Terms & Conditions",
 ];
-const stepIcons = [Building2, Upload, Coins, User, MapPin, CreditCard, Shield, FileText];
+const stepIcons = [Building2, Upload, Coins, User, MapPin, FileText, Shield];
 
 const toSentenceCase = (val: string): string =>
   val.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/(?<=\w)\w*/g, (c) => c.toLowerCase());
@@ -124,18 +124,11 @@ const RegisterTenant = () => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  // ─── Step 6: Bank Details ───
-  const [skipBank, setSkipBank] = useState(false);
-  const [bankId, setBankId] = useState("");
-  const [bankAccountTypeId, setBankAccountTypeId] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
+  // ─── Step 6: Documents ───
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
   // ─── Step 7: T&Cs ───
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
-
-  // ─── Step 8: Documents ───
-  const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
   // ─── Reference data (fetched once) ───
   const [refData, setRefData] = useState<any>(null);
@@ -156,12 +149,6 @@ const RegisterTenant = () => {
     if (step >= 4 && !refData && !refLoading) loadRefData();
   }, [step]);
 
-  // Pre-fill account name
-  useEffect(() => {
-    if (!accountName && firstName && lastName) {
-      setAccountName(`${firstName} ${lastName}`);
-    }
-  }, [firstName, lastName]);
 
   const loadPools = async () => {
     setPoolsLoading(true);
@@ -319,7 +306,7 @@ const RegisterTenant = () => {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 6: return true; // bank is optional
+      case 6: return true; // documents optional
       case 7: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
@@ -327,7 +314,6 @@ const RegisterTenant = () => {
         }
         return true;
       }
-      case 8: return true; // documents optional
       default: return true;
     }
   };
@@ -445,11 +431,11 @@ const RegisterTenant = () => {
             province: province || null,
             postal_code: postalCode || null,
             country,
-            skip_bank: skipBank,
-            bank_id: bankId || null,
-            bank_account_type_id: bankAccountTypeId || null,
-            account_name: accountName || null,
-            account_number: accountNumber || null,
+            skip_bank: true,
+            bank_id: null,
+            bank_account_type_id: null,
+            account_name: null,
+            account_number: null,
             accepted_term_ids: Object.keys(acceptedTerms).filter((k) => acceptedTerms[k]),
           } : undefined,
           admin_documents: adminDocuments.length > 0 ? adminDocuments : undefined,
@@ -474,8 +460,6 @@ const RegisterTenant = () => {
 
   const titles = refData?.titles ?? [];
   const countries = refData?.countries ?? [];
-  const banks = refData?.banks ?? [];
-  const bankAccountTypes = refData?.bank_account_types ?? [];
   const terms = refData?.terms ?? [];
   const documentRequirements = refData?.document_requirements ?? [];
 
@@ -867,82 +851,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 6: Bank Details ═══ */}
+            {/* ═══ Step 6: Documents ═══ */}
             {step === 6 && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-3">
-                  <Checkbox checked={skipBank} onCheckedChange={(checked) => setSkipBank(!!checked)} id="skipBank" />
-                  <Label htmlFor="skipBank" className="text-sm cursor-pointer">Skip bank details — I'll add them later</Label>
-                </div>
-                {!skipBank && (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Bank *</Label>
-                        <Select value={bankId} onValueChange={setBankId}>
-                          <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
-                          <SelectContent>
-                            {banks.map((b: any) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Account Type *</Label>
-                        <Select value={bankAccountTypeId} onValueChange={setBankAccountTypeId}>
-                          <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                          <SelectContent>
-                            {bankAccountTypes.map((t: any) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Account Holder Name *</Label>
-                        <Input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account holder name" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Account Number *</Label>
-                        <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="Account number" />
-                      </div>
-                    </div>
-                  </>
-                )}
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-                  <Button className="flex-1" onClick={handleNext}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
-                </div>
-              </div>
-            )}
-
-            {/* ═══ Step 7: Terms & Conditions ═══ */}
-            {step === 7 && (
-              <div className="space-y-5">
-                {terms.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No terms & conditions configured yet. You can proceed.</p>
-                  </div>
-                ) : (
-                  terms.map((term: any) => (
-                    <div key={term.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="max-h-48 overflow-y-auto text-sm text-muted-foreground prose prose-sm" dangerouslySetInnerHTML={{ __html: term.content || "Terms & Conditions" }} />
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox checked={!!acceptedTerms[term.id]} onCheckedChange={(checked) => setAcceptedTerms((prev) => ({ ...prev, [term.id]: !!checked }))} />
-                        <span className="text-sm font-medium">I accept the terms & conditions</span>
-                      </label>
-                    </div>
-                  ))
-                )}
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-                  <Button className="flex-1" onClick={handleNext}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
-                </div>
-              </div>
-            )}
-
-            {/* ═══ Step 8: Documents ═══ */}
-            {step === 8 && (
               <div className="space-y-5">
                 {documentRequirements.length === 0 ? (
                   <div className="text-center py-8">
@@ -951,7 +861,7 @@ const RegisterTenant = () => {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">Upload the required documents for your registration.</p>
+                    <p className="text-sm text-muted-foreground">Upload the required identity documents for your registration.</p>
                     {documentRequirements.map((req: any) => {
                       const docType = req.document_types;
                       const uploaded = uploadedDocs[req.document_type_id];
@@ -985,12 +895,39 @@ const RegisterTenant = () => {
                 )}
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 7: Terms & Conditions ═══ */}
+            {step === 7 && (
+              <div className="space-y-5">
+                {terms.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No terms & conditions configured yet. You can proceed.</p>
+                  </div>
+                ) : (
+                  terms.map((term: any) => (
+                    <div key={term.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="max-h-48 overflow-y-auto text-sm text-muted-foreground prose prose-sm" dangerouslySetInnerHTML={{ __html: term.content || "Terms & Conditions" }} />
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox checked={!!acceptedTerms[term.id]} onCheckedChange={(checked) => setAcceptedTerms((prev) => ({ ...prev, [term.id]: !!checked }))} />
+                        <span className="text-sm font-medium">I accept the terms & conditions</span>
+                      </label>
+                    </div>
+                  ))
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
                   <Button className="flex-1" onClick={handleSubmit} disabled={loading}>
                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registering...</> : <><Building2 className="mr-2 h-4 w-4" />Register Co-operative</>}
                   </Button>
                 </div>
               </div>
             )}
+
           </CardContent>
         </Card>
       </main>
