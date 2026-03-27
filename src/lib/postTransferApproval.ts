@@ -246,13 +246,17 @@ export async function postTransferApproval(
       amount_excl_vat: receiverJoinShareCost,
       gl_account_id: shareGlAccountId,
     });
+  }
 
+  // Insert member_shares marker for receiver (prevents repeat charges on future deposits).
+  // Created even if shareCost is 0 (membership-fee-only scenario).
+  if (receiverJoinShareInfo && (receiverJoinShareCost > 0 || receiverMembershipFee > 0)) {
     await (supabase as any).from("member_shares").insert({
       tenant_id: tenantId,
       entity_account_id: toAccountId,
       share_class_id: receiverJoinShareInfo?.share_class_id || null,
       transaction_date: txnDate,
-      quantity: 1,
+      quantity: receiverJoinShareCost > 0 ? 1 : 0,
       value: receiverJoinShareCost,
       membership_type: "full",
       creator_user_id: approvedBy,
