@@ -138,12 +138,13 @@ Deno.serve(async (req) => {
       "items",
       "operating_journals",
 
-      // GL & control
+      // GL & control (pools/control_accounts handled separately due to circular FK)
       "legacy_gl_mappings",
       "legacy_id_mappings",
       "gl_accounts",
-      "control_accounts",
-      "pools",
+
+      // Notifications
+      "notifications",
 
       // Config & reference
       "document_entity_requirements",
@@ -169,9 +170,6 @@ Deno.serve(async (req) => {
       // User associations
       "user_roles",
       "tenant_memberships",
-
-      // Finally the tenant itself
-      "tenants",
     ];
 
     const results: Record<string, number> = {};
@@ -179,31 +177,53 @@ Deno.serve(async (req) => {
 
     for (const table of deleteOrder) {
       try {
-        if (table === "tenants") {
-          const { error } = await admin.from(table).delete().eq("id", tenant_id);
-          if (error) {
-            errors.push(`${table}: ${error.message}`);
-          } else {
-            results[table] = 1;
-          }
+        const { data, error } = await admin
+          .from(table)
+          .delete()
+          .eq("tenant_id", tenant_id)
+          .select("id");
+        if (error) {
+          console.warn(`Warning deleting ${table}: ${error.message}`);
+          errors.push(`${table}: ${error.message}`);
         } else {
-          const { data, error } = await admin
-            .from(table)
-            .delete()
-            .eq("tenant_id", tenant_id)
-            .select("id");
-          if (error) {
-            // Table might not exist or have different structure — log and continue
-            console.warn(`Warning deleting ${table}: ${error.message}`);
-            errors.push(`${table}: ${error.message}`);
-          } else {
-            results[table] = data?.length ?? 0;
-          }
+          results[table] = data?.length ?? 0;
         }
       } catch (e: any) {
         console.warn(`Exception deleting ${table}: ${e.message}`);
         errors.push(`${table}: ${e.message}`);
       }
+    }
+
+    // Break circular FK between pools and control_accounts:
+    // pools.cash_control_account_id → control_accounts, control_accounts.pool_id → pools
+    // First nullify pool FK columns, then delete control_accounts, then pools, then tenant
+    try {
+      await admin
+        .from("pools")
+        .update({ cash_control_account_id: null, vat_control_account_id: null, loan_control_account_id: null })
+        .eq("tenant_id", tenant_id);
+
+      const { data: caData, error: caErr } = await admin
+        .from("control_accounts")
+        .delete()
+        .eq("tenant_id", tenant_id)
+        .select("id");
+      if (caErr) { errors.push(`control_accounts: ${caErr.message}`); }
+      else { results["control_accounts"] = caData?.length ?? 0; }
+
+      const { data: pData, error: pErr } = await admin
+        .from("pools")
+        .delete()
+        .eq("tenant_id", tenant_id)
+        .select("id");
+      if (pErr) { errors.push(`pools: ${pErr.message}`); }
+      else { results["pools"] = pData?.length ?? 0; }
+
+      const { error: tErr } = await admin.from("tenants").delete().eq("id", tenant_id);
+      if (tErr) { errors.push(`tenants: ${tErr.message}`); }
+      else { results["tenants"] = 1; }
+    } catch (e: any) {
+      errors.push(`pool/control cleanup: ${e.message}`);
     }
 
     // Also delete auth users who ONLY belong to this tenant
