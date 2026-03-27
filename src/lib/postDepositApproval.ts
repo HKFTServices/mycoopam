@@ -71,14 +71,14 @@ export async function postDepositApproval(
     .in("id", txnIds);
   if (!fullTxns?.length) throw new Error("Could not fetch transaction details");
 
-  // Fetch share class GL accounts (keyed by share_class_id)
-  const shareClassId = joinShareInfo?.share_class_id || null;
-  let shareGlAccountId: string | null = null;
-  if (shareClassId) {
+  // Join share GL account — now stored directly in metadata from tenant_configuration.
+  // Fallback: check legacy share_class_id field, then tenant_configuration.share_gl_account_id.
+  let shareGlAccountId: string | null = joinShareInfo?.share_gl_account_id || null;
+  if (!shareGlAccountId && joinShareInfo?.share_class_id) {
     const { data: sc } = await (supabase as any)
       .from("share_classes")
       .select("gl_account_id")
-      .eq("id", shareClassId)
+      .eq("id", joinShareInfo.share_class_id)
       .single();
     shareGlAccountId = sc?.gl_account_id || null;
   }
