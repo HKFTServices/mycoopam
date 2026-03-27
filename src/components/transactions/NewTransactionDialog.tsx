@@ -684,14 +684,19 @@ const NewTransactionDialog = ({
 
   // joinShareInfo — membership fees always carry VAT regardless of tenant VAT registration
   const joinShareInfo = useMemo(() => {
-    const needed = !hasJoinShare && !!joinShareClass;
-    const rawMembershipFee = needed ? membershipFeeAmount : 0;
+    // A first-time deposit needs membership deductions if:
+    // 1. No existing join share record exists (hasJoinShare = false), AND
+    // 2. Either a share class is configured OR a membership fee is configured
+    const needsShareDeduction = !hasJoinShare && !!joinShareClass;
+    const needsMembershipFee = !hasJoinShare && membershipFeeAmount > 0;
+    const needed = needsShareDeduction || needsMembershipFee;
+    const rawMembershipFee = needsMembershipFee ? membershipFeeAmount : 0;
     const membershipFeeVat = rawMembershipFee > 0 && vatRate > 0
       ? Math.round((rawMembershipFee / (1 + vatRate / 100)) * (vatRate / 100) * 100) / 100
       : 0;
     return {
       needed,
-      shareCost: needed ? Number(joinShareClass?.price_per_share || 0) : 0,
+      shareCost: needsShareDeduction ? Number(joinShareClass?.price_per_share || 0) : 0,
       membershipFee: rawMembershipFee,
       membershipFeeVat,
       shareClassName: joinShareClass?.name || "Join Share",
