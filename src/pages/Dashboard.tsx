@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
@@ -7,6 +7,8 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import {
@@ -17,9 +19,12 @@ import {
   Gem,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   CreditCard,
   Clock,
   Banknote,
+  ChevronDown,
   MoreHorizontal,
   AlertTriangle,
   FileDown,
@@ -83,6 +88,7 @@ const Dashboard = () => {
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
   const [loanApplyOpen, setLoanApplyOpen] = useState(false);
   const [debitOrderOpen, setDebitOrderOpen] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(true);
 
   const tenantId = currentTenant?.id;
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
@@ -372,16 +378,97 @@ const Dashboard = () => {
       const { data, error } = await (supabase as any)
         .from("transactions")
         .select(`
-          id, amount, status, transaction_date, created_at,
+          id, amount, status, transaction_date, created_at, user_id, approved_by, receiver_approved_by,
           pools!transactions_pool_id_fkey(name),
           transaction_types!transactions_transaction_type_id_fkey(name, code),
-          entity_accounts!transactions_entity_account_id_fkey(account_number, entities!entity_accounts_entity_id_fkey(name, last_name))
+          entity_accounts!transactions_entity_account_id_fkey(
+            account_number,
+            entities!entity_accounts_entity_id_fkey(name, last_name, entity_categories(entity_type))
+          )
         `)
         .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false })
         .limit(8);
       if (error) throw error;
-      return data ?? [];
+
+      const txns = data ?? [];
+      const allUserIds = [
+        ...txns.map((t: any) => t.user_id),
+        ...txns.map((t: any) => t.approved_by).filter(Boolean),
+        ...txns.map((t: any) => t.receiver_approved_by).filter(Boolean),
+      ].filter(Boolean);
+      const uniqUserIds = [...new Set(allUserIds)];
+      if (uniqUserIds.length === 0) return txns;
+
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        (supabase as any)
+          .from("profiles")
+          .select("user_id, first_name, last_name, email")
+          .in("user_id", uniqUserIds),
+        (supabase as any)
+          .from("user_roles")
+          .select("user_id, role, tenant_id")
+          .in("user_id", uniqUserIds),
+      ]);
+
+      const profileMap = new Map<string, any>();
+      for (const p of profiles ?? []) profileMap.set(p.user_id, p);
+
+      const rolesByUser = new Map<string, string[]>();
+      for (const r of roles ?? []) {
+        if (r.tenant_id && r.tenant_id !== tenantId) continue;
+        const prev = rolesByUser.get(r.user_id) ?? [];
+        prev.push(r.role);
+        rolesByUser.set(r.user_id, prev);
+      }
+
+      const pickRoleLabel = (roleList: string[] | undefined) => {
+        const list = roleList ?? [];
+        const has = (x: string) => list.includes(x);
+        if (has("super_admin")) return "Super admin";
+        if (has("tenant_admin")) return "Tenant admin";
+        if (has("manager")) return "Manager";
+        if (has("clerk")) return "Clerk";
+        if (has("full_member")) return "Full member";
+        if (has("associated_member")) return "Associated member";
+        if (has("member")) return "Member";
+        if (has("referrer")) return "Referrer";
+        return list[0] ? list[0].replace(/_/g, " ") : "User";
+      };
+
+      const displayUser = (userId: string | null | undefined) => {
+        if (!userId) return null;
+        const p = profileMap.get(userId);
+        const full = [p?.first_name, p?.last_name].filter(Boolean).join(" ").trim();
+        return full || p?.email || "User";
+      };
+
+      const entityTypeLabel = (t: any) => {
+        const cats = t?.entity_accounts?.entities?.entity_categories;
+        const entityType = Array.isArray(cats) ? cats?.[0]?.entity_type : undefined;
+        if (entityType === "natural_person") return "Person";
+        if (entityType === "legal_entity") return "Entity";
+        const lastName = t?.entity_accounts?.entities?.last_name;
+        return lastName ? "Person" : "Entity";
+      };
+
+      return txns.map((t: any) => {
+        const initiatorRole = pickRoleLabel(rolesByUser.get(t.user_id));
+        const initiatorName = displayUser(t.user_id);
+        const approverRole = pickRoleLabel(rolesByUser.get(t.approved_by));
+        const approverName = displayUser(t.approved_by);
+        const receiverApproverRole = pickRoleLabel(rolesByUser.get(t.receiver_approved_by));
+        const receiverApproverName = displayUser(t.receiver_approved_by);
+        return {
+          ...t,
+          _meta: {
+            accountType: entityTypeLabel(t),
+            initiator: initiatorName ? `${initiatorName} (${initiatorRole})` : initiatorRole,
+            approver: approverName ? `${approverName} (${approverRole})` : t.approved_by ? approverRole : null,
+            receiverApprover: receiverApproverName ? `${receiverApproverName} (${receiverApproverRole})` : t.receiver_approved_by ? receiverApproverRole : null,
+          },
+        };
+      });
     },
     enabled: !!tenantId && isAdmin,
   });
@@ -1078,91 +1165,142 @@ const Dashboard = () => {
           </div>
 
 	          <div className="grid gap-4 lg:grid-cols-3">
-	            <div className="lg:col-span-2 space-y-4">
-	              {isAdmin ? (
-	                <AdminChartsCard
-	                  aumData={aumAllocationData}
-	                  loanData={loanBookData}
-	                  accountsData={accountsStatusData}
-	                />
-	              ) : (
-	                <Card>
-	                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-	                    <div>
-	                      <CardTitle className="text-sm">Deposits over time</CardTitle>
-	                      <CardDescription className="text-xs">Monthly deposits</CardDescription>
-	                    </div>
-	                    <Button variant="ghost" size="icon" className="h-8 w-8">
-	                      <MoreHorizontal className="h-4 w-4" />
-	                    </Button>
-	                  </CardHeader>
-		                  <CardContent>
-		                    {memberChartSeries?.length ? (
-		                      <div className="h-[220px]">
-		                        <ResponsiveContainer width="100%" height="100%">
-		                          <AreaChart data={memberChartSeries} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
-		                            <defs>
-		                              <linearGradient id="depositsFill" x1="0" y1="0" x2="0" y2="1">
-		                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-		                                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
-		                              </linearGradient>
-		                            </defs>
-		                            <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" />
-		                            <XAxis
-		                              dataKey="label"
-		                              tickLine={false}
-		                              axisLine={false}
-		                              fontSize={11}
-		                              stroke="hsl(var(--muted-foreground))"
-		                            />
-		                            <Tooltip content={<ChartTooltip />} />
-		                            <Area
-		                              type="monotone"
-		                              dataKey="value"
-		                              stroke="hsl(var(--primary))"
-		                              strokeWidth={2}
-		                              fill="url(#depositsFill)"
-		                              dot={{ r: 2, strokeWidth: 0, fill: "hsl(var(--primary))" }}
-		                              activeDot={{ r: 4 }}
-		                            />
-		                          </AreaChart>
-		                        </ResponsiveContainer>
-		                      </div>
-		                    ) : (
-	                      <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
-	                        No chart data yet.
+	            {isAdmin ? (
+	              <>
+	                <div className="lg:col-span-3">
+	                  <AdminChartsCard
+	                    aumData={aumAllocationData}
+	                    loanData={loanBookData}
+	                    accountsData={accountsStatusData}
+	                  />
+	                </div>
+
+	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className="lg:col-span-3">
+	                  <Card>
+	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+	                      <div className="flex items-start gap-2">
+	                        <CollapsibleTrigger asChild>
+	                          <Button
+	                            variant="ghost"
+	                            size="icon"
+	                            className="h-8 w-8 -ml-2"
+	                            aria-label={recentOpen ? "Collapse recent transactions" : "Expand recent transactions"}
+	                          >
+	                            <ChevronDown
+	                              className={`h-4 w-4 transition-transform ${recentOpen ? "rotate-0" : "-rotate-90"}`}
+	                            />
+	                          </Button>
+	                        </CollapsibleTrigger>
+	                        <div>
+	                          <CardTitle className="text-sm">{recentListTitle}</CardTitle>
+	                          <CardDescription className="text-xs">Latest transactions</CardDescription>
+	                        </div>
 	                      </div>
-	                    )}
-	                  </CardContent>
-	                </Card>
-		              )}
+	                      <Button variant="ghost" size="icon" className="h-8 w-8">
+	                        <MoreHorizontal className="h-4 w-4" />
+	                      </Button>
+	                    </CardHeader>
+	                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+	                      <CardContent>
+	                        <RecentAdminTransactions items={recentTransactions} />
+	                      </CardContent>
+	                    </CollapsibleContent>
+	                  </Card>
+	                </Collapsible>
+	              </>
+	            ) : (
+	              <>
+	                <div className="lg:col-span-2 space-y-4">
+	                  <Card>
+	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+	                      <div>
+	                        <CardTitle className="text-sm">Deposits over time</CardTitle>
+	                        <CardDescription className="text-xs">Monthly deposits</CardDescription>
+	                      </div>
+	                      <Button variant="ghost" size="icon" className="h-8 w-8">
+	                        <MoreHorizontal className="h-4 w-4" />
+	                      </Button>
+	                    </CardHeader>
+	                    <CardContent>
+	                      {memberChartSeries?.length ? (
+	                        <div className="h-[220px]">
+	                          <ResponsiveContainer width="100%" height="100%">
+	                            <AreaChart data={memberChartSeries} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
+	                              <defs>
+	                                <linearGradient id="depositsFill" x1="0" y1="0" x2="0" y2="1">
+	                                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+	                                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+	                                </linearGradient>
+	                              </defs>
+	                              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" />
+	                              <XAxis
+	                                dataKey="label"
+	                                tickLine={false}
+	                                axisLine={false}
+	                                fontSize={11}
+	                                stroke="hsl(var(--muted-foreground))"
+	                              />
+	                              <Tooltip content={<ChartTooltip />} />
+	                              <Area
+	                                type="monotone"
+	                                dataKey="value"
+	                                stroke="hsl(var(--primary))"
+	                                strokeWidth={2}
+	                                fill="url(#depositsFill)"
+	                                dot={{ r: 2, strokeWidth: 0, fill: "hsl(var(--primary))" }}
+	                                activeDot={{ r: 4 }}
+	                              />
+	                            </AreaChart>
+	                          </ResponsiveContainer>
+	                        </div>
+	                      ) : (
+	                        <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
+	                          No chart data yet.
+	                        </div>
+	                      )}
+	                    </CardContent>
+	                  </Card>
 
-	              {!isAdmin ? <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} /> : null}
+	                  <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
 
-	              {null}
-	            </div>
+	                  {null}
+	                </div>
 
-            <Card className="lg:col-span-1">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div>
-                  <CardTitle className="text-sm">{recentListTitle}</CardTitle>
-                  <CardDescription className="text-xs">
-                    {isAdmin ? "Latest transactions" : "Latest account deposits"}
-                  </CardDescription>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {isAdmin ? (
-                  <RecentAdminTransactions items={recentTransactions} learnMoreTo="/dashboard/transactions" />
-                ) : (
-                  <RecentMemberDeposits items={memberRecentDeposits} learnMoreTo="/dashboard/statements" />
-                )}
-              </CardContent>
-            </Card>
-          </div>
+	                <Collapsible open={recentOpen} onOpenChange={setRecentOpen} className="lg:col-span-1">
+	                  <Card>
+	                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+	                      <div className="flex items-start gap-2">
+	                        <CollapsibleTrigger asChild>
+	                          <Button
+	                            variant="ghost"
+	                            size="icon"
+	                            className="h-8 w-8 -ml-2"
+	                            aria-label={recentOpen ? "Collapse recent deposits" : "Expand recent deposits"}
+	                          >
+	                            <ChevronDown
+	                              className={`h-4 w-4 transition-transform ${recentOpen ? "rotate-0" : "-rotate-90"}`}
+	                            />
+	                          </Button>
+	                        </CollapsibleTrigger>
+	                        <div>
+	                          <CardTitle className="text-sm">{recentListTitle}</CardTitle>
+	                          <CardDescription className="text-xs">Latest account deposits</CardDescription>
+	                        </div>
+	                      </div>
+	                      <Button variant="ghost" size="icon" className="h-8 w-8">
+	                        <MoreHorizontal className="h-4 w-4" />
+	                      </Button>
+	                    </CardHeader>
+	                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+	                      <CardContent>
+	                    <RecentMemberDeposits items={memberRecentDeposits} />
+	                      </CardContent>
+	                    </CollapsibleContent>
+	                  </Card>
+	                </Collapsible>
+	              </>
+	            )}
+	          </div>
         </>
       )}
 
@@ -1404,15 +1542,21 @@ const AdminChartsCard = ({
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-6 md:grid-cols-3">
-          <DonutBlock title="AUM allocation" data={aumData} emptyLabel="No AUM data yet." />
-          <DonutBlock title="Loan book" data={loanData} emptyLabel="No outstanding loans." />
-          <DonutBlock
-            title="Accounts status"
-            data={accountsData}
-            emptyLabel="No account stats yet."
-            formatValue={(v) => Number(v).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
-          />
+        <div className="grid gap-4 md:grid-cols-5">
+          <div className="rounded-xl border bg-card p-4 shadow-sm h-full md:col-span-2">
+            <DonutBlock title="AUM allocation" data={aumData} emptyLabel="No AUM data yet." />
+          </div>
+          <div className="rounded-xl border bg-card p-4 shadow-sm h-full md:col-span-2">
+            <DonutBlock title="Loan book" data={loanData} emptyLabel="No outstanding loans." />
+          </div>
+          <div className="rounded-xl border bg-card p-4 shadow-sm h-full md:col-span-1">
+            <DonutBlock
+              title="Accounts status"
+              data={accountsData}
+              emptyLabel="No account stats yet."
+              formatValue={(v) => Number(v).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -1520,76 +1664,241 @@ const MetricCard = ({
   );
 };
 
-const RecentAdminTransactions = ({ items, learnMoreTo }: { items: any[]; learnMoreTo: string }) => {
+const RecentAdminTransactions = ({ items }: { items: any[] }) => {
   if (!items?.length) {
     return <p className="text-sm text-muted-foreground py-8 text-center">No transactions yet.</p>;
   }
 
+  const ScrollShadow = ({ children }: { children: React.ReactNode }) => {
+    const [showFade, setShowFade] = useState(false);
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+    const update = () => {
+      const el = scrollerRef.current;
+      if (!el) return;
+      const canScroll = el.scrollHeight > el.clientHeight + 4;
+      const atBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight - 2;
+      setShowFade(canScroll && !atBottom);
+    };
+
+    useEffect(() => {
+      update();
+      const el = scrollerRef.current;
+      if (!el) return;
+      const onScroll = () => update();
+      el.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", update, { passive: true });
+      return () => {
+        el.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", update);
+      };
+    }, [items.length]);
+
+    return (
+      <div className="relative">
+        <div ref={scrollerRef} className="max-h-[360px] overflow-y-auto pr-1">
+          {children}
+        </div>
+        {showFade ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-2">
-      {items.map((txn: any) => {
-        const typeName = txn.transaction_types?.name || "Transaction";
-        const poolName = txn.pools?.name || "";
-        const entity = txn.entity_accounts?.entities;
-        const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ");
-        const meta = [memberName, txn.entity_accounts?.account_number ? `Acc ${txn.entity_accounts.account_number}` : null]
-          .filter(Boolean)
-          .join(" · ");
+      <ScrollShadow>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[320px]">Transaction</TableHead>
+                <TableHead>Member</TableHead>
+                <TableHead className="hidden md:table-cell">Account</TableHead>
+                <TableHead className="hidden lg:table-cell">Initiated</TableHead>
+                <TableHead className="hidden lg:table-cell">Approved</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="hidden sm:table-cell text-right">Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((txn: any) => {
+                const typeName = txn.transaction_types?.name || "Transaction";
+                const code = String(txn.transaction_types?.code ?? "").toUpperCase();
+                const isWithdrawal = code.includes("WITHDRAW");
+                const isDeposit = code.includes("DEPOSIT");
+                const poolName = txn.pools?.name || "";
+                const entity = txn.entity_accounts?.entities;
+                const memberName = [entity?.name, entity?.last_name].filter(Boolean).join(" ") || "—";
+                const accountNumber = txn.entity_accounts?.account_number;
 
-        return (
-          <div key={txn.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/40 transition-colors">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10">
-              <ArrowUpRight className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm truncate">{poolName ? `${typeName} · ${poolName}` : typeName}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {meta || "—"}{txn.transaction_date ? ` · ${txn.transaction_date}` : ""}
-              </p>
-            </div>
-            <p className="text-sm font-medium shrink-0">{formatCurrency(Number(txn.amount))}</p>
-          </div>
-        );
-      })}
-      <div className="pt-2 text-right">
-        <Button variant="link" asChild className="h-auto px-0 text-xs">
-          <Link to={learnMoreTo}>Learn more</Link>
-        </Button>
-      </div>
+                const Icon = isWithdrawal ? ArrowUpFromLine : isDeposit ? ArrowDownToLine : ArrowUpRight;
+                const iconTone = isWithdrawal
+                  ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                  : isDeposit
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-primary/10 text-primary";
+                const amountTone = isWithdrawal
+                  ? "text-orange-600 dark:text-orange-400"
+                  : isDeposit
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-foreground";
+
+                const initiated = txn?._meta?.initiator ?? "—";
+                const approved = txn?._meta?.approver ?? "Pending";
+                const payout = txn?._meta?.receiverApprover ?? null;
+                const accountType = txn?._meta?.accountType ?? "—";
+
+                return (
+                  <TableRow key={txn.id} className="hover:bg-muted/40">
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-3 min-w-[280px]">
+                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${iconTone}`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {poolName ? `${typeName} · ${poolName}` : typeName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Status: {String(txn.status ?? "—").replace(/_/g, " ")}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <div className="min-w-[200px]">
+                        <p className="text-sm truncate" title={memberName}>{memberName}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {accountNumber ? `Acc ${accountNumber}` : "—"}
+                        </p>
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="hidden md:table-cell py-3">
+                      <div className="min-w-[140px]">
+                        <Badge variant="outline" className="text-[10px]">Type: {accountType}</Badge>
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="hidden lg:table-cell py-3">
+                      <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={initiated}>
+                        {initiated}
+                      </p>
+                    </TableCell>
+
+                    <TableCell className="hidden lg:table-cell py-3">
+                      <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={approved}>
+                        {approved}
+                      </p>
+                      {payout ? (
+                        <p className="text-[11px] text-muted-foreground/80 truncate max-w-[220px]" title={payout}>
+                          Payout: {payout}
+                        </p>
+                      ) : null}
+                    </TableCell>
+
+                    <TableCell className={`py-3 text-right font-medium ${amountTone}`}>
+                      {formatCurrency(Number(txn.amount))}
+                    </TableCell>
+
+                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground">
+                      {txn.transaction_date ?? "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </ScrollShadow>
     </div>
   );
 };
 
-const RecentMemberDeposits = ({ items, learnMoreTo }: { items: any[]; learnMoreTo: string }) => {
+const RecentMemberDeposits = ({ items }: { items: any[] }) => {
   if (!items?.length) {
     return <p className="text-sm text-muted-foreground py-8 text-center">No deposits yet.</p>;
   }
 
+  const ScrollShadow = ({ children }: { children: React.ReactNode }) => {
+    const [showFade, setShowFade] = useState(false);
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+    const update = () => {
+      const el = scrollerRef.current;
+      if (!el) return;
+      const canScroll = el.scrollHeight > el.clientHeight + 4;
+      const atBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight - 2;
+      setShowFade(canScroll && !atBottom);
+    };
+
+    useEffect(() => {
+      update();
+      const el = scrollerRef.current;
+      if (!el) return;
+      const onScroll = () => update();
+      el.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", update, { passive: true });
+      return () => {
+        el.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", update);
+      };
+    }, [items.length]);
+
+    return (
+      <div className="relative">
+        <div ref={scrollerRef} className="max-h-[360px] overflow-y-auto pr-1">
+          {children}
+        </div>
+        {showFade ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-2">
-      {items.map((row: any) => {
-        const poolName = row.pools?.name || "Deposit";
-        const amount = Number(row.value ?? 0) || Number(row.credit ?? 0);
-        return (
-          <div key={row.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/40 transition-colors">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
-              <CreditCard className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm truncate">{poolName}</p>
-              <p className="text-xs text-muted-foreground truncate">{row.transaction_date}</p>
-            </div>
-            <p className="text-sm font-medium shrink-0 text-emerald-600 dark:text-emerald-400">
-              +{formatCurrency(amount)}
-            </p>
-          </div>
-        );
-      })}
-      <div className="pt-2 text-right">
-        <Button variant="link" asChild className="h-auto px-0 text-xs">
-          <Link to={learnMoreTo}>Learn more</Link>
-        </Button>
-      </div>
+      <ScrollShadow>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Deposit</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="hidden sm:table-cell text-right">Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((row: any) => {
+                const poolName = row.pools?.name || "Deposit";
+                const amount = Number(row.value ?? 0) || Number(row.credit ?? 0);
+                return (
+                  <TableRow key={row.id} className="hover:bg-muted/40">
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-3 min-w-[240px]">
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                          <ArrowDownToLine className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm truncate">{poolName}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 text-right text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                      +{formatCurrency(amount)}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground">
+                      {row.transaction_date ?? "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </ScrollShadow>
     </div>
   );
 };
