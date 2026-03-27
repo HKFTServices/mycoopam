@@ -93,34 +93,16 @@ const Landing = () => {
 
   const features = [
     {
-      icon: Users,
       title: "Membership Management",
-      desc: "Onboard members, manage documents, track registrations and approvals seamlessly.",
+      desc: "Whether you have 10 or 10,000 members, our membership tools keep everyone onboarded, compliant, and engaged.",
     },
     {
-      icon: Shield,
-      title: "Pooled Investments",
-      desc: "Manage investment pools with daily pricing, unit tracking, and transparent reporting.",
+      title: "Pooled Investment Tracking",
+      desc: "A complete investment management platform that helps you track pools, unit prices, and member holdings with full transparency.",
     },
     {
-      icon: Building2,
-      title: "Multi-Tenant Architecture",
-      desc: "Each co-operative operates independently with its own branding, configuration, and data isolation.",
-    },
-    {
-      icon: Shield,
-      title: "Regulatory Compliance",
-      desc: "Built-in document requirements, KYC processes, and audit trails for full compliance.",
-    },
-    {
-      icon: Users,
-      title: "Transaction Processing",
-      desc: "Deposits, withdrawals, switches, and transfers with multi-level approval workflows.",
-    },
-    {
-      icon: Building2,
-      title: "Role-Based Access",
-      desc: "Granular permissions for members, clerks, managers, tenant admins, and super admins.",
+      title: "Reporting & Compliance",
+      desc: "Measure what matters with easy-to-use reports. Filter, export, and drill down on member data, transactions, and financials in a couple of clicks.",
     },
   ];
 
