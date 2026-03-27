@@ -134,23 +134,6 @@ const adminOnlyNavItems: NavItem[] = [
   { label: "Reports", icon: FileText, path: "/dashboard/reports" },
 ];
 
-const globalSetupNavItems: NavItem[] = [
-  { label: "Countries", icon: Globe, path: "/dashboard/setup/countries" },
-  { label: "Titles", icon: Users, path: "/dashboard/setup/titles" },
-  { label: "Entity Categories", icon: Building2, path: "/dashboard/setup/entity-categories" },
-  { label: "Relationship Types", icon: Link2, path: "/dashboard/setup/relationship-types" },
-  { label: "Banks", icon: Landmark, path: "/dashboard/setup/banks" },
-  { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
-  
-  { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
-  { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
-  { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
-  { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
-  { label: "System Email Templates", icon: Mail, path: "/dashboard/setup/system-email-templates" },
-  
-  { label: "API Providers", icon: Globe, path: "/dashboard/setup/api-providers" },
-];
-
 const tenantSetupNavItems: NavItem[] = [
   { label: "Pools", icon: Wallet, path: "/dashboard/pools" },
   { label: "Items", icon: Gem, path: "/dashboard/items" },
@@ -172,6 +155,18 @@ const headOfficeNavItems: NavItem[] = [
   { label: "Head Office Settings", icon: Building2, path: "/dashboard/head-office/settings" },
   { label: "Tenant Management", icon: Users, path: "/dashboard/head-office/tenants" },
   { label: "Tenant Invoices", icon: FileText, path: "/dashboard/head-office/invoices" },
+  { label: "Countries", icon: Globe, path: "/dashboard/setup/countries" },
+  { label: "Titles", icon: Users, path: "/dashboard/setup/titles" },
+  { label: "Entity Categories", icon: Building2, path: "/dashboard/setup/entity-categories" },
+  { label: "Relationship Types", icon: Link2, path: "/dashboard/setup/relationship-types" },
+  { label: "Banks", icon: Landmark, path: "/dashboard/setup/banks" },
+  { label: "Bank Account Types", icon: CreditCard, path: "/dashboard/setup/bank-account-types" },
+  { label: "System Settings", icon: KeyRound, path: "/dashboard/setup/system-settings" },
+  { label: "Document Types", icon: FileText, path: "/dashboard/setup/document-types" },
+  { label: "Tax Types", icon: DollarSign, path: "/dashboard/setup/tax-types" },
+  { label: "Transaction Types", icon: ArrowLeftRight, path: "/dashboard/setup/transaction-types" },
+  { label: "System Email Templates", icon: Mail, path: "/dashboard/setup/system-email-templates" },
+  { label: "API Providers", icon: Globe, path: "/dashboard/setup/api-providers" },
 ];
 
 const mamNavItems: NavItem[] = [
@@ -219,8 +214,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     location.pathname.includes("/dashboard/send-message") || location.pathname.includes("/dashboard/message-history"),
   );
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
-  const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
-  const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office"));
+  const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office") || location.pathname.includes("/dashboard/setup"));
   const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -435,8 +429,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredGlobalSetup = useMemo(() => filterItems(globalSetupNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredHeadOffice = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
+  
   const filteredMam = useMemo(() => filterItems(mamNavItems, normalizedQuery), [normalizedQuery]);
 
   const renderLink = (item: NavItem, opts?: { badge?: React.ReactNode }) => {
@@ -678,7 +672,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                               icon: Building2,
                               path: "/dashboard/head-office/settings",
                             },
-                            items: filteredHeadOffice,
+                            items: filteredHeadOfficeAll,
                           })}
 
                         {isSuperAdmin &&
@@ -689,20 +683,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             setOpen: setMamOpen,
                             viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
                             items: filteredMam,
-                          })}
-
-                        {isSuperAdmin &&
-                          renderGroup({
-                            label: "Global Setup",
-                            icon: Shield,
-                            open: globalSetupOpen,
-                            setOpen: setGlobalSetupOpen,
-                            viewAll: {
-                              label: "System Settings",
-                              icon: KeyRound,
-                              path: "/dashboard/setup/system-settings",
-                            },
-                            items: filteredGlobalSetup,
                           })}
 
                         {renderGroup({
