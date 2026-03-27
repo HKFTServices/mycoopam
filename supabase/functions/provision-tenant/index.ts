@@ -14,7 +14,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { tenant_id, selected_pool_ids, custom_pools } = await req.json();
+    const body = await req.json();
+    const { action, tenant_id, selected_pool_ids, custom_pools } = body;
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
+    // ─── List pools action (no auth required, read-only) ───
+    if (action === "list_pools") {
+      const { data: pools, error } = await admin
+        .from("pools")
+        .select("id, name, description")
+        .eq("tenant_id", SOURCE_TENANT_ID)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return new Response(
+        JSON.stringify({ pools: pools ?? [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!tenant_id || !selected_pool_ids || !Array.isArray(selected_pool_ids)) {
       return new Response(
