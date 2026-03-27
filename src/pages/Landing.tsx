@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Github, Linkedin, LogIn, Twitter } from "lucide-react";
+import { ArrowRight, Github, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Twitter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -273,6 +273,67 @@ const Landing = () => {
             Get Started
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
+        </section>
+
+        {/* Contact */}
+        <section id="contact" className="border-t border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold text-primary mb-3">Contact us</p>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+                We&apos;d love to hear from you
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Our friendly team is always here to chat.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <h3 className="mt-5 font-semibold">Chat to sales</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Speak to our friendly team.</p>
+                <a className="mt-4 inline-block text-sm font-medium text-primary hover:underline" href="mailto:sales@myco-op.co.za">
+                  sales@myco-op.co.za
+                </a>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                  <LifeBuoy className="h-5 w-5" />
+                </div>
+                <h3 className="mt-5 font-semibold">Chat to support</h3>
+                <p className="mt-1 text-sm text-muted-foreground">We&apos;re here to help.</p>
+                <a className="mt-4 inline-block text-sm font-medium text-primary hover:underline" href="mailto:support@myco-op.co.za">
+                  support@myco-op.co.za
+                </a>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <h3 className="mt-5 font-semibold">Visit us</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Visit our office HQ.</p>
+                <p className="mt-4 text-sm font-medium text-primary">
+                  Johannesburg, South Africa
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                  <PhoneCall className="h-5 w-5" />
+                </div>
+                <h3 className="mt-5 font-semibold">Call us</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Mon–Fri from 8am to 5pm.</p>
+                <a className="mt-4 inline-block text-sm font-medium text-primary hover:underline" href="tel:+27000000000">
+                  +27 (0)10 000 0000
+                </a>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
 
