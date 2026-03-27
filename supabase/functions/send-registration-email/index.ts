@@ -211,6 +211,7 @@ Deno.serve(async (req) => {
     let smtpFromName: string | null = null;
 
     // 1. Head Office settings (primary for registration emails)
+    // Check DB table first, then fall back to GLOBAL_SMTP_* env secrets
     const { data: hoSettings } = await adminClient
       .from("head_office_settings")
       .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, company_name")
@@ -224,7 +225,20 @@ Deno.serve(async (req) => {
       smtpPassword = hoSettings.smtp_password;
       smtpFromEmail = hoSettings.smtp_from_email;
       smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
-      console.log("[send-registration-email] Using head office SMTP settings (primary)");
+      console.log("[send-registration-email] Using head office SMTP settings from DB (primary)");
+    } else {
+      // Fallback to GLOBAL_SMTP_* environment secrets
+      const envHost = Deno.env.get("GLOBAL_SMTP_HOST");
+      const envUsername = Deno.env.get("GLOBAL_SMTP_USERNAME");
+      if (envHost && envUsername) {
+        smtpHost = envHost;
+        smtpPort = parseInt(Deno.env.get("GLOBAL_SMTP_PORT") || "587", 10);
+        smtpUsername = envUsername;
+        smtpPassword = Deno.env.get("GLOBAL_SMTP_PASSWORD") || "";
+        smtpFromEmail = envUsername;
+        smtpFromName = Deno.env.get("GLOBAL_SMTP_FROM_NAME") || hoSettings?.company_name || "My Co-op";
+        console.log("[send-registration-email] Using GLOBAL_SMTP_* env secrets (primary)");
+      }
     }
 
     // 2. Tenant SMTP fallback
