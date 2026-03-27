@@ -1294,8 +1294,8 @@ const Dashboard = () => {
 	          {/* Admin-specific widgets */}
 	          {isAdmin ? (
 	            <div className="space-y-4">
-	              {/* Widget: financial-overview */}
-	              {isWidgetVisible("financial-overview") && (
+	              {/* Widget: financial-overview (hidden on mobile — charts too dense) */}
+	              {!isMobile && isWidgetVisible("financial-overview") && (
 	                <AdminChartsCard
 	                  aumData={aumAllocationData}
 	                  loanData={loanBookData}

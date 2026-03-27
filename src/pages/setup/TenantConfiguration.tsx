@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
@@ -451,6 +452,7 @@ const EmailSignatureSection = ({
 
 // ── Main Component ───────────────────────────────────────────────────────────
 const TenantConfiguration = () => {
+  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
@@ -739,10 +741,10 @@ const TenantConfiguration = () => {
             <TabsTrigger value="logo" className="gap-1.5 text-xs sm:text-sm"><Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Logo</TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5 text-xs sm:text-sm"><Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Security</TabsTrigger>
             <TabsTrigger value="smtp" className="gap-1.5 text-xs sm:text-sm"><Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email SMTP</span><span className="sm:hidden">SMTP</span></TabsTrigger>
-            <TabsTrigger value="memberships" className="gap-1.5 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Membership &amp; Shares</span><span className="sm:hidden">Members</span></TabsTrigger>
+            {!isMobile && <TabsTrigger value="memberships" className="gap-1.5 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Membership &amp; Shares</span><span className="sm:hidden">Members</span></TabsTrigger>}
             <TabsTrigger value="gl" className="gap-1.5 text-xs sm:text-sm"><BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />GL</TabsTrigger>
             <TabsTrigger value="vault" className="gap-1.5 text-xs sm:text-sm"><Vault className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Vault &amp; Invoice</span><span className="sm:hidden">Vault</span></TabsTrigger>
-            <TabsTrigger value="signature" className="gap-1.5 text-xs sm:text-sm"><FileSignature className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email Signature</span><span className="sm:hidden">Sig.</span></TabsTrigger>
+            {!isMobile && <TabsTrigger value="signature" className="gap-1.5 text-xs sm:text-sm"><FileSignature className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email Signature</span><span className="sm:hidden">Sig.</span></TabsTrigger>}
             <TabsTrigger value="theme" className="gap-1.5 text-xs sm:text-sm"><Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Theme</TabsTrigger>
           </TabsList>
         </div>
