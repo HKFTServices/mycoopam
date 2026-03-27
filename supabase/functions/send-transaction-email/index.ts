@@ -633,10 +633,12 @@ Deno.serve(async (req) => {
     // ── Generate 30-day statement attachment ──
     let statementHtml: string | null = null;
     if (entityId && entityAccountIds.length > 0) {
-      const toDate = new Date();
-      const fromDate = new Date(toDate.getTime() - 30 * 86400000);
+      // Use SAST (UTC+2) so "today" matches the tenant's local date
+      const now = new Date();
+      const sastNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      const toStr = sastNow.toISOString().split("T")[0];
+      const fromDate = new Date(sastNow.getTime() - 30 * 86400000);
       const fromStr = fromDate.toISOString().split("T")[0];
-      const toStr = toDate.toISOString().split("T")[0];
       const currSym = (tenantConfig as any).currency_symbol || "R";
 
       statementHtml = await generateStatementForEntity(
