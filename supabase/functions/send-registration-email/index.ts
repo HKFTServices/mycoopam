@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const apiKeyHeader = req.headers.get("apikey") || "";
+    if (!authHeader?.startsWith("Bearer ") && !apiKeyHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -33,7 +34,8 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader ? authHeader.replace("Bearer ", "") : "";
+    const isServiceRole = token === supabaseServiceKey || apiKeyHeader === supabaseServiceKey;
 
     const reqBody = await req.json();
     const { tenant_id, user_id: explicitUserId } = reqBody;
@@ -47,7 +49,7 @@ Deno.serve(async (req) => {
     let userId: string;
 
     // If service role key is used and explicit user_id provided, allow admin resend
-    if (token === supabaseServiceKey && explicitUserId) {
+    if (isServiceRole && explicitUserId) {
       userId = explicitUserId;
       console.log("[send-registration-email] Admin resend for user:", userId);
     } else {
