@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MyCo-op</string>
+    <string name="title_activity_main">MyCo-op</string>
+    <string name="package_name">za.co.mycoop.app</string>
+    <string name="custom_url_scheme">za.co.mycoop.app</string>
+</resources>
