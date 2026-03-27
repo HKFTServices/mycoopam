@@ -460,8 +460,6 @@ const RegisterTenant = () => {
 
   const titles = refData?.titles ?? [];
   const countries = refData?.countries ?? [];
-  const banks = refData?.banks ?? [];
-  const bankAccountTypes = refData?.bank_account_types ?? [];
   const terms = refData?.terms ?? [];
   const documentRequirements = refData?.document_requirements ?? [];
 
