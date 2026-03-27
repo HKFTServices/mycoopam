@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, LogIn } from "lucide-react";
+import { ArrowRight, Github, Linkedin, LogIn, Twitter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -12,9 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
-import heroPerson from "@/assets/hero-person.jpg";
-import dashboardWeb from "@/assets/dashboard-web.jpg";
-import dashboardMobile from "@/assets/dashboard-mobile.jpg";
+import heroPerson from "@/assets/hero-image.jpg";
+import dashboardWeb from "@/assets/features-dashboard-web-widgets.jpg";
 import { navigateToTenant } from "@/lib/getSiteUrl";
 
 interface Tenant {
@@ -107,15 +106,20 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={myCoopLogo} alt="My Co-Op logo" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={openTenantPicker}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-background/60 hover:bg-background"
+              onClick={openTenantPicker}
+            >
               <LogIn className="mr-2 h-4 w-4" />
               Member Login
             </Button>
@@ -125,7 +129,11 @@ const Landing = () => {
 
       {/* Hero — split layout */}
       <main className="flex-1">
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-32">
+        <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-32">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-[420px] w-[760px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
+          />
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left — text */}
             <div className="space-y-6">
@@ -133,18 +141,29 @@ const Landing = () => {
                 People who care
                 <br />
                 about your{" "}
-                <span className="text-primary">growth</span>
+                <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  growth
+                </span>
               </h1>
               <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
                 Powerful, self-serve co-operative management platform to help you onboard members,
                 manage investments, and grow your organisation.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <Button size="lg" className="text-base px-8" onClick={() => navigate("/register-tenant")}>
+                <Button
+                  size="lg"
+                  className="text-base px-10 h-12 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30"
+                  onClick={() => navigate("/register-tenant")}
+                >
                   Register Your Co-operative
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button size="lg" variant="outline" className="text-base px-8" onClick={openTenantPicker}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-base px-10 h-12 rounded-full bg-background/60 backdrop-blur hover:bg-background"
+                  onClick={openTenantPicker}
+                >
                   <LogIn className="mr-2 h-4 w-4" />
                   Member Login
                 </Button>
@@ -197,7 +216,7 @@ const Landing = () => {
         )}
 
         {/* Features */}
-        <section className="border-t border-border">
+        <section id="features" className="border-t border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
             {/* Section header */}
             <div className="max-w-2xl mb-16">
@@ -222,30 +241,16 @@ const Landing = () => {
                 ))}
               </div>
 
-              {/* Right — overlapping web + mobile screenshots (no PC frame) */}
-              <div className="relative h-[500px] sm:h-[550px] lg:h-[600px]">
-                {/* Web dashboard — back layer, top-right */}
-                <div className="absolute top-0 right-0 w-[75%] rounded-xl shadow-2xl border border-border overflow-hidden bg-card">
-                  <img
-                    src={dashboardWeb}
-                    alt="MyCoop web dashboard"
-                    className="w-full h-auto"
-                    loading="lazy"
-                    width={1200}
-                    height={800}
-                  />
-                </div>
-                {/* Mobile dashboard — front layer, bottom-left */}
-                <div className="absolute bottom-4 left-0 w-[42%] sm:w-[38%] rounded-2xl shadow-2xl border border-border overflow-hidden bg-card z-10">
-                  <img
-                    src={dashboardMobile}
-                    alt="MyCoop mobile dashboard"
-                    className="w-full h-auto"
-                    loading="lazy"
-                    width={512}
-                    height={1024}
-                  />
-                </div>
+              {/* Right — feature screenshot */}
+              <div className="rounded-xl shadow-2xl border border-border overflow-hidden bg-card">
+                <img
+                  src={dashboardWeb}
+                  alt="MyCoop feature dashboard"
+                  className="w-full h-auto"
+                  loading="lazy"
+                  width={963}
+                  height={685}
+                />
               </div>
             </div>
           </div>
@@ -260,7 +265,11 @@ const Landing = () => {
             Register your co-operative today and get started with a fully configured platform
             tailored to your needs.
           </p>
-          <Button size="lg" className="text-base px-8" onClick={() => navigate("/register-tenant")}>
+          <Button
+            size="lg"
+            className="text-base px-10 h-12 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30"
+            onClick={() => navigate("/register-tenant")}
+          >
             Get Started
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -268,12 +277,112 @@ const Landing = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center gap-2">
-          <img src={myCoopLogo} alt="My Co-Op" className="h-8 opacity-60" />
-          <span className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} MyCoop. All rights reserved.
-          </span>
+      <footer className="border-t border-border bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="grid gap-10 lg:grid-cols-12">
+            {/* Left brand block */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <img src={myCoopLogo} alt="MyCo-op" className="h-8 w-auto" />
+                <span className="text-sm font-semibold">MyCo-op</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
+                Digitise co-operative operations, strengthen governance, and improve member engagement with a modern
+                platform built for community-led organisations.
+              </p>
+              <div className="inline-flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2">
+                <div className="flex -space-x-2">
+                  <div className="h-6 w-6 rounded-full bg-primary/20 ring-2 ring-background" />
+                  <div className="h-6 w-6 rounded-full bg-primary/30 ring-2 ring-background" />
+                  <div className="h-6 w-6 rounded-full bg-primary/40 ring-2 ring-background" />
+                  <div className="h-6 w-6 rounded-full bg-primary/50 ring-2 ring-background" />
+                </div>
+                <span className="text-xs font-medium">Trusted by co-operatives</span>
+              </div>
+            </div>
+
+            {/* Link columns */}
+            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Product</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a className="hover:text-foreground" href="#features">Overview</a></li>
+                  <li><a className="hover:text-foreground" href="#features">Features</a></li>
+                  <li><a className="hover:text-foreground" href="/register-tenant">Register</a></li>
+                  <li><a className="hover:text-foreground" href="#support">Support</a></li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Company</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a className="hover:text-foreground" href="#about">About us</a></li>
+                  <li><a className="hover:text-foreground" href="#careers">Careers</a></li>
+                  <li><a className="hover:text-foreground" href="#news">News</a></li>
+                  <li><a className="hover:text-foreground" href="#contact">Contact</a></li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Resources</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a className="hover:text-foreground" href="#blog">Blog</a></li>
+                  <li><a className="hover:text-foreground" href="#newsletter">Newsletter</a></li>
+                  <li><a className="hover:text-foreground" href="#help">Help centre</a></li>
+                  <li><a className="hover:text-foreground" href="#support">Support</a></li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Social</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a className="hover:text-foreground" href="https://x.com" target="_blank" rel="noreferrer">X</a></li>
+                  <li><a className="hover:text-foreground" href="https://linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a></li>
+                  <li><a className="hover:text-foreground" href="https://github.com" target="_blank" rel="noreferrer">GitHub</a></li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Legal</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a className="hover:text-foreground" href="#terms">Terms</a></li>
+                  <li><a className="hover:text-foreground" href="#privacy">Privacy</a></li>
+                  <li><a className="hover:text-foreground" href="#cookies">Cookies</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 border-t border-border/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} MyCo-op. All rights reserved.
+            </p>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <a
+                className="h-9 w-9 inline-flex items-center justify-center rounded-full hover:bg-accent hover:text-foreground transition-colors"
+                href="https://x.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="X"
+              >
+                <Twitter className="h-4 w-4" />
+              </a>
+              <a
+                className="h-9 w-9 inline-flex items-center justify-center rounded-full hover:bg-accent hover:text-foreground transition-colors"
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-4 w-4" />
+              </a>
+              <a
+                className="h-9 w-9 inline-flex items-center justify-center rounded-full hover:bg-accent hover:text-foreground transition-colors"
+                href="https://github.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="GitHub"
+              >
+                <Github className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
 
