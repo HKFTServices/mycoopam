@@ -24,9 +24,14 @@ const TITLES: Record<string, string> = {
   entity: "Apply for Membership — For Another Entity",
 };
 
+const LEGAL_ENTITY_TITLE = "Register Legal Entity";
+
 const ApplyMembership = () => {
   const [searchParams] = useSearchParams();
-  const appType = (searchParams.get("type") || "myself") as ApplicationType;
+  const rawAppType = (searchParams.get("type") || "myself") as ApplicationType;
+  const isLegalEntityMode = searchParams.get("mode") === "legal_entity";
+  // Force entity type when in legal entity mode
+  const appType = isLegalEntityMode ? "entity" as ApplicationType : rawAppType;
   const { user, profile } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
