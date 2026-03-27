@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -99,6 +99,7 @@ const Onboarding = () => {
   // Avatar
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url ?? null);
+  const initializedEntityIdRef = useRef<string | null>(null);
 
   // T&C
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
@@ -155,24 +156,25 @@ const Onboarding = () => {
   });
 
   useEffect(() => {
-    if (entityDetails) {
-      setFirstName(entityDetails.name ?? "");
-      setLastName(entityDetails.last_name ?? "");
-      setTitleId(entityDetails.title_id ?? "");
-      setInitials(entityDetails.initials ?? "");
-      setKnownAs(entityDetails.known_as ?? "");
-      setGender(entityDetails.gender ?? "");
-      setDateOfBirth(entityDetails.date_of_birth ?? "");
-      setAltPhone(entityDetails.additional_contact_number ?? "");
-      setCcEmail(entityDetails.additional_email_address ?? "");
-      setLanguageCode(entityDetails.language_code ?? "en");
-      if (entityDetails.identity_number) {
-        setIdType("rsa_id");
-        setIdNumber(entityDetails.identity_number);
-      } else if (entityDetails.passport_number) {
-        setIdType("passport");
-        setIdNumber(entityDetails.passport_number);
-      }
+    if (!entityDetails?.id || initializedEntityIdRef.current === entityDetails.id) return;
+
+    initializedEntityIdRef.current = entityDetails.id;
+    setFirstName(entityDetails.name ?? "");
+    setLastName(entityDetails.last_name ?? "");
+    setTitleId(entityDetails.title_id ?? "");
+    setInitials(entityDetails.initials ?? "");
+    setKnownAs(entityDetails.known_as ?? "");
+    setGender(entityDetails.gender ?? "");
+    setDateOfBirth(entityDetails.date_of_birth ?? "");
+    setAltPhone(entityDetails.additional_contact_number ?? "");
+    setCcEmail(entityDetails.additional_email_address ?? "");
+    setLanguageCode(entityDetails.language_code ?? "en");
+    if (entityDetails.identity_number) {
+      setIdType("rsa_id");
+      setIdNumber(entityDetails.identity_number);
+    } else if (entityDetails.passport_number) {
+      setIdType("passport");
+      setIdNumber(entityDetails.passport_number);
     }
   }, [entityDetails]);
 
@@ -338,21 +340,17 @@ const Onboarding = () => {
   };
 
   // Step validation
-  // Debug: log validation state for step 1
-  const step1Debug = {
-    titleId: !!titleId,
-    firstName: !!firstName.trim(),
-    lastName: !!lastName.trim(),
-    idNumber: !!idNumber.trim(),
-    idError,
-    gender: !!gender,
-    dateOfBirth: !!dateOfBirth,
-    phone: !!phone.trim(),
-    phoneError,
-    idType,
-  };
-  console.log("Step 1 validation:", step1Debug);
-  const isStep1Valid = titleId && firstName.trim() && lastName.trim() && idNumber.trim() && !idError && gender && dateOfBirth && phone.trim() && !phoneError;
+  const isStep1Valid = Boolean(
+    titleId &&
+    firstName.trim() &&
+    lastName.trim() &&
+    idNumber.trim() &&
+    !idError &&
+    gender &&
+    dateOfBirth &&
+    phone.trim() &&
+    !phoneError
+  );
   const isStep2Valid = streetAddress.trim() && city.trim();
   const isStep3Valid = requiredDocs.every((r: any) => uploadedDocs[r.document_type_id] || savedDocs[r.document_type_id]);
   const isStep4Valid = termsForRegistration.every((t) => acceptedTerms[t.id]);
