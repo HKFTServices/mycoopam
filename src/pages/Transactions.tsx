@@ -11,7 +11,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle } from "lucide-react";
+import { ArrowLeftRight, Plus, Clock, CheckCircle, XCircle, Loader2, MoreHorizontal, RotateCcw, Trash2, Package, ShoppingCart, TrendingDown, SlidersHorizontal, AlertTriangle, Monitor } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -36,6 +38,7 @@ type ConfirmAction = {
 };
 
 const Transactions = () => {
+  const isMobile = useIsMobile();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -315,28 +318,39 @@ const Transactions = () => {
   })();
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <ArrowLeftRight className="h-8 w-8 text-primary" />
+          <ArrowLeftRight className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-            <p className="text-muted-foreground text-sm mt-1">View and manage your investment transactions</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Transactions</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage your investment transactions</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {canAccessStock && (
-            <Button variant="outline" onClick={() => setStockDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              New Stock Transaction
+            <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setStockDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              {isMobile ? "Stock" : "New Stock Transaction"}
             </Button>
           )}
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Member Transaction
+          <Button size={isMobile ? "sm" : "default"} onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            {isMobile ? "New Txn" : "New Member Transaction"}
           </Button>
         </div>
       </div>
+
+      {/* Mobile hint */}
+      {isMobile && (
+        <Alert className="border-primary/20 bg-primary/5">
+          <Monitor className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-xs text-muted-foreground">
+            This view is optimised for desktop. Scroll horizontally to see all columns.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="member">
         <TabsList>
