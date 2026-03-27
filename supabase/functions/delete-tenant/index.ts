@@ -138,12 +138,13 @@ Deno.serve(async (req) => {
       "items",
       "operating_journals",
 
-      // GL & control
+      // GL & control (pools/control_accounts handled separately due to circular FK)
       "legacy_gl_mappings",
       "legacy_id_mappings",
       "gl_accounts",
-      "control_accounts",
-      "pools",
+
+      // Notifications
+      "notifications",
 
       // Config & reference
       "document_entity_requirements",
@@ -169,9 +170,6 @@ Deno.serve(async (req) => {
       // User associations
       "user_roles",
       "tenant_memberships",
-
-      // Finally the tenant itself
-      "tenants",
     ];
 
     const results: Record<string, number> = {};
