@@ -122,8 +122,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Use service role to fetch data
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    // adminClient already created above
 
     // Fetch user profile
     const { data: profile } = await adminClient
