@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const token = authHeader.replace("Bearer ", "");
 
-    const body = await req.json();
-    const { tenant_id, user_id: explicitUserId } = body;
+    const reqBody = await req.json();
+    const { tenant_id, user_id: explicitUserId } = reqBody;
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
         status: 400,
