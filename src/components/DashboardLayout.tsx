@@ -673,7 +673,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                               icon: Building2,
                               path: "/dashboard/head-office/settings",
                             },
-                            items: filteredHeadOffice,
+                            items: filteredHeadOfficeAll,
                           })}
 
                         {isSuperAdmin &&
@@ -684,20 +684,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             setOpen: setMamOpen,
                             viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
                             items: filteredMam,
-                          })}
-
-                        {isSuperAdmin &&
-                          renderGroup({
-                            label: "Global Setup",
-                            icon: Shield,
-                            open: globalSetupOpen,
-                            setOpen: setGlobalSetupOpen,
-                            viewAll: {
-                              label: "System Settings",
-                              icon: KeyRound,
-                              path: "/dashboard/setup/system-settings",
-                            },
-                            items: filteredGlobalSetup,
                           })}
 
                         {renderGroup({
