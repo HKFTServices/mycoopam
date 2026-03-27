@@ -118,7 +118,23 @@ const Dashboard = () => {
   });
   const isAdmin = isSuperAdmin || isTenantAdmin;
 
-  const { data: myEntityRel, isLoading: myEntityRelLoading } = useQuery({
+  // Check if tenant has a legal entity configured (for tenant_admin prompt)
+  const { data: tenantHasLegalEntity, isLoading: legalEntityCheckLoading } = useQuery({
+    queryKey: ["tenant_legal_entity_check", tenantId],
+    queryFn: async () => {
+      if (!tenantId) return true; // default to true to avoid showing prompt
+      const { data } = await (supabase as any)
+        .from("tenant_configuration")
+        .select("legal_entity_id")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      return !!data?.legal_entity_id;
+    },
+    enabled: !!tenantId && isTenantAdmin,
+  });
+
+  const showLegalEntityPrompt = isTenantAdmin && !isSuperAdmin && tenantHasLegalEntity === false && !legalEntityCheckLoading;
+
     queryKey: ["dashboard_myself_entity", user?.id, tenantId],
     queryFn: async () => {
       if (!user || !tenantId) return null;
