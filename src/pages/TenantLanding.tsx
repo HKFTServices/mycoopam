@@ -250,7 +250,7 @@ const TenantLanding = () => {
 
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight">
-                  {isLogin ? "Welcome back" : "Register as Member"}
+                  {isLogin ? "Welcome back" : "Sign Up as User"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {isLogin
@@ -372,7 +372,7 @@ const TenantLanding = () => {
 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLogin ? "Sign in" : "Register as Member"}
+                  {isLogin ? "Sign in" : "Sign Up as User"}
                 </Button>
               </form>
 
