@@ -141,6 +141,9 @@ const App = () => (
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/paia-manual" element={<PaiaManual />} />
+              <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
+              <Route path="/disclaimer" element={<Disclaimer />} />
 
               {/* Auth-only (no role restriction) */}
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
