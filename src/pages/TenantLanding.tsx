@@ -145,9 +145,16 @@ const TenantLanding = () => {
           throw new Error("An account with this email already exists. Please sign in instead.");
         }
 
+        // Send branded activation email via tenant SMTP (fire-and-forget)
+        if (data.user && tenant?.tenant_id) {
+          supabase.functions.invoke("send-registration-email", {
+            body: { tenant_id: tenant.tenant_id, self_register_email: email },
+          }).catch((err: any) => console.warn("[TenantLanding] Registration email failed:", err.message));
+        }
+
         toast({
           title: "Check your email",
-          description: "We've sent you a verification link to confirm your user registration.",
+          description: `We've sent you a verification link from ${tenant?.tenant_name || "the cooperative"} to confirm your registration.`,
         });
       }
     } catch (error: any) {
