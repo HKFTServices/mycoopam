@@ -61,6 +61,7 @@ const HeadOfficeSettings = () => {
       const { data, error } = await supabase
         .from("system_settings")
         .select("*")
+        .in("key", ["SMS_API_KEY", "SMS_CLIENT_ID"])
         .order("key");
       if (error) throw error;
       return data;
