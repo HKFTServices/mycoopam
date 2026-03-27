@@ -99,6 +99,7 @@ const Onboarding = () => {
   // Avatar
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url ?? null);
+  const initializedEntityIdRef = useRef<string | null>(null);
 
   // T&C
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
