@@ -212,6 +212,74 @@ const ApplyMembership = () => {
     if (!user || !currentTenant) return;
     setSaving(true);
     try {
+      if (isLegalEntityMode) {
+        // Legal entity mode: use the setup-legal-entity edge function
+        const { data: result, error: fnError } = await supabase.functions.invoke("setup-legal-entity", {
+          body: {
+            tenant_id: currentTenant.id,
+            user_id: user.id,
+            company_name: data.entityName.trim(),
+            registration_number: data.registrationNumber.trim() || null,
+            is_vat_registered: data.isVatRegistered,
+            vat_number: data.isVatRegistered ? data.vatNumber.trim() : null,
+            contact_number: data.contactNumber.trim() || null,
+            email_address: data.emailAddress.trim() || null,
+            website: data.website.trim() || null,
+            street_address: data.streetAddress.trim() || null,
+            suburb: data.suburb.trim() || null,
+            city: data.city.trim() || null,
+            province: data.province.trim() || null,
+            postal_code: data.postalCode.trim() || null,
+            country: data.country.trim(),
+            bank_id: data.bankId || null,
+            bank_account_type_id: data.bankAccountTypeId || null,
+            account_holder: data.accountName.trim() || data.entityName.trim(),
+            account_number: data.accountNumber.trim() || null,
+          },
+        });
+
+        if (fnError) throw fnError;
+        if (result?.error) throw new Error(result.error);
+
+        const legalEntityId = result?.entity_id;
+
+        // Upload documents for the legal entity
+        if (legalEntityId) {
+          for (const [docTypeId, rawDocFiles] of Object.entries(data.uploadedDocs)) {
+            const docFiles = Array.isArray(rawDocFiles) ? rawDocFiles : rawDocFiles ? [rawDocFiles] : [];
+            for (const docInfo of docFiles) {
+              if (!docInfo.file) continue;
+              const filePath = `${currentTenant.id}/${legalEntityId}/${docTypeId}/${Date.now()}_${docInfo.name}`;
+              await supabase.storage.from("member-documents").upload(filePath, docInfo.file);
+              await (supabase as any).from("entity_documents").insert({
+                tenant_id: currentTenant.id,
+                entity_id: legalEntityId,
+                document_type_id: docTypeId,
+                file_name: docInfo.name,
+                file_path: filePath,
+                file_size: docInfo.file.size,
+                mime_type: docInfo.file.type,
+                creator_user_id: user.id,
+              });
+            }
+          }
+        }
+
+        // Save T&C acceptances
+        for (const termId of Object.keys(data.acceptedTerms).filter((k) => data.acceptedTerms[k])) {
+          await supabase.from("tc_acceptances").insert({
+            user_id: user.id,
+            tenant_id: currentTenant.id,
+            terms_condition_id: termId,
+          });
+        }
+
+        toast.success("Legal entity registered and linked to your co-operative!");
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      // Normal membership flow
       let entityId: string;
 
       if (appType === "myself") {
