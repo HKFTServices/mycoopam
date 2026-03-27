@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/contexts/TenantContext";
+import { resolveTermsMergeFields } from "@/lib/resolveTermsMergeFields";
 
 interface PoolTermsConditionsProps {
   tenantId: string;
@@ -9,6 +11,7 @@ interface PoolTermsConditionsProps {
 }
 
 const PoolTermsConditions = ({ tenantId, poolIds, lang = "en", label = "Terms & Conditions" }: PoolTermsConditionsProps) => {
+  const { currentTenant, branding } = useTenant();
   const { data: terms = [] } = useQuery({
     queryKey: ["pool_terms_conditions", tenantId, lang],
     queryFn: async () => {
@@ -49,13 +52,18 @@ const PoolTermsConditions = ({ tenantId, poolIds, lang = "en", label = "Terms & 
   if (terms.length === 0) return null;
 
   const tc = terms[0];
+  const resolved = resolveTermsMergeFields(tc.content, {
+    tenantName: currentTenant?.name,
+    legalEntityName: branding.legalEntityName,
+    tenantSlug: currentTenant?.slug,
+  });
 
   return (
     <div className="mt-1">
       <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
       <div
         className="prose prose-xs max-w-none dark:prose-invert text-muted-foreground text-xs leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: tc.content }}
+        dangerouslySetInnerHTML={{ __html: resolved }}
       />
     </div>
   );

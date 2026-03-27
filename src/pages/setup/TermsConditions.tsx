@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Eye } from "lucide-react";
+import { Plus, Pencil, Eye, Info } from "lucide-react";
 import { toast } from "sonner";
+import { resolveTermsMergeFields } from "@/lib/resolveTermsMergeFields";
 
 const CONDITION_TYPES = [
   { value: "registration", label: "Registration" },
