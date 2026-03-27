@@ -1753,8 +1753,8 @@ const NewTransactionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl sm:max-h-[90vh] p-0 overflow-hidden">
-        <div className="flex flex-col h-full sm:max-h-[90vh]">
+      <DialogContent className="sm:max-w-3xl sm:max-h-[90vh] !p-0 !gap-0 overflow-hidden">
+        <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
           <DialogHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 border-b border-border shrink-0">
             <DialogTitle className="text-lg">New Transaction</DialogTitle>
 
