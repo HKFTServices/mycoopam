@@ -121,6 +121,27 @@ const TenantManagement = () => {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const deleteTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const { data, error } = await supabase.functions.invoke("delete-tenant", {
+        body: { tenant_id: tenantId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["ho_tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["ho_member_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["ho_pool_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["ho_tenant_fees"] });
+      toast.success(`Tenant "${data.tenant_name}" deleted — ${data.total_deleted} records removed`);
+      setDeleteTenant(null);
+      setDeleteConfirmText("");
+    },
+    onError: (err: any) => toast.error(`Delete failed: ${err.message}`),
+  });
+
   const filtered = tenants.filter((t: any) =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.slug?.toLowerCase().includes(search.toLowerCase())
