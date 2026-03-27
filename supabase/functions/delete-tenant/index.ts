@@ -234,51 +234,36 @@ Deno.serve(async (req) => {
       errors.push(`pool/control cleanup: ${e.message}`);
     }
 
-    // Delete auth users who ONLY belonged to this tenant (no other memberships)
-    // First, find users who were members of this tenant
-    const { data: memberUsers } = await admin
-      .from("profiles")
-      .select("user_id")
-      .in(
-        "user_id",
-        // Get user_ids that had memberships to this tenant (already deleted above)
-        // We check if they have ANY remaining tenant_memberships
-        []
-      );
-
-    // Better approach: before deleting tenant_memberships, capture the user IDs
-    // Since we already deleted them, query profiles and check for orphaned users
-    const { data: allProfiles } = await admin
-      .from("profiles")
-      .select("user_id");
-
-    if (allProfiles) {
+    // Delete auth users who ONLY belonged to this tenant
+    if (tenantUserIds.length > 0) {
       let authUsersDeleted = 0;
-      for (const profile of allProfiles) {
-        // Check if this user has any remaining tenant memberships
+      for (const uid of tenantUserIds) {
+        // Check if this user has any remaining tenant memberships (already deleted for this tenant)
         const { data: remaining } = await admin
           .from("tenant_memberships")
           .select("id")
-          .eq("user_id", profile.user_id)
+          .eq("user_id", uid)
           .limit(1);
 
-        // Also check if they have a super_admin role (never delete super admins)
+        // Never delete super admins
         const { data: superRole } = await admin
           .from("user_roles")
           .select("id")
-          .eq("user_id", profile.user_id)
+          .eq("user_id", uid)
           .eq("role", "super_admin")
           .limit(1);
 
         if ((!remaining || remaining.length === 0) && (!superRole || superRole.length === 0)) {
-          // This user has no tenant memberships left and is not a super_admin — delete them
-          const { error: delErr } = await admin.auth.admin.deleteUser(profile.user_id);
+          // Delete any remaining user_roles for this user
+          await admin.from("user_roles").delete().eq("user_id", uid);
+          // Delete profile
+          await admin.from("profiles").delete().eq("user_id", uid);
+          // Delete auth user
+          const { error: delErr } = await admin.auth.admin.deleteUser(uid);
           if (delErr) {
-            console.warn(`Failed to delete auth user ${profile.user_id}: ${delErr.message}`);
+            console.warn(`Failed to delete auth user ${uid}: ${delErr.message}`);
           } else {
             authUsersDeleted++;
-            // Also clean up the profile
-            await admin.from("profiles").delete().eq("user_id", profile.user_id);
           }
         }
       }
