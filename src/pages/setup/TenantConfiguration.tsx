@@ -452,6 +452,7 @@ const EmailSignatureSection = ({
 
 // ── Main Component ───────────────────────────────────────────────────────────
 const TenantConfiguration = () => {
+  const isMobile = useIsMobile();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
