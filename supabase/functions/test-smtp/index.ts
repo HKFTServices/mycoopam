@@ -59,8 +59,16 @@ serve(async (req) => {
 
     let transporter: any = null;
     let lastError: any = null;
+    let authError: any = null;
 
     for (const strategy of portStrategies) {
+      // If we already got an auth error on a TLS strategy, skip plain/no-TLS
+      // strategies — they'll just fail differently and hide the real error.
+      if (strategy.ignoreTLS && authError) {
+        console.log(`[test-smtp] Skipping ${smtp_host}:${strategy.port} (plain/no-TLS) — auth error already detected`);
+        continue;
+      }
+
       const label = strategy.ignoreTLS
         ? `${smtp_host}:${strategy.port} (plain/no-TLS)`
         : `${smtp_host}:${strategy.port} (secure=${strategy.secure})`;
@@ -87,13 +95,19 @@ serve(async (req) => {
         break;
       } catch (err: any) {
         console.warn(`[test-smtp] ${label} failed: ${err.message}`);
+        const msg = err.message || "";
+        // Detect authentication errors so we don't mask them with fallback attempts
+        if (msg.includes("Invalid login") || msg.includes("Authentication") || msg.includes("535 ") || msg.includes("534 ")) {
+          authError = err;
+        }
         lastError = err;
         transporter = null;
       }
     }
 
     if (!transporter) {
-      throw new Error(`Could not connect to SMTP server. Last error: ${lastError?.message}`);
+      const reportError = authError || lastError;
+      throw new Error(`Could not connect to SMTP server. ${reportError?.message}`);
     }
 
     const isSmtpUserEmail = smtp_username?.includes("@");
