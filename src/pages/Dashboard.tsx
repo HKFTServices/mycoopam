@@ -1642,10 +1642,12 @@ const AdminChartsCard = ({
   aumData,
   loanData,
   accountsData,
+  compact,
 }: {
   aumData: Array<{ name: string; value: number }>;
   loanData: Array<{ name: string; value: number }>;
   accountsData: Array<{ name: string; value: number }>;
+  compact?: boolean;
 }) => {
   return (
     <Card>
@@ -1721,6 +1723,7 @@ const MetricCard = ({
   changePct,
   variant,
   onClick,
+  compact,
 }: {
   title: string;
   subtitle: string;
@@ -1729,6 +1732,7 @@ const MetricCard = ({
   changePct: number | null;
   variant: "primary" | "neutral";
   onClick?: () => void;
+  compact?: boolean;
 }) => {
   const changeLabel =
     changePct == null
