@@ -156,24 +156,25 @@ const Onboarding = () => {
   });
 
   useEffect(() => {
-    if (entityDetails) {
-      setFirstName(entityDetails.name ?? "");
-      setLastName(entityDetails.last_name ?? "");
-      setTitleId(entityDetails.title_id ?? "");
-      setInitials(entityDetails.initials ?? "");
-      setKnownAs(entityDetails.known_as ?? "");
-      setGender(entityDetails.gender ?? "");
-      setDateOfBirth(entityDetails.date_of_birth ?? "");
-      setAltPhone(entityDetails.additional_contact_number ?? "");
-      setCcEmail(entityDetails.additional_email_address ?? "");
-      setLanguageCode(entityDetails.language_code ?? "en");
-      if (entityDetails.identity_number) {
-        setIdType("rsa_id");
-        setIdNumber(entityDetails.identity_number);
-      } else if (entityDetails.passport_number) {
-        setIdType("passport");
-        setIdNumber(entityDetails.passport_number);
-      }
+    if (!entityDetails?.id || initializedEntityIdRef.current === entityDetails.id) return;
+
+    initializedEntityIdRef.current = entityDetails.id;
+    setFirstName(entityDetails.name ?? "");
+    setLastName(entityDetails.last_name ?? "");
+    setTitleId(entityDetails.title_id ?? "");
+    setInitials(entityDetails.initials ?? "");
+    setKnownAs(entityDetails.known_as ?? "");
+    setGender(entityDetails.gender ?? "");
+    setDateOfBirth(entityDetails.date_of_birth ?? "");
+    setAltPhone(entityDetails.additional_contact_number ?? "");
+    setCcEmail(entityDetails.additional_email_address ?? "");
+    setLanguageCode(entityDetails.language_code ?? "en");
+    if (entityDetails.identity_number) {
+      setIdType("rsa_id");
+      setIdNumber(entityDetails.identity_number);
+    } else if (entityDetails.passport_number) {
+      setIdType("passport");
+      setIdNumber(entityDetails.passport_number);
     }
   }, [entityDetails]);
 
