@@ -540,12 +540,49 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
-    if (!tenantConfig?.smtp_host || !tenantConfig?.smtp_from_email) {
-      console.warn(`[send-transaction-email] SMTP not configured for tenant ${tenant_id}`);
-      return new Response(JSON.stringify({ success: false, error: "SMTP not configured" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Determine SMTP: tenant config → head office → GLOBAL_SMTP_* env secrets
+    let smtpHost = tenantConfig?.smtp_host || null;
+    let smtpPort = tenantConfig?.smtp_port || null;
+    let smtpUsername = tenantConfig?.smtp_username || null;
+    let smtpPassword = tenantConfig?.smtp_password || null;
+    let smtpFromEmail = tenantConfig?.smtp_from_email || null;
+    let smtpFromName = tenantConfig?.smtp_from_name || null;
+
+    if (!smtpHost || !smtpFromEmail) {
+      console.log("[send-transaction-email] Tenant SMTP not configured, falling back to head office");
+      const { data: hoSettings } = await adminClient
+        .from("head_office_settings")
+        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, company_name")
+        .limit(1)
+        .maybeSingle();
+
+      if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
+        smtpHost = hoSettings.smtp_host;
+        smtpPort = hoSettings.smtp_port;
+        smtpUsername = hoSettings.smtp_username;
+        smtpPassword = hoSettings.smtp_password;
+        smtpFromEmail = hoSettings.smtp_from_email;
+        smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
+        console.log("[send-transaction-email] Using head office SMTP settings");
+      } else {
+        const envHost = Deno.env.get("GLOBAL_SMTP_HOST");
+        const envUsername = Deno.env.get("GLOBAL_SMTP_USERNAME");
+        if (envHost && envUsername) {
+          smtpHost = envHost;
+          smtpPort = parseInt(Deno.env.get("GLOBAL_SMTP_PORT") || "587", 10);
+          smtpUsername = envUsername;
+          smtpPassword = Deno.env.get("GLOBAL_SMTP_PASSWORD") || "";
+          smtpFromEmail = envUsername;
+          smtpFromName = Deno.env.get("GLOBAL_SMTP_FROM_NAME") || hoSettings?.company_name || "My Co-op";
+          console.log("[send-transaction-email] Using GLOBAL_SMTP_* env secrets");
+        } else {
+          console.warn("[send-transaction-email] No SMTP configured in tenant, head office, or env");
+          return new Response(JSON.stringify({ success: false, error: "SMTP not configured" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     // Resolve admin email from the legal entity
@@ -756,23 +793,23 @@ Deno.serve(async (req) => {
       body = body + resolvedSignature;
     }
 
-    const requestedPort = tenantConfig.smtp_port || 587;
+    const requestedPort = smtpPort || 587;
     const usePort = requestedPort === 465 ? 587 : requestedPort;
 
     const transporter = nodemailer.createTransport({
-      host: tenantConfig.smtp_host,
+      host: smtpHost,
       port: usePort,
       secure: false,
       ignoreTLS: true,
-      auth: tenantConfig.smtp_username
-        ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" }
+      auth: smtpUsername
+        ? { user: smtpUsername, pass: smtpPassword || "" }
         : undefined,
     });
 
-    const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
-    const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
-    const fromHeader = tenantConfig.smtp_from_name
-      ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
+    const isSmtpUserEmail = smtpUsername?.includes("@");
+    const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
+    const fromHeader = smtpFromName
+      ? `"${smtpFromName}" <${effectiveFromEmail}>`
       : effectiveFromEmail;
 
     const logEmail = async (recipientEmail: string, recipientUserId: string | null, emailSubject: string, emailStatus: string, errorMsg: string | null, msgId: string | null) => {
