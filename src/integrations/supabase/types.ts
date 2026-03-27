@@ -3326,33 +3326,30 @@ export type Database = {
       }
       pool_transaction_rules: {
         Row: {
-          allow_from: boolean
-          allow_to: boolean
           created_at: string
           id: string
+          is_allowed: boolean
           pool_id: string
           tenant_id: string
-          transaction_type_id: string
+          transaction_type_code: string | null
           updated_at: string
         }
         Insert: {
-          allow_from?: boolean
-          allow_to?: boolean
           created_at?: string
           id?: string
+          is_allowed?: boolean
           pool_id: string
           tenant_id: string
-          transaction_type_id: string
+          transaction_type_code?: string | null
           updated_at?: string
         }
         Update: {
-          allow_from?: boolean
-          allow_to?: boolean
           created_at?: string
           id?: string
+          is_allowed?: boolean
           pool_id?: string
           tenant_id?: string
-          transaction_type_id?: string
+          transaction_type_code?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3368,13 +3365,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pool_transaction_rules_transaction_type_id_fkey"
-            columns: ["transaction_type_id"]
-            isOneToOne: false
-            referencedRelation: "transaction_types"
             referencedColumns: ["id"]
           },
         ]
