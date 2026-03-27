@@ -215,7 +215,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   );
   const [tenantSetupOpen, setTenantSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
   const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office") || location.pathname.includes("/dashboard/setup"));
-  const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office"));
   const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
