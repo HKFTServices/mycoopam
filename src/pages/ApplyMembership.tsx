@@ -161,6 +161,18 @@ const ApplyMembership = () => {
       { key: "bank", label: "Bank Details", icon: Landmark },
       { key: "tc", label: "Terms & Conditions", icon: Shield },
     ];
+
+    // Legal entity mode: entity details + address + bank + documents + T&Cs (no membership type, no referrer)
+    if (isLegalEntityMode) {
+      return [
+        { key: "entity", label: "Entity Details", icon: Building },
+        { key: "address", label: "Address", icon: MapPin },
+        { key: "bank", label: "Bank Details", icon: Landmark },
+        { key: "documents", label: "Documents", icon: FileText },
+        { key: "tc", label: "Terms & Conditions", icon: Shield },
+      ];
+    }
+
     if (appType === "myself") {
       // No address or documents step for myself (already provided during onboarding)
       return [membershipStep, ...commonNoDocs];
@@ -168,7 +180,7 @@ const ApplyMembership = () => {
     if (appType === "person") return [{ key: "person", label: "Personal Details", icon: User }, membershipStep, { key: "address", label: "Address", icon: MapPin }, ...commonWithDocs];
     // entity
     return [{ key: "entity", label: "Entity Details", icon: Building }, membershipStep, { key: "address", label: "Address", icon: MapPin }, ...commonWithDocs];
-  }, [appType]);
+  }, [appType, isLegalEntityMode]);
 
   const currentKey = steps[step]?.key;
 
@@ -478,8 +490,12 @@ const ApplyMembership = () => {
       <div className="flex-1 flex items-start justify-center p-6 pt-10">
         <div className="w-full max-w-3xl space-y-6 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-bold">{TITLES[appType]}</h1>
-            <p className="text-muted-foreground">Complete the steps below to apply for membership</p>
+            <h1 className="text-2xl font-bold">{isLegalEntityMode ? LEGAL_ENTITY_TITLE : TITLES[appType]}</h1>
+            <p className="text-muted-foreground">
+              {isLegalEntityMode
+                ? "Register your co-operative's legal entity details"
+                : "Complete the steps below to apply for membership"}
+            </p>
           </div>
 
           {/* Step indicator */}
