@@ -162,18 +162,19 @@ const Notifications = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <BellRing className="h-7 w-7 text-primary" />
+          <BellRing className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-            <p className="text-sm text-muted-foreground">Updates about transactions, debit orders, and loans</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Notifications</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Updates about transactions, debit orders, and loans</p>
           </div>
         </div>
         <Button
           variant="outline"
-          className="gap-2"
+          size="sm"
+          className="gap-2 self-start sm:self-auto"
           onClick={() => clearAllMutation.mutate()}
           disabled={clearAllMutation.isPending || unreadCount === 0}
         >
@@ -255,14 +256,13 @@ const NotificationList = ({
                     {formatWhen(n.created_at)}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => onOpen(n)}>
-                    <ExternalLink className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onOpen(n)}>
+                    <ExternalLink className="h-3 w-3" />
                     Open
                   </Button>
-                  <Button variant="secondary" size="sm" className="gap-2" onClick={() => onDismiss(n.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Dismiss
+                  <Button variant="secondary" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onDismiss(n.id)}>
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
