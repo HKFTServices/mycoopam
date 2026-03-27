@@ -375,6 +375,8 @@ const RegisterTenant = () => {
       }
 
       localStorage.setItem("currentTenantId", tenant.id);
+      localStorage.setItem("tenantSlug", slug);
+      localStorage.setItem("pendingTenantSlug", slug);
 
       // 6. Send registration email (fire-and-forget)
       if (authData.user) {
