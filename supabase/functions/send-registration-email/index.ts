@@ -201,48 +201,59 @@ Deno.serve(async (req) => {
       body = body + emailSignature;
     }
 
-    // Determine SMTP config: use tenant's own, or fall back to head_office_settings
-    let smtpHost = tenantConfig?.smtp_host;
-    let smtpPort = tenantConfig?.smtp_port;
-    let smtpUsername = tenantConfig?.smtp_username;
-    let smtpPassword = tenantConfig?.smtp_password;
-    let smtpFromEmail = tenantConfig?.smtp_from_email;
-    let smtpFromName = tenantConfig?.smtp_from_name;
+    // Determine SMTP config: ALWAYS use head_office_settings first for registration/activation emails,
+    // then fall back to tenant config, then AEM source tenant
+    let smtpHost: string | null = null;
+    let smtpPort: number | null = null;
+    let smtpUsername: string | null = null;
+    let smtpPassword: string | null = null;
+    let smtpFromEmail: string | null = null;
+    let smtpFromName: string | null = null;
 
+    // 1. Head Office settings (primary for registration emails)
+    const { data: hoSettings } = await adminClient
+      .from("head_office_settings")
+      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, company_name")
+      .limit(1)
+      .maybeSingle();
+
+    if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
+      smtpHost = hoSettings.smtp_host;
+      smtpPort = hoSettings.smtp_port;
+      smtpUsername = hoSettings.smtp_username;
+      smtpPassword = hoSettings.smtp_password;
+      smtpFromEmail = hoSettings.smtp_from_email;
+      smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
+      console.log("[send-registration-email] Using head office SMTP settings (primary)");
+    }
+
+    // 2. Tenant SMTP fallback
+    if ((!smtpHost || !smtpFromEmail) && tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
+      smtpHost = tenantConfig.smtp_host;
+      smtpPort = tenantConfig.smtp_port;
+      smtpUsername = tenantConfig.smtp_username;
+      smtpPassword = tenantConfig.smtp_password;
+      smtpFromEmail = tenantConfig.smtp_from_email;
+      smtpFromName = tenantConfig.smtp_from_name;
+      console.log("[send-registration-email] Using tenant SMTP settings (fallback)");
+    }
+
+    // 3. AEM source tenant fallback
     if (!smtpHost || !smtpFromEmail) {
-      console.log("[send-registration-email] Tenant SMTP not configured, falling back to head office settings");
-      // First try head_office_settings table
-      const { data: hoSettings } = await adminClient
-        .from("head_office_settings")
-        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, company_name")
-        .limit(1)
+      const { data: sourceTenantConfig } = await adminClient
+        .from("tenant_configuration")
+        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
+        .eq("tenant_id", "38e204c4-829f-4544-ab53-b2f3f5342662")
         .maybeSingle();
 
-      if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
-        smtpHost = hoSettings.smtp_host;
-        smtpPort = hoSettings.smtp_port;
-        smtpUsername = hoSettings.smtp_username;
-        smtpPassword = hoSettings.smtp_password;
-        smtpFromEmail = hoSettings.smtp_from_email;
-        smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
-        console.log("[send-registration-email] Using head office SMTP settings");
-      } else {
-        // Fallback: use the AEM source tenant's SMTP config
-        const { data: sourceTenantConfig } = await adminClient
-          .from("tenant_configuration")
-          .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
-          .eq("tenant_id", "38e204c4-829f-4544-ab53-b2f3f5342662")
-          .maybeSingle();
-
-        if (sourceTenantConfig?.smtp_host && sourceTenantConfig?.smtp_from_email) {
-          smtpHost = sourceTenantConfig.smtp_host;
-          smtpPort = sourceTenantConfig.smtp_port;
-          smtpUsername = sourceTenantConfig.smtp_username;
-          smtpPassword = sourceTenantConfig.smtp_password;
-          smtpFromEmail = sourceTenantConfig.smtp_from_email;
-          smtpFromName = sourceTenantConfig.smtp_from_name;
-          console.log("[send-registration-email] Using AEM source tenant SMTP as fallback");
-        }
+      if (sourceTenantConfig?.smtp_host && sourceTenantConfig?.smtp_from_email) {
+        smtpHost = sourceTenantConfig.smtp_host;
+        smtpPort = sourceTenantConfig.smtp_port;
+        smtpUsername = sourceTenantConfig.smtp_username;
+        smtpPassword = sourceTenantConfig.smtp_password;
+        smtpFromEmail = sourceTenantConfig.smtp_from_email;
+        smtpFromName = sourceTenantConfig.smtp_from_name;
+        console.log("[send-registration-email] Using AEM source tenant SMTP as final fallback");
       }
     }
 

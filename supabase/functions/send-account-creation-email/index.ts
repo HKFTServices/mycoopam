@@ -203,28 +203,70 @@ Deno.serve(async (req) => {
       body = body.replaceAll(key, val);
     }
 
-    // Send via tenant SMTP
+    // Determine SMTP: tenant config → head office → AEM source tenant
+    let smtpHost = tenantConfig?.smtp_host || null;
+    let smtpPort = tenantConfig?.smtp_port || null;
+    let smtpUsername = tenantConfig?.smtp_username || null;
+    let smtpPassword = tenantConfig?.smtp_password || null;
+    let smtpFromEmail = tenantConfig?.smtp_from_email || null;
+    let smtpFromName = tenantConfig?.smtp_from_name || null;
+
+    if (!smtpHost || !smtpFromEmail) {
+      console.log("[send-account-creation-email] Tenant SMTP not configured, falling back to head office");
+      const { data: hoSettings } = await adminClient
+        .from("head_office_settings")
+        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, company_name")
+        .limit(1)
+        .maybeSingle();
+
+      if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
+        smtpHost = hoSettings.smtp_host;
+        smtpPort = hoSettings.smtp_port;
+        smtpUsername = hoSettings.smtp_username;
+        smtpPassword = hoSettings.smtp_password;
+        smtpFromEmail = hoSettings.smtp_from_email;
+        smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
+        console.log("[send-account-creation-email] Using head office SMTP settings");
+      } else {
+        const { data: sourceTenantConfig } = await adminClient
+          .from("tenant_configuration")
+          .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
+          .eq("tenant_id", "38e204c4-829f-4544-ab53-b2f3f5342662")
+          .maybeSingle();
+        if (sourceTenantConfig?.smtp_host && sourceTenantConfig?.smtp_from_email) {
+          smtpHost = sourceTenantConfig.smtp_host;
+          smtpPort = sourceTenantConfig.smtp_port;
+          smtpUsername = sourceTenantConfig.smtp_username;
+          smtpPassword = sourceTenantConfig.smtp_password;
+          smtpFromEmail = sourceTenantConfig.smtp_from_email;
+          smtpFromName = sourceTenantConfig.smtp_from_name;
+          console.log("[send-account-creation-email] Using AEM source tenant SMTP as fallback");
+        }
+      }
+    }
+
+    // Send via SMTP
     let emailSent = false;
     let messageId = "";
     let smtpError = "";
 
-    if (tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
+    if (smtpHost && smtpFromEmail) {
       try {
         const { default: nodemailer } = await import("npm:nodemailer@6.9.10");
-        const requestedPort = tenantConfig.smtp_port || 587;
+        const requestedPort = smtpPort || 587;
         const usePort = requestedPort === 465 ? 587 : requestedPort;
         const transporter = nodemailer.createTransport({
-          host: tenantConfig.smtp_host,
+          host: smtpHost,
           port: usePort,
           secure: false,
           ignoreTLS: true,
-          auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
+          auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword || "" } : undefined,
         });
 
-        const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
-        const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
-        const fromHeader = tenantConfig.smtp_from_name
-          ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
+        const isSmtpUserEmail = smtpUsername?.includes("@");
+        const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
+        const fromHeader = smtpFromName
+          ? `"${smtpFromName}" <${effectiveFromEmail}>`
           : effectiveFromEmail;
 
         const info = await transporter.sendMail({ from: fromHeader, to: profile.email, subject, html: body });
@@ -236,7 +278,7 @@ Deno.serve(async (req) => {
         console.error(`[send-account-creation-email] SMTP error: ${smtpError}`);
       }
     } else {
-      smtpError = "SMTP not configured for this tenant";
+      smtpError = "SMTP not configured for this tenant or head office";
       console.warn(`[send-account-creation-email] ${smtpError}`);
     }
 
