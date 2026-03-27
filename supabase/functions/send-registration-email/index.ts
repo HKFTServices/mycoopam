@@ -146,19 +146,30 @@ Deno.serve(async (req) => {
     }
 
     const redirectTo = getTenantSiteUrl(tenant?.slug);
+
+    // Try signup link first; if user already exists, fall back to magiclink
+    let activationLink: string;
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "signup",
       email: profile.email,
-      options: {
-        redirectTo,
-      },
+      options: { redirectTo },
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      throw new Error(linkError?.message || "Failed to generate activation link");
+      // User already confirmed — use magiclink instead
+      console.log("[send-registration-email] Signup link failed, trying magiclink:", linkError?.message);
+      const { data: magicData, error: magicError } = await adminClient.auth.admin.generateLink({
+        type: "magiclink",
+        email: profile.email,
+        options: { redirectTo },
+      });
+      if (magicError || !magicData?.properties?.action_link) {
+        throw new Error(magicError?.message || "Failed to generate activation link");
+      }
+      activationLink = magicData.properties.action_link;
+    } else {
+      activationLink = linkData.properties.action_link;
     }
-
-    const activationLink = linkData.properties.action_link;
 
     // Use template if available, otherwise use a default
     let subject = template?.subject || `Activate your ${tenantName} account`;
