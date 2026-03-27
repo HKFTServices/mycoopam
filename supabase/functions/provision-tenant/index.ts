@@ -218,23 +218,33 @@ Deno.serve(async (req) => {
     }
 
     // ─── 4. Items ───
-    const { data: srcItems } = await admin
+    console.log("Provisioning items for pools:", selected_pool_ids, "idMap pool entries:", Array.from(idMap.entries()).filter(([k]) => selected_pool_ids.includes(k)));
+    const { data: srcItems, error: srcItemsErr } = await admin
       .from("items")
       .select("*")
       .eq("tenant_id", SOURCE_TENANT_ID)
       .eq("is_deleted", false)
       .in("pool_id", selected_pool_ids);
 
+    if (srcItemsErr) {
+      console.error("Failed to fetch source items:", srcItemsErr);
+    }
+    console.log("Source items found:", srcItems?.length ?? 0, srcItems?.map((i: any) => i.item_code));
+
     if (srcItems && srcItems.length > 0) {
       const itemRows = srcItems.map((item: any) => {
         const newId = uuid();
         idMap.set(item.id, newId);
+        const mappedPoolId = mapId(item.pool_id);
+        if (!mappedPoolId) {
+          console.error(`WARNING: No pool mapping for item ${item.item_code} (pool_id: ${item.pool_id}). Using source pool_id as fallback.`);
+        }
         return {
           id: newId,
           tenant_id: tenant_id,
           item_code: item.item_code,
           description: item.description,
-          pool_id: mapId(item.pool_id) || item.pool_id,
+          pool_id: mappedPoolId || item.pool_id,
           is_stock_item: item.is_stock_item,
           is_active: item.is_active,
           margin_percentage: item.margin_percentage,
@@ -252,7 +262,16 @@ Deno.serve(async (req) => {
         };
       });
       const { error } = await admin.from("items").insert(itemRows);
-      if (error) console.error("Items error:", error);
+      if (error) {
+        console.error("Items insert error:", JSON.stringify(error));
+        // Retry items one-by-one to identify the problematic row
+        for (const row of itemRows) {
+          const { error: singleErr } = await admin.from("items").insert(row);
+          if (singleErr) {
+            console.error(`Item ${row.item_code} failed:`, JSON.stringify(singleErr));
+          }
+        }
+      }
       results.items = itemRows.length;
 
       for (const item of srcItems) {
@@ -264,6 +283,8 @@ Deno.serve(async (req) => {
           }
         }
       }
+    } else {
+      console.warn("No items found to provision. selected_pool_ids:", selected_pool_ids);
     }
 
     // ─── 5. Transaction Types ───
