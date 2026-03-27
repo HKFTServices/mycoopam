@@ -115,6 +115,10 @@ export default function TenantSetupWizard() {
         .maybeSingle();
 
       // 3. Create the legal entity
+      // Get current user id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data: entity, error: entityError } = await supabase
         .from("entities")
         .insert({
@@ -129,6 +133,7 @@ export default function TenantSetupWizard() {
           entity_category_id: entityCategory?.id || null,
           is_active: true,
           is_registration_complete: true,
+          creator_user_id: user.id,
         })
         .select()
         .single();
