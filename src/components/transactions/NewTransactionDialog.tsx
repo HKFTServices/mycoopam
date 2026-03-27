@@ -1243,7 +1243,7 @@ const NewTransactionDialog = ({
       const totalVatAmount = depositFees.totalVat + (joinShareInfo.needed ? joinShareInfo.membershipFeeVat : 0) + commissionVat;
       const metaJson = JSON.stringify({
         fee_breakdown: feeBreakdown,
-        join_share: joinShareInfo.needed ? { share_class_id: joinShareClass?.id, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee, membership_fee_vat: joinShareInfo.membershipFeeVat } : null,
+        join_share: joinShareInfo.needed ? { share_class_id: joinShareClass?.id || null, cost: joinShareInfo.shareCost, membership_fee: joinShareInfo.membershipFee, membership_fee_vat: joinShareInfo.membershipFeeVat } : null,
         loan_repayment: effectiveLoanRepayment > 0 ? {
           amount: effectiveLoanRepayment,
           loan_ids: outstandingLoanInfo?.loanIds || [],
