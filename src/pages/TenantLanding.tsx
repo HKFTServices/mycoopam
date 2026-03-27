@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchTenantBySlug, getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { getSiteUrl } from "@/lib/getSiteUrl";
+import { MarketingPanel } from "@/components/auth/MarketingPanel";
 
 const HCAPTCHA_SITE_KEY = "344a0cf0-5280-4e30-911e-c2c8ad2e4b48";
 
@@ -47,7 +48,6 @@ const TenantLanding = () => {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [slideIndex, setSlideIndex] = useState(0);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -72,7 +72,14 @@ const TenantLanding = () => {
   }, [location.pathname, navigate, searchParams, toast]);
 
   // Resolve tenant
+  useLayoutEffect(() => {
+    setResolving(true);
+    setNotFound(false);
+    setTenant(null);
+  }, [slug]);
+
   useEffect(() => {
+    let cancelled = false;
     if (!slug) {
       setNotFound(true);
       setResolving(false);
@@ -81,6 +88,7 @@ const TenantLanding = () => {
 
     const resolve = async () => {
       const t = await fetchTenantBySlug(slug);
+      if (cancelled) return;
       if (!t) {
         setNotFound(true);
         setResolving(false);
@@ -90,7 +98,10 @@ const TenantLanding = () => {
       localStorage.setItem("tenantSlug", slug);
       setResolving(false);
     };
-    resolve();
+    void resolve();
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   const resetCaptcha = () => {
@@ -156,45 +167,6 @@ const TenantLanding = () => {
   const tenantLogoUrl = tenant?.logo_url;
   const year = new Date().getFullYear();
 
-  // NOTE: Hooks must never be called conditionally. This memo stays above early-return branches.
-  const slides = useMemo(
-    () => [
-      {
-        imageSrc: "/auth/tenant-slide-1.jpg",
-        fallbackSrc: "/auth/tenant-slide-1.svg",
-        prompt:
-          "Photorealistic marketing hero photo: confident South African woman holding a smartphone, smiling subtly, modern cooperative office background, warm natural light, premium fintech aesthetic. Phone screen shows an abstract finance dashboard (charts, balances, gold/silver allocation cards) with NO readable text.",
-        quote:
-          "“Manage pools, members, and approvals in one place — with clear visibility and audit-ready records.”",
-        name: "Operations Team",
-        title: tenantName,
-      },
-      {
-        imageSrc: "/auth/tenant-slide-2.jpg",
-        fallbackSrc: "/auth/tenant-slide-2.svg",
-        prompt:
-          "Photorealistic marketing hero photo: cooperative admin team reviewing approvals on a laptop, subtle notification glow, modern workspace, premium fintech look. Screen shows abstract approval queue + notifications + audit trail timeline with NO readable text.",
-        quote:
-          "“Fast member onboarding, clean statements, and real-time transaction tracking across accounts.”",
-        name: "Member Services",
-        title: tenantName,
-      },
-      {
-        imageSrc: "/auth/tenant-slide-3.jpg",
-        fallbackSrc: "/auth/tenant-slide-3.svg",
-        prompt:
-          "Photorealistic marketing hero photo: close-up hands with phone + card reader vibe, representing debit orders and loan applications, with subtle gold and silver elements (coins/bars) in background bokeh, premium fintech lighting. No readable text on screens.",
-        quote:
-          "“Debit orders, loan applications, and transactions — routed to the right people instantly.”",
-        name: "Finance Desk",
-        title: tenantName,
-      },
-    ],
-    [tenantName]
-  );
-
-  const activeSlide = slides[Math.min(slideIndex, slides.length - 1)];
-
   if (resolving) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -219,24 +191,39 @@ const TenantLanding = () => {
     <div className="min-h-screen bg-background">
       <div className="grid min-h-screen lg:grid-cols-2">
         {/* Left - form */}
-        <div className="flex flex-col px-6 py-10 lg:px-12">
-          <div className="flex items-center justify-center gap-3">
-            {tenantLogoUrl ? (
-              <img
-                src={tenantLogoUrl}
-                alt={tenantName}
-                className="h-9 w-auto max-w-[160px] object-contain"
-              />
-            ) : (
-              <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-sm font-bold text-primary-foreground">{tenantInitial}</span>
-              </div>
-            )}
-            <span className="text-sm font-semibold text-foreground">{tenantName}</span>
-          </div>
-
+        <div className="relative flex flex-col px-6 py-10 lg:px-12">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute left-6 top-6 lg:left-12 lg:top-8"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/", { replace: true });
+              }
+            }}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-sm space-y-6">
+              <div className="flex justify-center">
+                {tenantLogoUrl ? (
+                  <img
+                    src={tenantLogoUrl}
+                    alt={tenantName}
+                    className="h-14 w-auto max-w-[220px] object-contain"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+                    <span className="text-lg font-bold text-primary-foreground">{tenantInitial}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight">
                   {isLogin ? "Welcome back" : "Register as Member"}
@@ -509,58 +496,8 @@ const TenantLanding = () => {
 
         {/* Right - marketing image */}
         <div className="relative hidden lg:block bg-muted">
-          <div className="absolute inset-y-6 right-6 left-0 overflow-hidden rounded-l-[48px] border border-border/50 bg-muted">
-            <img
-              src={activeSlide.imageSrc}
-              alt={`${tenantName} marketing`}
-              className="h-full w-full object-cover"
-              data-prompt={activeSlide.prompt}
-              loading="lazy"
-              onError={(e) => {
-                const fallback = (activeSlide as any).fallbackSrc as string | undefined;
-                if (!fallback) return;
-                const img = e.currentTarget;
-                img.onerror = null;
-                img.src = fallback;
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-
-            <div className="absolute bottom-8 left-8 right-8 space-y-4 text-white">
-              <p className="text-2xl font-medium leading-snug tracking-tight">{activeSlide.quote}</p>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">{activeSlide.name}</p>
-                <p className="text-xs text-white/80">{activeSlide.title}</p>
-              </div>
-            </div>
-
-            <div className="absolute bottom-8 right-8 flex items-center gap-2">
-              <Button
-                type="button"
-                size="icon"
-                variant="secondary"
-                className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/30"
-                onClick={() => setSlideIndex((i) => (i - 1 + slides.length) % slides.length)}
-                aria-label="Previous slide"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="secondary"
-                className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/30"
-                onClick={() => setSlideIndex((i) => (i + 1) % slides.length)}
-                aria-label="Next slide"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <span className="sr-only">
-              Marketing placeholders are intentionally generic. Replace `public/auth/tenant-slide-*.svg` with real
-              marketing imagery; prompts are in `src/pages/TenantLanding.tsx`.
-            </span>
+          <div className="absolute inset-y-0 right-6 left-0 overflow-hidden isolate rounded-l-[48px] border border-border/50 bg-muted transform-gpu">
+            <MarketingPanel />
           </div>
         </div>
       </div>

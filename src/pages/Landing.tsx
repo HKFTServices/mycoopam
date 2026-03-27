@@ -18,6 +18,13 @@ interface Tenant {
   id: string;
   name: string;
   slug: string;
+  logo_url: string | null;
+}
+
+interface TenantBrandingRow {
+  tenant_id: string;
+  tenant_name: string;
+  logo_url: string | null;
 }
 
 const Landing = () => {
@@ -36,13 +43,33 @@ const Landing = () => {
   const openTenantPicker = async () => {
     setShowTenantPicker(true);
     setLoadingTenants(true);
-    const { data } = await supabase
-      .from("tenants")
-      .select("id, name, slug")
-      .eq("is_active", true)
-      .order("name");
-    setTenants(data ?? []);
-    setLoadingTenants(false);
+    try {
+      const [{ data: tenantRows, error: tenantErr }, { data: brandingRows, error: brandingErr }] =
+        await Promise.all([
+          supabase
+            .from("tenants")
+            .select("id, name, slug")
+            .eq("is_active", true)
+            .order("name"),
+          supabase.rpc("get_tenant_branding" as any),
+        ]);
+
+      if (tenantErr) throw tenantErr;
+      if (brandingErr) throw brandingErr;
+
+      const logoByTenantId = new Map(
+        ((brandingRows as TenantBrandingRow[] | null) ?? []).map((b) => [b.tenant_id, b.logo_url])
+      );
+
+      const merged: Tenant[] = (tenantRows ?? []).map((t) => ({
+        ...t,
+        logo_url: logoByTenantId.get(t.id) ?? null,
+      }));
+
+      setTenants(merged);
+    } finally {
+      setLoadingTenants(false);
+    }
   };
 
   const features = [
@@ -192,10 +219,18 @@ const Landing = () => {
                   }}
                   className="w-full flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-left hover:bg-accent transition-colors"
                 >
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-lg font-bold text-primary">
-                      {t.name.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="h-10 w-10 rounded-lg bg-background/60 ring-1 ring-border flex items-center justify-center shrink-0 overflow-hidden">
+                    <img
+                      src={t.logo_url || myCoopLogo}
+                      alt={`${t.name} logo`}
+                      className="h-full w-full object-contain p-1"
+                      loading="lazy"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        img.onerror = null;
+                        img.src = myCoopLogo;
+                      }}
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium truncate">{t.name}</p>

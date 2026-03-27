@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useRef, ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { fetchTenantBySlug, getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import { Tables } from "@/integrations/supabase/types";
@@ -12,6 +13,11 @@ interface TenantBranding {
   themePrimaryHsl: string | null;
   themeAccentHsl: string | null;
   themeSidebarHsl: string | null;
+}
+
+interface TenantCompany {
+  name: string;
+  logoUrl: string | null;
 }
 
 const defaultBranding: TenantBranding = {
@@ -28,6 +34,7 @@ interface TenantContextType {
   setCurrentTenant: (tenant: Tenant) => void;
   loading: boolean;
   branding: TenantBranding;
+  company: TenantCompany;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -36,6 +43,7 @@ const TenantContext = createContext<TenantContextType>({
   setCurrentTenant: () => {},
   loading: true,
   branding: defaultBranding,
+  company: { name: "MyCo-op", logoUrl: null },
 });
 
 export const useTenant = () => useContext(TenantContext);
@@ -89,21 +97,31 @@ const applyTheme = (branding: TenantBranding) => {
 
 export const TenantProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const location = useLocation();
+  const lastPublicSlugRef = useRef<string | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
   const [branding, setBranding] = useState<TenantBranding>(defaultBranding);
 
   useEffect(() => {
-    if (!user) {
+    const resetToDefault = (nextLoading = false) => {
       setTenants([]);
       setCurrentTenant(null);
-      setLoading(false);
       setBranding(defaultBranding);
       applyTheme(defaultBranding);
+      setLoading(nextLoading);
+    };
+
+    if (!user) {
+      const slugFromSubdomain = getTenantSlugFromSubdomain();
+      const slugFromPath = window.location.pathname.match(/^\/t\/([^/]+)/)?.[1] ?? null;
+      const slug = slugFromSubdomain || slugFromPath || localStorage.getItem("tenantSlug");
+      resetToDefault(!!slug);
       return;
     }
 
+    let cancelled = false;
     const fetchTenants = async () => {
       const { data } = await supabase.from("tenants").select("*");
       let list = data ?? [];
@@ -145,13 +163,93 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchTenants();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
+
+  // Prevent a "flash" of the previous tenant branding when switching tenant login pages.
+  useLayoutEffect(() => {
+    if (user) return;
+
+    const slugFromSubdomain = getTenantSlugFromSubdomain();
+    const slugFromPath = location.pathname.match(/^\/t\/([^/]+)/)?.[1] ?? null;
+    const slug = slugFromSubdomain || slugFromPath || localStorage.getItem("tenantSlug");
+
+    if (slug !== lastPublicSlugRef.current) {
+      lastPublicSlugRef.current = slug;
+      setTenants([]);
+      setCurrentTenant(null);
+      setBranding(defaultBranding);
+      applyTheme(defaultBranding);
+      setLoading(!!slug);
+    }
+  }, [location.pathname, user]);
+
+  // Resolve tenant branding for public pages (login), and keep it in sync when switching tenants.
+  useEffect(() => {
+    if (user) return;
+    let cancelled = false;
+
+    const resetToDefault = () => {
+      setTenants([]);
+      setCurrentTenant(null);
+      setBranding(defaultBranding);
+      applyTheme(defaultBranding);
+      setLoading(false);
+    };
+
+    const slugFromSubdomain = getTenantSlugFromSubdomain();
+    const slugFromPath = location.pathname.match(/^\/t\/([^/]+)/)?.[1] ?? null;
+    const slug = slugFromSubdomain || slugFromPath || localStorage.getItem("tenantSlug");
+
+    if (!slug) {
+      resetToDefault();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    const resolvePublicTenant = async () => {
+      const tenant = await fetchTenantBySlug(slug);
+      if (cancelled) return;
+      if (!tenant) {
+        resetToDefault();
+        return;
+      }
+
+      setTenants([tenant]);
+      setCurrentTenant(tenant);
+      localStorage.setItem("tenantSlug", slug);
+
+      const newBranding: TenantBranding = {
+        legalEntityName: (tenant as any).legal_name ?? tenant.name ?? null,
+        logoUrl: (tenant as any).logo_url ?? null,
+        themePrimaryHsl: null,
+        themeAccentHsl: null,
+        themeSidebarHsl: null,
+      };
+      setBranding(newBranding);
+      applyTheme(newBranding);
+      setLoading(false);
+    };
+    void resolvePublicTenant();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, user]);
 
   // Fetch branding (legal entity name + logo + theme) when tenant changes
   useEffect(() => {
     if (!currentTenant) {
       setBranding(defaultBranding);
       applyTheme(defaultBranding);
+      return;
+    }
+    if (!user) {
+      // Public pages (tenant login) use branding resolved via `fetchTenantBySlug`.
       return;
     }
     const fetchBranding = async () => {
@@ -181,16 +279,21 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
       applyTheme(newBranding);
     };
     fetchBranding();
-  }, [currentTenant?.id]);
+  }, [currentTenant?.id, user]);
 
   const handleSetTenant = (tenant: Tenant) => {
     setCurrentTenant(tenant);
     localStorage.setItem("currentTenantId", tenant.id);
   };
 
+  const company: TenantCompany = {
+    name: branding.legalEntityName ?? currentTenant?.name ?? "MyCo-op",
+    logoUrl: branding.logoUrl ?? (currentTenant as any)?.logo_url ?? null,
+  };
+
   return (
     <TenantContext.Provider
-      value={{ tenants, currentTenant, setCurrentTenant: handleSetTenant, loading, branding }}
+      value={{ tenants, currentTenant, setCurrentTenant: handleSetTenant, loading, branding, company }}
     >
       {children}
     </TenantContext.Provider>
