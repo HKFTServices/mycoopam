@@ -151,32 +151,16 @@ const Landing = () => {
               </div>
             </div>
 
-            {/* Right — laptop mockup with login screen */}
-            <div className="relative flex items-center justify-center">
-              <div className="relative w-full max-w-[560px]">
-                {/* Laptop body */}
-                <div className="rounded-t-xl bg-[#2d2d2d] p-[6px] pb-0 shadow-2xl">
-                  {/* Top bar with dots */}
-                  <div className="flex items-center gap-1.5 px-3 py-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-                  </div>
-                  {/* Screen */}
-                  <div className="overflow-hidden rounded-t-sm">
-                    <img
-                      src={loginScreenImage}
-                      alt="MyCoop login screen"
-                      className="w-full h-auto block"
-                      width={1024}
-                      height={768}
-                    />
-                  </div>
-                </div>
-                {/* Laptop base / chin */}
-                <div className="relative mx-auto h-4 rounded-b-xl bg-gradient-to-b from-[#c0c0c0] to-[#a0a0a0] shadow-md" style={{ width: "110%", marginLeft: "-5%" }}>
-                  <div className="absolute left-1/2 top-1 h-1 w-16 -translate-x-1/2 rounded-full bg-[#888]" />
-                </div>
+            {/* Right — hero image */}
+            <div className="relative">
+              <div className="rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={loginScreenImage}
+                  alt="MyCoop platform preview"
+                  className="w-full h-auto object-cover"
+                  width={1024}
+                  height={768}
+                />
               </div>
             </div>
           </div>
@@ -238,18 +222,30 @@ const Landing = () => {
                 ))}
               </div>
 
-              {/* Right — overlapping dashboard screenshots */}
+              {/* Right — laptop mockup with login screen + mobile overlay */}
               <div className="relative h-[500px] sm:h-[550px] lg:h-[600px]">
-                {/* Web dashboard — back layer */}
-                <div className="absolute top-0 right-0 w-[85%] rounded-xl shadow-2xl border border-border overflow-hidden bg-card">
-                  <img
-                    src={dashboardWeb}
-                    alt="MyCoop web dashboard"
-                    className="w-full h-auto"
-                    loading="lazy"
-                    width={1200}
-                    height={800}
-                  />
+                {/* Laptop mockup — back layer */}
+                <div className="absolute top-0 right-0 w-[85%]">
+                  <div className="rounded-t-xl bg-[#2d2d2d] p-[6px] pb-0 shadow-2xl">
+                    <div className="flex items-center gap-1.5 px-3 py-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+                    </div>
+                    <div className="overflow-hidden rounded-t-sm">
+                      <img
+                        src={dashboardWeb}
+                        alt="MyCoop web dashboard"
+                        className="w-full h-auto block"
+                        loading="lazy"
+                        width={1200}
+                        height={800}
+                      />
+                    </div>
+                  </div>
+                  <div className="relative mx-auto h-3 rounded-b-xl bg-gradient-to-b from-[#c0c0c0] to-[#a0a0a0] shadow-md" style={{ width: "110%", marginLeft: "-5%" }}>
+                    <div className="absolute left-1/2 top-0.5 h-1 w-12 -translate-x-1/2 rounded-full bg-[#888]" />
+                  </div>
                 </div>
                 {/* Mobile dashboard — front layer, overlapping bottom-left */}
                 <div className="absolute bottom-0 left-0 w-[45%] sm:w-[40%] rounded-2xl shadow-2xl border border-border overflow-hidden bg-card z-10">
