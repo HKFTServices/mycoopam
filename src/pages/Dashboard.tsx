@@ -1750,34 +1750,20 @@ const MetricCard = ({
         if (e.key === "Enter" || e.key === " ") onClick();
       }}
     >
-      <CardContent className="py-5">
-        <div className="flex items-start gap-4">
-          <Ring value={ringValue} variant={variant} />
+      <CardContent className={compact ? "py-3 px-4" : "py-5"}>
+        <div className="flex items-start gap-3">
+          {!compact && <Ring value={ringValue} variant={variant} />}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold truncate">{title}</p>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 -mr-2"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Current balance</p>
-            <p className="text-2xl font-bold tracking-tight mt-1">{formatCurrency(value)}</p>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+              <p className={`font-semibold truncate ${compact ? "text-xs" : "text-sm"}`}>{title}</p>
               {changeLabel ? (
                 <span className={`text-xs font-medium ${changePct! >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                   {changeLabel}
                 </span>
               ) : null}
             </div>
+            <p className={`font-bold tracking-tight ${compact ? "text-xl mt-0.5" : "text-2xl mt-1"}`}>{formatCurrency(value)}</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
           </div>
         </div>
       </CardContent>
