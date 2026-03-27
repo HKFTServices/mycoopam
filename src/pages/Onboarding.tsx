@@ -340,21 +340,17 @@ const Onboarding = () => {
   };
 
   // Step validation
-  // Debug: log validation state for step 1
-  const step1Debug = {
-    titleId: !!titleId,
-    firstName: !!firstName.trim(),
-    lastName: !!lastName.trim(),
-    idNumber: !!idNumber.trim(),
-    idError,
-    gender: !!gender,
-    dateOfBirth: !!dateOfBirth,
-    phone: !!phone.trim(),
-    phoneError,
-    idType,
-  };
-  console.log("Step 1 validation:", step1Debug);
-  const isStep1Valid = titleId && firstName.trim() && lastName.trim() && idNumber.trim() && !idError && gender && dateOfBirth && phone.trim() && !phoneError;
+  const isStep1Valid = Boolean(
+    titleId &&
+    firstName.trim() &&
+    lastName.trim() &&
+    idNumber.trim() &&
+    !idError &&
+    gender &&
+    dateOfBirth &&
+    phone.trim() &&
+    !phoneError
+  );
   const isStep2Valid = streetAddress.trim() && city.trim();
   const isStep3Valid = requiredDocs.every((r: any) => uploadedDocs[r.document_type_id] || savedDocs[r.document_type_id]);
   const isStep4Valid = termsForRegistration.every((t) => acceptedTerms[t.id]);
