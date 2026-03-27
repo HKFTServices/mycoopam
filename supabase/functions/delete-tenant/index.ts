@@ -204,6 +204,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Break circular FK between pools and control_accounts:
+    // pools.cash_control_account_id → control_accounts, control_accounts.pool_id → pools
+    // First nullify pool FK columns, then delete control_accounts, then pools, then tenant
+    try {
+      await admin
+        .from("pools")
+        .update({ cash_control_account_id: null, vat_control_account_id: null, loan_control_account_id: null })
+        .eq("tenant_id", tenant_id);
+
+      const { data: caData, error: caErr } = await admin
+        .from("control_accounts")
+        .delete()
+        .eq("tenant_id", tenant_id)
+        .select("id");
+      if (caErr) { errors.push(`control_accounts: ${caErr.message}`); }
+      else { results["control_accounts"] = caData?.length ?? 0; }
+
+      const { data: pData, error: pErr } = await admin
+        .from("pools")
+        .delete()
+        .eq("tenant_id", tenant_id)
+        .select("id");
+      if (pErr) { errors.push(`pools: ${pErr.message}`); }
+      else { results["pools"] = pData?.length ?? 0; }
+
+      const { error: tErr } = await admin.from("tenants").delete().eq("id", tenant_id);
+      if (tErr) { errors.push(`tenants: ${tErr.message}`); }
+      else { results["tenants"] = 1; }
+    } catch (e: any) {
+      errors.push(`pool/control cleanup: ${e.message}`);
+    }
+
     // Also delete auth users who ONLY belong to this tenant
     // (We skip this for safety — users might belong to multiple tenants)
 
