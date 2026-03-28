@@ -420,9 +420,12 @@ const RegisterTenant = () => {
       const { data: provData, error: provError } = await supabase.functions.invoke("provision-tenant", {
         body: {
           tenant_id: tenant.id,
+          registration_number: registrationNumber.trim(),
           selected_pool_ids: selectedPools,
           custom_pools: customPools.length > 0 ? customPools : undefined,
           entity_account_type_prefixes: prefixes,
+          sla_fee_plan_id: selectedPlanId,
+          sla_signature: slaSignature || null,
           logo_data: logoBase64,
           logo_file_name: logoFileName,
           logo_mime_type: logoMimeType,
