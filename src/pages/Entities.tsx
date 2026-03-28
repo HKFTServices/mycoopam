@@ -7,9 +7,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Search, Building2, Plus } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import CreateEntityDialog from "@/components/entities/CreateEntityDialog";
 
 const Entities = () => {
   const { currentTenant } = useTenant();
