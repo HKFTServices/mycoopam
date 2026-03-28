@@ -143,6 +143,46 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
     enabled: !!currentTenant && open,
   });
 
+  // ─── Fetch cash control balances per pool ───
+  const { data: poolCashBalances = [] } = useQuery({
+    queryKey: ["pool_cash_balances", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      // Get control accounts of type 'cash' with their pool_id
+      const { data: controlAccounts, error: caErr } = await (supabase as any)
+        .from("control_accounts")
+        .select("id, pool_id, name")
+        .eq("tenant_id", currentTenant.id)
+        .eq("account_type", "cash")
+        .eq("is_active", true);
+      if (caErr) throw caErr;
+      if (!controlAccounts?.length) return [];
+
+      // Get balances via RPC
+      const { data: balances, error: bErr } = await (supabase as any)
+        .rpc("get_cft_control_balances", { p_tenant_id: currentTenant.id });
+      if (bErr) throw bErr;
+
+      // Aggregate balances by pool_id (the RPC may return multiple rows per control_account_id for legacy)
+      const balanceMap = new Map<string, number>();
+      for (const b of (balances ?? [])) {
+        const ca = controlAccounts.find((c: any) => c.id === b.control_account_id);
+        if (ca?.pool_id) {
+          balanceMap.set(ca.pool_id, (balanceMap.get(ca.pool_id) ?? 0) + Number(b.balance));
+        }
+      }
+
+      return Array.from(balanceMap.entries()).map(([poolId, balance]) => ({ poolId, balance }));
+    },
+    enabled: !!currentTenant && open,
+  });
+
+  // Helper: get cash balance for a pool
+  const getPoolCashBalance = (poolId: string): number | null => {
+    const entry = poolCashBalances.find((p: any) => p.poolId === poolId);
+    return entry ? entry.balance : null;
+  };
+
   // ─── Fetch daily stock prices for the selected date ───
   const { data: dailyPrices = [] } = useQuery({
     queryKey: ["daily_stock_prices_for_date", currentTenant?.id, format(txnDate, "yyyy-MM-dd")],
@@ -542,6 +582,21 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
 
     const isAdjustment = txnType === "STOCK_ADJUSTMENTS";
 
+    // Collect unique pool IDs from selected items for cash display
+    const selectedPoolIds: string[] = [...new Set(lines.map((l) => l.poolId))];
+    // Also collect all unique pools from stock items for reference
+    const allPoolIds: string[] = Array.from(new Set(stockItems.map((i: any) => String(i.pool_id)).filter((id: string) => id && id !== "undefined")));
+    const poolNames = new Map<string, string>();
+    for (const item of stockItems) {
+      if (item.pool_id && item.pools?.name) poolNames.set(item.pool_id, item.pools.name);
+    }
+
+    // Calculate spend per pool from selected lines
+    const spendByPool = lines.reduce<Record<string, number>>((acc, l) => {
+      acc[l.poolId] = (acc[l.poolId] ?? 0) + l.lineTotalInclVat;
+      return acc;
+    }, {});
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
@@ -552,6 +607,47 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
               : `Items from different pools are supported. A single bank entry will be created for the total invoice; per-pool entries are generated automatically.`}
           </p>
         </div>
+
+        {/* Pool Cash Balances */}
+        {!isAdjustment && allPoolIds.length > 0 && (
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(allPoolIds.length, 3)}, 1fr)` }}>
+            {allPoolIds.map((poolId) => {
+              const cashBalance = getPoolCashBalance(poolId);
+              const poolSpend = spendByPool[poolId] ?? 0;
+              const remaining = cashBalance != null ? cashBalance - poolSpend : null;
+              const isOverspend = remaining != null && remaining < 0;
+
+              return (
+                <div
+                  key={poolId}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 space-y-0.5",
+                    isOverspend
+                      ? "border-destructive/50 bg-destructive/5"
+                      : "border-border bg-muted/30"
+                  )}
+                >
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    {poolNames.get(poolId) ?? "Pool"} Cash
+                  </p>
+                  {cashBalance != null ? (
+                    <>
+                      <p className="text-sm font-bold">{formatCcy(cashBalance)}</p>
+                      {poolSpend > 0 && (
+                        <p className={cn("text-[10px]", isOverspend ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                          {isOverspend ? "⚠ Overspend: " : "After purchase: "}
+                          {formatCcy(remaining!)}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No balance data</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {stockItems.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
