@@ -5,15 +5,46 @@ import { Link } from "react-router-dom";
 import { Wallet, Users, ArrowUpRight } from "lucide-react";
 import { PoolIcon } from "@/components/pools/PoolIcon";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { getTierBadgeStyle, getTierColor, getTierKey } from "@/lib/tierColors";
 
 export const PoolSummaryMiniCard = ({ pool, investorPct }: { pool: any; investorPct?: number | null }) => {
+  const tierKey = getTierKey(pool?.name);
+  const tierDot = getTierColor(pool?.name);
+  const tierStyle = getTierBadgeStyle(pool?.name);
+
+  const renderPoolName = () => {
+    const name = String(pool?.name ?? "");
+    if (!tierKey || !tierStyle) return <span className="truncate">{name}</span>;
+    const re = new RegExp(`(${tierKey})`, "i");
+    const parts = name.split(re);
+    return (
+      <span className="truncate">
+        {parts.map((part, idx) => {
+          const isTier = part.toLowerCase() === tierKey;
+          return (
+            <span
+              key={`${part}-${idx}`}
+              style={isTier ? { color: tierStyle.color } : undefined}
+              className={isTier ? "font-semibold" : undefined}
+            >
+              {part}
+            </span>
+          );
+        })}
+      </span>
+    );
+  };
+
   return (
     <Card className="hover:bg-muted/30 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center gap-3 min-w-0">
           <PoolIcon name={pool.name} iconUrl={pool.iconUrl} size="sm" className="rounded-md" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold truncate">{pool.name}</p>
+            <p className="text-sm font-semibold truncate flex items-center gap-2">
+              {tierDot ? <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tierDot }} /> : null}
+              {renderPoolName()}
+            </p>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="text-[10px] gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
                 <span className="relative flex h-2 w-2">

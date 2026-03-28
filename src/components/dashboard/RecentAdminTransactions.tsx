@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowUpFromLine, ArrowDownToLine, ArrowUpRight, MoreHorizontal } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { getTierBadgeStyle } from "@/lib/tierColors";
+import ActorBadge from "@/components/common/ActorBadge";
 
 const ScrollShadow = ({ children, itemCount }: { children: React.ReactNode; itemCount: number }) => {
   const [showFade, setShowFade] = useState(false);
@@ -103,6 +105,19 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
     return { typeName, code, isWithdrawal, isDeposit, poolName, memberName, accountNumber, Icon, iconTone, amountTone, statusLabel, statusTone };
   };
 
+  const PoolPill = ({ name }: { name: string }) => {
+    const style = getTierBadgeStyle(name);
+    return (
+      <Badge
+        variant="outline"
+        className="text-[10px] px-2 py-0.5 whitespace-nowrap"
+        style={style ?? undefined}
+      >
+        {name}
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-2">
       <ScrollShadow itemCount={items.length}>
@@ -119,17 +134,23 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                   <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${m.iconTone}`}>
                     <m.Icon className="h-4 w-4" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium truncate">{m.poolName ? `${m.typeName} · ${m.poolName}` : m.typeName}</p>
-                      <p className={`text-sm font-semibold shrink-0 ${m.amountTone}`}>{formatCurrency(Number(txn.amount))}</p>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      <p className="text-xs text-muted-foreground truncate">{m.memberName}</p>
-                      <Badge variant="outline" className={`text-[9px] shrink-0 ${m.statusTone}`}>{m.statusLabel}</Badge>
-                    </div>
-                  </div>
-                </div>
+	                  <div className="flex-1 min-w-0">
+	                    <div className="flex items-center justify-between gap-2">
+	                      <div className="flex items-center gap-2 min-w-0">
+	                        <p className="text-sm font-medium truncate">{m.typeName}</p>
+	                        {m.poolName ? <PoolPill name={m.poolName} /> : null}
+	                      </div>
+	                      <p className={`text-sm font-semibold shrink-0 ${m.amountTone}`}>{formatCurrency(Number(txn.amount))}</p>
+	                    </div>
+	                    <div className="flex items-center justify-between gap-2 mt-1">
+	                      <div className="flex items-center gap-2 min-w-0">
+	                        <p className="text-xs text-muted-foreground truncate">{m.memberName}</p>
+	                        {txn?._meta?.accountKind ? <ActorBadge kind={txn._meta.accountKind} label={txn?._meta?.accountType} /> : null}
+	                      </div>
+	                      <Badge variant="outline" className={`text-[9px] shrink-0 ${m.statusTone}`}>{m.statusLabel}</Badge>
+	                    </div>
+	                  </div>
+	                </div>
               );
             })}
           </div>
@@ -156,18 +177,24 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${m.iconTone}`}>
                             <m.Icon className="h-4 w-4" />
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{m.poolName ? `${m.typeName} · ${m.poolName}` : m.typeName}</p>
-                            <p className="text-xs text-muted-foreground truncate">{m.code ? `Code: ${m.code}` : "—"}</p>
-                          </div>
+	                          <div className="min-w-0">
+	                            <div className="flex items-center gap-2 min-w-0">
+	                              <p className="text-sm font-medium truncate">{m.typeName}</p>
+	                              {m.poolName ? <PoolPill name={m.poolName} /> : null}
+	                            </div>
+	                            <p className="text-xs text-muted-foreground truncate">{m.code ? `Code: ${m.code}` : "—"}</p>
+	                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="py-3">
-                        <div className="min-w-[200px]">
-                          <p className="text-sm truncate" title={m.memberName}>{m.memberName}</p>
-                          <p className="text-xs text-muted-foreground truncate">{m.accountNumber ? `Acc ${m.accountNumber}` : "—"}</p>
-                        </div>
-                      </TableCell>
+	                      <TableCell className="py-3">
+	                        <div className="min-w-[200px]">
+	                          <p className="text-sm truncate" title={m.memberName}>{m.memberName}</p>
+	                          <div className="flex items-center gap-2 mt-1">
+	                            <p className="text-xs text-muted-foreground truncate">{m.accountNumber ? `Acc ${m.accountNumber}` : "—"}</p>
+	                            {txn?._meta?.accountKind ? <ActorBadge kind={txn._meta.accountKind} label={txn?._meta?.accountType} /> : null}
+	                          </div>
+	                        </div>
+	                      </TableCell>
                       <TableCell className="py-3 whitespace-nowrap">
                         <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${m.statusTone}`}>{m.statusLabel}</Badge>
                       </TableCell>
@@ -218,7 +245,10 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                     <div className="space-y-2">
                       <DetailsRow label="Member" value={[selectedTxn.entity_accounts?.entities?.name, selectedTxn.entity_accounts?.entities?.last_name].filter(Boolean).join(" ") || "—"} />
                       <DetailsRow label="Account" value={selectedTxn.entity_accounts?.account_number ? `Acc ${selectedTxn.entity_accounts.account_number}` : "—"} />
-                      <DetailsRow label="Account type" value={selectedTxn?._meta?.accountType ?? "—"} />
+                      <DetailsRow
+                        label="Account type"
+                        value={selectedTxn?._meta?.accountKind ? <ActorBadge kind={selectedTxn._meta.accountKind} label={selectedTxn?._meta?.accountType} /> : (selectedTxn?._meta?.accountType ?? "—")}
+                      />
                     </div>
                   </div>
                 </div>
@@ -227,9 +257,39 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground">Auth</p>
                     <div className="space-y-2">
-                      <DetailsRow label="Initiated by" value={selectedTxn?._meta?.initiator ?? "—"} />
-                      <DetailsRow label="Approved by" value={selectedTxn?._meta?.approver ?? "Pending"} />
-                      {selectedTxn?._meta?.receiverApprover ? <DetailsRow label="Payout confirmed by" value={selectedTxn._meta.receiverApprover} /> : null}
+                      <DetailsRow
+                        label="Initiated by"
+                        value={
+                          <div className="flex items-center justify-end gap-2">
+                            <span>{selectedTxn?._meta?.initiatorName ?? "—"}</span>
+                            {selectedTxn?._meta?.initiatorRoleKind ? <ActorBadge kind={selectedTxn._meta.initiatorRoleKind} label={selectedTxn?._meta?.initiatorRoleLabel} /> : null}
+                          </div>
+                        }
+                      />
+                      <DetailsRow
+                        label="Approved by"
+                        value={
+                          selectedTxn?._meta?.approverName ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <span>{selectedTxn._meta.approverName}</span>
+                              {selectedTxn?._meta?.approverRoleKind ? <ActorBadge kind={selectedTxn._meta.approverRoleKind} label={selectedTxn?._meta?.approverRoleLabel} /> : null}
+                            </div>
+                          ) : (
+                            "Pending"
+                          )
+                        }
+                      />
+                      {selectedTxn?._meta?.receiverApproverName ? (
+                        <DetailsRow
+                          label="Payout confirmed by"
+                          value={
+                            <div className="flex items-center justify-end gap-2">
+                              <span>{selectedTxn._meta.receiverApproverName}</span>
+                              {selectedTxn?._meta?.receiverApproverRoleKind ? <ActorBadge kind={selectedTxn._meta.receiverApproverRoleKind} label={selectedTxn?._meta?.receiverApproverRoleLabel} /> : null}
+                            </div>
+                          }
+                        />
+                      ) : null}
                     </div>
                   </div>
                   <div className="space-y-2">

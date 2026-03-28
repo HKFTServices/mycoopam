@@ -37,6 +37,7 @@ const FALLBACK_COLORS = [
 const POOL_COLOR_MAP: Record<string, string> = {
   gold: "hsl(43, 80%, 50%)",
   silver: "hsl(210, 10%, 70%)",
+  platinum: "hsl(220, 7%, 55%)",
   member: "hsl(152, 68%, 36%)",
   reserve: "hsl(200, 70%, 50%)",
   admin: "hsl(280, 60%, 55%)",
@@ -100,6 +101,7 @@ const t = (lang: Lang, key: keyof typeof translations.en) => translations[lang]?
 const POOL_NAME_AF: Record<string, string> = {
   "gold": "Goud",
   "silver": "Silwer",
+  "platinum": "Platinum",
   "member account": "Lidrekening",
   "reserve": "Reserwe",
   "admin": "Admin",
@@ -127,6 +129,7 @@ const translateStatementDesc = (desc: string, poolName: string, lang: Lang): str
     .replace(/\bPool\b/gi, "Poel")
     .replace(/\bGold\b/gi, "Goud")
     .replace(/\bSilver\b/gi, "Silwer")
+    .replace(/\bPlatinum\b/gi, "Platinum")
     .replace(/\bReserve\b/gi, "Reserwe")
     .replace(/\bMember\b/gi, "Lidmaatskap")
     .replace(/\bAccount\b/gi, "Rekening");

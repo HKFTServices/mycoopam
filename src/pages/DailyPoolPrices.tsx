@@ -347,8 +347,9 @@ const DailyPoolPrices = () => {
   const poolColorMap: Record<string, string> = useMemo(() => {
     const colors: Record<string, string> = {};
     const palette = [
-      { keywords: ["gold"], color: "rgba(255, 215, 0, 0.10)" },
-      { keywords: ["silver"], color: "rgba(192, 192, 192, 0.15)" },
+      { keywords: ["gold"], color: "hsl(43 96% 56% / 0.10)" },
+      { keywords: ["silver"], color: "hsl(210 9% 72% / 0.12)" },
+      { keywords: ["platinum"], color: "hsl(220 7% 55% / 0.10)" },
       { keywords: ["crypto"], color: "rgba(99, 102, 241, 0.08)" },
       { keywords: ["health"], color: "rgba(34, 197, 94, 0.08)" },
       { keywords: ["funeral"], color: "rgba(168, 85, 247, 0.08)" },

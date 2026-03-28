@@ -23,6 +23,8 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
+import { getTierKey } from "@/lib/tierColors";
+import { getEntityActorKind, getRoleActorKind } from "@/lib/actorKinds";
 
 interface AdminDashboardProps {
   tenantId: string;
@@ -64,16 +66,22 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   const { data: adminStats, isLoading: adminStatsLoading } = useQuery({
     queryKey: ["admin_dashboard_stats", tenantId],
     queryFn: async () => {
-      const [entities, accounts, pending, pools] = await Promise.all([
+      const [entities, accountsAll, accountsActive, pending, pools] = await Promise.all([
         supabase.from("entities").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_deleted", false),
+        supabase.from("entity_accounts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
         supabase.from("entity_accounts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true),
         supabase.from("entity_accounts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending_activation"),
         supabase.from("pools").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false),
       ]);
+      const totalAllAccounts = accountsAll.count ?? 0;
+      const totalActiveAccounts = accountsActive.count ?? 0;
+      const totalPendingAccounts = pending.count ?? 0;
+      const totalInactiveAccounts = Math.max(0, totalAllAccounts - totalActiveAccounts - totalPendingAccounts);
       return {
         totalEntities: entities.count ?? 0,
-        totalAccounts: accounts.count ?? 0,
-        pendingAccounts: pending.count ?? 0,
+        totalAccounts: totalActiveAccounts,
+        pendingAccounts: totalPendingAccounts,
+        inactiveAccounts: totalInactiveAccounts,
         activePools: pools.count ?? 0,
       };
     },
@@ -135,6 +143,33 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     }
     return map;
   }, [poolInvestorStats]);
+
+  const topPoolSummaries = useMemo(() => {
+    const pools = [...(poolSummaries ?? [])];
+    const tierOrder = ["gold", "silver", "platinum"] as const;
+    const picked: any[] = [];
+    const pickedIds = new Set<string>();
+
+    // Prioritize tier pools (Gold → Silver → Platinum), then fill remaining.
+    for (const tier of tierOrder) {
+      for (const p of pools) {
+        if (picked.length >= 4) break;
+        if (pickedIds.has(String(p.id))) continue;
+        if (getTierKey(p.name) !== tier) continue;
+        picked.push(p);
+        pickedIds.add(String(p.id));
+      }
+    }
+
+    for (const p of pools) {
+      if (picked.length >= 4) break;
+      if (pickedIds.has(String(p.id))) continue;
+      picked.push(p);
+      pickedIds.add(String(p.id));
+    }
+
+    return picked;
+  }, [poolSummaries]);
 
   const totalAUM = poolSummaries.reduce((sum: number, p: any) => sum + p.totalValue, 0);
 
@@ -256,24 +291,43 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
         return full || p?.email || "User";
       };
 
-      const entityTypeLabel = (t: any) => {
+      const entityActorMeta = (t: any) => {
         const cats = t?.entity_accounts?.entities?.entity_categories;
         const entityType = Array.isArray(cats) ? cats?.[0]?.entity_type : undefined;
-        if (entityType === "natural_person") return "Person";
-        if (entityType === "legal_entity") return "Entity";
         const lastName = t?.entity_accounts?.entities?.last_name;
-        return lastName ? "Person" : "Entity";
+        const kind = getEntityActorKind({ entityType, lastName });
+        const label = kind === "member" ? "Member" : kind === "company" ? "Company" : "Entity";
+        return { kind, label };
       };
 
-      return txns.map((t: any) => ({
-        ...t,
-        _meta: {
-          accountType: entityTypeLabel(t),
-          initiator: displayUser(t.user_id) ? `${displayUser(t.user_id)} (${pickRoleLabel(rolesByUser.get(t.user_id))})` : pickRoleLabel(rolesByUser.get(t.user_id)),
-          approver: displayUser(t.approved_by) ? `${displayUser(t.approved_by)} (${pickRoleLabel(rolesByUser.get(t.approved_by))})` : t.approved_by ? pickRoleLabel(rolesByUser.get(t.approved_by)) : null,
-          receiverApprover: displayUser(t.receiver_approved_by) ? `${displayUser(t.receiver_approved_by)} (${pickRoleLabel(rolesByUser.get(t.receiver_approved_by))})` : t.receiver_approved_by ? pickRoleLabel(rolesByUser.get(t.receiver_approved_by)) : null,
-        },
-      }));
+      return txns.map((t: any) => {
+        const actor = entityActorMeta(t);
+        const initRoleKind = getRoleActorKind(rolesByUser.get(t.user_id));
+        const apprRoleKind = getRoleActorKind(rolesByUser.get(t.approved_by));
+        const recvRoleKind = getRoleActorKind(rolesByUser.get(t.receiver_approved_by));
+
+        return {
+          ...t,
+          _meta: {
+            accountKind: actor.kind,
+            accountType: actor.label,
+            initiatorName: displayUser(t.user_id),
+            initiatorRoleLabel: pickRoleLabel(rolesByUser.get(t.user_id)),
+            initiatorRoleKind: initRoleKind,
+            initiator: displayUser(t.user_id) ? `${displayUser(t.user_id)} (${pickRoleLabel(rolesByUser.get(t.user_id))})` : pickRoleLabel(rolesByUser.get(t.user_id)),
+
+            approverName: displayUser(t.approved_by),
+            approverRoleLabel: pickRoleLabel(rolesByUser.get(t.approved_by)),
+            approverRoleKind: apprRoleKind,
+            approver: displayUser(t.approved_by) ? `${displayUser(t.approved_by)} (${pickRoleLabel(rolesByUser.get(t.approved_by))})` : t.approved_by ? pickRoleLabel(rolesByUser.get(t.approved_by)) : null,
+
+            receiverApproverName: displayUser(t.receiver_approved_by),
+            receiverApproverRoleLabel: pickRoleLabel(rolesByUser.get(t.receiver_approved_by)),
+            receiverApproverRoleKind: recvRoleKind,
+            receiverApprover: displayUser(t.receiver_approved_by) ? `${displayUser(t.receiver_approved_by)} (${pickRoleLabel(rolesByUser.get(t.receiver_approved_by))})` : t.receiver_approved_by ? pickRoleLabel(rolesByUser.get(t.receiver_approved_by)) : null,
+          },
+        };
+      });
     },
     enabled: !!tenantId,
   });
@@ -297,16 +351,50 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   }, [poolSummaries]);
 
   const loanBookData = useMemo(() => {
-    const rows = (loanSummaries ?? []).map((s: any) => ({ name: ((s.entity_name || "").toString().trim() + " " + (s.entity_last_name || "").toString().trim()).trim() || "Entity", value: Number(s.outstanding || 0) })).filter((x) => x.value > 0.01).sort((a, b) => b.value - a.value);
-    const top = rows.slice(0, 5);
-    const other = rows.slice(5).reduce((sum, x) => sum + x.value, 0);
-    return other > 0 ? [...top, { name: "Other", value: other }] : top;
+    const byKind: Record<"member" | "company" | "entity", Array<{ name: string; value: number }>> = {
+      member: [],
+      company: [],
+      entity: [],
+    };
+
+    for (const s of (loanSummaries ?? []) as any[]) {
+      const value = Number(s?.outstanding ?? 0);
+      if (value <= 0.01) continue;
+
+      const first = String(s?.entity_name ?? "").trim();
+      const last = String(s?.entity_last_name ?? "").trim();
+      const fullName = [first, last].filter(Boolean).join(" ") || "Entity";
+
+      const hasLastName = last.length > 0;
+      const hasName = first.length > 0;
+      const kind: "member" | "company" | "entity" = hasLastName ? "member" : hasName ? "company" : "entity";
+      byKind[kind].push({ name: fullName, value });
+    }
+
+    const build = (kind: "member" | "company" | "entity", label: string) => {
+      const rows = [...byKind[kind]].sort((a, b) => b.value - a.value);
+      const total = rows.reduce((s, r) => s + r.value, 0);
+      const top = rows.slice(0, 10);
+      return total > 0
+        ? {
+            name: label,
+            value: total,
+            actorKind: kind as any,
+            details: top,
+            detailsMoreCount: Math.max(0, rows.length - top.length),
+            detailsAll: rows,
+          }
+        : null;
+    };
+
+    return [build("member", "Members"), build("company", "Companies"), build("entity", "Entities")].filter(Boolean) as any[];
   }, [loanSummaries]);
 
   const accountsStatusData = useMemo(() => {
     return [
-      { name: "Active", value: Number(adminStats?.totalAccounts || 0) },
-      { name: "Pending", value: Number(adminStats?.pendingAccounts || 0) },
+      { name: "Active", value: Number(adminStats?.totalAccounts || 0), color: "hsl(var(--chart-up))" },
+      { name: "Pending", value: Number(adminStats?.pendingAccounts || 0), color: "hsl(var(--warning))" },
+      { name: "Inactive", value: Number((adminStats as any)?.inactiveAccounts || 0), color: "hsl(var(--chart-down))" },
     ].filter((x) => x.value > 0);
   }, [adminStats]);
 
@@ -378,9 +466,9 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
         isMobile ? (
           <div className="overflow-x-auto -mx-4 px-4 pb-2 max-w-[100vw]">
             <div className="flex gap-3 w-max">
-              {poolSummaries.slice(0, 4).map((p: any) => {
+              {topPoolSummaries.map((p: any) => {
                 const poolName = String(p?.name ?? "").toLowerCase();
-                const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
+                const showInvestorPct = !!getTierKey(poolName);
                 const stats = investorStatsByPoolId.get(String(p.id));
                 const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
                 return <div key={p.id} className="w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
@@ -389,9 +477,9 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {poolSummaries.slice(0, 4).map((p: any) => {
+            {topPoolSummaries.map((p: any) => {
               const poolName = String(p?.name ?? "").toLowerCase();
-              const showInvestorPct = poolName.includes("gold") || poolName.includes("silver");
+              const showInvestorPct = !!getTierKey(poolName);
               const stats = investorStatsByPoolId.get(String(p.id));
               const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
               return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;

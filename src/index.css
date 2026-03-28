@@ -52,9 +52,17 @@
     --info: 215 100% 50%;
     --info-foreground: 0 0% 100%;
 
-    --chart-up: 105 22% 33%;
+    --chart-up: 142 71% 35%;
     --chart-down: 0 76% 42%;
     --chart-neutral: 34 11% 45%;
+
+    /* Actor schema (member/company/entity/admin/etc.) */
+    --actor-member: 217 91% 60%;
+    --actor-company: 142 71% 45%;
+    --actor-entity: 262 83% 58%;
+    --actor-staff: 38 95% 48%;
+    --actor-tenant-admin: 41 81% 27%;
+    --actor-super-admin: 0 76% 42%;
   }
 
   .dark {
@@ -102,9 +110,17 @@
     --info: 215 100% 50%;
     --info-foreground: 0 0% 100%;
 
-    --chart-up: 105 22% 40%;
+    --chart-up: 142 71% 45%;
     --chart-down: 0 65% 42%;
     --chart-neutral: 34 14% 54%;
+
+    /* Actor schema (member/company/entity/admin/etc.) */
+    --actor-member: 217 91% 65%;
+    --actor-company: 142 71% 55%;
+    --actor-entity: 262 83% 68%;
+    --actor-staff: 38 95% 58%;
+    --actor-tenant-admin: 38 82% 68%;
+    --actor-super-admin: 0 65% 52%;
   }
 }
 
