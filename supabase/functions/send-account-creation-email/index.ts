@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const userLang = profile.language_code || "en";
+    const userLang = recipientLang;
     const { data: template } = await adminClient
       .from("communication_templates")
       .select("subject, body_html")
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       .eq("language_code", userLang)
       .maybeSingle();
 
-    const firstName = profile.first_name || "Member";
+    const firstName = recipientFirstName || "Member";
     const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
     const emailSignature = resolveEmailSignature(tenantConfig, userLang);
 
@@ -188,15 +188,15 @@ Deno.serve(async (req) => {
       </div>`;
 
     const replacements: Record<string, string> = {
-      "{{entity_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
+      "{{entity_name}}": [recipientFirstName, recipientLastName].filter(Boolean).join(" ") || firstName,
       "{{user_name}}": firstName,
-      "{{user_surname}}": profile.last_name || "",
-      "{{first_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
+      "{{user_surname}}": recipientLastName,
+      "{{first_name}}": [recipientFirstName, recipientLastName].filter(Boolean).join(" ") || firstName,
       "{{last_name}}": "",
       "{{tenant_name}}": tenantName,
       "{{legal_entity_name}}": tenantName,
-      "{{email}}": profile.email,
-      "{{email_address}}": profile.email,
+      "{{email}}": recipientEmail,
+      "{{email_address}}": recipientEmail,
       "{{entity_account_name}}": entityAccountName,
       "{{account_number}}": accountNumber,
       "{{entity_account_bank_details}}": legalEntityBankDetails,
@@ -221,13 +221,13 @@ Deno.serve(async (req) => {
         try {
           const info = await transporter.sendMail({
             from: buildFromHeader(smtp),
-            to: profile.email,
+            to: recipientEmail,
             subject,
             html: body,
           });
           emailSent = true;
           messageId = info.messageId;
-          console.log(`[send-account-creation-email] Sent: ${messageId} to ${profile.email} (SMTP source: ${smtp.source})`);
+          console.log(`[send-account-creation-email] Sent: ${messageId} to ${recipientEmail} (SMTP source: ${smtp.source})`);
         } catch (err: any) {
           smtpError = err.message;
           console.error(`[send-account-creation-email] SMTP error: ${smtpError}`);
