@@ -383,9 +383,9 @@ const RegisterTenant = () => {
           custom_pools: customPools.length > 0 ? customPools : undefined,
           entity_account_type_prefixes: prefixes,
           logo_url: logoUrl,
-          admin_details: authData.user ? {
-            user_id: authData.user.id,
+          admin_details: {
             email: email.trim(),
+            password,
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             title_id: titleId,
@@ -411,7 +411,7 @@ const RegisterTenant = () => {
             account_name: null,
             account_number: null,
             accepted_term_ids: Object.keys(acceptedTerms).filter((k) => acceptedTerms[k]),
-          } : undefined,
+          },
           admin_documents: adminDocuments.length > 0 ? adminDocuments : undefined,
         },
       });
