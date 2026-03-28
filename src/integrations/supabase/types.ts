@@ -4820,8 +4820,10 @@ export type Database = {
           deposit_fee_pct: number
           id: string
           is_active: boolean
+          monthly_fee_excl_vat: number
           plan_code: string
           plan_label: string
+          plan_type: string
           setup_fee_excl_vat: number
           switch_transfer_withdrawal_fee_pct: number
           tpv_tier1_pct_pa: number
@@ -4838,8 +4840,10 @@ export type Database = {
           deposit_fee_pct?: number
           id?: string
           is_active?: boolean
+          monthly_fee_excl_vat?: number
           plan_code: string
           plan_label: string
+          plan_type?: string
           setup_fee_excl_vat?: number
           switch_transfer_withdrawal_fee_pct?: number
           tpv_tier1_pct_pa?: number
@@ -4856,8 +4860,10 @@ export type Database = {
           deposit_fee_pct?: number
           id?: string
           is_active?: boolean
+          monthly_fee_excl_vat?: number
           plan_code?: string
           plan_label?: string
+          plan_type?: string
           setup_fee_excl_vat?: number
           switch_transfer_withdrawal_fee_pct?: number
           tpv_tier1_pct_pa?: number
