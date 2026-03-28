@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Loader2, ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Upload, X, Coins, Plus, ShieldCheck,
-  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle,
+  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle, Scale,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { formatCurrency } from "@/lib/formatCurrency";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import { getTenantUrl } from "@/lib/getSiteUrl";
 import { validateRsaId } from "@/lib/rsaIdValidation";
@@ -44,13 +45,13 @@ function generatePrefixes(tenantName: string): Record<number, string> {
 interface PoolOption { id: string; name: string; description: string | null; isAdmin?: boolean; }
 type AddressSuggestion = { description: string; place_id: string };
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 const stepTitles = [
-  "Co-operative & Admin", "Branding & Prefixes", "Investment Pools",
+  "Co-operative & Admin", "Service Agreement", "Branding & Prefixes", "Investment Pools",
   "Personal Details", "Residential Address", "Documents",
   "Terms & Conditions",
 ];
-const stepIcons = [Building2, Upload, Coins, User, MapPin, FileText, Shield];
+const stepIcons = [Building2, Scale, Upload, Coins, User, MapPin, FileText, Shield];
 
 const toSentenceCase = (val: string): string =>
   val.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/(?<=\w)\w*/g, (c) => c.toLowerCase());
@@ -78,6 +79,7 @@ const RegisterTenant = () => {
   // ─── Step 1: Co-op + Admin credentials ───
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -85,19 +87,26 @@ const RegisterTenant = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // ─── Step 2: Logo + Prefixes ───
+  // ─── Step 2: Service Agreement (SLA Plan Selection) ───
+  const [feePlans, setFeePlans] = useState<any[]>([]);
+  const [feePlansLoading, setFeePlansLoading] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [slaSignature, setSlaSignature] = useState("");
+  const [slaAccepted, setSlaAccepted] = useState(false);
+
+  // ─── Step 3: Logo + Prefixes ───
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [prefixes, setPrefixes] = useState<Record<number, string>>({});
 
-  // ─── Step 3: Pools ───
+  // ─── Step 4: Pools ───
   const [pools, setPools] = useState<PoolOption[]>([]);
   const [selectedPools, setSelectedPools] = useState<string[]>([]);
   const [customPools, setCustomPools] = useState<string[]>([]);
   const [newPoolName, setNewPoolName] = useState("");
   const [poolsLoading, setPoolsLoading] = useState(false);
 
-  // ─── Step 4: Personal Details ───
+  // ─── Step 5: Personal Details ───
   const [titleId, setTitleId] = useState("");
   const [initials, setInitials] = useState("");
   const [knownAs, setKnownAs] = useState("");
@@ -113,7 +122,7 @@ const RegisterTenant = () => {
   const [phoneError, setPhoneError] = useState("");
   const [altPhoneError, setAltPhoneError] = useState("");
 
-  // ─── Step 5: Address ───
+  // ─── Step 6: Address ───
   const [streetAddress, setStreetAddress] = useState("");
   const [suburb, setSuburb] = useState("");
   const [city, setCity] = useState("");
@@ -124,10 +133,10 @@ const RegisterTenant = () => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  // ─── Step 6: Documents ───
+  // ─── Step 7: Documents ───
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
-  // ─── Step 7: T&Cs ───
+  // ─── Step 8: T&Cs ───
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
 
   // ─── Reference data (fetched once) ───
@@ -139,15 +148,37 @@ const RegisterTenant = () => {
     if (name.trim()) setPrefixes(generatePrefixes(name));
   }, [name]);
 
-  // Load pools at step 3
+  // Load fee plans at step 2
   useEffect(() => {
-    if (step === 3 && pools.length === 0) loadPools();
+    if (step === 2 && feePlans.length === 0) loadFeePlans();
   }, [step]);
 
-  // Load reference data when reaching step 4
+  // Load pools at step 4
   useEffect(() => {
-    if (step >= 4 && !refData && !refLoading) loadRefData();
+    if (step === 4 && pools.length === 0) loadPools();
   }, [step]);
+
+  // Load reference data when reaching step 5
+  useEffect(() => {
+    if (step >= 5 && !refData && !refLoading) loadRefData();
+  }, [step]);
+
+  const loadFeePlans = async () => {
+    setFeePlansLoading(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("sla_fee_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("plan_code");
+      if (error) throw error;
+      setFeePlans(data ?? []);
+    } catch (err) {
+      console.error("Failed to load fee plans:", err);
+    } finally {
+      setFeePlansLoading(false);
+    }
+  };
 
 
   const loadPools = async () => {
@@ -273,7 +304,7 @@ const RegisterTenant = () => {
   const validateStep = (s: number): boolean => {
     switch (s) {
       case 1:
-        if (!name.trim() || !slug.trim() || !email.trim() || !password || !firstName.trim() || !lastName.trim()) {
+        if (!name.trim() || !slug.trim() || !registrationNumber.trim() || !email.trim() || !password || !firstName.trim() || !lastName.trim()) {
           toast({ title: "Please fill in all fields", variant: "destructive" }); return false;
         }
         if (password !== confirmPassword) {
@@ -287,27 +318,35 @@ const RegisterTenant = () => {
         }
         return true;
       case 2:
+        if (!selectedPlanId) {
+          toast({ title: "Please select a service plan", variant: "destructive" }); return false;
+        }
+        if (!slaAccepted) {
+          toast({ title: "Please accept the service agreement", variant: "destructive" }); return false;
+        }
+        return true;
+      case 3:
         if (Object.entries(prefixes).some(([, v]) => !v.trim())) {
           toast({ title: "All prefixes are required", variant: "destructive" }); return false;
         }
         return true;
-      case 3:
+      case 4:
         if (selectedPools.length === 0) {
           toast({ title: "Select at least one pool", variant: "destructive" }); return false;
         }
         return true;
-      case 4:
+      case 5:
         if (!titleId || !firstName.trim() || !lastName.trim() || !idNumber.trim() || idError || !gender || !dateOfBirth || !phone.trim() || phoneError) {
           toast({ title: "Please complete all required fields", variant: "destructive" }); return false;
         }
         return true;
-      case 5:
+      case 6:
         if (!streetAddress.trim() || !city.trim()) {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 6: return true; // documents optional
-      case 7: {
+      case 7: return true; // documents optional
+      case 8: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
           toast({ title: "Please accept all terms & conditions", variant: "destructive" }); return false;
@@ -381,9 +420,12 @@ const RegisterTenant = () => {
       const { data: provData, error: provError } = await supabase.functions.invoke("provision-tenant", {
         body: {
           tenant_id: tenant.id,
+          registration_number: registrationNumber.trim(),
           selected_pool_ids: selectedPools,
           custom_pools: customPools.length > 0 ? customPools : undefined,
           entity_account_type_prefixes: prefixes,
+          sla_fee_plan_id: selectedPlanId,
+          sla_signature: slaSignature || null,
           logo_data: logoBase64,
           logo_file_name: logoFileName,
           logo_mime_type: logoMimeType,
@@ -493,6 +535,10 @@ const RegisterTenant = () => {
                       <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} required maxLength={30} />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">.myco-op.co.za</span>
                     </div>
+                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="registrationNumber">Registration Number *</Label>
+                    <Input id="registrationNumber" placeholder="e.g. 2025/624300/07" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} required maxLength={50} />
                   </div>
                 </div>
                 <Separator />
@@ -530,8 +576,81 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 2: Logo + Prefixes ═══ */}
+            {/* ═══ Step 2: Service Agreement ═══ */}
             {step === 2 && (
+              <div className="space-y-5">
+                {feePlansLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Select your preferred service plan. The setup fee is payable upfront (7-day grace period applies).
+                      A higher initial fee results in lower ongoing transaction costs.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {feePlans.map((plan) => (
+                        <div
+                          key={plan.id}
+                          onClick={() => setSelectedPlanId(plan.id)}
+                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all space-y-3 ${
+                            selectedPlanId === plan.id
+                              ? "border-primary bg-primary/5 shadow-md"
+                              : "border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-lg">{plan.plan_label}</h3>
+                            {selectedPlanId === plan.id && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-2xl font-bold text-primary">
+                              {formatCurrency(plan.setup_fee_excl_vat)}
+                              <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT setup</span>
+                            </p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-1.5 text-sm">
+                            <p><span className="font-medium">{plan.deposit_fee_pct}%</span> on all deposits</p>
+                            <p><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches, transfers & withdrawals</p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-1.5 text-sm">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Monthly recurring (% of TPV p.a.)</p>
+                            <p>{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
+                            <p>{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                            <p>{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedPlanId && (
+                      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="sla-accept"
+                            checked={slaAccepted}
+                            onCheckedChange={(checked) => setSlaAccepted(!!checked)}
+                          />
+                          <Label htmlFor="sla-accept" className="text-sm leading-relaxed">
+                            I, on behalf of <strong>{name || "the Co-operative"}</strong> (Registration: {registrationNumber || "—"}),
+                            accept the selected service plan and agree to the Service Level Agreement terms between
+                            HKFT Services (Pty) Ltd and {name || "the Co-operative"}. The once-off setup fee is payable
+                            within 7 days of registration.
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext} disabled={feePlansLoading}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 3: Logo + Prefixes ═══ */}
+            {step === 3 && (
               <div className="space-y-5">
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Company Logo</h3>
@@ -577,8 +696,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 3: Pools ═══ */}
-            {step === 3 && (
+            {/* ═══ Step 4: Pools ═══ */}
+            {step === 4 && (
               <div className="space-y-5">
                 {poolsLoading ? (
                   <div className="flex items-center justify-center py-12">
@@ -653,8 +772,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 4: Personal Details ═══ */}
-            {step === 4 && (
+            {/* ═══ Step 5: Personal Details ═══ */}
+            {step === 5 && (
               <div className="space-y-5">
                 {refLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -785,8 +904,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 5: Address ═══ */}
-            {step === 5 && (
+            {/* ═══ Step 6: Address ═══ */}
+            {step === 6 && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">Search or manually enter your residential address.</p>
                 <div className="space-y-2 relative">
@@ -831,8 +950,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 6: Documents ═══ */}
-            {step === 6 && (
+            {/* ═══ Step 7: Documents ═══ */}
+            {step === 7 && (
               <div className="space-y-5">
                 {documentRequirements.length === 0 ? (
                   <div className="text-center py-8">
@@ -880,8 +999,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 7: Terms & Conditions ═══ */}
-            {step === 7 && (
+            {/* ═══ Step 8: Terms & Conditions ═══ */}
+            {step === 8 && (
               <div className="space-y-5">
                 {terms.length === 0 ? (
                   <div className="text-center py-8">

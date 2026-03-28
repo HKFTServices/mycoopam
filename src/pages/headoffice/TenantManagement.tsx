@@ -56,6 +56,18 @@ const TenantManagement = () => {
     },
   });
 
+  // Fetch SLA agreements
+  const { data: tenantSlas = [] } = useQuery({
+    queryKey: ["ho_tenant_slas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("tenant_sla")
+        .select("*, sla_fee_plans(plan_label, plan_code)");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // Fetch member counts per tenant
   const { data: memberCounts = {} } = useQuery({
     queryKey: ["ho_member_counts"],
@@ -148,6 +160,7 @@ const TenantManagement = () => {
   );
 
   const getFeeConfig = (tenantId: string) => feeConfigs.find((f: any) => f.tenant_id === tenantId);
+  const getTenantSla = (tenantId: string) => tenantSlas.find((s: any) => s.tenant_id === tenantId);
   const getFeeVal = (key: string) => {
     if (feeForm[key] !== undefined) return feeForm[key];
     const existing = getFeeConfig(selectedTenant?.id);
@@ -231,6 +244,7 @@ const TenantManagement = () => {
                 <TableHead>Slug</TableHead>
                 <TableHead className="text-center">Members</TableHead>
                 <TableHead className="text-center">Pools</TableHead>
+                <TableHead>SLA Plan</TableHead>
                 <TableHead>Monthly Fee</TableHead>
                 <TableHead>Per Member</TableHead>
                 <TableHead>Status</TableHead>
@@ -240,12 +254,21 @@ const TenantManagement = () => {
             <TableBody>
               {filtered.map((tenant: any) => {
                 const fee = getFeeConfig(tenant.id);
+                const sla = getTenantSla(tenant.id);
                 return (
                   <TableRow key={tenant.id}>
                     <TableCell className="font-medium">{tenant.name}</TableCell>
                     <TableCell className="text-muted-foreground">{tenant.slug}</TableCell>
                     <TableCell className="text-center">{(memberCounts as any)[tenant.id] || 0}</TableCell>
                     <TableCell className="text-center">{(poolCounts as any)[tenant.id] || 0}</TableCell>
+                    <TableCell>
+                      {sla?.sla_fee_plans?.plan_label ? (
+                        <Badge variant={sla.setup_fee_paid ? "default" : "secondary"}>
+                          {sla.sla_fee_plans.plan_label}
+                          {!sla.setup_fee_paid && " (unpaid)"}
+                        </Badge>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell>{fee ? formatCurrency(fee.monthly_admin_fee) : "—"}</TableCell>
                     <TableCell>{fee ? formatCurrency(fee.per_member_fee) : "—"}</TableCell>
                     <TableCell>
@@ -330,7 +353,7 @@ const TenantManagement = () => {
               })}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No tenants found
                   </TableCell>
                 </TableRow>

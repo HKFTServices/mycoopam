@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents, registration_number, sla_fee_plan_id, sla_signature } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -981,6 +981,27 @@ Deno.serve(async (req) => {
         console.log("[provision-tenant] Registration email result:", emailResult);
       } catch (emailErr: any) {
         console.error("[provision-tenant] Failed to send registration email:", emailErr.message);
+      }
+    }
+
+    // ─── Save SLA agreement if a plan was selected ───
+    if (sla_fee_plan_id) {
+      try {
+        const gracePeriodEnd = new Date();
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
+        await admin.from("tenant_sla").upsert({
+          tenant_id,
+          sla_fee_plan_id,
+          registration_number: registration_number || null,
+          signed_by_name: admin_details ? `${admin_details.first_name} ${admin_details.last_name}` : null,
+          signature_data: sla_signature || null,
+          signed_at: new Date().toISOString(),
+          grace_period_ends_at: gracePeriodEnd.toISOString(),
+          status: "pending",
+        }, { onConflict: "tenant_id" });
+        console.log("[provision-tenant] SLA agreement saved for plan:", sla_fee_plan_id);
+      } catch (slaErr: any) {
+        console.error("[provision-tenant] Failed to save SLA:", slaErr.message);
       }
     }
 

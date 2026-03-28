@@ -4812,6 +4812,63 @@ export type Database = {
           },
         ]
       }
+      sla_fee_plans: {
+        Row: {
+          additional_exclusions: string | null
+          additional_inclusions: string | null
+          created_at: string
+          deposit_fee_pct: number
+          id: string
+          is_active: boolean
+          plan_code: string
+          plan_label: string
+          setup_fee_excl_vat: number
+          switch_transfer_withdrawal_fee_pct: number
+          tpv_tier1_pct_pa: number
+          tpv_tier1_threshold: number
+          tpv_tier2_pct_pa: number
+          tpv_tier2_threshold: number
+          tpv_tier3_pct_pa: number
+          updated_at: string
+        }
+        Insert: {
+          additional_exclusions?: string | null
+          additional_inclusions?: string | null
+          created_at?: string
+          deposit_fee_pct?: number
+          id?: string
+          is_active?: boolean
+          plan_code: string
+          plan_label: string
+          setup_fee_excl_vat?: number
+          switch_transfer_withdrawal_fee_pct?: number
+          tpv_tier1_pct_pa?: number
+          tpv_tier1_threshold?: number
+          tpv_tier2_pct_pa?: number
+          tpv_tier2_threshold?: number
+          tpv_tier3_pct_pa?: number
+          updated_at?: string
+        }
+        Update: {
+          additional_exclusions?: string | null
+          additional_inclusions?: string | null
+          created_at?: string
+          deposit_fee_pct?: number
+          id?: string
+          is_active?: boolean
+          plan_code?: string
+          plan_label?: string
+          setup_fee_excl_vat?: number
+          switch_transfer_withdrawal_fee_pct?: number
+          tpv_tier1_pct_pa?: number
+          tpv_tier1_threshold?: number
+          tpv_tier2_pct_pa?: number
+          tpv_tier2_threshold?: number
+          tpv_tier3_pct_pa?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_transactions: {
         Row: {
           cost_price: number
@@ -5500,6 +5557,69 @@ export type Database = {
             foreignKeyName: "tenant_memberships_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_sla: {
+        Row: {
+          created_at: string
+          grace_period_ends_at: string | null
+          id: string
+          registration_number: string | null
+          setup_fee_paid: boolean
+          setup_fee_paid_at: string | null
+          signature_data: string | null
+          signed_at: string | null
+          signed_by_name: string | null
+          sla_fee_plan_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grace_period_ends_at?: string | null
+          id?: string
+          registration_number?: string | null
+          setup_fee_paid?: boolean
+          setup_fee_paid_at?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_by_name?: string | null
+          sla_fee_plan_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grace_period_ends_at?: string | null
+          id?: string
+          registration_number?: string | null
+          setup_fee_paid?: boolean
+          setup_fee_paid_at?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_by_name?: string | null
+          sla_fee_plan_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_sla_sla_fee_plan_id_fkey"
+            columns: ["sla_fee_plan_id"]
+            isOneToOne: false
+            referencedRelation: "sla_fee_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_sla_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
