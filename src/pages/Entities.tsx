@@ -59,8 +59,8 @@ const Entities = () => {
     const idNum = e.identity_number || e.registration_number || e.passport_number;
 
     return (
-      <Card key={e.id}>
-        <CardContent className="p-3 space-y-2">
+      <Card key={e.id} className="overflow-hidden">
+        <CardContent className="p-2.5 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="font-medium text-sm truncate">{fullName}</p>
@@ -70,7 +70,7 @@ const Entities = () => {
               {e.is_active ? "Active" : "Inactive"}
             </Badge>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground min-w-0">
             {category && (
               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
                 category.entity_type === "natural_person"
@@ -80,7 +80,11 @@ const Entities = () => {
                 {category.name}
               </span>
             )}
-            {idNum && <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-[11px]">{idNum}</code>}
+            {idNum && (
+              <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-[11px] max-w-full truncate inline-block">
+                {idNum}
+              </code>
+            )}
           </div>
           {(e.contact_number || e.email_address) && (
             <div className="text-xs text-muted-foreground space-y-0.5">
@@ -95,14 +99,14 @@ const Entities = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Entities</h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             All registered entities — natural persons, companies, trusts, and more
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} size="sm">
+        <Button onClick={() => setCreateOpen(true)} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Create Entity
         </Button>
       </div>

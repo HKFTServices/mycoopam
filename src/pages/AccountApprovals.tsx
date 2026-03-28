@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote, Send, CreditCard } from "lucide-react";
 import { toast } from "sonner";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import DocumentReviewDialog from "@/components/approvals/DocumentReviewDialog";
 import TransactionReviewDialog, { type DateOverride, type StockApprovalMeta } from "@/components/approvals/TransactionReviewDialog";
 import WithdrawalReviewDialog from "@/components/approvals/WithdrawalReviewDialog";
@@ -749,67 +748,70 @@ const AccountApprovals = () => {
         <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Approvals</h1>
         <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">Review and approve pending requests</p>
       </div>
-      <MobileTableHint />
 
       <Tabs defaultValue="registrations">
-        <TabsList>
-          <TabsTrigger value="registrations" className="gap-1.5">
-            <UserCheck className="h-3.5 w-3.5" />
-            Registrations
-            {pendingRegistrations.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingRegistrations.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="accounts" className="gap-1.5">
-            <Briefcase className="h-3.5 w-3.5" />
-            Accounts
-            {pendingAccounts.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingAccounts.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="transactions" className="gap-1.5">
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            Transactions
-            {pendingTxns.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingTxns.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="referrers" className="gap-1.5">
-            <Home className="h-3.5 w-3.5" />
-            Referrers
-            {pendingReferrers.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingReferrers.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="admin-stock" className="gap-1.5">
-            <Package className="h-3.5 w-3.5" />
-            Admin Stock
-            {pendingAdminStock.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingAdminStock.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="stock" className="gap-1.5">
-            <FileText className="h-3.5 w-3.5" />
-            Stock Docs
-            {approvedAdminStock.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{approvedAdminStock.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="loans" className="gap-1.5">
-            <Banknote className="h-3.5 w-3.5" />
-            Loans
-            {(pendingLoanCount + awaitingAcceptance + awaitingDisbursement) > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLoanCount + awaitingAcceptance + awaitingDisbursement}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="debit-orders" className="gap-1.5">
-            <CreditCard className="h-3.5 w-3.5" />
-            Debit Orders
-            {pendingDebitOrders.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+          <div className="sm:flex sm:justify-center">
+            <TabsList className="w-max">
+              <TabsTrigger value="registrations" className="gap-1.5">
+                <UserCheck className="h-3.5 w-3.5" />
+                Registrations
+                {pendingRegistrations.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingRegistrations.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="accounts" className="gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" />
+                Accounts
+                {pendingAccounts.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingAccounts.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="transactions" className="gap-1.5">
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                Transactions
+                {pendingTxns.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingTxns.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="referrers" className="gap-1.5">
+                <Home className="h-3.5 w-3.5" />
+                Referrers
+                {pendingReferrers.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingReferrers.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="admin-stock" className="gap-1.5">
+                <Package className="h-3.5 w-3.5" />
+                Admin Stock
+                {pendingAdminStock.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingAdminStock.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="stock" className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Stock Docs
+                {approvedAdminStock.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{approvedAdminStock.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="loans" className="gap-1.5">
+                <Banknote className="h-3.5 w-3.5" />
+                Loans
+                {(pendingLoanCount + awaitingAcceptance + awaitingDisbursement) > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLoanCount + awaitingAcceptance + awaitingDisbursement}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="debit-orders" className="gap-1.5">
+                <CreditCard className="h-3.5 w-3.5" />
+                Debit Orders
+                {pendingDebitOrders.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         {/* Registration Approvals Tab */}
         <TabsContent value="registrations">
@@ -819,10 +821,10 @@ const AccountApprovals = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead className="hidden md:table-cell">Phone</TableHead>
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Submitted</TableHead>
                     <TableHead className="w-48">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -835,22 +837,32 @@ const AccountApprovals = () => {
                     pendingRegistrations.map((app: any) => {
                       const profile = app.profiles;
                       const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "—";
-                      const canFirstApprove = app.status === "pending_review" && (isClerk || isManager || isTenantAdmin || isSuperAdmin);
-                      const canFinalApprove = app.status === "first_approved" && (isManager || isTenantAdmin || isSuperAdmin);
+                      const statusLabel = app.status === "pending_review" ? "Awaiting 1st Approval" : "Awaiting Final Approval";
+                      const statusVariant = app.status === "first_approved" ? "default" : "secondary";
                       return (
                         <TableRow key={app.id}>
-                          <TableCell className="font-medium">{name}</TableCell>
-                          <TableCell className="text-sm">{profile?.email ?? "—"}</TableCell>
-                          <TableCell className="text-sm">{profile?.phone ?? "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant={app.status === "first_approved" ? "default" : "secondary"}>
-                              {app.status === "pending_review" ? "Awaiting 1st Approval" : "Awaiting Final Approval"}
+                          <TableCell className="font-medium">
+                            <div className="min-w-0">
+                              <div className="truncate">{name}</div>
+                              <div className="md:hidden mt-1 flex flex-wrap items-center gap-1">
+                                <Badge variant={statusVariant} className="text-[10px]">{statusLabel}</Badge>
+                                {profile?.email ? <span className="text-[11px] text-muted-foreground truncate">{profile.email}</span> : null}
+                                {profile?.phone ? <span className="text-[11px] text-muted-foreground">• {profile.phone}</span> : null}
+                                <span className="text-[11px] text-muted-foreground">• {new Date(app.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">{profile?.email ?? "—"}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">{profile?.phone ?? "—"}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <Badge variant={statusVariant}>
+                              {statusLabel}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             {app.entity_id ? (
-                              <Button size="sm" variant="outline" onClick={() => setReviewRegistration(app)}>
+                              <Button size="sm" variant="outline" className="h-8 text-xs sm:h-9 sm:text-sm" onClick={() => setReviewRegistration(app)}>
                                 <Eye className="h-3.5 w-3.5 mr-1.5" />Review
                               </Button>
                             ) : (
@@ -875,9 +887,9 @@ const AccountApprovals = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Entity</TableHead>
-                    <TableHead>Account Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Requested</TableHead>
+                    <TableHead className="hidden md:table-cell">Account Type</TableHead>
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Requested</TableHead>
                     <TableHead className="w-48">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -889,13 +901,22 @@ const AccountApprovals = () => {
                   ) : (
                     pendingAccounts.map((a: any) => (
                       <TableRow key={a.id}>
-                        <TableCell><span className="font-medium">{entityLabel(a.entities)}</span></TableCell>
-                        <TableCell className="text-sm">{a.entity_account_types?.name ?? "—"}</TableCell>
-                        <TableCell><Badge variant="secondary">Pending</Badge></TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="min-w-0">
+                            <span className="font-medium truncate block">{entityLabel(a.entities)}</span>
+                            <div className="md:hidden mt-1 flex flex-wrap items-center gap-1">
+                              <Badge variant="secondary" className="text-[10px]">Pending</Badge>
+                              <span className="text-[11px] text-muted-foreground truncate">{a.entity_account_types?.name ?? "—"}</span>
+                              <span className="text-[11px] text-muted-foreground">• {new Date(a.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">{a.entity_account_types?.name ?? "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell"><Badge variant="secondary">Pending</Badge></TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => setReviewAccount(a)}>
+                            <Button size="sm" variant="outline" className="h-8 text-xs sm:h-9 sm:text-sm" onClick={() => setReviewAccount(a)}>
                               <Eye className="h-3.5 w-3.5 mr-1.5" />Review
                             </Button>
                           </div>
@@ -916,10 +937,10 @@ const AccountApprovals = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Member</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead>Payment</TableHead>
+                    <TableHead className="hidden lg:table-cell">Details</TableHead>
+                    <TableHead className="hidden lg:table-cell">Payment</TableHead>
                     <TableHead className="w-56">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -939,20 +960,35 @@ const AccountApprovals = () => {
                         ? [t.entity_accounts.entities.name, t.entity_accounts.entities.last_name].filter(Boolean).join(" ")
                         : "—";
                       const allIds = allTxns.map((x: any) => x.id);
+                      const code = t.transaction_types?.code || "";
+                      let meta: any = {};
+                      try { meta = JSON.parse(t.notes || "{}"); } catch { meta = {}; }
+                      const paymentLabel = code === "TRANSFER"
+                        ? "Transfer of Units"
+                        : (t.payment_method || "").replace(/_/g, " ");
+                      const txnLabel = t.transaction_types?.name ?? (code ? code.replace(/_/g, " ") : "Transaction");
+                      const createdDate = new Date(t.created_at).toLocaleDateString();
+                      const transferTo = meta?.to_account_number ? `To ${meta.to_account_number}` : "";
                       return (
                         <TableRow key={t.id} className="align-top">
-                          <TableCell className="text-sm">{new Date(t.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">{createdDate}</TableCell>
                           <TableCell className="text-sm font-medium">
                             {t.transaction_types?.code === "TRANSFER"
                               ? <><span className="text-muted-foreground text-xs block">Transferred from</span>{memberName}</>
                               : memberName}
+                            <div className="lg:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              <span className="font-medium text-foreground">{txnLabel}</span>
+                              <span className="font-mono">{formatCurrency(totalAmount)}</span>
+                              {paymentLabel ? <span className="capitalize">• {paymentLabel}</span> : null}
+                              {transferTo ? <span>• {transferTo}</span> : null}
+                              <span>• {createdDate}</span>
+                            </div>
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="hidden lg:table-cell text-sm">
                             <div className="space-y-0.5 font-mono text-xs">
                               {(() => {
                                 const isTransfer = t.transaction_types?.code === "TRANSFER";
-                                let meta: any = {};
-                                try { meta = JSON.parse(t.notes || "{}"); } catch { /* not JSON */ }
+                                // meta parsed above (kept for desktop view too)
 
                                 if (isTransfer) {
                                   // For transfers: show gross amount transferred and units — no fees
@@ -1030,7 +1066,7 @@ const AccountApprovals = () => {
                               })()}
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm capitalize">
+                          <TableCell className="hidden lg:table-cell text-sm capitalize">
                             {t.transaction_types?.code === "TRANSFER"
                               ? <span className="text-muted-foreground italic">Transfer of Units</span>
                               : (t.payment_method || "").replace(/_/g, " ")}
@@ -1045,8 +1081,8 @@ const AccountApprovals = () => {
                               <Button
                                 size="sm"
                                 variant={t.status === "first_approved" && t.transaction_types?.code?.includes("WITHDRAW") ? "default" : "outline"}
+                                className="h-8 text-xs sm:h-9 sm:text-sm"
                                 onClick={() => {
-                                  const code = t.transaction_types?.code || "";
                                   if (code.includes("WITHDRAW")) {
                                     setReviewWithdrawalGroup(group);
                                   } else if (code === "SWITCH") {
@@ -1081,10 +1117,10 @@ const AccountApprovals = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Applicant</TableHead>
-                    <TableHead>ID Number</TableHead>
-                    <TableHead>Referral House</TableHead>
-                    <TableHead>House Number</TableHead>
-                    <TableHead>Submitted</TableHead>
+                    <TableHead className="hidden md:table-cell">ID Number</TableHead>
+                    <TableHead className="hidden md:table-cell">Referral House</TableHead>
+                    <TableHead className="hidden md:table-cell">House Number</TableHead>
+                    <TableHead className="hidden md:table-cell">Submitted</TableHead>
                     <TableHead className="w-48">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1101,20 +1137,29 @@ const AccountApprovals = () => {
                   ) : (
                     pendingReferrers.map((ref: any) => (
                       <TableRow key={ref.id}>
-                        <TableCell className="font-medium">{ref.entityName}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{ref.entityIdNumber || "—"}</TableCell>
-                        <TableCell className="text-sm">{ref.houseName}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-medium">
+                          <div className="min-w-0">
+                            <div className="truncate">{ref.entityName}</div>
+                            <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              <span className="truncate">{ref.houseName}</span>
+                              {ref.houseAccountNumber ? <span>• <span className="font-mono">{ref.houseAccountNumber}</span></span> : null}
+                              <span>• {new Date(ref.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{ref.entityIdNumber || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">{ref.houseName}</TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <code className="text-[11px] font-mono bg-muted px-1 py-0.5 rounded">{ref.houseAccountNumber}</code>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {new Date(ref.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
                             <Button
                               size="sm"
-                              className="h-7 text-xs gap-1"
+                              className="h-8 text-xs gap-1"
                               disabled={approveReferrerMutation.isPending || !(isManager || isTenantAdmin || isSuperAdmin)}
                               onClick={() => approveReferrerMutation.mutate(ref)}
                             >
@@ -1124,7 +1169,7 @@ const AccountApprovals = () => {
                             <Button
                               size="sm"
                               variant="destructive"
-                              className="h-7 text-xs gap-1"
+                              className="h-8 text-xs gap-1"
                               disabled={declineReferrerMutation.isPending}
                               onClick={() => declineReferrerMutation.mutate({ id: ref.id, reason: "" })}
                             >
@@ -1152,12 +1197,12 @@ const AccountApprovals = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Counterparty</TableHead>
+                    <TableHead className="hidden md:table-cell">Reference</TableHead>
+                    <TableHead className="hidden md:table-cell">Counterparty</TableHead>
                     <TableHead className="text-right">Total Invoice</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
                     <TableHead className="w-28">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1185,22 +1230,29 @@ const AccountApprovals = () => {
                         vault_confirmed: { label: "Vault Confirmed", variant: "secondary" },
                       };
                       const statusCfg = statusConfig[stx.status] ?? statusConfig.pending;
+                      const txnDate = stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—";
                       return (
                         <TableRow key={stx.id}>
-                          <TableCell className="text-sm font-mono">
-                            {stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—"}
+                          <TableCell className="hidden md:table-cell text-sm font-mono">{txnDate}</TableCell>
+                          <TableCell className="text-sm">
+                            <div className="font-medium">{typeLabels[stx.transaction_type_code] ?? stx.transaction_type_code}</div>
+                            <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              <Badge variant={statusCfg.variant} className="text-[10px]">{statusCfg.label}</Badge>
+                              <span className="font-mono">{txnDate}</span>
+                              {stx.reference ? <span>• <span className="font-mono">{stx.reference}</span></span> : null}
+                              <span>• {cpName}</span>
+                            </div>
                           </TableCell>
-                          <TableCell className="text-sm">{typeLabels[stx.transaction_type_code] ?? stx.transaction_type_code}</TableCell>
-                          <TableCell className="text-sm font-mono text-muted-foreground">{stx.reference || "—"}</TableCell>
-                          <TableCell className="text-sm">{cpName}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm font-mono text-muted-foreground">{stx.reference || "—"}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">{cpName}</TableCell>
                           <TableCell className="text-sm text-right font-mono font-semibold">
                             {stx.transaction_type_code !== "STOCK_ADJUSTMENTS" ? formatCurrency(Number(stx.total_invoice_amount)) : "—"}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             <Badge variant={statusCfg.variant} className="text-[10px]">{statusCfg.label}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" variant="outline" onClick={() => setReviewAdminStock(stx)}>
+                            <Button size="sm" variant="outline" className="h-8 text-xs sm:h-9 sm:text-sm" onClick={() => setReviewAdminStock(stx)}>
                               <Eye className="h-3.5 w-3.5 mr-1.5" />Review
                             </Button>
                           </TableCell>
@@ -1221,10 +1273,10 @@ const AccountApprovals = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Counterparty</TableHead>
+                    <TableHead className="hidden md:table-cell">Reference</TableHead>
+                    <TableHead className="hidden md:table-cell">Counterparty</TableHead>
                     <TableHead className="text-right">Total Invoice</TableHead>
                     <TableHead className="w-40">Documents</TableHead>
                   </TableRow>
@@ -1244,18 +1296,22 @@ const AccountApprovals = () => {
                       const cp = stx.counterparty_entity;
                       const cpName = cp ? [cp.name, cp.last_name].filter(Boolean).join(" ") : "—";
                       const isPurchase = stx.transaction_type_code === "STOCK_PURCHASES";
+                      const txnDate = stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—";
                       return (
                         <TableRow key={stx.id}>
-                          <TableCell className="text-sm font-mono">
-                            {stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—"}
-                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-sm font-mono">{txnDate}</TableCell>
                           <TableCell className="text-sm">
-                            {isPurchase ? "Stock Purchase" : "Stock Sale"}
+                            <div className="font-medium">{isPurchase ? "Stock Purchase" : "Stock Sale"}</div>
+                            <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              <span className="font-mono">{txnDate}</span>
+                              {stx.reference ? <span>• <span className="font-mono">{stx.reference}</span></span> : null}
+                              <span>• {cpName}</span>
+                            </div>
                           </TableCell>
-                          <TableCell className="text-sm font-mono text-muted-foreground">
+                          <TableCell className="hidden md:table-cell text-sm font-mono text-muted-foreground">
                             {stx.reference || "—"}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="hidden md:table-cell text-sm">
                             <div>{cpName}</div>
                             {cp?.email_address && (
                               <div className="text-[11px] text-muted-foreground">{cp.email_address}</div>
@@ -1284,11 +1340,11 @@ const AccountApprovals = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
-                    <TableHead>Account</TableHead>
+                    <TableHead className="hidden md:table-cell">Account</TableHead>
                     <TableHead className="text-right">Requested</TableHead>
-                    <TableHead className="text-right">Term</TableHead>
+                    <TableHead className="hidden md:table-cell text-right">Term</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1303,34 +1359,43 @@ const AccountApprovals = () => {
                     pendingLoans.map((loan: any) => (
                       <TableRow key={loan.id}>
                         <TableCell className="font-medium">
-                          {[loan.entities?.name, loan.entities?.last_name].filter(Boolean).join(" ") || "—"}
+                          <div className="min-w-0">
+                            <div className="truncate">
+                              {[loan.entities?.name, loan.entities?.last_name].filter(Boolean).join(" ") || "—"}
+                            </div>
+                            <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              <span className="font-mono">{loan.entity_accounts?.account_number || "—"}</span>
+                              <span>• {loan.term_months_requested} mo</span>
+                              <span>• {new Date(loan.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {loan.entity_accounts?.account_number || "—"}
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {formatCurrency(Number(loan.amount_requested))}
                         </TableCell>
-                        <TableCell className="text-right">{loan.term_months_requested} mo</TableCell>
+                        <TableCell className="hidden md:table-cell text-right">{loan.term_months_requested} mo</TableCell>
                         <TableCell>
                           <Badge variant={loan.status === "pending" ? "secondary" : loan.status === "accepted" ? "default" : "outline"}>
                             {loan.status === "approved" ? "Awaiting Acceptance" : loan.status === "accepted" ? "Ready to Release" : "Pending Review"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {new Date(loan.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
                           {loan.status === "pending" ? (
-                            <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
+                            <Button size="sm" variant="outline" className="h-8 text-xs sm:h-9 sm:text-sm" onClick={() => setReviewLoanApp(loan)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> Review
                             </Button>
                           ) : loan.status === "accepted" ? (
-                            <Button size="sm" variant="outline" onClick={() => setReviewLoanApp(loan)}>
+                            <Button size="sm" variant="outline" className="h-8 text-xs sm:h-9 sm:text-sm" onClick={() => setReviewLoanApp(loan)}>
                               <Send className="h-3.5 w-3.5 mr-1" /> Release
                             </Button>
                           ) : loan.status === "approved" ? (
-                            <Button size="sm" variant="ghost" onClick={() => setAcceptLoanApp(loan)}>
+                            <Button size="sm" variant="ghost" className="h-8 text-xs sm:h-9 sm:text-sm" onClick={() => setAcceptLoanApp(loan)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> View
                             </Button>
                           ) : null}
@@ -1352,11 +1417,11 @@ const AccountApprovals = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
-                    <TableHead>Account</TableHead>
+                    <TableHead className="hidden md:table-cell">Account</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Frequency</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>Allocations</TableHead>
+                    <TableHead className="hidden md:table-cell">Frequency</TableHead>
+                    <TableHead className="hidden md:table-cell">Start Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Allocations</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1372,13 +1437,39 @@ const AccountApprovals = () => {
                       return (
                         <TableRow key={d.id}>
                           <TableCell className="font-medium">
-                            {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
+                            <div className="min-w-0">
+                              <div className="truncate">{[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}</div>
+                              <div className="md:hidden mt-1 space-y-1">
+                                <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                                  <span className="font-mono">{d.entity_accounts?.account_number || "—"}</span>
+                                  <span className="capitalize">• {d.frequency}</span>
+                                  <span>• {d.start_date}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {notes?.loan_instalment > 0 && (
+                                    <Badge variant="outline" className="text-[10px] text-destructive border-destructive">
+                                      Loan: {formatCurrency(notes.loan_instalment, approvalSym)}
+                                    </Badge>
+                                  )}
+                                  {notes?.admin_fees > 0 && (
+                                    <Badge variant="outline" className="text-[10px]">
+                                      Fees: {formatCurrency(notes.admin_fees, approvalSym)}
+                                    </Badge>
+                                  )}
+                                  {pools.map((p: any, i: number) => (
+                                    <Badge key={i} variant="outline" className="text-[10px]">
+                                      {p.pool_name}: {p.percentage}%
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">{d.entity_accounts?.account_number || "—"}</TableCell>
+                          <TableCell className="hidden md:table-cell font-mono text-xs">{d.entity_accounts?.account_number || "—"}</TableCell>
                           <TableCell className="text-right font-mono">{formatCurrency(d.monthly_amount, approvalSym)}</TableCell>
-                          <TableCell className="capitalize">{d.frequency}</TableCell>
-                          <TableCell>{d.start_date}</TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell capitalize">{d.frequency}</TableCell>
+                          <TableCell className="hidden md:table-cell">{d.start_date}</TableCell>
+                          <TableCell className="hidden md:table-cell">
                             <div className="flex flex-wrap gap-1">
                               {notes?.loan_instalment > 0 && (
                                 <Badge variant="outline" className="text-[10px] text-destructive border-destructive">
@@ -1398,9 +1489,9 @@ const AccountApprovals = () => {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-1.5">
                               {d.signature_data && (
-                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                                <Button variant="ghost" size="sm" className="h-8 text-xs gap-1"
                                   onClick={() => {
                                     const w = window.open("", "_blank");
                                     if (w) { w.document.write(`<img src="${d.signature_data}" style="max-width:100%"/>`); w.document.title = "Signature"; }
@@ -1408,7 +1499,7 @@ const AccountApprovals = () => {
                                   <Eye className="h-3.5 w-3.5" /> Sig
                                 </Button>
                               )}
-                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
                                 onClick={async () => {
                                   const { error } = await (supabase as any).from("debit_orders").update({
                                     status: "loaded", approved_by: currentUser?.id, approved_at: new Date().toISOString(), is_active: true,
@@ -1419,7 +1510,7 @@ const AccountApprovals = () => {
                                 }}>
                                 <CheckCircle className="h-3.5 w-3.5" /> Confirm Loaded
                               </Button>
-                              <Button size="sm" variant="destructive" className="h-7 text-xs gap-1"
+                              <Button size="sm" variant="destructive" className="h-8 text-xs gap-1"
                                 onClick={async () => {
                                   const reason = prompt("Decline reason:");
                                   if (reason === null) return;

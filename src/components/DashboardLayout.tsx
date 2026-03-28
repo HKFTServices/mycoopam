@@ -814,26 +814,44 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       <SidebarInset className="flex flex-col">
         {/* Mobile header */}
-        <header className="flex h-14 items-center gap-4 border-b border-border px-4 lg:hidden">
-          <SidebarTrigger className="-ml-1" />
-          {branding.logoUrl ? (
-            <img src={branding.logoUrl} alt="Logo" className="h-7 w-auto max-w-[140px] object-contain flex-1" />
-          ) : (
-            <span className="font-semibold flex-1 truncate">CoopAdmin</span>
-          )}
-          <button
-            onClick={() => navigate("/dashboard/notifications")}
-            className="relative text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Notifications"
+        <header className="relative flex h-14 items-center border-b border-border px-4 lg:hidden">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="-ml-1" />
+          </div>
+
+          <Link
+            to="/dashboard"
+            aria-label="Dashboard"
+            className="absolute left-1/2 -translate-x-1/2"
           >
-            <BellRing className="h-5 w-5" />
-            {notificationsUnreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                {notificationsUnreadCount}
+            {branding.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt="Logo"
+                className="h-7 w-auto max-w-[160px] object-contain"
+              />
+            ) : (
+              <span className="font-semibold text-sm max-w-[160px] truncate block">
+                {branding.legalEntityName || currentTenant?.name || "CoopAdmin"}
               </span>
             )}
-          </button>
-          <PendingTransferNotification />
+          </Link>
+
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => navigate("/dashboard/notifications")}
+              className="relative text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Notifications"
+            >
+              <BellRing className="h-5 w-5" />
+              {notificationsUnreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {notificationsUnreadCount}
+                </span>
+              )}
+            </button>
+            <PendingTransferNotification />
+          </div>
         </header>
 
         {/* Desktop header */}
