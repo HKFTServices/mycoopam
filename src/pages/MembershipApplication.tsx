@@ -253,14 +253,14 @@ const MembershipApplication = () => {
       if (!membershipAccountType?.id) throw new Error(`Membership account type not configured for tenant ${currentTenant.id}, type ${accountTypeCode}. Contact your administrator.`);
 
       const { error: eaErr } = await (supabase as any).from("entity_accounts").insert({
-        tenant_id: currentTenant.id, entity_id: userEntity.entity_id,
+        tenant_id: currentTenant.id, entity_id: entityId,
         entity_account_type_id: membershipAccountType.id, status: "pending_activation",
       });
       if (eaErr) throw eaErr;
 
       const { error: appErr } = await supabase.from("membership_applications").insert({
         user_id: user.id, tenant_id: currentTenant.id,
-        entity_id: userEntity.entity_id,
+        entity_id: entityId,
         has_referrer: hasReferrer,
         referrer_id: hasReferrer && referrerId ? referrerId : null,
         commission_percentage: parseFloat(commissionPercentage), status: "pending_activation",
@@ -272,7 +272,7 @@ const MembershipApplication = () => {
         await (supabase as any).from("entities").update({
           agent_house_agent_id: referrerId,
           agent_commission_percentage: parseFloat(commissionPercentage) || 0,
-        }).eq("id", userEntity.entity_id);
+        }).eq("id", entityId);
       }
 
       supabase.functions.invoke("send-account-creation-email", {
