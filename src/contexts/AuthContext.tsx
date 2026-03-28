@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
@@ -47,8 +47,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
-  // Track whether initial load (getSession) has completed
-  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     cleanupExpiredRememberMe(30);
