@@ -94,7 +94,7 @@ const RegisterTenant = () => {
   const [slaSignature, setSlaSignature] = useState("");
   const [slaAccepted, setSlaAccepted] = useState(false);
 
-  // ─── Step 2: Logo + Prefixes ───
+  // ─── Step 3: Logo + Prefixes ───
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [prefixes, setPrefixes] = useState<Record<number, string>>({});
