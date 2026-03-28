@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle, User, ListChecks, TrendingUp, FileText, Search } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle, User, ListChecks, TrendingUp, FileText, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
