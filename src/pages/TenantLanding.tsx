@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
-import { getSiteUrl } from "@/lib/getSiteUrl";
+import { getPublicSiteUrl, getSiteUrl } from "@/lib/getSiteUrl";
 import { MarketingPanel } from "@/components/auth/MarketingPanel";
 import { getCaptchaBypassUntil, setCaptchaBypass } from "@/lib/captchaBypass";
 import {
@@ -232,6 +232,12 @@ const TenantLanding = () => {
             size="sm"
             className="absolute left-6 top-6 lg:left-12 lg:top-8"
             onClick={() => {
+              // If this tenant is loaded via subdomain, "/" is still the tenant login route.
+              // In that case, do a hard redirect to the public site (tenant picker) instead.
+              if (!pathSlug && slug) {
+                window.location.replace(getPublicSiteUrl());
+                return;
+              }
               // Use `replace` so the browser back button doesn't bounce back to the tenant login.
               navigate("/", { replace: true });
             }}

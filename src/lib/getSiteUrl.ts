@@ -25,6 +25,22 @@ export function isOnProductionDomain(): boolean {
 }
 
 /**
+ * Public (non-tenant) site URL.
+ *
+ * - Dev: `http(s)://localhost:<port>` when using subdomain routing, otherwise current origin.
+ * - Prod: `https://www.<prod-domain>`.
+ */
+export function getPublicSiteUrl(): string {
+  if (import.meta.env.DEV) {
+    if (TENANT_ROUTING === "subdomain") {
+      return `${window.location.protocol}//${DEV_TENANT_DOMAIN}${getPortSuffix()}`;
+    }
+    return window.location.origin;
+  }
+  return `https://www.${PROD_DOMAIN}`;
+}
+
+/**
  * Base site URL for auth redirects and emails.
  *
  * - Dev: uses the current origin by default (supports localhost and tenant.localhost).
