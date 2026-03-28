@@ -772,8 +772,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 4: Personal Details ═══ */}
-            {step === 4 && (
+            {/* ═══ Step 5: Personal Details ═══ */}
+            {step === 5 && (
               <div className="space-y-5">
                 {refLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -904,8 +904,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 5: Address ═══ */}
-            {step === 5 && (
+            {/* ═══ Step 6: Address ═══ */}
+            {step === 6 && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">Search or manually enter your residential address.</p>
                 <div className="space-y-2 relative">
@@ -950,8 +950,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 6: Documents ═══ */}
-            {step === 6 && (
+            {/* ═══ Step 7: Documents ═══ */}
+            {step === 7 && (
               <div className="space-y-5">
                 {documentRequirements.length === 0 ? (
                   <div className="text-center py-8">
@@ -999,8 +999,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 7: Terms & Conditions ═══ */}
-            {step === 7 && (
+            {/* ═══ Step 8: Terms & Conditions ═══ */}
+            {step === 8 && (
               <div className="space-y-5">
                 {terms.length === 0 ? (
                   <div className="text-center py-8">
