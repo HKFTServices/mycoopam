@@ -576,8 +576,81 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 2: Logo + Prefixes ═══ */}
+            {/* ═══ Step 2: Service Agreement ═══ */}
             {step === 2 && (
+              <div className="space-y-5">
+                {feePlansLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Select your preferred service plan. The setup fee is payable upfront (7-day grace period applies).
+                      A higher initial fee results in lower ongoing transaction costs.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {feePlans.map((plan) => (
+                        <div
+                          key={plan.id}
+                          onClick={() => setSelectedPlanId(plan.id)}
+                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all space-y-3 ${
+                            selectedPlanId === plan.id
+                              ? "border-primary bg-primary/5 shadow-md"
+                              : "border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-lg">{plan.plan_label}</h3>
+                            {selectedPlanId === plan.id && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-2xl font-bold text-primary">
+                              {formatCurrency(plan.setup_fee_excl_vat)}
+                              <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT setup</span>
+                            </p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-1.5 text-sm">
+                            <p><span className="font-medium">{plan.deposit_fee_pct}%</span> on all deposits</p>
+                            <p><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches, transfers & withdrawals</p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-1.5 text-sm">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Monthly recurring (% of TPV p.a.)</p>
+                            <p>{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
+                            <p>{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                            <p>{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedPlanId && (
+                      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="sla-accept"
+                            checked={slaAccepted}
+                            onCheckedChange={(checked) => setSlaAccepted(!!checked)}
+                          />
+                          <Label htmlFor="sla-accept" className="text-sm leading-relaxed">
+                            I, on behalf of <strong>{name || "the Co-operative"}</strong> (Registration: {registrationNumber || "—"}),
+                            accept the selected service plan and agree to the Service Level Agreement terms between
+                            HKFT Services (Pty) Ltd and {name || "the Co-operative"}. The once-off setup fee is payable
+                            within 7 days of registration.
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext} disabled={feePlansLoading}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 3: Logo + Prefixes ═══ */}
+            {step === 3 && (
               <div className="space-y-5">
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Company Logo</h3>
