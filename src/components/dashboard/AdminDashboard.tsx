@@ -440,9 +440,6 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
-<<<<<<< HEAD
-            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
-=======
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Quick actions">
@@ -465,7 +462,6 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
->>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
@@ -591,11 +587,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                 const showInvestorPct = !!getTierKey(poolName);
                 const stats = investorStatsByPoolId.get(String(p.id));
                 const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
-<<<<<<< HEAD
-                return <div key={p.id} className="w-[220px] sm:w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
-=======
                 return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
->>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
               })}
             </div>
           )
@@ -616,13 +608,8 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
       )}
 
       {/* Financial overview */}
-<<<<<<< HEAD
-      <div className="space-y-3 sm:space-y-4">
-        {!isMobile && isWidgetVisible("financial-overview") && (
-=======
       <div className="space-y-4">
         {isWidgetVisible("financial-overview") && (
->>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
           <AdminChartsCard aumData={aumAllocationData} loanData={loanBookData} accountsData={accountsStatusData} compact={isMobile} />
         )}
 

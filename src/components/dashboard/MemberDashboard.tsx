@@ -352,9 +352,6 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
-<<<<<<< HEAD
-            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
-=======
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Quick actions">
@@ -377,7 +374,6 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
->>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
