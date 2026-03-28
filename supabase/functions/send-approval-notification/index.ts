@@ -1,18 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import nodemailer from "npm:nodemailer@6.9.10";
+import {
+  corsHeaders,
+  resolveSmtp,
+  createSmtpTransporter,
+  buildFromHeader,
+  resolveTenantDisplayName,
+  resolveEmailSignature,
+} from "../_shared/email-helpers.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-/**
- * Sends an email notification to the next approver(s) when a member submits
- * a transaction for approval. Uses tenant SMTP and communication templates.
- *
- * Body: { tenant_id, transaction_type, member_name, account_number, amount, transaction_date }
- */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -62,46 +56,32 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch tenant SMTP + signature config
+    // Fetch tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
       .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
-    if (!tenantConfig?.smtp_host || !tenantConfig?.smtp_from_email) {
-      console.warn("[send-approval-notification] SMTP not configured for tenant");
-      return new Response(JSON.stringify({ success: false, error: "SMTP not configured" }), {
+    // ── Resolve SMTP using standard 3-tier fallback ──
+    const smtp = await resolveSmtp(adminClient, tenant_id, tenantConfig);
+    if (!smtp) {
+      console.warn("[send-approval-notification] No SMTP configured anywhere");
+      return new Response(JSON.stringify({ success: false, error: "No SMTP configured" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Resolve tenant display name
-    const { data: tenant } = await adminClient
-      .from("tenants")
-      .select("name")
-      .eq("id", tenant_id)
-      .single();
+    const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
 
-    let tenantName = tenant?.name || "the cooperative";
-    if (tenantConfig.legal_entity_id) {
-      const { data: legalEntity } = await adminClient
-        .from("entities")
-        .select("name")
-        .eq("id", tenantConfig.legal_entity_id)
-        .single();
-      if (legalEntity?.name) tenantName = legalEntity.name;
-    }
-
-    // Find approvers: users with clerk, tenant_admin, or super_admin roles for this tenant
+    // Find approvers: users with clerk, tenant_admin, or super_admin roles
     const { data: approverRoles } = await adminClient
       .from("user_roles")
       .select("user_id, role")
       .eq("tenant_id", tenant_id)
       .in("role", ["clerk", "tenant_admin"]);
 
-    // Also include super_admins (tenant_id is null for super_admin)
     const { data: superAdminRoles } = await adminClient
       .from("user_roles")
       .select("user_id, role")
@@ -115,63 +95,33 @@ Deno.serve(async (req) => {
     ];
 
     if (allApproverUserIds.length === 0) {
-      console.warn("[send-approval-notification] No approvers found for tenant");
       return new Response(JSON.stringify({ success: true, emails_sent: 0 }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch profiles for approvers
     const { data: approverProfiles } = await adminClient
       .from("profiles")
       .select("user_id, first_name, last_name, email, language_code")
       .in("user_id", allApproverUserIds);
 
     if (!approverProfiles?.length) {
-      console.warn("[send-approval-notification] No approver profiles found");
       return new Response(JSON.stringify({ success: true, emails_sent: 0 }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Multi-port SMTP fallback strategy
-    const smtpStrategies = [
-      { port: 465, secure: true,  ignoreTLS: false },
-      { port: 587, secure: false, ignoreTLS: false },
-      { port: 587, secure: false, ignoreTLS: true  },
-      { port: 25,  secure: false, ignoreTLS: true  },
-    ];
-    let transporter: any = null;
-    for (const s of smtpStrategies) {
-      try {
-        const t = nodemailer.createTransport({
-          host: tenantConfig.smtp_host, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
-          tls: { rejectUnauthorized: false },
-          auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
-        });
-        await t.verify();
-        transporter = t;
-        console.log(`[send-approval-notification] Connected via ${tenantConfig.smtp_host}:${s.port}`);
-        break;
-      } catch (err: any) {
-        console.log(`[send-approval-notification] ${tenantConfig.smtp_host}:${s.port} failed: ${err.message}`);
-        if (/534|535/.test(err.message)) break;
-      }
-    }
+    // Create transporter once for all approvers
+    const transporter = await createSmtpTransporter(smtp);
     if (!transporter) {
       return new Response(JSON.stringify({ error: "SMTP connection failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const isSmtpUserEmail = tenantConfig.smtp_username?.includes("@");
-    const effectiveFromEmail = isSmtpUserEmail ? tenantConfig.smtp_username : tenantConfig.smtp_from_email;
-    const fromHeader = tenantConfig.smtp_from_name
-      ? `"${tenantConfig.smtp_from_name}" <${effectiveFromEmail}>`
-      : effectiveFromEmail;
-
+    const fromHeader = buildFromHeader(smtp);
     const formattedAmount = amount
       ? `R ${Number(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : "";
@@ -183,7 +133,6 @@ Deno.serve(async (req) => {
 
       const userLang = profile.language_code || "en";
 
-      // Try to fetch custom template
       const { data: template } = await adminClient
         .from("communication_templates")
         .select("subject, body_html")
@@ -238,12 +187,8 @@ Deno.serve(async (req) => {
       let subject = template?.subject || (userLang === "af" ? defaultSubjectAf : defaultSubjectEn);
       let body = template?.body_html || (userLang === "af" ? defaultBodyAf : defaultBodyEn);
 
-      // Resolve email signature
-      const emailSignature = userLang === "af"
-        ? (tenantConfig.email_signature_af || tenantConfig.email_signature_en || "")
-        : (tenantConfig.email_signature_en || "");
+      const emailSignature = resolveEmailSignature(tenantConfig, userLang);
 
-      // Replace merge fields
       const replacements: Record<string, string> = {
         "{{user_name}}": approverName,
         "{{user_surname}}": profile.last_name || "",
@@ -262,16 +207,10 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const info = await transporter.sendMail({
-          from: fromHeader,
-          to: profile.email,
-          subject,
-          html: body,
-        });
+        const info = await transporter.sendMail({ from: fromHeader, to: profile.email, subject, html: body });
         emailsSent++;
-        console.log(`[send-approval-notification] Sent to ${profile.email}: ${info.messageId}`);
+        console.log(`[send-approval-notification] Sent to ${profile.email}: ${info.messageId} (SMTP source: ${smtp.source})`);
 
-        // Log email
         try {
           await adminClient.from("email_logs").insert({
             tenant_id,
@@ -281,7 +220,7 @@ Deno.serve(async (req) => {
             subject,
             status: "sent",
             message_id: info.messageId,
-            metadata: { transaction_type, member_name, account_number, amount },
+            metadata: { transaction_type, member_name, account_number, amount, smtp_source: smtp.source },
           });
         } catch (logErr: any) {
           console.warn("[send-approval-notification] Failed to log:", logErr.message);
@@ -292,7 +231,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, emails_sent: emailsSent }),
+      JSON.stringify({ success: true, emails_sent: emailsSent, smtp_source: smtp.source }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {

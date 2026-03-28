@@ -1,21 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import nodemailer from "npm:nodemailer@6.9.10";
-
-const PROD_DOMAIN = "myco-op.co.za";
-
-function getTenantSiteUrl(tenantSlug?: string | null) {
-  if (tenantSlug) {
-    return `https://${tenantSlug}.${PROD_DOMAIN}`;
-  }
-
-  return `https://www.${PROD_DOMAIN}`;
-}
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import {
+  corsHeaders,
+  resolveSmtp,
+  createSmtpTransporter,
+  buildFromHeader,
+  buildTenantUrl,
+  resolveTenantDisplayName,
+  resolveEmailSignature,
+} from "../_shared/email-helpers.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -44,14 +36,8 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // ── Self-registration mode: unauthenticated call right after signUp ──
-    // Validates the user exists, was created < 5 minutes ago, and belongs to the tenant.
     if (self_register_email && typeof self_register_email === "string") {
       console.log("[send-registration-email] Self-register mode for:", self_register_email);
-      const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers({
-        page: 1,
-        perPage: 1,
-      });
-      // Use profile lookup instead (more reliable)
       const { data: profileMatch } = await adminClient
         .from("profiles")
         .select("user_id, created_at")
@@ -66,7 +52,6 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Ensure account was created within last 5 minutes (prevents abuse)
       const createdAt = new Date(profileMatch.created_at);
       const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
       if (createdAt < fiveMinAgo) {
@@ -82,17 +67,14 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else if (isServiceRole && explicitUserId) {
-      // Admin resend via service role
       userId = explicitUserId;
       console.log("[send-registration-email] Admin resend for user:", userId);
     } else {
-      // Verify the calling user via JWT
       const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
       const { data: userData, error: userErr } = await anonClient.auth.getUser();
       if (userErr || !userData?.user) {
-        console.error("[send-registration-email] Auth error:", userErr?.message);
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -100,10 +82,8 @@ Deno.serve(async (req) => {
       }
       const callerUserId = userData.user.id;
 
-      // If explicit user_id provided, check caller is super_admin
       if (explicitUserId) {
-        const adminClient2 = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: roleCheck } = await adminClient2
+        const { data: roleCheck } = await adminClient
           .from("user_roles")
           .select("role")
           .eq("user_id", callerUserId)
@@ -116,13 +96,10 @@ Deno.serve(async (req) => {
           });
         }
         userId = explicitUserId;
-        console.log("[send-registration-email] Super admin resend for user:", userId);
       } else {
         userId = callerUserId;
       }
     }
-
-    // adminClient already created above
 
     // Fetch user profile
     const { data: profile } = await adminClient
@@ -138,21 +115,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch tenant info
+    // Fetch tenant info (need slug for URL building)
     const { data: tenant } = await adminClient
       .from("tenants")
       .select("name, slug")
       .eq("id", tenant_id)
       .single();
 
-    // Fetch tenant SMTP configuration from tenant_configuration
+    // Fetch tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
       .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
-    // Fetch communication template for this event in user's preferred language
+    // Fetch communication template
     const userLang = profile.language_code || "en";
     const { data: template } = await adminClient
       .from("communication_templates")
@@ -165,21 +142,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const firstName = profile.first_name || "Member";
+    const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
 
-    // Resolve tenant display name: prefer legal entity name over tenant.name
-    let tenantName = tenant?.name || "the cooperative";
-    if (tenantConfig?.legal_entity_id) {
-      const { data: legalEntity } = await adminClient
-        .from("entities")
-        .select("name")
-        .eq("id", tenantConfig.legal_entity_id)
-        .single();
-      if (legalEntity?.name) tenantName = legalEntity.name;
-    }
+    // Build redirect URL using tenant slug → correct subdomain
+    const redirectTo = buildTenantUrl(tenant?.slug, "/auth");
 
-    const redirectTo = getTenantSiteUrl(tenant?.slug);
-
-    // Try signup link first; if user already exists, fall back to magiclink
+    // Generate activation link
     let activationLink: string;
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "signup",
@@ -188,7 +156,6 @@ Deno.serve(async (req) => {
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      // User already confirmed — use magiclink instead
       console.log("[send-registration-email] Signup link failed, trying magiclink:", linkError?.message);
       const { data: magicData, error: magicError } = await adminClient.auth.admin.generateLink({
         type: "magiclink",
@@ -203,7 +170,7 @@ Deno.serve(async (req) => {
       activationLink = linkData.properties.action_link;
     }
 
-    // Use template if available, otherwise use a default
+    // Build email content
     let subject = template?.subject || `Activate your ${tenantName} account`;
     let body = template?.body_html ||
       `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#ffffff;">
@@ -220,7 +187,6 @@ Deno.serve(async (req) => {
         <p>Best regards,<br/><strong>${tenantName}</strong></p>
       </div>`;
 
-    // Replace placeholders
     const replacements: Record<string, string> = {
       "{{entity_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
       "{{user_name}}": firstName,
@@ -237,124 +203,41 @@ Deno.serve(async (req) => {
       body = body.replaceAll(key, val);
     }
 
-    // Append tenant email signature
-    const emailSignature = userLang === "af"
-      ? (tenantConfig as any)?.email_signature_af || (tenantConfig as any)?.email_signature_en || ""
-      : (tenantConfig as any)?.email_signature_en || "";
+    // Append email signature
+    const emailSignature = resolveEmailSignature(tenantConfig, userLang);
     if (emailSignature) {
       body = body + emailSignature;
     }
 
-    // Determine SMTP config: ALWAYS use head_office_settings first for registration/activation emails,
-    // then fall back to tenant config, then AEM source tenant
-    let smtpHost: string | null = null;
-    let smtpPort: number | null = null;
-    let smtpUsername: string | null = null;
-    let smtpPassword: string | null = null;
-    let smtpFromEmail: string | null = null;
-    let smtpFromName: string | null = null;
+    // ── Resolve SMTP using standard 3-tier fallback ──
+    const smtp = await resolveSmtp(adminClient, tenant_id, tenantConfig);
 
-    // 1. Head Office settings (primary for registration emails)
-    // Check DB table first, then fall back to GLOBAL_SMTP_* env secrets
-    const { data: hoSettings } = await adminClient
-      .from("head_office_settings")
-      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, company_name")
-      .limit(1)
-      .maybeSingle();
-
-    if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
-      smtpHost = hoSettings.smtp_host;
-      smtpPort = hoSettings.smtp_port;
-      smtpUsername = hoSettings.smtp_username;
-      smtpPassword = hoSettings.smtp_password;
-      smtpFromEmail = hoSettings.smtp_from_email;
-      smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
-      console.log("[send-registration-email] Using head office SMTP settings from DB (primary)");
-    } else {
-      // Fallback to GLOBAL_SMTP_* environment secrets
-      const envHost = Deno.env.get("GLOBAL_SMTP_HOST");
-      const envUsername = Deno.env.get("GLOBAL_SMTP_USERNAME");
-      if (envHost && envUsername) {
-        smtpHost = envHost;
-        smtpPort = parseInt(Deno.env.get("GLOBAL_SMTP_PORT") || "587", 10);
-        smtpUsername = envUsername;
-        smtpPassword = Deno.env.get("GLOBAL_SMTP_PASSWORD") || "";
-        smtpFromEmail = envUsername;
-        smtpFromName = Deno.env.get("GLOBAL_SMTP_FROM_NAME") || hoSettings?.company_name || "My Co-op";
-        console.log("[send-registration-email] Using GLOBAL_SMTP_* env secrets (primary)");
-      }
-    }
-
-    // 2. Tenant SMTP fallback
-    if ((!smtpHost || !smtpFromEmail) && tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
-      smtpHost = tenantConfig.smtp_host;
-      smtpPort = tenantConfig.smtp_port;
-      smtpUsername = tenantConfig.smtp_username;
-      smtpPassword = tenantConfig.smtp_password;
-      smtpFromEmail = tenantConfig.smtp_from_email;
-      smtpFromName = tenantConfig.smtp_from_name;
-      console.log("[send-registration-email] Using tenant SMTP settings (fallback)");
-    }
-
-    if (!smtpHost || !smtpFromEmail) {
-      console.warn("[send-registration-email] No SMTP configured in head office or tenant settings");
-    }
-
-    // Send via SMTP
     let emailSent = false;
     let messageId = "";
     let smtpError = "";
 
-    if (smtpHost && smtpFromEmail) {
-      try {
-        const smtpStrategies = [
-          { port: 465, secure: true,  ignoreTLS: false },
-          { port: 587, secure: false, ignoreTLS: false },
-          { port: 587, secure: false, ignoreTLS: true  },
-          { port: 25,  secure: false, ignoreTLS: true  },
-        ];
-        let transporter: any = null;
-        for (const s of smtpStrategies) {
-          try {
-            const t = nodemailer.createTransport({
-              host: smtpHost, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
-              tls: { rejectUnauthorized: false },
-              auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword || "" } : undefined,
-            });
-            await t.verify();
-            transporter = t;
-            console.log(`[send-registration-email] Connected via ${smtpHost}:${s.port}`);
-            break;
-          } catch (err: any) {
-            console.log(`[send-registration-email] ${smtpHost}:${s.port} failed: ${err.message}`);
-            if (/534|535/.test(err.message)) break;
-          }
+    if (smtp) {
+      const transporter = await createSmtpTransporter(smtp);
+      if (transporter) {
+        try {
+          const info = await transporter.sendMail({
+            from: buildFromHeader(smtp),
+            to: profile.email,
+            subject,
+            html: body,
+          });
+          emailSent = true;
+          messageId = info.messageId;
+          console.log(`[send-registration-email] Email sent: ${messageId}`);
+        } catch (err: any) {
+          smtpError = err.message;
+          console.error(`[send-registration-email] SMTP error: ${smtpError}`);
         }
-        if (!transporter) throw new Error("All SMTP strategies failed");
-
-        const isSmtpUserEmail = smtpUsername?.includes("@");
-        const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
-        const fromHeader = smtpFromName
-          ? `"${smtpFromName}" <${effectiveFromEmail}>`
-          : effectiveFromEmail;
-
-        const info = await transporter.sendMail({
-          from: fromHeader,
-          to: profile.email,
-          subject,
-          html: body,
-        });
-
-        emailSent = true;
-        messageId = info.messageId;
-        console.log(`[send-registration-email] Email sent: ${messageId}`);
-      } catch (smtpErr: any) {
-        smtpError = smtpErr.message;
-        console.error(`[send-registration-email] SMTP error: ${smtpError}`);
+      } else {
+        smtpError = "All SMTP connection strategies failed";
       }
     } else {
-      smtpError = "SMTP not configured for this tenant or head office";
-      console.warn(`[send-registration-email] ${smtpError}`);
+      smtpError = "No SMTP configured (tenant, head office, or env)";
     }
 
     await adminClient.from("email_logs").insert({
@@ -369,6 +252,7 @@ Deno.serve(async (req) => {
         message_id: messageId || null,
         email_type: "activation",
         redirect_to: redirectTo,
+        smtp_source: smtp?.source || "none",
       },
     });
 
@@ -378,6 +262,7 @@ Deno.serve(async (req) => {
         email_sent: emailSent,
         message_id: messageId || undefined,
         smtp_error: smtpError || undefined,
+        smtp_source: smtp?.source || "none",
         recipient: profile.email,
         subject,
         activation_link_generated: true,

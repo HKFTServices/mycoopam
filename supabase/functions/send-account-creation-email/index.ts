@@ -1,11 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import nodemailer from "npm:nodemailer@6.9.10";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import {
+  corsHeaders,
+  resolveSmtp,
+  createSmtpTransporter,
+  buildFromHeader,
+  resolveTenantDisplayName,
+  resolveEmailSignature,
+} from "../_shared/email-helpers.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,20 +62,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: tenant } = await adminClient
-      .from("tenants")
-      .select("name")
-      .eq("id", tenant_id)
-      .single();
-
-    // Fetch tenant SMTP configuration (tenant-specific)
+    // Fetch tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
       .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
-    // Resolve entity account name (the company/entity name linked to the account)
+    // Resolve entity account name
     let entityAccountName = "";
     let accountNumber = "";
     if (entity_account_id) {
@@ -93,7 +88,8 @@ Deno.serve(async (req) => {
         entityAccountName = entity ? [entity.name, entity.last_name].filter(Boolean).join(" ") : "";
       }
     }
-    // If no entity_account_id provided, try to find by user's entity
+
+    // Fallback: find by user's entity
     if (!entityAccountName) {
       const { data: uer } = await adminClient
         .from("user_entity_relationships")
@@ -119,7 +115,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Resolve tenant legal entity bank details
+    // Resolve legal entity bank details
     let legalEntityBankDetails = "";
     if (tenantConfig?.legal_entity_id) {
       const { data: bankRows } = await adminClient
@@ -154,22 +150,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const firstName = profile.first_name || "Member";
-
-    // Resolve tenant display name: prefer legal entity name over tenant.name
-    let tenantName = tenant?.name || "the cooperative";
-    if (tenantConfig?.legal_entity_id) {
-      const { data: legalEntity } = await adminClient
-        .from("entities")
-        .select("name")
-        .eq("id", tenantConfig.legal_entity_id)
-        .single();
-      if (legalEntity?.name) tenantName = legalEntity.name;
-    }
-
-    // Resolve email signature
-    const emailSignature = userLang === "af"
-      ? (tenantConfig as any)?.email_signature_af || (tenantConfig as any)?.email_signature_en || ""
-      : (tenantConfig as any)?.email_signature_en || "";
+    const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
+    const emailSignature = resolveEmailSignature(tenantConfig, userLang);
 
     let subject = template?.subject || `Welcome to ${tenantName} – Membership Application Received!`;
     let body = template?.body_html ||
@@ -204,108 +186,40 @@ Deno.serve(async (req) => {
       body = body.replaceAll(key, val);
     }
 
-    // Determine SMTP: tenant config → head office → AEM source tenant
-    let smtpHost = tenantConfig?.smtp_host || null;
-    let smtpPort = tenantConfig?.smtp_port || null;
-    let smtpUsername = tenantConfig?.smtp_username || null;
-    let smtpPassword = tenantConfig?.smtp_password || null;
-    let smtpFromEmail = tenantConfig?.smtp_from_email || null;
-    let smtpFromName = tenantConfig?.smtp_from_name || null;
+    // ── Resolve SMTP using standard 3-tier fallback ──
+    const smtp = await resolveSmtp(adminClient, tenant_id, tenantConfig);
 
-    if (!smtpHost || !smtpFromEmail) {
-      console.log("[send-account-creation-email] Tenant SMTP not configured, falling back to head office");
-      const { data: hoSettings } = await adminClient
-        .from("head_office_settings")
-        .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, company_name")
-        .limit(1)
-        .maybeSingle();
-
-      if (hoSettings?.smtp_host && hoSettings?.smtp_from_email) {
-        smtpHost = hoSettings.smtp_host;
-        smtpPort = hoSettings.smtp_port;
-        smtpUsername = hoSettings.smtp_username;
-        smtpPassword = hoSettings.smtp_password;
-        smtpFromEmail = hoSettings.smtp_from_email;
-        smtpFromName = hoSettings.smtp_from_name || hoSettings.company_name;
-        console.log("[send-account-creation-email] Using head office SMTP settings from DB");
-      } else {
-        // Fallback to GLOBAL_SMTP_* environment secrets
-        const envHost = Deno.env.get("GLOBAL_SMTP_HOST");
-        const envUsername = Deno.env.get("GLOBAL_SMTP_USERNAME");
-        if (envHost && envUsername) {
-          smtpHost = envHost;
-          smtpPort = parseInt(Deno.env.get("GLOBAL_SMTP_PORT") || "587", 10);
-          smtpUsername = envUsername;
-          smtpPassword = Deno.env.get("GLOBAL_SMTP_PASSWORD") || "";
-          smtpFromEmail = envUsername;
-          smtpFromName = Deno.env.get("GLOBAL_SMTP_FROM_NAME") || hoSettings?.company_name || "My Co-op";
-          console.log("[send-account-creation-email] Using GLOBAL_SMTP_* env secrets");
-        } else {
-          console.warn("[send-account-creation-email] No SMTP configured in tenant, head office DB, or env secrets");
-        }
-      }
-    }
-
-    // Send via SMTP
     let emailSent = false;
     let messageId = "";
     let smtpError = "";
 
-    if (smtpHost && smtpFromEmail) {
-      try {
-        const portStrategies = [
-          { port: 465, secure: true,  ignoreTLS: false },
-          { port: 587, secure: false, ignoreTLS: false },
-          { port: 587, secure: false, ignoreTLS: true  },
-          { port: 25,  secure: false, ignoreTLS: true  },
-        ];
-
-        let transporter: any = null;
-        for (const strategy of portStrategies) {
-          try {
-            const t = nodemailer.createTransport({
-              host: smtpHost,
-              port: strategy.port,
-              secure: strategy.secure,
-              ignoreTLS: strategy.ignoreTLS,
-              tls: { rejectUnauthorized: false },
-              auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword || "" } : undefined,
-            });
-            await t.verify();
-            transporter = t;
-            console.log(`[send-account-creation-email] Connected via ${smtpHost}:${strategy.port}`);
-            break;
-          } catch (err: any) {
-            console.log(`[send-account-creation-email] Strategy ${smtpHost}:${strategy.port} failed: ${err.message}`);
-            if (/534|535/.test(err.message)) break;
-          }
+    if (smtp) {
+      const transporter = await createSmtpTransporter(smtp);
+      if (transporter) {
+        try {
+          const info = await transporter.sendMail({
+            from: buildFromHeader(smtp),
+            to: profile.email,
+            subject,
+            html: body,
+          });
+          emailSent = true;
+          messageId = info.messageId;
+          console.log(`[send-account-creation-email] Sent: ${messageId} to ${profile.email} (SMTP source: ${smtp.source})`);
+        } catch (err: any) {
+          smtpError = err.message;
+          console.error(`[send-account-creation-email] SMTP error: ${smtpError}`);
         }
-
-        if (!transporter) {
-          throw new Error("All SMTP connection strategies failed");
-        }
-
-        const isSmtpUserEmail = smtpUsername?.includes("@");
-        const effectiveFromEmail = isSmtpUserEmail ? smtpUsername : smtpFromEmail;
-        const fromHeader = smtpFromName
-          ? `"${smtpFromName}" <${effectiveFromEmail}>`
-          : effectiveFromEmail;
-
-        const info = await transporter.sendMail({ from: fromHeader, to: profile.email, subject, html: body });
-        emailSent = true;
-        messageId = info.messageId;
-        console.log(`[send-account-creation-email] Sent: ${messageId} to ${profile.email}`);
-      } catch (err: any) {
-        smtpError = err.message;
-        console.error(`[send-account-creation-email] SMTP error: ${smtpError}`);
+      } else {
+        smtpError = "All SMTP connection strategies failed";
       }
     } else {
-      smtpError = "SMTP not configured for this tenant or head office";
+      smtpError = "No SMTP configured (tenant, head office, or env)";
       console.warn(`[send-account-creation-email] ${smtpError}`);
     }
 
     return new Response(
-      JSON.stringify({ success: true, email_sent: emailSent, message_id: messageId || undefined, smtp_error: smtpError || undefined, recipient: profile.email, subject }),
+      JSON.stringify({ success: true, email_sent: emailSent, message_id: messageId || undefined, smtp_error: smtpError || undefined, smtp_source: smtp?.source || "none", recipient: profile.email, subject }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
