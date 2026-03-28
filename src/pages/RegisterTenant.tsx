@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Loader2, ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Upload, X, Coins, Plus, ShieldCheck,
-  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle,
+  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle, Scale,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { formatCurrency } from "@/lib/formatCurrency";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import { getTenantUrl } from "@/lib/getSiteUrl";
 import { validateRsaId } from "@/lib/rsaIdValidation";
