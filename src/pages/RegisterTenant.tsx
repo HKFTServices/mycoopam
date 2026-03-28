@@ -304,7 +304,7 @@ const RegisterTenant = () => {
   const validateStep = (s: number): boolean => {
     switch (s) {
       case 1:
-        if (!name.trim() || !slug.trim() || !email.trim() || !password || !firstName.trim() || !lastName.trim()) {
+        if (!name.trim() || !slug.trim() || !registrationNumber.trim() || !email.trim() || !password || !firstName.trim() || !lastName.trim()) {
           toast({ title: "Please fill in all fields", variant: "destructive" }); return false;
         }
         if (password !== confirmPassword) {
@@ -318,27 +318,35 @@ const RegisterTenant = () => {
         }
         return true;
       case 2:
+        if (!selectedPlanId) {
+          toast({ title: "Please select a service plan", variant: "destructive" }); return false;
+        }
+        if (!slaAccepted) {
+          toast({ title: "Please accept the service agreement", variant: "destructive" }); return false;
+        }
+        return true;
+      case 3:
         if (Object.entries(prefixes).some(([, v]) => !v.trim())) {
           toast({ title: "All prefixes are required", variant: "destructive" }); return false;
         }
         return true;
-      case 3:
+      case 4:
         if (selectedPools.length === 0) {
           toast({ title: "Select at least one pool", variant: "destructive" }); return false;
         }
         return true;
-      case 4:
+      case 5:
         if (!titleId || !firstName.trim() || !lastName.trim() || !idNumber.trim() || idError || !gender || !dateOfBirth || !phone.trim() || phoneError) {
           toast({ title: "Please complete all required fields", variant: "destructive" }); return false;
         }
         return true;
-      case 5:
+      case 6:
         if (!streetAddress.trim() || !city.trim()) {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 6: return true; // documents optional
-      case 7: {
+      case 7: return true; // documents optional
+      case 8: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
           toast({ title: "Please accept all terms & conditions", variant: "destructive" }); return false;
