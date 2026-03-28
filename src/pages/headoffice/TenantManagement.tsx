@@ -160,6 +160,7 @@ const TenantManagement = () => {
   );
 
   const getFeeConfig = (tenantId: string) => feeConfigs.find((f: any) => f.tenant_id === tenantId);
+  const getTenantSla = (tenantId: string) => tenantSlas.find((s: any) => s.tenant_id === tenantId);
   const getFeeVal = (key: string) => {
     if (feeForm[key] !== undefined) return feeForm[key];
     const existing = getFeeConfig(selectedTenant?.id);
