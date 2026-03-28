@@ -3,11 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
 import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
@@ -16,7 +17,7 @@ import RecentMemberDeposits from "@/components/dashboard/RecentMemberDeposits";
 import MemberActivityCard from "@/components/dashboard/MemberActivityCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp, isCriticalDocName } from "@/components/dashboard/dashboardUtils";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
-import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown } from "lucide-react";
+import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -32,6 +33,7 @@ interface MemberDashboardProps {
 const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const { currentTenant, branding } = useTenant();
   const { profile, user } = useAuth();
+  const navigate = useNavigate();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
@@ -350,7 +352,32 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
+<<<<<<< HEAD
             <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
+=======
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Quick actions">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Transaction
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/loan-applications?new=1")}>
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Loan Application
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/debit-orders?new=1")}>
+                  <Landmark className="mr-2 h-4 w-4" />
+                  Debit Order
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+>>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>

@@ -22,9 +22,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
+import { useSearchParams } from "react-router-dom";
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -38,6 +39,7 @@ const statusColor = (s: string) => {
 const DebitOrders = () => {
   const { currentTenant } = useTenant();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [viewOrder, setViewOrder] = useState<any>(null);
   const [editOrder, setEditOrder] = useState<any>(null);
@@ -48,7 +50,7 @@ const DebitOrders = () => {
   const [adminAccountQuery, setAdminAccountQuery] = useState("");
   const [adminSelectedEntity, setAdminSelectedEntity] = useState<any>(null);
 
-  const { data: userRoles = [] } = useQuery({
+  const { data: userRoles = [], isLoading: userRolesLoading } = useQuery({
     queryKey: ["user_roles_do", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -61,7 +63,7 @@ const DebitOrders = () => {
   const isAdmin = userRoles.some(r => ["super_admin", "tenant_admin", "manager"].includes(r));
 
   // Fetch user's linked entities with their entity accounts
-  const { data: userEntities = [] } = useQuery({
+  const { data: userEntities = [], isLoading: userEntitiesLoading } = useQuery({
     queryKey: ["user_entities_do", user?.id, currentTenant?.id],
     queryFn: async () => {
       if (!user || !currentTenant) return [];
@@ -211,6 +213,24 @@ const DebitOrders = () => {
     setEntitySelectOpen(false);
     setSignUpOpen(true);
   };
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    if (userRolesLoading) return;
+    if (!user || !currentTenant) return;
+
+    if (isAdmin) {
+      setAdminAccountSelectOpen(true);
+    } else {
+      if (userEntitiesLoading) return;
+      handleSignUpClick();
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, userRolesLoading, isAdmin, userEntitiesLoading, user, currentTenant]);
 
   const selectedEntity = userEntities.find((e: any) => e.entityId === selectedEntityId);
   const signUpEntity = isAdmin ? adminSelectedEntity : selectedEntity;

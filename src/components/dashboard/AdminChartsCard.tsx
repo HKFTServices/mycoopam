@@ -69,18 +69,36 @@ const AdminChartsCard = ({ aumData, loanData, accountsData, compact }: AdminChar
           </div>
           <div className={`rounded-xl border bg-card p-4 shadow-sm h-full ${compact ? "" : "md:col-span-2"}`}>
             <DonutBlock title="Loan book" data={loanData} emptyLabel="No outstanding loans." />
-            <div className={compact ? "mt-3 grid grid-cols-3 gap-2" : "mt-3 flex flex-wrap items-center gap-2"}>
-              <Button type="button" variant="outline" size="sm" className="justify-start gap-2" onClick={() => openLoanBreakdown("member")}>
+            <div className={compact ? "mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3" : "mt-3 flex flex-wrap items-center gap-2"}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={compact ? "h-8 px-2 text-xs w-full justify-start gap-2 min-w-0" : "justify-start gap-2 min-w-0"}
+                onClick={() => openLoanBreakdown("member")}
+              >
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: actorHsl("member") }} />
-                Members
+                <span className="truncate">Members</span>
               </Button>
-              <Button type="button" variant="outline" size="sm" className="justify-start gap-2" onClick={() => openLoanBreakdown("company")}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={compact ? "h-8 px-2 text-xs w-full justify-start gap-2 min-w-0" : "justify-start gap-2 min-w-0"}
+                onClick={() => openLoanBreakdown("company")}
+              >
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: actorHsl("company") }} />
-                Companies
+                <span className="truncate">Companies</span>
               </Button>
-              <Button type="button" variant="outline" size="sm" className="justify-start gap-2" onClick={() => openLoanBreakdown("entity")}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={compact ? "h-8 px-2 text-xs w-full justify-start gap-2 min-w-0" : "justify-start gap-2 min-w-0"}
+                onClick={() => openLoanBreakdown("entity")}
+              >
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: actorHsl("entity") }} />
-                Entities
+                <span className="truncate">Entities</span>
               </Button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
@@ -110,7 +128,9 @@ const AdminChartsCard = ({ aumData, loanData, accountsData, compact }: AdminChar
       </CardContent>
 
       <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[85vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+        <DialogContent
+          className="w-[calc(100vw-2rem)] max-w-lg md:max-w-2xl max-h-[85vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inset-x-auto bottom-auto rounded-lg border"
+        >
           <DialogHeader>
             <DialogTitle>
               {loanDialogKind === "member" ? "Members with loans"
@@ -123,29 +143,47 @@ const AdminChartsCard = ({ aumData, loanData, accountsData, compact }: AdminChar
             {activeRowsSorted.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">No loans found for this group.</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Outstanding</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              compact ? (
+                <div className="space-y-2">
                   {activeRowsSorted.map((r) => (
-                    <TableRow key={r.name}>
-                      <TableCell className="min-w-0">
+                    <div key={r.name} className="flex items-start justify-between gap-4 rounded-lg border bg-card p-3">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 min-w-0">
                           {loanDialogKind ? (
                             <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: actorHsl(loanDialogKind) }} />
                           ) : null}
-                          <span className="truncate">{r.name}</span>
+                          <p className="text-sm font-medium truncate">{r.name}</p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono whitespace-nowrap">{formatCurrency(Number(r.value || 0))}</TableCell>
-                    </TableRow>
+                      </div>
+                      <p className="shrink-0 text-sm font-mono font-semibold whitespace-nowrap">{formatCurrency(Number(r.value || 0))}</p>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Outstanding</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeRowsSorted.map((r) => (
+                      <TableRow key={r.name}>
+                        <TableCell className="min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {loanDialogKind ? (
+                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: actorHsl(loanDialogKind) }} />
+                            ) : null}
+                            <span className="truncate">{r.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono whitespace-nowrap">{formatCurrency(Number(r.value || 0))}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )
             )}
           </ScrollArea>
         </DialogContent>

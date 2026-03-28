@@ -1771,22 +1771,22 @@ const NewTransactionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl sm:max-h-[90vh] !p-0 !gap-0 overflow-hidden">
-        <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
+      <DialogContent className="h-[92dvh] sm:h-auto sm:max-w-3xl sm:max-h-[90vh] !p-0 !gap-0 overflow-hidden">
+        <div className="flex flex-col h-full sm:h-auto sm:max-h-[90vh] min-w-0">
           <DialogHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 border-b border-border shrink-0">
             <DialogTitle className="text-lg">New Transaction</DialogTitle>
 
             {/* Visual Step Indicator */}
-            <div className="flex items-center gap-1 sm:gap-2 mt-3 sm:mt-4 overflow-x-auto pb-1">
+            <div className="mt-3 sm:mt-4 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2 flex items-center gap-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {STEPS.map((s, i) => {
                 const meta = STEP_META[s];
                 const Icon = meta.icon;
                 const isCurrent = step === s;
                 const isPast = STEPS.indexOf(s) < STEPS.indexOf(step);
                 return (
-                  <div key={s} className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  <div key={s} className="flex items-center gap-2 shrink-0 snap-start">
                     <div
-                      className={`flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg transition-all text-[10px] sm:text-[11px] font-medium ${
+                      className={`flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg transition-all text-[11px] font-medium whitespace-nowrap ${
                         isCurrent
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : isPast
@@ -1799,17 +1799,16 @@ const NewTransactionDialog = ({
                       ) : (
                         <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                       )}
-                      <span className="hidden sm:inline">{meta.label}</span>
-                      <span className="sm:hidden">{meta.label.slice(0, 4)}</span>
+                      <span>{meta.label}</span>
                     </div>
-                    {i < STEPS.length - 1 ? <div className={`h-px w-3 sm:w-6 ${isPast ? "bg-primary/30" : "bg-border"}`} /> : null}
+                    {i < STEPS.length - 1 ? <div className={`h-px w-4 sm:w-6 ${isPast ? "bg-primary/30" : "bg-border"}`} /> : null}
                   </div>
                 );
               })}
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 sm:py-5 min-h-0 min-w-0">
           {step === "account" && (
             <AccountSelectionStep
               accounts={allAccounts}
@@ -2136,27 +2135,25 @@ const NewTransactionDialog = ({
           )}
           </div>
 
-          <DialogFooter className="flex gap-2 px-4 py-3 sm:px-6 sm:py-4 border-t border-border bg-background shrink-0">
+          <DialogFooter className="px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 border-t border-border bg-background shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
             {step !== "account" ? (
-              <Button variant="outline" onClick={prevStep} disabled={submitMutation.isPending} className="gap-1.5">
+              <Button variant="outline" onClick={prevStep} disabled={submitMutation.isPending} className="gap-1.5 w-full sm:w-auto">
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
             ) : (
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitMutation.isPending}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitMutation.isPending} className="w-full sm:w-auto">
                 Cancel
               </Button>
             )}
 
-            <div className="flex-1" />
-
             {step !== "review" ? (
-              <Button onClick={nextStep} disabled={!canProceed()} className="gap-1.5">
+              <Button onClick={nextStep} disabled={!canProceed()} className="gap-1.5 w-full sm:w-auto">
                 Continue
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="gap-1.5">
+              <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="gap-1.5 w-full sm:w-auto">
                 {submitMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (

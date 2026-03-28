@@ -13,12 +13,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { ArrowRight, Loader2, Banknote, Eye, Plus, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
 import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
+import { useSearchParams } from "react-router-dom";
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (s) {
@@ -37,6 +38,7 @@ const statusLabel = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, c => c.
 const LoanApplications = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState("all");
   const [reviewApp, setReviewApp] = useState<any>(null);
   const [acceptApp, setAcceptApp] = useState<any>(null);
@@ -98,6 +100,20 @@ const LoanApplications = () => {
     },
     enabled: !!user && !!currentTenant,
   });
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    if (memberPrimaryAccountLoading) return;
+
+    if (memberPrimaryAccount) {
+      setLoanApplyOpen(true);
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, memberPrimaryAccountLoading, memberPrimaryAccount]);
 
   // Fetch applications
   const { data: applications = [], isLoading, isFetching } = useQuery({

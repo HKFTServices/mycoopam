@@ -39,6 +39,7 @@ import {
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -196,6 +197,19 @@ function sectionHasMatch(label: string, items: NavItem[], query: string) {
   const q = query.toLowerCase();
   return label.toLowerCase().includes(q) || items.some((i) => i.label.toLowerCase().includes(q));
 }
+
+const SidebarAutoCloseOnNavigate = () => {
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isMobile) return;
+    if (!openMobile) return;
+    setOpenMobile(false);
+  }, [isMobile, openMobile, location.pathname, location.search, setOpenMobile]);
+
+  return null;
+};
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, signOut, user } = useAuth();
@@ -509,6 +523,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <SidebarProvider defaultOpen>
+      <SidebarAutoCloseOnNavigate />
       <Sidebar collapsible="offcanvas">
         <SidebarHeader className="gap-3 px-3 py-3">
           <div className="flex items-center justify-between">

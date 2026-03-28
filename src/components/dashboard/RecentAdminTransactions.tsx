@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +8,7 @@ import { ArrowUpFromLine, ArrowDownToLine, ArrowUpRight, MoreHorizontal } from "
 import { formatCurrency } from "@/lib/formatCurrency";
 import { getTierBadgeStyle } from "@/lib/tierColors";
 import ActorBadge from "@/components/common/ActorBadge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ScrollShadow = ({ children, itemCount }: { children: React.ReactNode; itemCount: number }) => {
   const [showFade, setShowFade] = useState(false);
@@ -33,8 +33,8 @@ const ScrollShadow = ({ children, itemCount }: { children: React.ReactNode; item
   }, [itemCount]);
 
   return (
-    <div className="relative">
-      <div ref={scrollerRef} className="max-h-[360px] overflow-y-auto pr-1">{children}</div>
+    <div className="relative w-full min-w-0 max-w-full overflow-x-hidden">
+      <div ref={scrollerRef} className="max-h-[360px] w-full min-w-0 overflow-y-auto overflow-x-hidden pr-1">{children}</div>
       {showFade ? <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" /> : null}
     </div>
   );
@@ -68,12 +68,11 @@ const formatMaybeNumber = (v: any) => {
 const RecentAdminTransactions = ({ items }: { items: any[] }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<any | null>(null);
+  const isMobileView = useIsMobile();
 
   if (!items?.length) {
     return <p className="text-sm text-muted-foreground py-8 text-center">No transactions yet.</p>;
   }
-
-  const isMobileView = typeof window !== "undefined" && window.innerWidth < 640;
 
   const getTransactionMeta = (txn: any) => {
     const typeName = txn.transaction_types?.name || "Transaction";
@@ -110,25 +109,25 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
     return (
       <Badge
         variant="outline"
-        className="text-[10px] px-2 py-0.5 whitespace-nowrap"
+        className="text-[10px] px-2 py-0.5 whitespace-nowrap min-w-0 max-w-[45vw] sm:max-w-[260px]"
         style={style ?? undefined}
       >
-        {name}
+        <span className="truncate">{name}</span>
       </Badge>
     );
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full min-w-0 max-w-full overflow-x-hidden">
       <ScrollShadow itemCount={items.length}>
         {isMobileView ? (
-          <div className="space-y-2">
+          <div className="space-y-2 w-full min-w-0">
             {items.map((txn: any) => {
               const m = getTransactionMeta(txn);
               return (
                 <div
                   key={txn.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors"
+                  className="flex w-full min-w-0 items-center gap-3 p-3 rounded-lg border border-border bg-card cursor-pointer hover:bg-muted/40 transition-colors"
                   onClick={() => { setSelectedTxn(txn); setDetailsOpen(true); }}
                 >
                   <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${m.iconTone}`}>
@@ -155,62 +154,50 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
             })}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[980px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[360px]">Transaction</TableHead>
-                  <TableHead className="min-w-[240px]">Member</TableHead>
-                  <TableHead className="w-[140px] whitespace-nowrap">Status</TableHead>
-                  <TableHead className="w-[160px] whitespace-nowrap text-right">Amount</TableHead>
-                  <TableHead className="hidden sm:table-cell w-[130px] whitespace-nowrap text-right">Date</TableHead>
-                  <TableHead className="w-[56px] text-right whitespace-nowrap">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((txn: any) => {
-                  const m = getTransactionMeta(txn);
-                  return (
-                    <TableRow key={txn.id} className="hover:bg-muted/40">
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-3 min-w-[280px]">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${m.iconTone}`}>
-                            <m.Icon className="h-4 w-4" />
-                          </div>
-	                          <div className="min-w-0">
-	                            <div className="flex items-center gap-2 min-w-0">
-	                              <p className="text-sm font-medium truncate">{m.typeName}</p>
-	                              {m.poolName ? <PoolPill name={m.poolName} /> : null}
-	                            </div>
-	                            <p className="text-xs text-muted-foreground truncate">{m.code ? `Code: ${m.code}` : "—"}</p>
-	                          </div>
-                        </div>
-                      </TableCell>
-	                      <TableCell className="py-3">
-	                        <div className="min-w-[200px]">
-	                          <p className="text-sm truncate" title={m.memberName}>{m.memberName}</p>
-	                          <div className="flex items-center gap-2 mt-1">
-	                            <p className="text-xs text-muted-foreground truncate">{m.accountNumber ? `Acc ${m.accountNumber}` : "—"}</p>
-	                            {txn?._meta?.accountKind ? <ActorBadge kind={txn._meta.accountKind} label={txn?._meta?.accountType} /> : null}
-	                          </div>
-	                        </div>
-	                      </TableCell>
-                      <TableCell className="py-3 whitespace-nowrap">
+          <div className="space-y-2 w-full min-w-0">
+            {items.map((txn: any) => {
+              const m = getTransactionMeta(txn);
+              return (
+                <div
+                  key={txn.id}
+                  className="flex w-full min-w-0 items-start justify-between gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${m.iconTone}`}>
+                      <m.Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <p className="text-sm font-medium truncate">{m.typeName}</p>
+                        {m.poolName ? <PoolPill name={m.poolName} /> : null}
                         <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${m.statusTone}`}>{m.statusLabel}</Badge>
-                      </TableCell>
-                      <TableCell className={`py-3 text-right font-medium whitespace-nowrap ${m.amountTone}`}>{formatCurrency(Number(txn.amount))}</TableCell>
-                      <TableCell className="hidden sm:table-cell py-3 text-right text-xs text-muted-foreground whitespace-nowrap">{txn.transaction_date ?? "—"}</TableCell>
-                      <TableCell className="py-3 text-right whitespace-nowrap">
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="View transaction"
-                          onClick={() => { setSelectedTxn(txn); setDetailsOpen(true); }}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      </div>
+
+                      <div className="mt-1 flex items-center gap-2 min-w-0 flex-wrap">
+                        <p className="text-xs text-muted-foreground truncate">{m.memberName}</p>
+                        {txn?._meta?.accountKind ? <ActorBadge kind={txn._meta.accountKind} label={txn?._meta?.accountType} /> : null}
+                        {m.accountNumber ? <span className="text-xs text-muted-foreground whitespace-nowrap">Acc {m.accountNumber}</span> : null}
+                        {txn.transaction_date ? <span className="text-xs text-muted-foreground whitespace-nowrap">• {txn.transaction_date}</span> : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <p className={`text-sm font-semibold whitespace-nowrap ${m.amountTone}`}>{formatCurrency(Number(txn.amount))}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label="View transaction"
+                      onClick={() => { setSelectedTxn(txn); setDetailsOpen(true); }}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </ScrollShadow>
@@ -330,19 +317,18 @@ const RecentAdminTransactions = ({ items }: { items: any[] }) => {
                                 {feeBreakdown.length ? (
                                   <div className="space-y-2">
                                     <p className="text-xs font-semibold text-muted-foreground">Fee breakdown</p>
-                                    <div className="overflow-x-auto rounded-md border bg-background">
-                                      <Table>
-                                        <TableHeader><TableRow><TableHead>Fee</TableHead><TableHead className="text-right whitespace-nowrap">Amount</TableHead><TableHead className="text-right whitespace-nowrap">VAT</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                          {feeBreakdown.map((f: any, idx: number) => (
-                                            <TableRow key={idx}>
-                                              <TableCell className="text-sm">{String(f?.name ?? "—")}</TableCell>
-                                              <TableCell className="text-right text-sm whitespace-nowrap">{formatCurrency(Number(f?.amount ?? 0))}</TableCell>
-                                              <TableCell className="text-right text-sm whitespace-nowrap">{formatCurrency(Number(f?.vat ?? 0))}</TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
+                                    <div className="rounded-md border bg-background divide-y">
+                                      {feeBreakdown.map((f: any, idx: number) => (
+                                        <div key={idx} className="p-3 flex items-start justify-between gap-4">
+                                          <p className="text-sm font-medium text-foreground min-w-0 flex-1 break-words">
+                                            {String(f?.name ?? "—")}
+                                          </p>
+                                          <div className="shrink-0 text-right space-y-1">
+                                            <p className="text-sm font-semibold whitespace-nowrap">{formatCurrency(Number(f?.amount ?? 0))}</p>
+                                            <p className="text-xs text-muted-foreground whitespace-nowrap">VAT {formatCurrency(Number(f?.vat ?? 0))}</p>
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
                                 ) : null}

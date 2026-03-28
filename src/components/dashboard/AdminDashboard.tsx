@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
 import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
 import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
@@ -17,7 +18,7 @@ import AdminChartsCard from "@/components/dashboard/AdminChartsCard";
 import RecentAdminTransactions from "@/components/dashboard/RecentAdminTransactions";
 import { PoolSummaryMiniCard } from "@/components/dashboard/PoolSummaryMiniCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp } from "@/components/dashboard/dashboardUtils";
-import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown } from "lucide-react";
+import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
@@ -93,7 +94,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     queryKey: ["pool_summaries", tenantId],
     queryFn: async () => {
       const { data: pools } = await (supabase as any)
-        .from("pools").select("id, name, fixed_unit_price, icon_url")
+        .from("pools").select("id, name, fixed_unit_price, icon_url, pool_statement_display_type, pool_statement_description")
         .eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false).order("name");
       if (!pools?.length) return [];
 
@@ -117,7 +118,17 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
         const latest = latestByPool[pool.id];
         const totalUnits = unitsByPool[pool.id] ?? 0;
         const unitPrice = latest ? Number(latest.unit_price_sell) : Number(pool.fixed_unit_price || 0);
-        return { id: pool.id, name: pool.name, iconUrl: pool.icon_url, totalUnits, unitPrice, totalValue: totalUnits * unitPrice, latestDate: latest?.totals_date };
+        return {
+          id: pool.id,
+          name: pool.name,
+          iconUrl: pool.icon_url,
+          statementDisplayType: pool.pool_statement_display_type ?? "display_in_summary",
+          statementDescription: pool.pool_statement_description ?? null,
+          totalUnits,
+          unitPrice,
+          totalValue: totalUnits * unitPrice,
+          latestDate: latest?.totals_date,
+        };
       });
     },
     enabled: !!tenantId,
@@ -170,6 +181,18 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
 
     return picked;
   }, [poolSummaries]);
+
+  const visiblePoolSummaries = useMemo(() => {
+    return (poolSummaries ?? []).filter((p: any) => (p?.statementDisplayType ?? "display_in_summary") !== "do_not_display");
+  }, [poolSummaries]);
+
+  const summaryPools = useMemo(() => {
+    return visiblePoolSummaries.filter((p: any) => (p?.statementDisplayType ?? "display_in_summary") === "display_in_summary");
+  }, [visiblePoolSummaries]);
+
+  const belowSummaryPools = useMemo(() => {
+    return visiblePoolSummaries.filter((p: any) => p?.statementDisplayType === "display_below_summary");
+  }, [visiblePoolSummaries]);
 
   const totalAUM = poolSummaries.reduce((sum: number, p: any) => sum + p.totalValue, 0);
 
@@ -417,7 +440,32 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
+<<<<<<< HEAD
             <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
+=======
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Quick actions">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Transaction
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/loan-applications?new=1")}>
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Loan Application
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/debit-orders?new=1")}>
+                  <Landmark className="mr-2 h-4 w-4" />
+                  Debit Order
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+>>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
@@ -463,28 +511,94 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
 
       {/* Pool summaries */}
       {poolSummaries.length > 0 && isWidgetVisible("pool-summaries") && (
-        isMobile ? (
-          <div className="overflow-x-auto -mx-4 px-4 pb-2 max-w-[100vw]">
-            <div className="flex gap-3 w-max">
+        isSuperAdmin ? (
+          <div className="space-y-4">
+            {summaryPools.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Pools (in summary)</p>
+                {isMobile ? (
+                  <div className="overflow-x-auto -mx-4 px-4 pb-2 max-w-[100vw]">
+                    <div className="flex gap-3 w-max">
+                      {summaryPools.map((p: any) => {
+                        const poolName = String(p?.name ?? "").toLowerCase();
+                        const showInvestorPct = !!getTierKey(poolName);
+                        const stats = investorStatsByPoolId.get(String(p.id));
+                        const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
+                        return <div key={p.id} className="w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {summaryPools.map((p: any) => {
+                      const poolName = String(p?.name ?? "").toLowerCase();
+                      const showInvestorPct = !!getTierKey(poolName);
+                      const stats = investorStatsByPoolId.get(String(p.id));
+                      const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
+                      return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {belowSummaryPools.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Pools (below summary)</p>
+                {isMobile ? (
+                  <div className="overflow-x-auto -mx-4 px-4 pb-2 max-w-[100vw]">
+                    <div className="flex gap-3 w-max">
+                      {belowSummaryPools.map((p: any) => {
+                        const poolName = String(p?.name ?? "").toLowerCase();
+                        const showInvestorPct = !!getTierKey(poolName);
+                        const stats = investorStatsByPoolId.get(String(p.id));
+                        const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
+                        return <div key={p.id} className="w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {belowSummaryPools.map((p: any) => {
+                      const poolName = String(p?.name ?? "").toLowerCase();
+                      const showInvestorPct = !!getTierKey(poolName);
+                      const stats = investorStatsByPoolId.get(String(p.id));
+                      const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
+                      return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          isMobile ? (
+            <div className="overflow-x-auto -mx-4 px-4 pb-2 max-w-[100vw]">
+              <div className="flex gap-3 w-max">
+                {topPoolSummaries.map((p: any) => {
+                  const poolName = String(p?.name ?? "").toLowerCase();
+                  const showInvestorPct = !!getTierKey(poolName);
+                  const stats = investorStatsByPoolId.get(String(p.id));
+                  const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
+                  return <div key={p.id} className="w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {topPoolSummaries.map((p: any) => {
                 const poolName = String(p?.name ?? "").toLowerCase();
                 const showInvestorPct = !!getTierKey(poolName);
                 const stats = investorStatsByPoolId.get(String(p.id));
                 const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
+<<<<<<< HEAD
                 return <div key={p.id} className="w-[220px] sm:w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
+=======
+                return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
+>>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
               })}
             </div>
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {topPoolSummaries.map((p: any) => {
-              const poolName = String(p?.name ?? "").toLowerCase();
-              const showInvestorPct = !!getTierKey(poolName);
-              const stats = investorStatsByPoolId.get(String(p.id));
-              const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
-              return <PoolSummaryMiniCard key={p.id} pool={p} investorPct={investorPct} />;
-            })}
-          </div>
+          )
         )
       )}
 
@@ -502,8 +616,13 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
       )}
 
       {/* Financial overview */}
+<<<<<<< HEAD
       <div className="space-y-3 sm:space-y-4">
         {!isMobile && isWidgetVisible("financial-overview") && (
+=======
+      <div className="space-y-4">
+        {isWidgetVisible("financial-overview") && (
+>>>>>>> 498af81 (`Refactor code to improve mobile responsiveness and layout`)
           <AdminChartsCard aumData={aumAllocationData} loanData={loanBookData} accountsData={accountsStatusData} compact={isMobile} />
         )}
 
@@ -535,8 +654,8 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
           </Card>
         )}
 
-        {/* Recent transactions */}
-        {isWidgetVisible("recent-transactions") && (
+        {/* Recent transactions (hidden on mobile to avoid layout issues) */}
+        {!isMobile && isWidgetVisible("recent-transactions") && (
           <Collapsible open={recentOpen} onOpenChange={setRecentOpen}>
             <Card>
               <CardHeader className="flex flex-row items-center gap-2 pb-2">

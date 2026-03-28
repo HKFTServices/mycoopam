@@ -36,8 +36,8 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Mobile: full-screen bottom sheet
-        "fixed inset-0 z-50 grid w-full gap-4 border-t bg-background p-4 shadow-lg duration-200 overflow-y-auto",
+        // Mobile: bottom sheet (scrollable, no horizontal overflow)
+        "fixed inset-x-0 bottom-0 z-50 grid w-full gap-4 border-t bg-background p-4 shadow-lg duration-200 overflow-y-auto overflow-x-hidden max-h-[92dvh] rounded-t-2xl",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
