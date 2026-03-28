@@ -44,20 +44,20 @@ const MetricCard = ({ title, subtitle, value, ringValue, changePct, variant, onC
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={(e) => { if (!onClick) return; if (e.key === "Enter" || e.key === " ") onClick(); }}
     >
-      <CardContent className={compact ? "py-3 px-4" : "py-5"}>
-        <div className="flex items-start gap-3">
+      <CardContent className={compact ? "py-3 px-3" : "py-5"}>
+        <div className="flex items-start gap-2 sm:gap-3">
           {!compact && <Ring value={ringValue} variant={variant} />}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-1">
               <p className={`font-semibold truncate ${compact ? "text-xs" : "text-sm"}`}>{title}</p>
               {changeLabel ? (
-                <span className={`text-xs font-medium ${changePct! >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                <span className={`text-[10px] sm:text-xs font-medium shrink-0 ${changePct! >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                   {changeLabel}
                 </span>
               ) : null}
             </div>
-            <p className={`font-bold tracking-tight ${compact ? "text-xl mt-0.5" : "text-2xl mt-1"}`}>{formatCurrency(value)}</p>
-            <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
+            <p className={`font-bold tracking-tight truncate ${compact ? "text-lg mt-0.5" : "text-xl sm:text-2xl mt-1"}`}>{formatCurrency(value)}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
           </div>
         </div>
       </CardContent>
