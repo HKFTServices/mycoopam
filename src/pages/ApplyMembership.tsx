@@ -494,12 +494,32 @@ const ApplyMembership = () => {
         }).eq("id", entityId);
       }
 
-      // Send email
+      // Send account creation email
       supabase.functions.invoke("send-account-creation-email", {
         body: { tenant_id: currentTenant.id },
+      }).then(({ error }) => {
+        if (error) console.warn("[ApplyMembership] Account creation email failed:", error.message);
       }).catch(console.error);
 
       toast.success("Membership application submitted successfully!");
+
+      setTimeout(() => {
+        toast.info(
+          "To activate your membership, please go to Transactions and make your first deposit.",
+          {
+            duration: 10000,
+            action: {
+              label: "Deposit Now",
+              onClick: () => navigate("/transactions", { state: { openNewTransaction: true, defaultTxnCode: "DEPOSIT_FUNDS" } }),
+            },
+          }
+        );
+      }, 1500);
+
+      setTimeout(() => {
+        toast.info("An email has been sent to you with further instructions.", { duration: 8000 });
+      }, 3000);
+
       navigate("/dashboard/memberships", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit application.");

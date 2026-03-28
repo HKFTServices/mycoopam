@@ -240,18 +240,29 @@ const MembershipApplication = () => {
 
       supabase.functions.invoke("send-account-creation-email", {
         body: { tenant_id: currentTenant.id },
+      }).then(({ error }) => {
+        if (error) console.warn("[MembershipApplication] Account creation email failed:", error.message);
       }).catch((err) => console.error("Failed to send account creation email:", err));
 
-      toast.success(
-        "Membership application submitted! To activate your membership and receive your membership number, please make your first deposit.",
-        {
-          duration: 8000,
-          action: {
-            label: "Deposit Now",
-            onClick: () => navigate("/transactions", { state: { openNewTransaction: true, defaultTxnCode: "DEPOSIT_FUNDS" } }),
-          },
-        }
-      );
+      toast.success("Membership application submitted successfully!");
+
+      setTimeout(() => {
+        toast.info(
+          "To activate your membership, please go to Transactions and make your first deposit.",
+          {
+            duration: 10000,
+            action: {
+              label: "Deposit Now",
+              onClick: () => navigate("/transactions", { state: { openNewTransaction: true, defaultTxnCode: "DEPOSIT_FUNDS" } }),
+            },
+          }
+        );
+      }, 1500);
+
+      setTimeout(() => {
+        toast.info("An email has been sent to you with further instructions.", { duration: 8000 });
+      }, 3000);
+
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit application. Please try again.");
