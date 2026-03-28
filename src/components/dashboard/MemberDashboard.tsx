@@ -336,21 +336,21 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   if (showSkeleton) return <UserDashboardSkeleton />;
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
+      <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1 truncate">{greeting}</p>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{greeting}</p>
           {!isMobile && (
             <p className="text-xs text-muted-foreground mt-1 truncate">
               {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
-            <Button variant="outline" size="sm" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
+            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
@@ -366,11 +366,11 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {/* Missing docs warning */}
       {missingCriticalDocs.length > 0 && (
         <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <CardContent className="py-4 sm:py-5">
+            <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">Required Documents</p>
