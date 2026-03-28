@@ -244,6 +244,7 @@ const TenantManagement = () => {
                 <TableHead>Slug</TableHead>
                 <TableHead className="text-center">Members</TableHead>
                 <TableHead className="text-center">Pools</TableHead>
+                <TableHead>SLA Plan</TableHead>
                 <TableHead>Monthly Fee</TableHead>
                 <TableHead>Per Member</TableHead>
                 <TableHead>Status</TableHead>
@@ -253,12 +254,21 @@ const TenantManagement = () => {
             <TableBody>
               {filtered.map((tenant: any) => {
                 const fee = getFeeConfig(tenant.id);
+                const sla = getTenantSla(tenant.id);
                 return (
                   <TableRow key={tenant.id}>
                     <TableCell className="font-medium">{tenant.name}</TableCell>
                     <TableCell className="text-muted-foreground">{tenant.slug}</TableCell>
                     <TableCell className="text-center">{(memberCounts as any)[tenant.id] || 0}</TableCell>
                     <TableCell className="text-center">{(poolCounts as any)[tenant.id] || 0}</TableCell>
+                    <TableCell>
+                      {sla?.sla_fee_plans?.plan_label ? (
+                        <Badge variant={sla.setup_fee_paid ? "default" : "secondary"}>
+                          {sla.sla_fee_plans.plan_label}
+                          {!sla.setup_fee_paid && " (unpaid)"}
+                        </Badge>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell>{fee ? formatCurrency(fee.monthly_admin_fee) : "—"}</TableCell>
                     <TableCell>{fee ? formatCurrency(fee.per_member_fee) : "—"}</TableCell>
                     <TableCell>
