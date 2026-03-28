@@ -218,17 +218,23 @@ const SlaFeePlans = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Setup Fee */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Once-off Setup Fee (excl. VAT)</Label>
-                  {isEditing ? (
-                    <Input
-                      type="number" step="0.01"
-                      value={getVal(plan, "setup_fee_excl_vat")}
-                      onChange={(e) => updateField("setup_fee_excl_vat", e.target.value)}
-                    />
-                  ) : (
-                    <p className="text-lg font-semibold">{formatCurrency(plan.setup_fee_excl_vat)}</p>
-                  )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Setup Fee (excl. VAT)</Label>
+                    {isEditing ? (
+                      <Input type="number" step="0.01" value={getVal(plan, "setup_fee_excl_vat")} onChange={(e) => updateField("setup_fee_excl_vat", e.target.value)} />
+                    ) : (
+                      <p className="text-lg font-semibold">{formatCurrency(plan.setup_fee_excl_vat)}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Fee (excl. VAT)</Label>
+                    {isEditing ? (
+                      <Input type="number" step="0.01" value={getVal(plan, "monthly_fee_excl_vat")} onChange={(e) => updateField("monthly_fee_excl_vat", e.target.value)} />
+                    ) : (
+                      <p className="text-lg font-semibold">{formatCurrency(plan.monthly_fee_excl_vat)}</p>
+                    )}
+                  </div>
                 </div>
 
                 <Separator />
