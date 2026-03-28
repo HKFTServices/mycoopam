@@ -89,6 +89,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ─── 0. Create admin user via admin API (no default confirmation email) ───
+    let createdUserId: string | null = null;
+    if (admin_details?.email && admin_details?.password) {
+      console.log("[provision-tenant] Creating user via admin API for:", admin_details.email);
+      
+      const { data: createData, error: createError } = await admin.auth.admin.createUser({
+        email: admin_details.email,
+        password: admin_details.password,
+        email_confirm: false,
+        user_metadata: {
+          first_name: admin_details.first_name,
+          last_name: admin_details.last_name,
+        },
+      });
+      
+      if (createError) {
+        // Check if user already exists
+        if (createError.message?.includes("already been registered") || createError.message?.includes("already exists")) {
+          return new Response(
+            JSON.stringify({ error: "An account with this email already exists. Please use a different email." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw createError;
+      }
+      
+      createdUserId = createData.user.id;
+      admin_details.user_id = createdUserId;
+      console.log("[provision-tenant] User created:", createdUserId);
+
+      // Bootstrap tenant admin roles
+      const { error: bootstrapError } = await admin.rpc("bootstrap_tenant_admin", {
+        p_tenant_id: tenant_id, p_user_id: createdUserId,
+      });
+      if (bootstrapError) console.error("[provision-tenant] Bootstrap error:", bootstrapError);
+    }
+
     // ID mapping: source_id → new_id for cross-references
     const idMap = new Map<string, string>();
     const results: Record<string, number> = {};
@@ -892,8 +929,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Send branded registration email via SMTP (not Supabase default) ───
+    if (createdUserId && admin_details?.email) {
+      try {
+        const fnUrl = `${supabaseUrl}/functions/v1/send-registration-email`;
+        const emailRes = await fetch(fnUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceRoleKey}`,
+            "apikey": serviceRoleKey,
+          },
+          body: JSON.stringify({
+            tenant_id,
+            user_id: createdUserId,
+          }),
+        });
+        const emailResult = await emailRes.json();
+        console.log("[provision-tenant] Registration email result:", emailResult);
+      } catch (emailErr: any) {
+        console.error("[provision-tenant] Failed to send registration email:", emailErr.message);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, results }),
+      JSON.stringify({ success: true, results, user_id: createdUserId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
