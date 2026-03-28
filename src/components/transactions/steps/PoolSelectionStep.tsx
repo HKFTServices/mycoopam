@@ -192,7 +192,7 @@ const PoolSelectionStep = ({
             const split = poolSplits.find((s) => s.poolId === p.id);
             const isSelected = !!split;
             const colors = POOL_COLORS[idx % POOL_COLORS.length];
-            const unitPrice = getUnitPrice ? getUnitPrice(p.id) : Number(p.open_unit_price);
+            const unitPrice = getUnitPrice ? getUnitPrice(p.id) : 0;
 
             return (
               <div
@@ -327,7 +327,7 @@ const PoolSelectionStep = ({
                 )}
               </div>
               <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
-                {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : Number(p.open_unit_price))}/u
+                {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : 0)}/u
               </Badge>
             </button>
           );
