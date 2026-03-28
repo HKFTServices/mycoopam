@@ -394,12 +394,12 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {showPendingWelcome && (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-6 h-full flex items-center">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Clock className="h-6 w-6 text-primary" /></div>
+            <CardContent className="py-4 sm:py-6 h-full flex items-center">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /></div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold">Welcome to {branding.legalEntityName || currentTenant?.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
+                  <h3 className="text-base sm:text-lg font-semibold">Welcome to {branding.legalEntityName || currentTenant?.name}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
                 </div>
               </div>
             </CardContent>
@@ -410,12 +410,12 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {/* First deposit prompt */}
       {showFirstDeposit && (
         <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="py-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Gem className="h-6 w-6 text-primary" /></div>
+          <CardContent className="py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Gem className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /></div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">Make your first deposit</h3>
-                <p className="text-sm text-muted-foreground mt-1">Your membership is approved! Choose a pool to start investing.</p>
+                <h3 className="text-base sm:text-lg font-semibold">Make your first deposit</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Your membership is approved! Choose a pool to start investing.</p>
                 <div className="grid gap-2 mt-3 sm:grid-cols-2 lg:grid-cols-3">
                   {availablePools.map((pool: any) => (
                     <button key={pool.id} onClick={() => { setSelectedPoolId(pool.id); setTxnDialogOpen(true); }}
@@ -513,10 +513,10 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {/* No holdings fallback */}
       {memberHoldings.length === 0 && !showFirstDeposit && !showPendingWelcome && (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center mb-3"><Wallet className="h-6 w-6 text-accent-foreground" /></div>
-            <h3 className="font-semibold mb-1">Welcome</h3>
-            <p className="text-muted-foreground text-sm max-w-sm">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 text-center px-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-accent flex items-center justify-center mb-2 sm:mb-3"><Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" /></div>
+            <h3 className="font-semibold text-sm sm:text-base mb-1">Welcome</h3>
+            <p className="text-muted-foreground text-xs sm:text-sm max-w-sm">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
           </CardContent>
         </Card>
       )}
