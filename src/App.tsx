@@ -68,6 +68,7 @@ import TenantManagement from "./pages/headoffice/TenantManagement";
 import TenantInvoices from "./pages/headoffice/TenantInvoices";
 import SlaFeePlans from "./pages/headoffice/SlaFeePlans";
 import RegisterTenant from "./pages/RegisterTenant";
+import SlaAgreement from "./pages/SlaAgreement";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
 import LoanApplications from "./pages/LoanApplications";
@@ -137,6 +138,7 @@ const App = () => (
               <Route path="/" element={<PublicRoot />} />
               <Route path="/t/:slug" element={<TenantLanding />} />
               <Route path="/register-tenant" element={<RegisterTenant />} />
+              <Route path="/sla-agreement" element={<SlaAgreement />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
