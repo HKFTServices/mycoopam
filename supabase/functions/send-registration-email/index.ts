@@ -149,6 +149,8 @@ Deno.serve(async (req) => {
 
     // Generate activation link
     let activationLink: string;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "signup",
       email: profile.email,
@@ -170,13 +172,27 @@ Deno.serve(async (req) => {
       activationLink = linkData.properties.action_link;
     }
 
-    // Ensure the action_link redirect_to points to the correct tenant domain
-    // Supabase may override redirect_to if it's not in the server's allowlist
+    // Rewrite the activation link to go through the tenant domain directly.
+    // The default action_link goes through the Supabase auth server which may
+    // reject the redirect_to if it's not in the server's allowlist, falling
+    // back to site_url (wrong tenant). By extracting token_hash and type from
+    // the Supabase link and constructing a link to the tenant domain with
+    // these params in the hash fragment, the Supabase JS client on the
+    // frontend will pick them up and verify the token automatically.
     try {
       const linkUrl = new URL(activationLink);
-      linkUrl.searchParams.set("redirect_to", redirectTo);
-      activationLink = linkUrl.toString();
-      console.log("[send-registration-email] Rewritten activation link redirect_to:", redirectTo);
+      const tokenHash = linkUrl.searchParams.get("token_hash") || linkUrl.searchParams.get("token");
+      const linkType = linkUrl.searchParams.get("type") || "signup";
+      if (tokenHash) {
+        // Construct direct link: https://pmc.myco-op.co.za/auth#token_hash=xxx&type=signup
+        activationLink = `${redirectTo}#token_hash=${encodeURIComponent(tokenHash)}&type=${linkType}`;
+        console.log("[send-registration-email] Rewrote activation link to tenant domain:", redirectTo);
+      } else {
+        // Fallback: just ensure redirect_to is set correctly
+        linkUrl.searchParams.set("redirect_to", redirectTo);
+        activationLink = linkUrl.toString();
+        console.log("[send-registration-email] Updated redirect_to on activation link");
+      }
     } catch (e) {
       console.warn("[send-registration-email] Could not rewrite activation link URL:", e);
     }
