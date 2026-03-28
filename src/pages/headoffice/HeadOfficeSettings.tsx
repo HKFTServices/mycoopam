@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Upload, Key, Eye, EyeOff, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Save, Building2, Upload, Key, Eye, EyeOff, Trash2, AlertTriangle, SendHorizonal } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,6 +40,9 @@ const TABLES_TO_CLEAR = [
 const HeadOfficeSettings = () => {
   const queryClient = useQueryClient();
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [testEmailOpen, setTestEmailOpen] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
 
   // Head office settings query
   const { data: settings, isLoading } = useQuery({
@@ -434,8 +438,58 @@ const HeadOfficeSettings = () => {
               <Input value={getVal("smtp_from_name")} onChange={(e) => setField("smtp_from_name", e.target.value)} placeholder="MyCo-op" />
             </div>
           </div>
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setTestEmailOpen(true)} disabled={!getVal("smtp_host")}>
+                  <SendHorizonal className="h-4 w-4 mr-1.5" />Send Test Email
+                </Button>
+              </div>
         </CardContent>
       </Card>
+
+      {/* Test Email Dialog */}
+      <Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Send Test Email</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>Recipient Email</Label>
+            <Input value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="test@example.com" type="email" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTestEmailOpen(false)}>Cancel</Button>
+            <Button
+              disabled={!testEmail || sendingTest}
+              onClick={async () => {
+                setSendingTest(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("test-smtp", {
+                    body: {
+                      smtp_host: getVal("smtp_host"),
+                      smtp_port: parseInt(getVal("smtp_port") || "587"),
+                      smtp_username: getVal("smtp_username"),
+                      smtp_password: getVal("smtp_password"),
+                      smtp_from_email: getVal("smtp_from_email"),
+                      smtp_from_name: getVal("smtp_from_name"),
+                      smtp_enable_ssl: true,
+                      to_email: testEmail,
+                    },
+                  });
+                  if (error) throw error;
+                  if (data?.error) throw new Error(data.error);
+                  toast.success("Test email sent successfully!");
+                  setTestEmailOpen(false);
+                } catch (e: any) {
+                  toast.error(`Failed: ${e.message}`);
+                } finally {
+                  setSendingTest(false);
+                }
+              }}
+            >
+              {sendingTest ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <SendHorizonal className="h-4 w-4 mr-1.5" />}
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* SMS API Settings */}
       <Card>
