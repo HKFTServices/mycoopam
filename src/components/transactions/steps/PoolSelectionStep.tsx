@@ -76,7 +76,7 @@ const PoolSelectionStep = ({
             const colors = POOL_COLORS[idx % POOL_COLORS.length];
             const holding = accountHoldings.find((h) => h.pool_id === p.id);
             const poolUnits = holding ? Number(holding.units) : 0;
-            const unitPrice = getUnitPrice ? getUnitPrice(p.id) : Number(p.open_unit_price);
+            const unitPrice = getUnitPrice ? getUnitPrice(p.id) : 0;
             const availableValue = poolUnits * unitPrice;
             const isDisabled = poolUnits <= 0;
 
