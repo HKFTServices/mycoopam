@@ -607,7 +607,7 @@ Deno.serve(async (req) => {
         commission_paid_gl_account_id: mapId(srcConfig.commission_paid_gl_account_id),
         legal_entity_id: null,
         administrator_entity_id: null,
-        logo_url: logo_url || null,
+        logo_url: null, // will be updated below after server-side upload
         directors: null,
         email_signature_en: null,
         email_signature_af: null,
