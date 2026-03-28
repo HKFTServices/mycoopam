@@ -2068,6 +2068,18 @@ const NewTransactionDialog = ({
           )}
 
           {step === "review" && (
+            <>
+            {pricesStale && (
+              <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-900/20 p-3 mb-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-yellow-800 dark:text-yellow-300">Pool prices not updated for {format(transactionDate, "dd MMM yyyy")}</p>
+                  <p className="text-yellow-700 dark:text-yellow-400 text-xs mt-0.5">
+                    Using the most recent available prices. Update pool prices before approving to ensure accurate unit pricing.
+                  </p>
+                </div>
+              </div>
+            )}
             <ReviewStep
               accountLabel={selectedAccountLabel}
               txnTypeName={selectedTxnType?.name || ""}
