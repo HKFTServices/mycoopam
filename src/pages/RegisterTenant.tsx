@@ -696,8 +696,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 3: Pools ═══ */}
-            {step === 3 && (
+            {/* ═══ Step 4: Pools ═══ */}
+            {step === 4 && (
               <div className="space-y-5">
                 {poolsLoading ? (
                   <div className="flex items-center justify-center py-12">
