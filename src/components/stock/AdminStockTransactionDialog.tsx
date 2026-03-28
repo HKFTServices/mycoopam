@@ -583,9 +583,9 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
     const isAdjustment = txnType === "STOCK_ADJUSTMENTS";
 
     // Collect unique pool IDs from selected items for cash display
-    const selectedPoolIds = [...new Set(lines.map((l) => l.poolId))];
+    const selectedPoolIds: string[] = [...new Set(lines.map((l) => l.poolId))];
     // Also collect all unique pools from stock items for reference
-    const allPoolIds = [...new Set(stockItems.map((i: any) => i.pool_id).filter(Boolean))];
+    const allPoolIds: string[] = [...new Set(stockItems.map((i: any) => i.pool_id as string).filter(Boolean))];
     const poolNames = new Map<string, string>();
     for (const item of stockItems) {
       if (item.pool_id && item.pools?.name) poolNames.set(item.pool_id, item.pools.name);
