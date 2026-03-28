@@ -67,17 +67,19 @@ export async function resolveSmtp(
   tenantId: string,
   tenantConfig?: any | null,
 ): Promise<SmtpConfig | null> {
-  // 1. Tenant SMTP
+  // 1. Tenant SMTP (only if use_global_email_settings is false)
   if (!tenantConfig) {
     const { data } = await adminClient
       .from("tenant_configuration")
-      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name")
+      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, use_global_email_settings")
       .eq("tenant_id", tenantId)
       .maybeSingle();
     tenantConfig = data;
   }
 
-  if (tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
+  const useGlobal = tenantConfig?.use_global_email_settings ?? true;
+
+  if (!useGlobal && tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
     console.log(`[resolveSmtp] Using tenant SMTP: ${tenantConfig.smtp_host}`);
     return {
       host: tenantConfig.smtp_host,

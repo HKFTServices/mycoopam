@@ -477,6 +477,7 @@ const TenantConfiguration = () => {
     smtp_from_email: "",
     smtp_from_name: "",
     smtp_enable_ssl: true,
+    use_global_email_settings: true,
     logo_url: "",
     full_membership_enabled: true,
     full_membership_share_amount: 0,
@@ -591,6 +592,7 @@ const TenantConfiguration = () => {
         smtp_from_email: config.smtp_from_email ?? "",
         smtp_from_name: config.smtp_from_name ?? "",
         smtp_enable_ssl: config.smtp_enable_ssl ?? true,
+        use_global_email_settings: (config as any).use_global_email_settings ?? true,
         logo_url: config.logo_url ?? "",
         full_membership_enabled: config.full_membership_enabled ?? true,
         full_membership_share_amount: config.full_membership_share_amount ?? 0,
@@ -911,23 +913,35 @@ const TenantConfiguration = () => {
           <Card>
             <CardHeader><CardTitle className="text-lg">Email SMTP Settings</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>SMTP Host</Label><Input value={form.smtp_host} onChange={(e) => setForm({ ...form, smtp_host: e.target.value })} placeholder="smtp.example.com" /></div>
-                <div className="space-y-2"><Label>SMTP Port</Label><Input type="number" value={form.smtp_port} onChange={(e) => setForm({ ...form, smtp_port: parseInt(e.target.value) || 587 })} /></div>
-                <div className="space-y-2"><Label>Username</Label><Input value={form.smtp_username} onChange={(e) => setForm({ ...form, smtp_username: e.target.value })} placeholder="user@example.com" /></div>
-                <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.smtp_password} onChange={(e) => setForm({ ...form, smtp_password: e.target.value })} placeholder="••••••••" /></div>
-                <div className="space-y-2"><Label>From Email</Label><Input value={form.smtp_from_email} onChange={(e) => setForm({ ...form, smtp_from_email: e.target.value })} placeholder="noreply@example.com" /></div>
-                <div className="space-y-2"><Label>From Name</Label><Input value={form.smtp_from_name} onChange={(e) => setForm({ ...form, smtp_from_name: e.target.value })} placeholder="My Cooperative" /></div>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <Switch checked={form.smtp_enable_ssl} onCheckedChange={(v) => setForm({ ...form, smtp_enable_ssl: v })} />
-                  <Label>Enable SSL/TLS</Label>
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Use Global Email Settings</Label>
+                  <p className="text-xs text-muted-foreground">When enabled, all emails will be sent using the head office SMTP settings (noreply). Disable to use your own SMTP server.</p>
                 </div>
-                <Button variant="outline" className="w-full sm:w-auto" onClick={() => setTestEmailOpen(true)} disabled={!form.smtp_host}>
-                  <SendHorizonal className="h-4 w-4 mr-1.5" />Send Test Email
-                </Button>
+                <Switch checked={form.use_global_email_settings} onCheckedChange={(v) => setForm({ ...form, use_global_email_settings: v })} />
               </div>
+
+              {!form.use_global_email_settings && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label>SMTP Host</Label><Input value={form.smtp_host} onChange={(e) => setForm({ ...form, smtp_host: e.target.value })} placeholder="smtp.example.com" /></div>
+                    <div className="space-y-2"><Label>SMTP Port</Label><Input type="number" value={form.smtp_port} onChange={(e) => setForm({ ...form, smtp_port: parseInt(e.target.value) || 587 })} /></div>
+                    <div className="space-y-2"><Label>Username</Label><Input value={form.smtp_username} onChange={(e) => setForm({ ...form, smtp_username: e.target.value })} placeholder="user@example.com" /></div>
+                    <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.smtp_password} onChange={(e) => setForm({ ...form, smtp_password: e.target.value })} placeholder="••••••••" /></div>
+                    <div className="space-y-2"><Label>From Email</Label><Input value={form.smtp_from_email} onChange={(e) => setForm({ ...form, smtp_from_email: e.target.value })} placeholder="noreply@example.com" /></div>
+                    <div className="space-y-2"><Label>From Name</Label><Input value={form.smtp_from_name} onChange={(e) => setForm({ ...form, smtp_from_name: e.target.value })} placeholder="My Cooperative" /></div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <Switch checked={form.smtp_enable_ssl} onCheckedChange={(v) => setForm({ ...form, smtp_enable_ssl: v })} />
+                      <Label>Enable SSL/TLS</Label>
+                    </div>
+                    <Button variant="outline" className="w-full sm:w-auto" onClick={() => setTestEmailOpen(true)} disabled={!form.smtp_host}>
+                      <SendHorizonal className="h-4 w-4 mr-1.5" />Send Test Email
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
           <Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>

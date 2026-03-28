@@ -5149,6 +5149,7 @@ export type Database = {
           theme_sidebar_hsl: string | null
           updated_at: string
           use_default_security: boolean
+          use_global_email_settings: boolean
           vat_gl_account_id: string | null
           vat_number: string | null
         }
@@ -5214,6 +5215,7 @@ export type Database = {
           theme_sidebar_hsl?: string | null
           updated_at?: string
           use_default_security?: boolean
+          use_global_email_settings?: boolean
           vat_gl_account_id?: string | null
           vat_number?: string | null
         }
@@ -5279,6 +5281,7 @@ export type Database = {
           theme_sidebar_hsl?: string | null
           updated_at?: string
           use_default_security?: boolean
+          use_global_email_settings?: boolean
           vat_gl_account_id?: string | null
           vat_number?: string | null
         }
