@@ -170,6 +170,17 @@ Deno.serve(async (req) => {
       activationLink = linkData.properties.action_link;
     }
 
+    // Ensure the action_link redirect_to points to the correct tenant domain
+    // Supabase may override redirect_to if it's not in the server's allowlist
+    try {
+      const linkUrl = new URL(activationLink);
+      linkUrl.searchParams.set("redirect_to", redirectTo);
+      activationLink = linkUrl.toString();
+      console.log("[send-registration-email] Rewritten activation link redirect_to:", redirectTo);
+    } catch (e) {
+      console.warn("[send-registration-email] Could not rewrite activation link URL:", e);
+    }
+
     // Build email content
     let subject = template?.subject || `Activate your ${tenantName} account`;
     let body = template?.body_html ||
