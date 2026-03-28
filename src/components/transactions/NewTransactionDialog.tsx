@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle, User, ListChecks, TrendingUp, FileText, Search } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle, User, ListChecks, TrendingUp, FileText, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -854,37 +854,44 @@ const NewTransactionDialog = ({
     enabled: !!currentTenant && open,
   });
 
-  // Fetch the latest available daily pool prices as fallback (most recent date)
+  // Fetch the latest available daily pool prices as fallback per pool (skips zero-price dates)
   const { data: latestPoolPrices = [] } = useQuery({
     queryKey: ["latest_pool_prices_fallback", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
-      // Get the most recent date that has pool prices
-      const { data: latestDate } = await (supabase as any)
-        .from("daily_pool_prices")
-        .select("totals_date")
-        .eq("tenant_id", currentTenant.id)
-        .order("totals_date", { ascending: false })
-        .limit(1);
-      if (!latestDate || latestDate.length === 0) return [];
-      const { data } = await (supabase as any)
-        .from("daily_pool_prices")
-        .select("pool_id, unit_price_buy, unit_price_sell")
-        .eq("tenant_id", currentTenant.id)
-        .eq("totals_date", latestDate[0].totals_date);
+      // Use the RPC that returns the latest NON-ZERO price per pool
+      const { data } = await (supabase as any).rpc("get_latest_pool_prices", { p_tenant_id: currentTenant.id });
       return data ?? [];
     },
     enabled: !!currentTenant && open,
   });
 
+  // Determine if prices are stale (no prices for the transaction date, using fallback)
+  const pricesStale = useMemo(() => {
+    if (!selectedPoolId && poolSplits.length === 0) return false;
+    const relevantPoolIds = poolSplits.length > 0
+      ? poolSplits.map(s => s.poolId)
+      : selectedPoolId ? [selectedPoolId] : [];
+    for (const pid of relevantPoolIds) {
+      const exactPrice = dailyPoolPrices.find((dp: any) => dp.pool_id === pid);
+      if (!exactPrice || Number(exactPrice.unit_price_buy) <= 0) {
+        // No price for the transaction date — check if fallback exists
+        const fallback = latestPoolPrices.find((dp: any) => dp.pool_id === pid);
+        if (fallback && Number(fallback.unit_price_buy) > 0) return true; // using stale fallback
+        if (!fallback || Number(fallback.unit_price_buy) <= 0) return true; // no price at all
+      }
+    }
+    return false;
+  }, [dailyPoolPrices, latestPoolPrices, selectedPoolId, poolSplits]);
+
   // Helper to get BUY unit price for a pool (used for deposits / switch-in)
+  // NEVER falls back to open_unit_price (R1) — uses latest available non-zero price
   const getUnitPrice = (poolId: string) => {
     const dailyPrice = dailyPoolPrices.find((dp: any) => dp.pool_id === poolId);
     if (dailyPrice && Number(dailyPrice.unit_price_buy) > 0) return Number(dailyPrice.unit_price_buy);
     const latestPrice = latestPoolPrices.find((dp: any) => dp.pool_id === poolId);
     if (latestPrice && Number(latestPrice.unit_price_buy) > 0) return Number(latestPrice.unit_price_buy);
-    const pool = allPools.find((p: any) => p.id === poolId);
-    return pool ? Number(pool.open_unit_price) : 0;
+    return 0;
   };
 
   // Helper to get SELL unit price for a pool (used for withdrawals / switch-out)
@@ -2061,6 +2068,18 @@ const NewTransactionDialog = ({
           )}
 
           {step === "review" && (
+            <>
+            {pricesStale && (
+              <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-900/20 p-3 mb-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-yellow-800 dark:text-yellow-300">Pool prices not updated for {format(transactionDate, "dd MMM yyyy")}</p>
+                  <p className="text-yellow-700 dark:text-yellow-400 text-xs mt-0.5">
+                    Using the most recent available prices. Update pool prices before approving to ensure accurate unit pricing.
+                  </p>
+                </div>
+              </div>
+            )}
             <ReviewStep
               accountLabel={selectedAccountLabel}
               txnTypeName={selectedTxnType?.name || ""}
@@ -2113,6 +2132,7 @@ const NewTransactionDialog = ({
               withdrawalSummaries={withdrawalSplitSummaries}
               loanRepaymentAmount={effectiveLoanRepayment}
             />
+            </>
           )}
           </div>
 
