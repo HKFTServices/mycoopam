@@ -440,7 +440,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Your co-operative needs a registered legal entity before you can start managing members.
+                Your co-operative must now be registered as the legal entity before you can start managing members.
               </p>
               <Button className="w-full" size="lg" onClick={() => navigate("/apply-membership?type=entity&mode=legal_entity")}>
                 <Building2 className="mr-2 h-4 w-4" />
