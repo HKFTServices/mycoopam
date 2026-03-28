@@ -180,8 +180,8 @@ Deno.serve(async (req) => {
           id: newId,
           tenant_id: tenant_id,
           name: t.name,
-          rate: t.rate,
-          code: t.code,
+          percentage: t.percentage,
+          description: t.description,
           is_active: t.is_active,
         };
       });
