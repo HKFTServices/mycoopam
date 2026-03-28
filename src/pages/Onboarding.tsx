@@ -1206,7 +1206,7 @@ const Onboarding = () => {
             <Button
               onClick={() => {
                 setShowMembershipPrompt(false);
-                navigate("/membership-application", { replace: true });
+                navigate("/apply-membership?type=myself", { replace: true });
               }}
             >
               <UserPlus className="h-4 w-4 mr-1.5" />
