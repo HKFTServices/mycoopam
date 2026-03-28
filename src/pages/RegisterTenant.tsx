@@ -353,37 +353,9 @@ const RegisterTenant = () => {
         }
       }
 
-      // 4. Sign up admin user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(), password,
-        options: {
-          emailRedirectTo: getTenantUrl(slug),
-          data: { first_name: firstName.trim(), last_name: lastName.trim() },
-        },
-      });
-      if (authError) throw authError;
-      if (authData.user?.identities?.length === 0) {
-        throw new Error("An account with this email already exists. Please use a different email.");
-      }
-
-      // 5. Bootstrap tenant admin
-      if (authData.user) {
-        const { error: bootstrapError } = await supabase.rpc("bootstrap_tenant_admin" as any, {
-          p_tenant_id: tenant.id, p_user_id: authData.user.id,
-        });
-        if (bootstrapError) console.error("Bootstrap error:", bootstrapError);
-      }
-
       localStorage.setItem("currentTenantId", tenant.id);
       localStorage.setItem("tenantSlug", slug);
       localStorage.setItem("pendingTenantSlug", slug);
-
-      // 6. Send registration email (fire-and-forget)
-      if (authData.user) {
-        supabase.functions.invoke("send-registration-email", {
-          body: { tenant_id: tenant.id },
-        }).catch((err) => console.error("Failed to send registration email:", err));
-      }
 
       // 7. Prepare document base64
       const adminDocuments: any[] = [];
