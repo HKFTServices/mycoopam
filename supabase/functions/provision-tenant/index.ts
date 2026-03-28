@@ -714,16 +714,56 @@ Deno.serve(async (req) => {
       results.transaction_fee_types = ftRows.length;
     }
 
+    // ─── Resolve SLA plan admin percentages ───
+    // Build a map of source transaction_type_id → admin % from SLA plan
+    let slaDepositAdminPct: number | null = null;
+    let slaOtherAdminPct: number | null = null;
+
+    if (sla_fee_plan_id) {
+      const { data: slaPlan } = await admin
+        .from("sla_fee_plans")
+        .select("deposit_fee_pct, switch_transfer_withdrawal_fee_pct")
+        .eq("id", sla_fee_plan_id)
+        .single();
+      if (slaPlan) {
+        slaDepositAdminPct = slaPlan.deposit_fee_pct;
+        slaOtherAdminPct = slaPlan.switch_transfer_withdrawal_fee_pct;
+      }
+    }
+
+    // Fetch source transaction types to map IDs → codes for admin % assignment
+    const { data: srcTxnTypes } = await admin
+      .from("transaction_types")
+      .select("id, code")
+      .eq("tenant_id", SOURCE_TENANT_ID);
+    const srcTxnCodeMap = new Map<string, string>();
+    (srcTxnTypes ?? []).forEach((t: any) => srcTxnCodeMap.set(t.id, (t.code || "").toUpperCase()));
+
+    const DEPOSIT_CODES_SET = new Set(["DEPOSIT_FUNDS", "DEPOSIT_STOCK"]);
+
+    function resolveAdminPct(srcTxnTypeId: string, originalPct: number): number {
+      if (slaDepositAdminPct === null) return originalPct; // no SLA plan selected
+      const code = srcTxnCodeMap.get(srcTxnTypeId) || "";
+      if (DEPOSIT_CODES_SET.has(code)) return slaDepositAdminPct!;
+      // Switch, Transfer, Withdrawal, Withdraw Stock
+      if (["SWITCH", "TRANSFER", "WITHDRAW_FUNDS", "WITHDRAW_STOCK"].includes(code)) return slaOtherAdminPct!;
+      return originalPct; // keep original for other types
+    }
+
     // ─── 17. Transaction Fee Rules ───
     const { data: srcFeeRules } = await admin
       .from("transaction_fee_rules")
       .select("*")
       .eq("tenant_id", SOURCE_TENANT_ID);
 
+    // We need to track which fee rule maps to which transaction type for tier admin %
+    const feeRuleTxnTypeMap = new Map<string, string>(); // source fee_rule_id → source transaction_type_id
+
     if (srcFeeRules && srcFeeRules.length > 0) {
       const frRows = srcFeeRules.map((fr: any) => {
         const newId = uuid();
         idMap.set(fr.id, newId);
+        feeRuleTxnTypeMap.set(fr.id, fr.transaction_type_id);
         return {
           id: newId,
           tenant_id: tenant_id,
@@ -733,7 +773,7 @@ Deno.serve(async (req) => {
           fixed_amount: fr.fixed_amount,
           percentage: fr.percentage,
           is_active: fr.is_active,
-          admin_share_percentage: fr.admin_share_percentage,
+          admin_share_percentage: resolveAdminPct(fr.transaction_type_id, fr.admin_share_percentage),
         };
       });
       const { error } = await admin.from("transaction_fee_rules").insert(frRows);
@@ -748,15 +788,19 @@ Deno.serve(async (req) => {
       .eq("tenant_id", SOURCE_TENANT_ID);
 
     if (srcFeeTiers && srcFeeTiers.length > 0) {
-      const tierRows = srcFeeTiers.map((tier: any) => ({
-        id: uuid(),
-        tenant_id: tenant_id,
-        fee_rule_id: mapId(tier.fee_rule_id) || tier.fee_rule_id,
-        min_amount: tier.min_amount,
-        max_amount: tier.max_amount,
-        percentage: tier.percentage,
-        admin_percentage: tier.admin_percentage,
-      }));
+      const tierRows = srcFeeTiers.map((tier: any) => {
+        // Look up the source transaction_type_id via the fee rule
+        const srcTxnTypeId = feeRuleTxnTypeMap.get(tier.fee_rule_id) || "";
+        return {
+          id: uuid(),
+          tenant_id: tenant_id,
+          fee_rule_id: mapId(tier.fee_rule_id) || tier.fee_rule_id,
+          min_amount: tier.min_amount,
+          max_amount: tier.max_amount,
+          percentage: tier.percentage,
+          admin_percentage: resolveAdminPct(srcTxnTypeId, tier.admin_percentage),
+        };
+      });
       const { error } = await admin.from("transaction_fee_tiers").insert(tierRows);
       if (error) console.error("Transaction fee tiers error:", error);
       results.transaction_fee_tiers = tierRows.length;
