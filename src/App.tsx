@@ -66,6 +66,7 @@ import MamAdmin from "./pages/mam/MamAdmin";
 import HeadOfficeSettings from "./pages/headoffice/HeadOfficeSettings";
 import TenantManagement from "./pages/headoffice/TenantManagement";
 import TenantInvoices from "./pages/headoffice/TenantInvoices";
+import SlaFeePlans from "./pages/headoffice/SlaFeePlans";
 import RegisterTenant from "./pages/RegisterTenant";
 import LoanSettings from "./pages/setup/LoanSettings";
 import BudgetCategories from "./pages/setup/BudgetCategories";
@@ -212,6 +213,7 @@ const App = () => (
               <Route path="/dashboard/head-office/settings" element={<SuperAdminRoute><HeadOfficeSettings /></SuperAdminRoute>} />
               <Route path="/dashboard/head-office/tenants" element={<SuperAdminRoute><TenantManagement /></SuperAdminRoute>} />
               <Route path="/dashboard/head-office/invoices" element={<SuperAdminRoute><TenantInvoices /></SuperAdminRoute>} />
+              <Route path="/dashboard/head-office/sla-fee-plans" element={<SuperAdminRoute><SlaFeePlans /></SuperAdminRoute>} />
 
               {/* MAM: super_admin only for now */}
               <Route path="/dashboard/mam" element={<SuperAdminRoute><MamEntityProvider><MamDashboard /></MamEntityProvider></SuperAdminRoute>} />
