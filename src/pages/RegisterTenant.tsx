@@ -79,12 +79,20 @@ const RegisterTenant = () => {
   // ─── Step 1: Co-op + Admin credentials ───
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // ─── Step 2: Service Agreement (SLA Plan Selection) ───
+  const [feePlans, setFeePlans] = useState<any[]>([]);
+  const [feePlansLoading, setFeePlansLoading] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [slaSignature, setSlaSignature] = useState("");
+  const [slaAccepted, setSlaAccepted] = useState(false);
 
   // ─── Step 2: Logo + Prefixes ───
   const [logoFile, setLogoFile] = useState<File | null>(null);
