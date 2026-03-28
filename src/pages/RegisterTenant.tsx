@@ -341,16 +341,18 @@ const RegisterTenant = () => {
         .from("tenants").insert({ name: name.trim(), slug: slug.trim() }).select().single();
       if (tenantError) throw tenantError;
 
-      // 3. Upload logo
-      let logoUrl: string | null = null;
+      // 3. Prepare logo as base64 for server-side upload
+      let logoBase64: string | null = null;
+      let logoFileName: string | null = null;
+      let logoMimeType: string | null = null;
       if (logoFile) {
-        const ext = logoFile.name.split(".").pop() || "png";
-        const path = `${tenant.id}/logo.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("tenant-logos").upload(path, logoFile, { upsert: true });
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from("tenant-logos").getPublicUrl(path);
-          logoUrl = urlData.publicUrl;
-        }
+        const arrayBuf = await logoFile.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        logoBase64 = btoa(binary);
+        logoFileName = logoFile.name;
+        logoMimeType = logoFile.type;
       }
 
       localStorage.setItem("currentTenantId", tenant.id);
@@ -382,7 +384,9 @@ const RegisterTenant = () => {
           selected_pool_ids: selectedPools,
           custom_pools: customPools.length > 0 ? customPools : undefined,
           entity_account_type_prefixes: prefixes,
-          logo_url: logoUrl,
+          logo_data: logoBase64,
+          logo_file_name: logoFileName,
+          logo_mime_type: logoMimeType,
           admin_details: {
             email: email.trim(),
             password,

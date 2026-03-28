@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, admin_details, admin_documents } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -607,7 +607,7 @@ Deno.serve(async (req) => {
         commission_paid_gl_account_id: mapId(srcConfig.commission_paid_gl_account_id),
         legal_entity_id: null,
         administrator_entity_id: null,
-        logo_url: logo_url || null,
+        logo_url: null, // will be updated below after server-side upload
         directors: null,
         email_signature_en: null,
         email_signature_af: null,
@@ -625,7 +625,39 @@ Deno.serve(async (req) => {
       results.tenant_configuration = 1;
     }
 
-    // ─── 15. Income/Expense Items ───
+    // ─── Upload logo server-side (service role has full storage access) ───
+    if (logo_data && logo_file_name) {
+      try {
+        const ext = logo_file_name.split(".").pop() || "png";
+        const path = `${tenant_id}/logo.${ext}`;
+        const binaryStr = atob(logo_data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        
+        const { error: uploadErr } = await admin.storage
+          .from("tenant-logos")
+          .upload(path, bytes, { upsert: true, contentType: logo_mime_type || `image/${ext}` });
+        
+        if (!uploadErr) {
+          const { data: urlData } = admin.storage.from("tenant-logos").getPublicUrl(path);
+          const finalLogoUrl = urlData.publicUrl;
+          await admin.from("tenant_configuration")
+            .update({ logo_url: finalLogoUrl })
+            .eq("tenant_id", tenant_id);
+          console.log("[provision-tenant] Logo uploaded:", finalLogoUrl);
+        } else {
+          console.error("[provision-tenant] Logo upload error:", uploadErr);
+        }
+      } catch (logoErr: any) {
+        console.error("[provision-tenant] Logo processing error:", logoErr.message);
+      }
+    } else if (logo_url) {
+      // Fallback: if logo_url was passed directly (legacy support)
+      await admin.from("tenant_configuration")
+        .update({ logo_url })
+        .eq("tenant_id", tenant_id);
+    }
+
     const { data: srcIei } = await admin
       .from("income_expense_items")
       .select("*")
