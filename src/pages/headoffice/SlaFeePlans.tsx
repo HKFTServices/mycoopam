@@ -16,7 +16,9 @@ interface FeePlan {
   id: string;
   plan_code: string;
   plan_label: string;
+  plan_type: string;
   setup_fee_excl_vat: number;
+  monthly_fee_excl_vat: number;
   deposit_fee_pct: number;
   switch_transfer_withdrawal_fee_pct: number;
   tpv_tier1_threshold: number;
@@ -64,7 +66,7 @@ const SlaFeePlans = () => {
       if (!plan) throw new Error("Plan not found");
       const payload: Record<string, any> = { updated_at: new Date().toISOString() };
       const numFields = [
-        "setup_fee_excl_vat", "deposit_fee_pct", "switch_transfer_withdrawal_fee_pct",
+        "setup_fee_excl_vat", "monthly_fee_excl_vat", "deposit_fee_pct", "switch_transfer_withdrawal_fee_pct",
         "tpv_tier1_threshold", "tpv_tier1_pct_pa", "tpv_tier2_threshold",
         "tpv_tier2_pct_pa", "tpv_tier3_pct_pa",
       ];
