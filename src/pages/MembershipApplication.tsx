@@ -199,11 +199,48 @@ const MembershipApplication = () => {
         if (tcErr) throw tcErr;
       }
 
+      let entityId: string;
       const { data: userEntity } = await (supabase as any)
         .from("user_entity_relationships").select("entity_id, relationship_types!inner(name)")
         .eq("user_id", user.id).eq("tenant_id", currentTenant.id)
         .eq("relationship_types.name", "Myself").limit(1).maybeSingle();
-      if (!userEntity?.entity_id) throw new Error("Entity not found. Please complete registration first.");
+
+      if (userEntity?.entity_id) {
+        entityId = userEntity.entity_id;
+      } else {
+        // Auto-create entity from profile data
+        const { data: relTypes } = await supabase
+          .from("relationship_types")
+          .select("id, name, entity_category_id, entity_categories!inner(entity_type, id)")
+          .eq("name", "Myself");
+        const myselfRel = relTypes?.find((r: any) => r.entity_categories?.entity_type === "natural_person");
+        const naturalPersonCategoryId = (myselfRel as any)?.entity_categories?.id || null;
+
+        const { data: newEntity, error: newEntityErr } = await (supabase as any)
+          .from("entities").insert({
+            tenant_id: currentTenant.id,
+            name: profile?.first_name || user.email?.split("@")[0] || "Member",
+            last_name: profile?.last_name || null,
+            email_address: profile?.email || user.email || null,
+            contact_number: (profile as any)?.phone || null,
+            language_code: "en",
+            entity_category_id: naturalPersonCategoryId,
+            creator_user_id: user.id,
+            is_registration_complete: false,
+          }).select("id").single();
+        if (newEntityErr) throw newEntityErr;
+        entityId = newEntity.id;
+
+        if (myselfRel) {
+          await (supabase as any).from("user_entity_relationships").insert({
+            tenant_id: currentTenant.id,
+            user_id: user.id,
+            entity_id: entityId,
+            relationship_type_id: myselfRel.id,
+            is_primary: true,
+          });
+        }
+      }
 
       // Use selected membership type: 1 = Full, 4 = Associated
       const accountTypeCode = selectedMembershipType === "associated" ? 4 : 1;
@@ -216,14 +253,14 @@ const MembershipApplication = () => {
       if (!membershipAccountType?.id) throw new Error(`Membership account type not configured for tenant ${currentTenant.id}, type ${accountTypeCode}. Contact your administrator.`);
 
       const { error: eaErr } = await (supabase as any).from("entity_accounts").insert({
-        tenant_id: currentTenant.id, entity_id: userEntity.entity_id,
+        tenant_id: currentTenant.id, entity_id: entityId,
         entity_account_type_id: membershipAccountType.id, status: "pending_activation",
       });
       if (eaErr) throw eaErr;
 
       const { error: appErr } = await supabase.from("membership_applications").insert({
         user_id: user.id, tenant_id: currentTenant.id,
-        entity_id: userEntity.entity_id,
+        entity_id: entityId,
         has_referrer: hasReferrer,
         referrer_id: hasReferrer && referrerId ? referrerId : null,
         commission_percentage: parseFloat(commissionPercentage), status: "pending_activation",
@@ -235,7 +272,7 @@ const MembershipApplication = () => {
         await (supabase as any).from("entities").update({
           agent_house_agent_id: referrerId,
           agent_commission_percentage: parseFloat(commissionPercentage) || 0,
-        }).eq("id", userEntity.entity_id);
+        }).eq("id", entityId);
       }
 
       supabase.functions.invoke("send-account-creation-email", {
