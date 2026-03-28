@@ -585,7 +585,7 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
     // Collect unique pool IDs from selected items for cash display
     const selectedPoolIds: string[] = [...new Set(lines.map((l) => l.poolId))];
     // Also collect all unique pools from stock items for reference
-    const allPoolIds: string[] = [...new Set(stockItems.map((i: any) => i.pool_id as string).filter(Boolean))];
+    const allPoolIds: string[] = Array.from(new Set(stockItems.map((i: any) => String(i.pool_id)).filter((id: string) => id && id !== "undefined")));
     const poolNames = new Map<string, string>();
     for (const item of stockItems) {
       if (item.pool_id && item.pools?.name) poolNames.set(item.pool_id, item.pools.name);
