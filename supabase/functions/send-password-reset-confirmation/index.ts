@@ -1,11 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import nodemailer from "npm:nodemailer@6.9.10";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import {
+  corsHeaders,
+  resolveSmtp,
+  createSmtpTransporter,
+  buildFromHeader,
+  resolveTenantDisplayName,
+  resolveEmailSignature,
+} from "../_shared/email-helpers.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Determine tenant_id if not provided - find from user's tenant membership
+    // Determine tenant_id if not provided
     let resolvedTenantId = tenant_id;
     if (!resolvedTenantId) {
       const { data: membership } = await adminClient
@@ -70,38 +71,20 @@ Deno.serve(async (req) => {
     }
 
     if (!resolvedTenantId) {
-      console.warn("[send-password-reset-confirmation] No tenant found for user");
       return new Response(JSON.stringify({ success: true, email_sent: false, smtp_error: "No tenant found" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch tenant SMTP configuration
+    // Fetch tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
       .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
       .eq("tenant_id", resolvedTenantId)
       .maybeSingle();
 
-    // Resolve tenant display name
-    let tenantName = "the cooperative";
-    if (tenantConfig?.legal_entity_id) {
-      const { data: legalEntity } = await adminClient
-        .from("entities")
-        .select("name")
-        .eq("id", tenantConfig.legal_entity_id)
-        .single();
-      if (legalEntity?.name) tenantName = legalEntity.name;
-    } else {
-      const { data: tenant } = await adminClient
-        .from("tenants")
-        .select("name")
-        .eq("id", resolvedTenantId)
-        .single();
-      if (tenant?.name) tenantName = tenant.name;
-    }
-
+    const tenantName = await resolveTenantDisplayName(adminClient, resolvedTenantId, tenantConfig);
     const firstName = profile.first_name || "Member";
     const userLang = profile.language_code || "en";
 
@@ -117,11 +100,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const nowDate = new Date().toLocaleDateString("en-ZA", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
 
     let subject = template?.subject || `Password Reset Successful – ${tenantName}`;
@@ -135,7 +114,6 @@ Deno.serve(async (req) => {
         <p>Best regards,<br/><strong>${tenantName}</strong></p>
       </div>`;
 
-    // Replace placeholders
     const replacements: Record<string, string> = {
       "{{entity_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
       "{{user_name}}": firstName,
@@ -149,71 +127,45 @@ Deno.serve(async (req) => {
       body = body.replaceAll(key, val);
     }
 
-    // Append tenant email signature
-    const emailSignature = userLang === "af"
-      ? (tenantConfig as any)?.email_signature_af || (tenantConfig as any)?.email_signature_en || ""
-      : (tenantConfig as any)?.email_signature_en || "";
+    const emailSignature = resolveEmailSignature(tenantConfig, userLang);
     if (emailSignature) {
       body = body + emailSignature;
     }
 
-    // Send via tenant SMTP
+    // ── Resolve SMTP using standard 3-tier fallback ──
+    const smtp = await resolveSmtp(adminClient, resolvedTenantId, tenantConfig);
+
     let emailSent = false;
     let messageId = "";
     let smtpError = "";
 
-    if (tenantConfig?.smtp_host && tenantConfig?.smtp_from_email) {
-      try {
-        const smtpStrategies = [
-          { port: 465, secure: true,  ignoreTLS: false },
-          { port: 587, secure: false, ignoreTLS: false },
-          { port: 587, secure: false, ignoreTLS: true  },
-          { port: 25,  secure: false, ignoreTLS: true  },
-        ];
-        let transporter: any = null;
-        for (const s of smtpStrategies) {
-          try {
-            const t = nodemailer.createTransport({
-              host: tenantConfig.smtp_host, port: s.port, secure: s.secure, ignoreTLS: s.ignoreTLS,
-              tls: { rejectUnauthorized: false },
-              auth: tenantConfig.smtp_username ? { user: tenantConfig.smtp_username, pass: tenantConfig.smtp_password || "" } : undefined,
-            });
-            await t.verify();
-            transporter = t;
-            break;
-          } catch (err: any) {
-            if (/534|535/.test(err.message)) break;
-          }
+    if (smtp) {
+      const transporter = await createSmtpTransporter(smtp);
+      if (transporter) {
+        try {
+          const info = await transporter.sendMail({
+            from: buildFromHeader(smtp),
+            replyTo: smtp.username?.includes("@") ? smtp.username : undefined,
+            to: profile.email,
+            subject,
+            html: body,
+          });
+          emailSent = true;
+          messageId = info.messageId;
+          console.log(`[send-password-reset-confirmation] Sent: ${messageId} (SMTP source: ${smtp.source})`);
+        } catch (err: any) {
+          smtpError = err.message;
+          console.error(`[send-password-reset-confirmation] SMTP error: ${smtpError}`);
         }
-        if (!transporter) throw new Error("All SMTP strategies failed");
-
-        const fromEmail = tenantConfig.smtp_from_email;
-        const fromHeader = tenantConfig.smtp_from_name
-          ? `"${tenantConfig.smtp_from_name}" <${fromEmail}>`
-          : fromEmail;
-
-        const info = await transporter.sendMail({
-          from: fromHeader,
-          replyTo: tenantConfig.smtp_username?.includes("@") ? tenantConfig.smtp_username : undefined,
-          to: profile.email,
-          subject,
-          html: body,
-        });
-
-        emailSent = true;
-        messageId = info.messageId;
-        console.log(`[send-password-reset-confirmation] Sent: ${messageId} to ${profile.email}`);
-      } catch (err: any) {
-        smtpError = err.message;
-        console.error(`[send-password-reset-confirmation] SMTP error: ${smtpError}`);
+      } else {
+        smtpError = "All SMTP connection strategies failed";
       }
     } else {
-      smtpError = "SMTP not configured for this tenant";
-      console.warn(`[send-password-reset-confirmation] ${smtpError}`);
+      smtpError = "No SMTP configured (tenant, head office, or env)";
     }
 
     return new Response(
-      JSON.stringify({ success: true, email_sent: emailSent, message_id: messageId || undefined, smtp_error: smtpError || undefined }),
+      JSON.stringify({ success: true, email_sent: emailSent, message_id: messageId || undefined, smtp_error: smtpError || undefined, smtp_source: smtp?.source || "none" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
