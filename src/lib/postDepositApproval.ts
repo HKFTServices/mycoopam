@@ -313,6 +313,11 @@ export async function postDepositApproval(
       .eq("id", entityAccountId)
       .single();
 
+    // Only activate and send welcome email for genuinely NEW accounts (no account number yet).
+    // Existing members (imported or previously activated) already have an account_number —
+    // they should NOT receive "first deposit" / account-creation emails on subsequent deposits.
+    const isNewAccount = acctData && acctData.status !== "active" && !acctData.account_number;
+
     if (acctData && acctData.status !== "active") {
       let accountNumber = acctData.account_number;
       if (!accountNumber && acctData.entity_account_types) {
@@ -338,13 +343,12 @@ export async function postDepositApproval(
         .update({ status: "active", is_active: true, account_number: accountNumber })
         .eq("id", entityAccountId);
 
-      // Account-creation email (below) handles the member activation notification.
-      // The regular transaction_confirmation email (section 9) covers the deposit details.
-
-      // Send account-creation (member activation) email (fire-and-forget)
-      supabase.functions.invoke("send-account-creation-email", {
-        body: { tenant_id: tenantId, entity_account_id: entityAccountId },
-      }).catch((err: any) => console.warn("[postDepositApproval] Account creation email failed:", err.message));
+      // Only send account-creation email for genuinely new members (no prior account number)
+      if (isNewAccount) {
+        supabase.functions.invoke("send-account-creation-email", {
+          body: { tenant_id: tenantId, entity_account_id: entityAccountId },
+        }).catch((err: any) => console.warn("[postDepositApproval] Account creation email failed:", err.message));
+      }
     }
   }
 
