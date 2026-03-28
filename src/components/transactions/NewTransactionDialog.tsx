@@ -2132,6 +2132,7 @@ const NewTransactionDialog = ({
               withdrawalSummaries={withdrawalSplitSummaries}
               loanRepaymentAmount={effectiveLoanRepayment}
             />
+            </>
           )}
           </div>
 
