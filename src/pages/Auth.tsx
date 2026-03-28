@@ -36,6 +36,40 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const { session, isPasswordRecovery } = useAuth();
 
+  // Handle token_hash verification from activation links
+  // When the registration email link goes directly to the tenant domain
+  // with token_hash in the URL fragment, we verify it here
+  useEffect(() => {
+    const verifyTokenFromHash = async () => {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+      if (tokenHash && type && !session) {
+        console.log("[Auth] Verifying token_hash from URL:", type);
+        try {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as any,
+          });
+          if (error) {
+            console.error("[Auth] Token verification failed:", error.message);
+            toast({
+              title: "Verification failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          // Clear the hash to avoid re-verification
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        } catch (err: any) {
+          console.error("[Auth] Token verification error:", err);
+        }
+      }
+    };
+    verifyTokenFromHash();
+  }, []);
+
   useEffect(() => {
     // Don't redirect to dashboard during password recovery
     if (isPasswordRecovery) return;
