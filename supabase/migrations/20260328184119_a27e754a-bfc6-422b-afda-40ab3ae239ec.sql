@@ -1,0 +1,1 @@
+ALTER TABLE public.tenant_configuration ADD COLUMN IF NOT EXISTS use_global_email_settings boolean NOT NULL DEFAULT true;
