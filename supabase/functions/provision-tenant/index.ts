@@ -1030,12 +1030,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update profile: mark as registered, no onboarding needed
-        await admin.from("profiles").update({
-          registration_status: "registered",
-          needs_onboarding: false,
-          phone: admin_details.contact_number || null,
-        }).eq("user_id", admin_details.user_id);
+        // Profile already upserted after user creation — no need to update again
 
         // Set administrator_entity_id in tenant_configuration
         await admin.from("tenant_configuration")
