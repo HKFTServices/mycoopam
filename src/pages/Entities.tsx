@@ -16,6 +16,7 @@ import CreateEntityDialog from "@/components/entities/CreateEntityDialog";
 const Entities = () => {
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const { data: entities = [], isLoading } = useQuery({
