@@ -6,19 +6,23 @@ import { useTenant } from "@/contexts/TenantContext";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, ArrowLeft, CalendarIcon, ChevronDown, FileText } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, ArrowLeft, CalendarIcon, ChevronDown, FileText, Wallet, HandCoins, Sigma } from "lucide-react";
 import MemberStatementDialog from "@/components/statements/MemberStatementDialog";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import PoolUnitPrices from "@/components/pools/PoolUnitPrices";
 import PoolItemsPrices from "@/components/pools/PoolItemsPrices";
 import PoolTermsConditions from "@/components/pools/PoolTermsConditions";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const FALLBACK_COLORS = [
   "hsl(200, 70%, 50%)",
@@ -134,6 +138,7 @@ const EntityPoolDetails = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const entityId = searchParams.get("entityId");
+  const isMobile = useIsMobile();
 
   // Fetch all entities linked to the current user
   const { data: userLinkedEntities = [] } = useQuery({
@@ -150,6 +155,14 @@ const EntityPoolDetails = () => {
     },
     enabled: !!user && !!currentTenant,
   });
+
+  // If user navigates without an entityId, default to the first linked entity.
+  useEffect(() => {
+    if (entityId) return;
+    const first = userLinkedEntities?.[0]?.id;
+    if (!first) return;
+    setSearchParams({ entityId: first }, { replace: true });
+  }, [entityId, setSearchParams, userLinkedEntities]);
 
   // Fetch entity info
   const { data: entity } = useQuery({
@@ -327,9 +340,15 @@ const EntityPoolDetails = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in px-1 sm:px-0">
-      {/* Header — centered */}
-      <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center">
-        <Button variant="ghost" size="icon" className="self-start" onClick={() => navigate(-1)}>
+      {/* Header — centered, back button pinned left */}
+      <div className="relative flex flex-col items-center gap-1.5 sm:gap-2 text-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute left-0 top-0"
+          onClick={() => navigate(-1)}
+          aria-label="Back"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
@@ -377,36 +396,44 @@ const EntityPoolDetails = () => {
           </div>
         )}
 
-        {/* Date Picker */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !effectiveDate && "text-muted-foreground")}>
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : t(lang, "selectDate")}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <Calendar
-              mode="single"
-              selected={selectedDate ?? (availableDates[0] ? new Date(availableDates[0] + "T00:00:00") : undefined)}
-              onSelect={setSelectedDate}
-              disabled={(date) => {
-                const ds = format(date, "yyyy-MM-dd");
-                return !availableDates.includes(ds);
-              }}
-              className={cn("p-3 pointer-events-auto")}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-center gap-2 pt-1">
+          {/* Date Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full sm:w-[220px] justify-start text-left font-normal",
+                  !effectiveDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                {effectiveDate ? format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy") : t(lang, "selectDate")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={selectedDate ?? (availableDates[0] ? new Date(availableDates[0] + "T00:00:00") : undefined)}
+                onSelect={setSelectedDate}
+                disabled={(date) => {
+                  const ds = format(date, "yyyy-MM-dd");
+                  return !availableDates.includes(ds);
+                }}
+                className={cn("p-3 pointer-events-auto")}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
 
-        {/* Statement download button */}
-        {entityId && currentTenant && entityAccounts.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setStatementOpen(true)}>
-            <FileText className="h-4 w-4 mr-2" />
-            Statement
-          </Button>
-        )}
+          {/* Statement download button */}
+          {entityId && currentTenant && entityAccounts.length > 0 && (
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setStatementOpen(true)}>
+              <FileText className="h-4 w-4 mr-2" />
+              Statement
+            </Button>
+          )}
+        </div>
       </div>
 
       {loadingPrices ? (
@@ -418,61 +445,89 @@ const EntityPoolDetails = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col-reverse gap-4 sm:gap-6 lg:grid lg:grid-cols-2">
-          {/* Pie Chart */}
-          <Card>
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
             <CardHeader className="pb-2 sm:pb-6">
-              <CardTitle className="text-base sm:text-lg">{t(lang, "poolAllocation")}</CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base sm:text-lg">{t(lang, "poolAllocation")}</CardTitle>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Badge variant="secondary">{summaryPools.length} pools</Badge>
+                  <Badge variant="outline">{entityAccounts.length} accounts</Badge>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
-              <ResponsiveContainer width="100%" height={280} className="sm:!h-[350px]">
+              <ResponsiveContainer width="100%" height={isMobile ? 260 : 340}>
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={45}
-                    outerRadius={80}
+                    innerRadius={isMobile ? 40 : 55}
+                    outerRadius={isMobile ? 80 : 100}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent, x, y, textAnchor }) => (
-                      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" className="text-[10px] sm:text-xs fill-foreground">
-                        {`${name} (${(percent * 100).toFixed(0)}%)`}
-                      </text>
-                    )}
-                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                   >
                     {pieData.map((entry, idx) => (
                       <Cell key={idx} fill={getPoolColor(entry.name, idx)} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value, sym)} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend wrapperStyle={{ fontSize: isMobile ? "11px" : "12px" }} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Summary Cards */}
-          <div className="space-y-4">
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-4 sm:py-6 space-y-3">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{t(lang, "totalValue")}</p>
-                  <p className="text-2xl sm:text-3xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{t(lang, "totalValue")}</p>
+                    <p className="text-xl sm:text-2xl font-bold tracking-tight">{formatCurrency(totalValue, sym)}</p>
+                  </div>
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Wallet className="h-4 w-4" />
+                  </div>
                 </div>
-                {loanOutstanding > 0 && (
-                  <>
-                    <div className="border-t border-border pt-3">
-                      <p className="text-xs sm:text-sm text-muted-foreground">{t(lang, "osLoan")}</p>
-                      <p className="text-lg sm:text-xl font-semibold text-destructive">{formatCurrency(loanOutstanding, sym)}</p>
-                    </div>
-                    <div className="border-t border-border pt-3">
-                      <p className="text-xs sm:text-sm text-muted-foreground">{t(lang, "netValue")}</p>
-                      <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${netValue < 0 ? "text-destructive" : ""}`}>{formatCurrency(netValue, sym)}</p>
-                    </div>
-                  </>
-                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{t(lang, "osLoan")}</p>
+                    <p className={cn("text-xl sm:text-2xl font-bold tracking-tight", loanOutstanding > 0 ? "text-destructive" : "")}>
+                      {formatCurrency(loanOutstanding, sym)}
+                    </p>
+                  </div>
+                  <div className="h-9 w-9 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                    <HandCoins className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className={cn(netValue < 0 ? "border-destructive/40" : "border-primary/20")}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{t(lang, "netValue")}</p>
+                    <p className={cn("text-xl sm:text-2xl font-bold tracking-tight", netValue < 0 ? "text-destructive" : "")}>
+                      {formatCurrency(netValue, sym)}
+                    </p>
+                  </div>
+                  <div
+                    className={cn(
+                      "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                      netValue < 0 ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    )}
+                  >
+                    <Sigma className="h-4 w-4" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -482,90 +537,162 @@ const EntityPoolDetails = () => {
       {/* Detailed Pool Breakdown */}
       {summaryPools.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t(lang, "poolBreakdown")} {effectiveDate && <span className="text-sm font-normal text-muted-foreground">{t(lang, "on")} {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}</span>}</CardTitle>
+          <CardHeader className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">{t(lang, "poolBreakdown")}</CardTitle>
+              {effectiveDate && (
+                <Badge variant="outline" className="font-normal">
+                  {t(lang, "on")} {format(new Date(effectiveDate + "T00:00:00"), "dd MMM yyyy")}
+                </Badge>
+              )}
+            </div>
+            <Separator />
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t(lang, "pool")}</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">{t(lang, "units")}</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">{t(lang, "unitPrice")}</TableHead>
-                  <TableHead className="text-right">{t(lang, "value")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {summaryPools.map((p, idx) => {
-                  const price = poolPrices.find((pp: any) => pp.pool_id === p.poolId);
-                  return (
-                    <TableRow key={p.poolId}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: getPoolColor(p.poolName, idx) }} />
-                          {p.iconUrl ? (
-                            <img src={p.iconUrl} alt={p.poolName} className="h-6 w-6 rounded object-cover shrink-0" />
-                          ) : null}
-                          <span className="font-medium">{translatePoolName(p.poolName, lang)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
-                      <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{formatCurrency(price ? Number(price.unit_price_sell) : 0, sym)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.value, sym)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-                <TableRow className="bg-muted/30 font-bold">
-                  <TableCell>{t(lang, "total")}</TableCell>
-                  <TableCell className="text-right font-mono hidden sm:table-cell">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
-                  <TableCell className="hidden sm:table-cell" />
-                  <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
+
+          {isMobile ? (
+            <CardContent className="p-4 space-y-3">
+              {summaryPools.map((p, idx) => {
+                const price = poolPrices.find((pp: any) => pp.pool_id === p.poolId);
+                const unitPrice = price ? Number(price.unit_price_sell) : 0;
+                return (
+                  <div key={p.poolId} className="rounded-lg border bg-card p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: getPoolColor(p.poolName, idx) }} />
+                      {p.iconUrl ? (
+                        <img src={p.iconUrl} alt={p.poolName} className="h-7 w-7 rounded object-cover shrink-0" />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{translatePoolName(p.poolName, lang)}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} units • {formatCurrency(unitPrice, sym)} / unit
+                        </p>
+                      </div>
+                      <p className="font-mono text-sm font-semibold">{formatCurrency(p.value, sym)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3">
+                <span className="text-sm font-semibold">{t(lang, "total")}</span>
+                <span className="font-mono font-semibold">{formatCurrency(totalValue, sym)}</span>
+              </div>
+            </CardContent>
+          ) : (
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t(lang, "pool")}</TableHead>
+                    <TableHead className="text-right">{t(lang, "units")}</TableHead>
+                    <TableHead className="text-right">{t(lang, "unitPrice")}</TableHead>
+                    <TableHead className="text-right">{t(lang, "value")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {summaryPools.map((p, idx) => {
+                    const price = poolPrices.find((pp: any) => pp.pool_id === p.poolId);
+                    return (
+                      <TableRow key={p.poolId}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: getPoolColor(p.poolName, idx) }} />
+                            {p.iconUrl ? (
+                              <img src={p.iconUrl} alt={p.poolName} className="h-6 w-6 rounded object-cover shrink-0" />
+                            ) : null}
+                            <span className="font-medium">{translatePoolName(p.poolName, lang)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm">{p.units.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{formatCurrency(price ? Number(price.unit_price_sell) : 0, sym)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(p.value, sym)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow className="bg-muted/30 font-bold">
+                    <TableCell>{t(lang, "total")}</TableCell>
+                    <TableCell className="text-right font-mono">{summaryPools.reduce((s, p) => s + p.units, 0).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</TableCell>
+                    <TableCell />
+                    <TableCell className="text-right font-mono">{formatCurrency(totalValue, sym)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          )}
         </Card>
       )}
 
       {/* Notes section — compact inline prices & T&C */}
       {poolData.length > 0 && (
-        <div className="space-y-1.5 border-t border-border pt-4 mt-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t(lang, "notes")}</p>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base sm:text-lg">{t(lang, "notes")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="multiple" className="w-full">
+              {belowSummaryPools.length > 0 && (
+                <AccordionItem value="additional">
+                  <AccordionTrigger>Additional notes</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2">
+                      {belowSummaryPools.map((p) => (
+                        <div key={p.poolId} className="flex items-start justify-between gap-3 text-sm">
+                          <span className="text-muted-foreground">
+                            <span className="font-medium text-foreground mr-2">
+                              {translateStatementDesc(p.statementDesc, p.poolName, lang)}:
+                            </span>
+                          </span>
+                          <span className="font-mono">{formatCurrency(p.value, sym)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
 
-          {/* Below-summary pools with statement descriptions */}
-          {belowSummaryPools.map((p) => (
-            <div key={p.poolId} className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground mr-2">{translateStatementDesc(p.statementDesc, p.poolName, lang)}:</span>
-              <span className="font-mono">{formatCurrency(p.value, sym)}</span>
-            </div>
-          ))}
+              <AccordionItem value="unit-prices">
+                <AccordionTrigger>{t(lang, "unitPrices")}</AccordionTrigger>
+                <AccordionContent>
+                  <PoolUnitPrices
+                    poolPrices={poolPrices}
+                    exposedPoolIds={poolData.map((p) => p.poolId)}
+                    currencySymbol={sym}
+                    label={t(lang, "unitPrices")}
+                  />
+                </AccordionContent>
+              </AccordionItem>
 
-          <PoolUnitPrices
-            poolPrices={poolPrices}
-            exposedPoolIds={poolData.map((p) => p.poolId)}
-            currencySymbol={sym}
-            label={t(lang, "unitPrices")}
-          />
+              {effectiveDate && currentTenant && (
+                <AccordionItem value="stock-prices">
+                  <AccordionTrigger>{t(lang, "stockPrices")}</AccordionTrigger>
+                  <AccordionContent>
+                    <PoolItemsPrices
+                      tenantId={currentTenant.id}
+                      poolIds={poolData.map((p) => p.poolId)}
+                      effectiveDate={effectiveDate}
+                      currencySymbol={sym}
+                      label={t(lang, "stockPrices")}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              )}
 
-          {effectiveDate && currentTenant && (
-            <PoolItemsPrices
-              tenantId={currentTenant.id}
-              poolIds={poolData.map((p) => p.poolId)}
-              effectiveDate={effectiveDate}
-              currencySymbol={sym}
-              label={t(lang, "stockPrices")}
-            />
-          )}
-
-          {currentTenant && (
-            <PoolTermsConditions
-              tenantId={currentTenant.id}
-              poolIds={poolData.map((p) => p.poolId)}
-              lang={lang}
-              label={t(lang, "termsConditions")}
-            />
-          )}
-        </div>
+              {currentTenant && (
+                <AccordionItem value="terms">
+                  <AccordionTrigger>{t(lang, "termsConditions")}</AccordionTrigger>
+                  <AccordionContent>
+                    <PoolTermsConditions
+                      tenantId={currentTenant.id}
+                      poolIds={poolData.map((p) => p.poolId)}
+                      lang={lang}
+                      label={t(lang, "termsConditions")}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+            </Accordion>
+          </CardContent>
+        </Card>
       )}
       {/* Statement Dialog */}
       {entityId && currentTenant && (

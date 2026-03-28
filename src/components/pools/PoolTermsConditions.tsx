@@ -59,10 +59,20 @@ const PoolTermsConditions = ({ tenantId, poolIds, lang = "en", label = "Terms & 
   });
 
   return (
-    <div className="mt-1">
+    <div className="mt-1 max-w-full overflow-x-hidden">
       <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
       <div
-        className="prose prose-xs max-w-none dark:prose-invert text-muted-foreground text-xs leading-relaxed"
+        className={[
+          "prose prose-xs dark:prose-invert",
+          "max-w-full text-muted-foreground text-xs leading-relaxed",
+          "break-words [overflow-wrap:anywhere]",
+          "[&_pre]:max-w-full [&_pre]:overflow-x-auto",
+          "[&_code]:break-words",
+          "[&_a]:break-all",
+          "[&_img]:max-w-full [&_img]:h-auto",
+          "[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto",
+          "[&_th]:break-words [&_td]:break-words",
+        ].join(" ")}
         dangerouslySetInnerHTML={{ __html: resolved }}
       />
     </div>

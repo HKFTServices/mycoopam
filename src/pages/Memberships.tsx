@@ -592,6 +592,10 @@ const Memberships = () => {
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/dashboard/entity-pool-details?entityId=${g.entityId}`)}>
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  View Portfolio
+                </DropdownMenuItem>
                 {!hasReferralHouseAcct && (
                   <DropdownMenuItem disabled={applyMutation.isPending} onClick={() => applyMutation.mutate({ entityId: g.entityId, accountTypeInt: 5 })}>
                     <Home className="h-4 w-4 mr-2" />
