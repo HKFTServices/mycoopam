@@ -582,6 +582,21 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
 
     const isAdjustment = txnType === "STOCK_ADJUSTMENTS";
 
+    // Collect unique pool IDs from selected items for cash display
+    const selectedPoolIds = [...new Set(lines.map((l) => l.poolId))];
+    // Also collect all unique pools from stock items for reference
+    const allPoolIds = [...new Set(stockItems.map((i: any) => i.pool_id).filter(Boolean))];
+    const poolNames = new Map<string, string>();
+    for (const item of stockItems) {
+      if (item.pool_id && item.pools?.name) poolNames.set(item.pool_id, item.pools.name);
+    }
+
+    // Calculate spend per pool from selected lines
+    const spendByPool = lines.reduce<Record<string, number>>((acc, l) => {
+      acc[l.poolId] = (acc[l.poolId] ?? 0) + l.lineTotalInclVat;
+      return acc;
+    }, {});
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
@@ -592,6 +607,47 @@ const AdminStockTransactionDialog = ({ open, onOpenChange }: Props) => {
               : `Items from different pools are supported. A single bank entry will be created for the total invoice; per-pool entries are generated automatically.`}
           </p>
         </div>
+
+        {/* Pool Cash Balances */}
+        {!isAdjustment && allPoolIds.length > 0 && (
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(allPoolIds.length, 3)}, 1fr)` }}>
+            {allPoolIds.map((poolId) => {
+              const cashBalance = getPoolCashBalance(poolId);
+              const poolSpend = spendByPool[poolId] ?? 0;
+              const remaining = cashBalance != null ? cashBalance - poolSpend : null;
+              const isOverspend = remaining != null && remaining < 0;
+
+              return (
+                <div
+                  key={poolId}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 space-y-0.5",
+                    isOverspend
+                      ? "border-destructive/50 bg-destructive/5"
+                      : "border-border bg-muted/30"
+                  )}
+                >
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    {poolNames.get(poolId) ?? "Pool"} Cash
+                  </p>
+                  {cashBalance != null ? (
+                    <>
+                      <p className="text-sm font-bold">{formatCcy(cashBalance)}</p>
+                      {poolSpend > 0 && (
+                        <p className={cn("text-[10px]", isOverspend ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                          {isOverspend ? "⚠ Overspend: " : "After purchase: "}
+                          {formatCcy(remaining!)}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No balance data</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {stockItems.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
