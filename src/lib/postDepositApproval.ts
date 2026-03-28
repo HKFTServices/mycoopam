@@ -338,22 +338,8 @@ export async function postDepositApproval(
         .update({ status: "active", is_active: true, account_number: accountNumber })
         .eq("id", entityAccountId);
 
-      // Send first-membership confirmation email (fire-and-forget)
-      const firstMembershipEvent = isStockDeposit
-        ? "first_membership_dep_stock"
-        : "first_membership_dep_funds";
-      sendTransactionEmail({
-        tenantId,
-        userId,
-        applicationEvent: firstMembershipEvent,
-        transactionData: {
-          transaction_date: txnDate,
-          account_number: accountNumber || "",
-          pool_name: meta.pool_name || poolMap[primaryFull.pool_id]?.name || "",
-          transaction_type: isStockDeposit ? "Stock Deposit" : "Deposit",
-          reference: primaryFull.payment_method?.replace(/_/g, " ") || "",
-        },
-      });
+      // Account-creation email (below) handles the member activation notification.
+      // The regular transaction_confirmation email (section 9) covers the deposit details.
 
       // Send account-creation (member activation) email (fire-and-forget)
       supabase.functions.invoke("send-account-creation-email", {
