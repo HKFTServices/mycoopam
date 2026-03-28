@@ -198,7 +198,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
+      <DialogContent className="inset-x-2 bottom-2 w-auto rounded-2xl border h-[92dvh] sm:h-[85vh] sm:max-w-3xl flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             Apply for Loan — {entityName}
@@ -215,7 +215,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto -mx-6 px-6">
+        <div className="flex-1 overflow-y-auto -mx-4 px-4 sm:-mx-6 sm:px-6">
           {step === "budget" ? (
             <BudgetStep
               tenantId={currentTenant?.id ?? ""}
@@ -237,22 +237,26 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
           )}
         </div>
 
-        <div className="flex justify-between pt-4 border-t">
-          {step === "details" ? (
-            <Button variant="outline" onClick={() => setStep("budget")}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Budget
-            </Button>
-          ) : <div />}
-          {step === "budget" ? (
-            <Button onClick={() => setStep("details")}>
-              Next: Loan Details <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
-              {submitMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              Submit Application
-            </Button>
-          )}
+        <div className="pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+            {step === "details" ? (
+              <Button className="w-full sm:w-auto" variant="outline" onClick={() => setStep("budget")}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Budget
+              </Button>
+            ) : (
+              <div className="hidden sm:block" />
+            )}
+            {step === "budget" ? (
+              <Button className="w-full sm:w-auto" onClick={() => setStep("details")}>
+                Next: Loan Details <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button className="w-full sm:w-auto" onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
+                {submitMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                Submit Application
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

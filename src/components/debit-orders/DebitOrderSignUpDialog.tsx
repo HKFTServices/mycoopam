@@ -453,7 +453,7 @@ const DebitOrderSignUpDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="inset-x-2 bottom-2 w-auto rounded-2xl border max-h-[92dvh] overflow-y-auto sm:max-w-3xl sm:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />

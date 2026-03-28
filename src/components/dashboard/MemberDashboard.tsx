@@ -363,12 +363,24 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   <Plus className="mr-2 h-4 w-4" />
                   New Transaction
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate("/dashboard/loan-applications?new=1")}>
+                <DropdownMenuItem
+                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                  onSelect={() => {
+                    if (!memberPrimaryAccount || memberPrimaryAccountLoading) return;
+                    setLoanApplyOpen(true);
+                  }}
+                >
                   <Banknote className="mr-2 h-4 w-4" />
                   Loan Application
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => navigate("/dashboard/debit-orders?new=1")}>
+                <DropdownMenuItem
+                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                  onSelect={() => {
+                    if (!memberPrimaryAccount || memberPrimaryAccountLoading) return;
+                    setDebitOrderOpen(true);
+                  }}
+                >
                   <Landmark className="mr-2 h-4 w-4" />
                   Debit Order
                 </DropdownMenuItem>
