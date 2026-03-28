@@ -148,15 +148,37 @@ const RegisterTenant = () => {
     if (name.trim()) setPrefixes(generatePrefixes(name));
   }, [name]);
 
-  // Load pools at step 3
+  // Load fee plans at step 2
   useEffect(() => {
-    if (step === 3 && pools.length === 0) loadPools();
+    if (step === 2 && feePlans.length === 0) loadFeePlans();
   }, [step]);
 
-  // Load reference data when reaching step 4
+  // Load pools at step 4
   useEffect(() => {
-    if (step >= 4 && !refData && !refLoading) loadRefData();
+    if (step === 4 && pools.length === 0) loadPools();
   }, [step]);
+
+  // Load reference data when reaching step 5
+  useEffect(() => {
+    if (step >= 5 && !refData && !refLoading) loadRefData();
+  }, [step]);
+
+  const loadFeePlans = async () => {
+    setFeePlansLoading(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("sla_fee_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("plan_code");
+      if (error) throw error;
+      setFeePlans(data ?? []);
+    } catch (err) {
+      console.error("Failed to load fee plans:", err);
+    } finally {
+      setFeePlansLoading(false);
+    }
+  };
 
 
   const loadPools = async () => {
