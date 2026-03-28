@@ -384,7 +384,9 @@ const RegisterTenant = () => {
           selected_pool_ids: selectedPools,
           custom_pools: customPools.length > 0 ? customPools : undefined,
           entity_account_type_prefixes: prefixes,
-          logo_url: logoUrl,
+          logo_data: logoBase64,
+          logo_file_name: logoFileName,
+          logo_mime_type: logoMimeType,
           admin_details: {
             email: email.trim(),
             password,
