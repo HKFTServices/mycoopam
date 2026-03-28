@@ -403,21 +403,21 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   if (showSkeleton) return <AdminDashboardSkeleton />;
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
+      <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1 truncate">{greeting}</p>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{greeting}</p>
           {!isMobile && (
             <p className="text-xs text-muted-foreground mt-1 truncate">
               {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
-            <Button variant="outline" size="sm" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
+            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
@@ -453,7 +453,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
 
       {/* Stat cards */}
       {adminStats && isWidgetVisible("stat-cards") && (
-        <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-1.5 sm:gap-2 grid-cols-2 lg:grid-cols-4">
           <MiniStatCard label="Entities" value={adminStats.totalEntities} icon={Users} description="Registered" />
           <MiniStatCard label="Active Accounts" value={adminStats.totalAccounts} icon={CreditCard} description="Approved & active" />
           <MiniStatCard label="Active Pools" value={adminStats.activePools} icon={Wallet} description="Investment pools" />
@@ -471,7 +471,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                 const showInvestorPct = !!getTierKey(poolName);
                 const stats = investorStatsByPoolId.get(String(p.id));
                 const investorPct = showInvestorPct && stats?.totalInvestors ? (stats.investorCount / Math.max(1, stats.totalInvestors)) * 100 : null;
-                return <div key={p.id} className="w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
+                return <div key={p.id} className="w-[220px] sm:w-[260px] shrink-0"><PoolSummaryMiniCard pool={p} investorPct={investorPct} /></div>;
               })}
             </div>
           </div>
@@ -502,7 +502,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
       )}
 
       {/* Financial overview */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {!isMobile && isWidgetVisible("financial-overview") && (
           <AdminChartsCard aumData={aumAllocationData} loanData={loanBookData} accountsData={accountsStatusData} compact={isMobile} />
         )}

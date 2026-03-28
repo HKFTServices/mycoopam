@@ -45,12 +45,12 @@ const Dashboard = () => {
     return (
       <div className="space-y-6 animate-fade-in">
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-accent flex items-center justify-center mb-4">
-              <Building2 className="h-7 w-7 text-accent-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-10 sm:py-16 text-center px-4">
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-accent flex items-center justify-center mb-3 sm:mb-4">
+              <Building2 className="h-6 w-6 sm:h-7 sm:w-7 text-accent-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No cooperative assigned</h3>
-            <p className="text-muted-foreground max-w-sm">
+            <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">No cooperative assigned</h3>
+            <p className="text-muted-foreground text-xs sm:text-sm max-w-sm">
               Contact your administrator to be added, or wait for an invitation.
             </p>
           </CardContent>

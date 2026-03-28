@@ -336,21 +336,21 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   if (showSkeleton) return <UserDashboardSkeleton />;
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
+      <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1 truncate">{greeting}</p>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{greeting}</p>
           {!isMobile && (
             <p className="text-xs text-muted-foreground mt-1 truncate">
               {currentTenant ? (branding.legalEntityName || currentTenant.name) : "Select a cooperative to get started"}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
-            <Button variant="outline" size="sm" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
+            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Txn</Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
@@ -366,11 +366,11 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {/* Missing docs warning */}
       {missingCriticalDocs.length > 0 && (
         <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <CardContent className="py-4 sm:py-5">
+            <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">Required Documents</p>
@@ -394,12 +394,12 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {showPendingWelcome && (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-6 h-full flex items-center">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Clock className="h-6 w-6 text-primary" /></div>
+            <CardContent className="py-4 sm:py-6 h-full flex items-center">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /></div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold">Welcome to {branding.legalEntityName || currentTenant?.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
+                  <h3 className="text-base sm:text-lg font-semibold">Welcome to {branding.legalEntityName || currentTenant?.name}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
                 </div>
               </div>
             </CardContent>
@@ -410,12 +410,12 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {/* First deposit prompt */}
       {showFirstDeposit && (
         <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="py-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Gem className="h-6 w-6 text-primary" /></div>
+          <CardContent className="py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Gem className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /></div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">Make your first deposit</h3>
-                <p className="text-sm text-muted-foreground mt-1">Your membership is approved! Choose a pool to start investing.</p>
+                <h3 className="text-base sm:text-lg font-semibold">Make your first deposit</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Your membership is approved! Choose a pool to start investing.</p>
                 <div className="grid gap-2 mt-3 sm:grid-cols-2 lg:grid-cols-3">
                   {availablePools.map((pool: any) => (
                     <button key={pool.id} onClick={() => { setSelectedPoolId(pool.id); setTxnDialogOpen(true); }}
@@ -513,10 +513,10 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       {/* No holdings fallback */}
       {memberHoldings.length === 0 && !showFirstDeposit && !showPendingWelcome && (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center mb-3"><Wallet className="h-6 w-6 text-accent-foreground" /></div>
-            <h3 className="font-semibold mb-1">Welcome</h3>
-            <p className="text-muted-foreground text-sm max-w-sm">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 text-center px-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-accent flex items-center justify-center mb-2 sm:mb-3"><Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" /></div>
+            <h3 className="font-semibold text-sm sm:text-base mb-1">Welcome</h3>
+            <p className="text-muted-foreground text-xs sm:text-sm max-w-sm">Your membership will be approved after receipt of your first deposit. Your member interest will be displayed here.</p>
           </CardContent>
         </Card>
       )}
