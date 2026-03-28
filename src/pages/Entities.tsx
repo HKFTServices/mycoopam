@@ -95,12 +95,19 @@ const Entities = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Entities</h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-          All registered entities — natural persons, companies, trusts, and more
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Entities</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+            All registered entities — natural persons, companies, trusts, and more
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1" /> Create Entity
+        </Button>
       </div>
+
+      <CreateEntityDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
