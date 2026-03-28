@@ -99,14 +99,14 @@ const RegisterTenant = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [prefixes, setPrefixes] = useState<Record<number, string>>({});
 
-  // ─── Step 3: Pools ───
+  // ─── Step 4: Pools ───
   const [pools, setPools] = useState<PoolOption[]>([]);
   const [selectedPools, setSelectedPools] = useState<string[]>([]);
   const [customPools, setCustomPools] = useState<string[]>([]);
   const [newPoolName, setNewPoolName] = useState("");
   const [poolsLoading, setPoolsLoading] = useState(false);
 
-  // ─── Step 4: Personal Details ───
+  // ─── Step 5: Personal Details ───
   const [titleId, setTitleId] = useState("");
   const [initials, setInitials] = useState("");
   const [knownAs, setKnownAs] = useState("");
@@ -122,7 +122,7 @@ const RegisterTenant = () => {
   const [phoneError, setPhoneError] = useState("");
   const [altPhoneError, setAltPhoneError] = useState("");
 
-  // ─── Step 5: Address ───
+  // ─── Step 6: Address ───
   const [streetAddress, setStreetAddress] = useState("");
   const [suburb, setSuburb] = useState("");
   const [city, setCity] = useState("");
@@ -133,10 +133,10 @@ const RegisterTenant = () => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  // ─── Step 6: Documents ───
+  // ─── Step 7: Documents ───
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
-  // ─── Step 7: T&Cs ───
+  // ─── Step 8: T&Cs ───
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
 
   // ─── Reference data (fetched once) ───
