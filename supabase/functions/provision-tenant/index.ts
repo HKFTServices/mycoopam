@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, admin_details, admin_documents } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
