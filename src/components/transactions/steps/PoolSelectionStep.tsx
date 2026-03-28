@@ -83,7 +83,7 @@ const PoolSelectionStep = ({
             return (
               <div
                 key={p.id}
-                className={`rounded-xl border-2 p-4 transition-all duration-200 ${
+                className={`rounded-xl border-2 p-3 sm:p-4 transition-all duration-200 w-full min-w-0 ${
                   isDisabled
                     ? "border-border opacity-40 cursor-not-allowed bg-muted/20"
                     : isSelected
@@ -92,26 +92,31 @@ const PoolSelectionStep = ({
                 }`}
                 onClick={() => !isDisabled && onToggleWithdrawalPool?.(p.id)}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3 min-w-0">
                   <Checkbox
                     checked={isSelected}
                     disabled={isDisabled}
                     onCheckedChange={() => !isDisabled && onToggleWithdrawalPool?.(p.id)}
-                    className="h-5 w-5"
+                    className="h-5 w-5 mt-1"
                   />
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? colors.bg : "bg-muted"}`}>
-                    <TrendingUp className={`h-5 w-5 ${isSelected ? colors.icon : "text-muted-foreground"}`} />
+                  <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? colors.bg : "bg-muted"}`}>
+                    <TrendingUp className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${isSelected ? colors.icon : "text-muted-foreground"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{p.name}</p>
+                    <div className="flex items-start justify-between gap-2 min-w-0">
+                      <p className="font-semibold text-sm truncate">{p.name}</p>
+                      <Badge variant="outline" className="text-[10px] shrink-0 font-mono hidden sm:inline-flex">
+                        {formatCurrency(unitPrice)}/u
+                      </Badge>
+                    </div>
                     {poolUnits > 0
-                      ? <p className="text-xs text-muted-foreground">{poolUnits.toFixed(4)} units ≈ {formatCurrency(availableValue)}</p>
+                      ? <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(4)} units ≈ {formatCurrency(availableValue)}</p>
                       : <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertCircle className="h-3 w-3" />No holdings</p>
                     }
+                    <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
+                      {formatCurrency(unitPrice)}/u
+                    </p>
                   </div>
-                  <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
-                    {formatCurrency(unitPrice)}/u
-                  </Badge>
                 </div>
               </div>
             );
@@ -197,48 +202,57 @@ const PoolSelectionStep = ({
             return (
               <div
                 key={p.id}
-                className={`rounded-xl border-2 p-4 transition-all duration-200 ${
+                className={`rounded-xl border-2 p-3 sm:p-4 transition-all duration-200 w-full min-w-0 ${
                   isSelected
                     ? `${colors.bg} ${colors.border} shadow-sm ring-2 ${colors.ring}`
                     : "border-border hover:border-primary/30 hover:bg-muted/20"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3 min-w-0">
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onTogglePool(p.id)}
-                    className="h-5 w-5"
+                    className="h-5 w-5 mt-1"
                   />
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? colors.bg : "bg-muted"}`}>
-                    <TrendingUp className={`h-5 w-5 ${isSelected ? colors.icon : "text-muted-foreground"}`} />
+                  <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? colors.bg : "bg-muted"}`}>
+                    <TrendingUp className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${isSelected ? colors.icon : "text-muted-foreground"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{p.name}</p>
-                    {p.description && <p className="text-xs text-muted-foreground truncate">{p.description}</p>}
+                    <div className="flex items-start justify-between gap-2 min-w-0">
+                      <p className="font-semibold text-sm truncate">{p.name}</p>
+                      <Badge variant="outline" className="text-[10px] shrink-0 font-mono hidden sm:inline-flex">
+                        {formatCurrency(unitPrice)}/u
+                      </Badge>
+                    </div>
+                    {p.description ? (
+                      <p className="text-xs text-muted-foreground break-words sm:truncate">{p.description}</p>
+                    ) : null}
+                    <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
+                      {formatCurrency(unitPrice)}/u
+                    </p>
                   </div>
-                  <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
-                    {formatCurrency(unitPrice)}/u
-                  </Badge>
                 </div>
 
                 {isSelected && (
-                  <div className="flex items-center gap-3 mt-3 ml-8 animate-fade-in">
+                  <div className="mt-3 animate-fade-in ml-0 sm:ml-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="relative">
                       <Input
                         type="number"
                         min="1"
                         max="100"
-                        className="w-24 h-9 text-center text-sm font-bold pr-7"
+                        className="w-20 sm:w-24 h-9 text-center text-sm font-bold pr-7"
                         value={split!.percentage || ""}
                         onChange={(e) => onUpdateSplitPct(p.id, parseInt(e.target.value) || 0)}
                       />
                       <Percent className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    <div className="h-2.5 flex-1 bg-muted rounded-full overflow-hidden">
+                    <div className="h-2.5 w-full sm:flex-1 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-300 bg-primary"
                         style={{ width: `${Math.min(split!.percentage, 100)}%` }}
                       />
+                    </div>
                     </div>
                   </div>
                 )}
@@ -301,7 +315,7 @@ const PoolSelectionStep = ({
               key={p.id}
               onClick={() => !isDisabled && onSelectPool(p.id)}
               disabled={isDisabled}
-              className={`flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+              className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200 w-full min-w-0 ${
                 isDisabled
                   ? "border-border opacity-40 cursor-not-allowed bg-muted/20"
                   : isSelected
@@ -309,26 +323,31 @@ const PoolSelectionStep = ({
                     : "border-border hover:border-primary/30 hover:bg-muted/20"
               }`}
             >
-              <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? colors.bg : "bg-muted"}`}>
-                <TrendingUp className={`h-5 w-5 ${isSelected ? colors.icon : "text-muted-foreground"}`} />
+              <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? colors.bg : "bg-muted"}`}>
+                <TrendingUp className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${isSelected ? colors.icon : "text-muted-foreground"}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">{p.name}</p>
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <p className="font-semibold text-sm truncate">{p.name}</p>
+                  <Badge variant="outline" className="text-[10px] shrink-0 font-mono hidden sm:inline-flex">
+                    {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : 0)}/u
+                  </Badge>
+                </div>
                 {(isTransfer || isSwitch) && accountHoldings.length > 0 ? (
                   hasUnits ? (
-                    <p className="text-xs text-muted-foreground">{poolUnits.toFixed(4)} units held</p>
+                    <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(4)} units held</p>
                   ) : (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" /> No holdings
                     </p>
                   )
                 ) : (
-                  p.description && <p className="text-xs text-muted-foreground truncate">{p.description}</p>
+                  p.description && <p className="text-xs text-muted-foreground break-words sm:truncate">{p.description}</p>
                 )}
+                <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
+                  {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : 0)}/u
+                </p>
               </div>
-              <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
-                {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : 0)}/u
-              </Badge>
             </button>
           );
         })}

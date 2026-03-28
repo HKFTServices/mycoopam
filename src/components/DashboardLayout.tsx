@@ -201,9 +201,16 @@ function sectionHasMatch(label: string, items: NavItem[], query: string) {
 const SidebarAutoCloseOnNavigate = () => {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const location = useLocation();
+  const prevRef = useRef<string>(`${location.pathname}${location.search}`);
 
   useEffect(() => {
+    const current = `${location.pathname}${location.search}`;
+    const prev = prevRef.current;
+    prevRef.current = current;
+
+    // Only close on *actual navigation*, not on the open toggle.
     if (!isMobile) return;
+    if (prev === current) return;
     if (!openMobile) return;
     setOpenMobile(false);
   }, [isMobile, openMobile, location.pathname, location.search, setOpenMobile]);

@@ -129,7 +129,7 @@ const AdminChartsCard = ({ aumData, loanData, accountsData, compact }: AdminChar
 
       <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
         <DialogContent
-          className="w-[calc(100vw-2rem)] max-w-lg md:max-w-2xl max-h-[85vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inset-x-auto bottom-auto rounded-lg border"
+          className="w-[calc(100vw-2rem)] max-w-lg md:max-w-2xl max-h-[85dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bottom-auto rounded-lg border"
         >
           <DialogHeader>
             <DialogTitle>

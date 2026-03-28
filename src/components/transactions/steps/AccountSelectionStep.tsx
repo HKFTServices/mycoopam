@@ -61,7 +61,7 @@ const AccountSelectionStep = ({ accounts, loading, selectedAccountId, onSelect }
         </div>
       )}
 
-      <div className="grid gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+      <div className="grid gap-2.5 max-h-[50vh] overflow-y-auto pr-1 w-full min-w-0">
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">No accounts match your search.</p>
         ) : (
@@ -72,24 +72,29 @@ const AccountSelectionStep = ({ accounts, loading, selectedAccountId, onSelect }
               <button
                 key={a.id}
                 onClick={() => onSelect(a.id)}
-                className={`group relative flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                className={`group relative flex w-full min-w-0 items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200 ${
                   isSelected
                     ? "border-primary bg-primary/5 shadow-md shadow-primary/10 scale-[1.01]"
                     : "border-border hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm"
                 }`}
               >
-                <div className={`flex items-center justify-center h-12 w-12 rounded-xl shrink-0 transition-colors ${
+                <div className={`flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-xl shrink-0 transition-colors ${
                   isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                 }`}>
-                  <Building2 className="h-5 w-5" />
+                  <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{fullName}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-[10px] font-mono">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <p className="font-semibold text-sm truncate">{fullName || "—"}</p>
+                    <Badge variant="outline" className="text-[10px] font-mono shrink-0 hidden sm:inline-flex">
                       {a.account_number || "Pending"}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                  </div>
+                  <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 min-w-0">
+                    <Badge variant="outline" className="text-[10px] font-mono shrink-0 sm:hidden w-fit">
+                      {a.account_number || "Pending"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground break-words sm:truncate">
                       {a.entity_account_types?.name}
                     </span>
                   </div>
