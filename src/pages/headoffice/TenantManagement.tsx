@@ -56,6 +56,18 @@ const TenantManagement = () => {
     },
   });
 
+  // Fetch SLA agreements
+  const { data: tenantSlas = [] } = useQuery({
+    queryKey: ["ho_tenant_slas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("tenant_sla")
+        .select("*, sla_fee_plans(plan_label, plan_code)");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // Fetch member counts per tenant
   const { data: memberCounts = {} } = useQuery({
     queryKey: ["ho_member_counts"],
