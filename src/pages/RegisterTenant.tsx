@@ -535,6 +535,10 @@ const RegisterTenant = () => {
                       <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} required maxLength={30} />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">.myco-op.co.za</span>
                     </div>
+                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="registrationNumber">Registration Number *</Label>
+                    <Input id="registrationNumber" placeholder="e.g. 2025/624300/07" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} required maxLength={50} />
                   </div>
                 </div>
                 <Separator />
