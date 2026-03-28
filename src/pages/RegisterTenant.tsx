@@ -45,13 +45,13 @@ function generatePrefixes(tenantName: string): Record<number, string> {
 interface PoolOption { id: string; name: string; description: string | null; isAdmin?: boolean; }
 type AddressSuggestion = { description: string; place_id: string };
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 const stepTitles = [
-  "Co-operative & Admin", "Branding & Prefixes", "Investment Pools",
+  "Co-operative & Admin", "Service Agreement", "Branding & Prefixes", "Investment Pools",
   "Personal Details", "Residential Address", "Documents",
   "Terms & Conditions",
 ];
-const stepIcons = [Building2, Upload, Coins, User, MapPin, FileText, Shield];
+const stepIcons = [Building2, Scale, Upload, Coins, User, MapPin, FileText, Shield];
 
 const toSentenceCase = (val: string): string =>
   val.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/(?<=\w)\w*/g, (c) => c.toLowerCase());
