@@ -51,9 +51,33 @@ Deno.serve(async (req) => {
       .from("profiles")
       .select("first_name, last_name, email, language_code")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (!profile?.email) {
+    // Fallback: if no profile email, resolve from entity via user_entity_relationships
+    let recipientEmail = profile?.email || null;
+    let recipientFirstName = profile?.first_name || "";
+    let recipientLastName = profile?.last_name || "";
+    let recipientLang = profile?.language_code || "en";
+
+    if (!recipientEmail) {
+      const { data: uer } = await adminClient
+        .from("user_entity_relationships")
+        .select("entity_id, entities!inner(name, last_name, email_address, language_code)")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .maybeSingle();
+      const ent = (uer as any)?.entities;
+      if (ent?.email_address) {
+        recipientEmail = ent.email_address;
+        recipientFirstName = recipientFirstName || ent.name || "";
+        recipientLastName = recipientLastName || ent.last_name || "";
+        recipientLang = ent.language_code || recipientLang;
+        console.log(`[send-account-creation-email] Using entity email ${recipientEmail} for user ${userId}`);
+      }
+    }
+
+    if (!recipientEmail) {
       return new Response(JSON.stringify({ error: "User profile or email not found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,7 +160,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const userLang = profile.language_code || "en";
+    const userLang = recipientLang;
     const { data: template } = await adminClient
       .from("communication_templates")
       .select("subject, body_html")
@@ -147,7 +171,7 @@ Deno.serve(async (req) => {
       .eq("language_code", userLang)
       .maybeSingle();
 
-    const firstName = profile.first_name || "Member";
+    const firstName = recipientFirstName || "Member";
     const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
     const emailSignature = resolveEmailSignature(tenantConfig, userLang);
 
@@ -164,15 +188,15 @@ Deno.serve(async (req) => {
       </div>`;
 
     const replacements: Record<string, string> = {
-      "{{entity_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
+      "{{entity_name}}": [recipientFirstName, recipientLastName].filter(Boolean).join(" ") || firstName,
       "{{user_name}}": firstName,
-      "{{user_surname}}": profile.last_name || "",
-      "{{first_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
+      "{{user_surname}}": recipientLastName,
+      "{{first_name}}": [recipientFirstName, recipientLastName].filter(Boolean).join(" ") || firstName,
       "{{last_name}}": "",
       "{{tenant_name}}": tenantName,
       "{{legal_entity_name}}": tenantName,
-      "{{email}}": profile.email,
-      "{{email_address}}": profile.email,
+      "{{email}}": recipientEmail,
+      "{{email_address}}": recipientEmail,
       "{{entity_account_name}}": entityAccountName,
       "{{account_number}}": accountNumber,
       "{{entity_account_bank_details}}": legalEntityBankDetails,
@@ -197,13 +221,13 @@ Deno.serve(async (req) => {
         try {
           const info = await transporter.sendMail({
             from: buildFromHeader(smtp),
-            to: profile.email,
+            to: recipientEmail,
             subject,
             html: body,
           });
           emailSent = true;
           messageId = info.messageId;
-          console.log(`[send-account-creation-email] Sent: ${messageId} to ${profile.email} (SMTP source: ${smtp.source})`);
+          console.log(`[send-account-creation-email] Sent: ${messageId} to ${recipientEmail} (SMTP source: ${smtp.source})`);
         } catch (err: any) {
           smtpError = err.message;
           console.error(`[send-account-creation-email] SMTP error: ${smtpError}`);
@@ -217,7 +241,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, email_sent: emailSent, message_id: messageId || undefined, smtp_error: smtpError || undefined, smtp_source: smtp?.source || "none", recipient: profile.email, subject }),
+      JSON.stringify({ success: true, email_sent: emailSent, message_id: messageId || undefined, smtp_error: smtpError || undefined, smtp_source: smtp?.source || "none", recipient: recipientEmail, subject }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {

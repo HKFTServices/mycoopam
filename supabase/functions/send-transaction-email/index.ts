@@ -511,15 +511,40 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch member profile
+    // Fetch member profile (may not exist for entity-only users)
     const { data: profile } = await adminClient
       .from("profiles")
       .select("first_name, last_name, email, language_code")
       .eq("user_id", user_id)
-      .single();
+      .maybeSingle();
 
-    if (!profile?.email) {
-      console.warn(`[send-transaction-email] No email found for user ${user_id}`);
+    // If no profile email, try to resolve from the user's linked entity
+    let recipientEmail = profile?.email || null;
+    let recipientName = profile?.first_name || "";
+    let recipientLastName = profile?.last_name || "";
+    let recipientLang = profile?.language_code || "en";
+
+    if (!recipientEmail) {
+      // Look up entity email via user_entity_relationships
+      const { data: uer } = await adminClient
+        .from("user_entity_relationships")
+        .select("entity_id, entities!inner(name, last_name, email_address, language_code)")
+        .eq("user_id", user_id)
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .maybeSingle();
+      const ent = (uer as any)?.entities;
+      if (ent?.email_address) {
+        recipientEmail = ent.email_address;
+        recipientName = recipientName || ent.name || "";
+        recipientLastName = recipientLastName || ent.last_name || "";
+        recipientLang = ent.language_code || recipientLang;
+        console.log(`[send-transaction-email] Using entity email ${recipientEmail} for user ${user_id}`);
+      }
+    }
+
+    if (!recipientEmail) {
+      console.warn(`[send-transaction-email] No email found for user ${user_id} (checked profiles + entities)`);
       return new Response(JSON.stringify({ success: false, error: "No member email" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -656,7 +681,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch communication template
-    const userLang = profile.language_code || "en";
+    const userLang = recipientLang;
     let template: { subject: string; body_html: string } | null = null;
 
     const { data: customLangTemplate } = await adminClient
@@ -726,8 +751,8 @@ Deno.serve(async (req) => {
 
     const footerHtml = footerTemplate?.body_html || "";
 
-    const firstName = profile.first_name || "Member";
-    const lastName = profile.last_name || "";
+    const firstName = recipientName || "Member";
+    const lastName = recipientLastName;
 
     // Resolve tenant display name
     let tenantName = tenant?.name || "the cooperative";
@@ -778,7 +803,7 @@ Deno.serve(async (req) => {
       "{{first_name}}": entityAccountName || firstName,
       "{{last_name}}": "",
       "{{tenant_name}}": tenantName,
-      "{{email}}": profile.email,
+      "{{email}}": recipientEmail,
       "{{transaction_date}}": txn.transaction_date || "",
       "{{account_number}}": txn.account_number || "",
       "{{entity_account_name}}": entityAccountName,
@@ -870,7 +895,7 @@ Deno.serve(async (req) => {
 
     // Build recipient list
     const recipientSet = new Set<string>();
-    recipientSet.add(profile.email.toLowerCase());
+    recipientSet.add(recipientEmail.toLowerCase());
     if (entityEmail && !recipientSet.has(entityEmail.toLowerCase())) {
       recipientSet.add(entityEmail.toLowerCase());
     }
@@ -888,14 +913,14 @@ Deno.serve(async (req) => {
           attachments,
         });
         memberSent = true;
-        if (recipientAddr === profile.email.toLowerCase()) {
+        if (recipientAddr === recipientEmail.toLowerCase()) {
           memberMessageId = info.messageId;
         }
         console.log(`[send-transaction-email] Email sent: ${info.messageId} to ${recipientAddr}`);
-        await logEmail(recipientAddr, recipientAddr === profile.email.toLowerCase() ? user_id : null, subject, "sent", null, info.messageId);
+        await logEmail(recipientAddr, recipientAddr === recipientEmail.toLowerCase() ? user_id : null, subject, "sent", null, info.messageId);
       } catch (err: any) {
         console.error(`[send-transaction-email] Email failed to ${recipientAddr}: ${err.message}`);
-        await logEmail(recipientAddr, recipientAddr === profile.email.toLowerCase() ? user_id : null, subject, "failed", err.message, null);
+        await logEmail(recipientAddr, recipientAddr === recipientEmail.toLowerCase() ? user_id : null, subject, "failed", err.message, null);
       }
     }
 
@@ -927,7 +952,7 @@ Deno.serve(async (req) => {
         admin_email_sent: adminSent,
         statement_attached: !!statementHtml,
         message_id: memberMessageId || undefined,
-        recipient: profile.email,
+        recipient: recipientEmail,
         entity_email: entityEmail || undefined,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
