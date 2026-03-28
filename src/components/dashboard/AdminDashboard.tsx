@@ -502,7 +502,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
       )}
 
       {/* Financial overview */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {!isMobile && isWidgetVisible("financial-overview") && (
           <AdminChartsCard aumData={aumAllocationData} loanData={loanBookData} accountsData={accountsStatusData} compact={isMobile} />
         )}
