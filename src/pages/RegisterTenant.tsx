@@ -587,42 +587,130 @@ const RegisterTenant = () => {
                       Select your preferred service plan. The setup fee is payable upfront (7-day grace period applies).
                       A higher initial fee results in lower ongoing transaction costs.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {feePlans.map((plan) => (
-                        <div
-                          key={plan.id}
-                          onClick={() => setSelectedPlanId(plan.id)}
-                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all space-y-3 ${
-                            selectedPlanId === plan.id
-                              ? "border-primary bg-primary/5 shadow-md"
-                              : "border-border hover:border-muted-foreground/30"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-lg">{plan.plan_label}</h3>
-                            {selectedPlanId === plan.id && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-2xl font-bold text-primary">
-                              {formatCurrency(plan.setup_fee_excl_vat)}
-                              <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT setup</span>
-                            </p>
-                          </div>
-                          <Separator />
-                          <div className="space-y-1.5 text-sm">
-                            <p><span className="font-medium">{plan.deposit_fee_pct}%</span> on all deposits</p>
-                            <p><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches, transfers & withdrawals</p>
-                          </div>
-                          <Separator />
-                          <div className="space-y-1.5 text-sm">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Monthly recurring (% of TPV p.a.)</p>
-                            <p>{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
-                            <p>{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
-                            <p>{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
-                          </div>
+
+                    {/* Feature matrix */}
+                    {(() => {
+                      const features = [
+                        { label: "Member administration", full: true, basic: true },
+                        { label: "Entity & account management", full: true, basic: true },
+                        { label: "Document management", full: true, basic: true },
+                        { label: "Income, expenses & basic accounting", full: true, basic: true },
+                        { label: "Communication templates & emails", full: true, basic: true },
+                        { label: "Investment pools & unit pricing", full: true, basic: false },
+                        { label: "Daily pool price updates", full: true, basic: false },
+                        { label: "Deposits, withdrawals & switches", full: true, basic: false },
+                        { label: "Member statements & certificates", full: true, basic: true },
+                        { label: "Fee engine & sliding scales", full: true, basic: false },
+                        { label: "Loan management", full: true, basic: false },
+                        { label: "Debit order management", full: true, basic: false },
+                        { label: "Stock / commodity trading", full: true, basic: false },
+                        { label: "Member Asset Manager (MAM)", full: true, basic: false },
+                        { label: "Dedicated support", full: true, basic: true },
+                      ];
+
+                      // Sort plans: A, B, then C
+                      const sortedPlans = [...feePlans].sort((a, b) => {
+                        const order: Record<string, number> = { A: 0, B: 1, C: 2 };
+                        return (order[a.plan_code] ?? 9) - (order[b.plan_code] ?? 9);
+                      });
+
+                      return (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                          {sortedPlans.map((plan) => {
+                            const isBasic = plan.plan_type === "basic";
+                            const isSelected = selectedPlanId === plan.id;
+                            return (
+                              <div
+                                key={plan.id}
+                                onClick={() => setSelectedPlanId(plan.id)}
+                                className={`border-2 rounded-xl p-4 cursor-pointer transition-all space-y-3 ${
+                                  isSelected
+                                    ? "border-primary bg-primary/5 shadow-md"
+                                    : "border-border hover:border-muted-foreground/30"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <h3 className="font-bold text-base sm:text-lg">{plan.plan_label}</h3>
+                                  {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
+                                </div>
+
+                                {/* Pricing */}
+                                <div className="space-y-1">
+                                  {isBasic ? (
+                                    <>
+                                      <p className="text-xl sm:text-2xl font-bold text-primary">
+                                        {formatCurrency(plan.monthly_fee_excl_vat ?? 599)}
+                                        <span className="text-xs font-normal text-muted-foreground ml-1">/ month + VAT</span>
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">No setup fee</p>
+                                    </>
+                                  ) : (
+                                    <p className="text-xl sm:text-2xl font-bold text-primary">
+                                      {formatCurrency(plan.setup_fee_excl_vat)}
+                                      <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT setup</span>
+                                    </p>
+                                  )}
+                                </div>
+
+                                <Separator />
+
+                                {/* Transaction fees (full plans only) */}
+                                {!isBasic && (
+                                  <>
+                                    <div className="space-y-1 text-sm">
+                                      <p><span className="font-medium">{plan.deposit_fee_pct}%</span> on all deposits</p>
+                                      <p><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches, transfers & withdrawals</p>
+                                    </div>
+                                    <Separator />
+                                    <div className="space-y-1 text-sm">
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly recurring (% of TPV p.a.)</p>
+                                      <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
+                                      <p className="text-xs">{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                                      <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                                    </div>
+                                    <Separator />
+                                  </>
+                                )}
+
+                                {/* Feature checklist */}
+                                <div className="space-y-1.5">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Features included</p>
+                                  {features.map((f) => {
+                                    const included = isBasic ? f.basic : f.full;
+                                    return (
+                                      <div key={f.label} className="flex items-start gap-2 text-xs">
+                                        {included ? (
+                                          <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                        ) : (
+                                          <Minus className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
+                                        )}
+                                        <span className={included ? "text-foreground" : "text-muted-foreground/40 line-through"}>{f.label}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
+                      );
+                    })()}
+
+                    {/* View full agreement */}
+                    <div className="flex items-center justify-center">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm gap-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          window.open("/sla-agreement", "_blank");
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        View full Service Level Agreement
+                      </Button>
                     </div>
+
                     {selectedPlanId && (
                       <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
                         <div className="flex items-start gap-2">
