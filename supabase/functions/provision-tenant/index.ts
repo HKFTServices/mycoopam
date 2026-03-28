@@ -913,6 +913,32 @@ Deno.serve(async (req) => {
         });
         if (entityErr) console.error("Admin entity error:", entityErr);
 
+        // Create membership entity account for admin
+        if (!entityErr) {
+          const { data: membershipAcctType } = await admin
+            .from("entity_account_types")
+            .select("id, prefix, number_count")
+            .eq("tenant_id", tenant_id)
+            .eq("account_type", 1)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (membershipAcctType) {
+            const padded = "1".padStart(membershipAcctType.number_count || 5, "0");
+            const accountNumber = `${membershipAcctType.prefix}${padded}`;
+            const { error: eaErr } = await admin.from("entity_accounts").insert({
+              tenant_id: tenant_id,
+              entity_id: entityId,
+              entity_account_type_id: membershipAcctType.id,
+              account_number: accountNumber,
+              is_active: true,
+              is_approved: true,
+              status: "active",
+            });
+            if (eaErr) console.error("Admin entity account error:", eaErr);
+            else results.admin_entity_account = 1;
+          }
+        }
+
         // Link user to entity
         if (myselfRel) {
           const { error: linkErr } = await admin.from("user_entity_relationships").insert({
