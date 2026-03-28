@@ -47,17 +47,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
+  // Track whether initial load (getSession) has completed
+  const initialLoadDone = useRef(false);
+
   useEffect(() => {
     cleanupExpiredRememberMe(30);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === ("TOKEN_REFRESH_FAILED" as any)) {
-          try {
-            await supabase.auth.signOut();
-          } catch {
-            // ignore
-          }
+          supabase.auth.signOut().catch(() => {});
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -71,16 +70,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Fetch profile before setting loading=false so ProtectedRoute sees correct registration_status
-          await fetchProfile(session.user.id);
-          // Auto-set email_verified when user has confirmed email
+          // Fetch profile then set loading=false
+          fetchProfile(session.user.id).finally(() => {
+            setLoading(false);
+          });
+          // Auto-set email_verified (fire-and-forget)
           if (session.user.email_confirmed_at) {
             supabase.from("profiles").update({ email_verified: true } as any).eq("user_id", session.user.id).then(() => {});
           }
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
