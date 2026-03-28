@@ -6214,21 +6214,13 @@ export type Database = {
           total_units: number
         }[]
       }
-      get_cft_control_balances:
-        | {
-            Args: { p_tenant_id: string }
-            Returns: {
-              balance: number
-              control_account_id: string
-            }[]
-          }
-        | {
-            Args: { p_tenant_id: string; p_up_to_date?: string }
-            Returns: {
-              balance: number
-              control_account_id: string
-            }[]
-          }
+      get_cft_control_balances: {
+        Args: { p_tenant_id: string; p_up_to_date?: string }
+        Returns: {
+          balance: number
+          control_account_id: string
+        }[]
+      }
       get_latest_pool_prices: {
         Args: { p_tenant_id: string }
         Returns: {

@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.get_cft_control_balances(uuid);
