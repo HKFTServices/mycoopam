@@ -51,9 +51,33 @@ Deno.serve(async (req) => {
       .from("profiles")
       .select("first_name, last_name, email, language_code")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (!profile?.email) {
+    // Fallback: if no profile email, resolve from entity via user_entity_relationships
+    let recipientEmail = profile?.email || null;
+    let recipientFirstName = profile?.first_name || "";
+    let recipientLastName = profile?.last_name || "";
+    let recipientLang = profile?.language_code || "en";
+
+    if (!recipientEmail) {
+      const { data: uer } = await adminClient
+        .from("user_entity_relationships")
+        .select("entity_id, entities!inner(name, last_name, email_address, language_code)")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .maybeSingle();
+      const ent = (uer as any)?.entities;
+      if (ent?.email_address) {
+        recipientEmail = ent.email_address;
+        recipientFirstName = recipientFirstName || ent.name || "";
+        recipientLastName = recipientLastName || ent.last_name || "";
+        recipientLang = ent.language_code || recipientLang;
+        console.log(`[send-account-creation-email] Using entity email ${recipientEmail} for user ${userId}`);
+      }
+    }
+
+    if (!recipientEmail) {
       return new Response(JSON.stringify({ error: "User profile or email not found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

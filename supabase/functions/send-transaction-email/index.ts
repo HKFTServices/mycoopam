@@ -511,15 +511,40 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch member profile
+    // Fetch member profile (may not exist for entity-only users)
     const { data: profile } = await adminClient
       .from("profiles")
       .select("first_name, last_name, email, language_code")
       .eq("user_id", user_id)
-      .single();
+      .maybeSingle();
 
-    if (!profile?.email) {
-      console.warn(`[send-transaction-email] No email found for user ${user_id}`);
+    // If no profile email, try to resolve from the user's linked entity
+    let recipientEmail = profile?.email || null;
+    let recipientName = profile?.first_name || "";
+    let recipientLastName = profile?.last_name || "";
+    let recipientLang = profile?.language_code || "en";
+
+    if (!recipientEmail) {
+      // Look up entity email via user_entity_relationships
+      const { data: uer } = await adminClient
+        .from("user_entity_relationships")
+        .select("entity_id, entities!inner(name, last_name, email_address, language_code)")
+        .eq("user_id", user_id)
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .maybeSingle();
+      const ent = (uer as any)?.entities;
+      if (ent?.email_address) {
+        recipientEmail = ent.email_address;
+        recipientName = recipientName || ent.name || "";
+        recipientLastName = recipientLastName || ent.last_name || "";
+        recipientLang = ent.language_code || recipientLang;
+        console.log(`[send-transaction-email] Using entity email ${recipientEmail} for user ${user_id}`);
+      }
+    }
+
+    if (!recipientEmail) {
+      console.warn(`[send-transaction-email] No email found for user ${user_id} (checked profiles + entities)`);
       return new Response(JSON.stringify({ success: false, error: "No member email" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
