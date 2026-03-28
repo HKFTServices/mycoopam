@@ -119,6 +119,24 @@ Deno.serve(async (req) => {
       admin_details.user_id = createdUserId;
       console.log("[provision-tenant] User created:", createdUserId);
 
+      // Confirm the user's email so they can log in
+      const { error: confirmErr } = await admin.auth.admin.updateUserById(createdUserId, {
+        email_confirm: true,
+      });
+      if (confirmErr) console.error("[provision-tenant] Email confirm error:", confirmErr);
+
+      // Ensure profile exists (trigger may not always fire)
+      const { error: profileErr } = await admin.from("profiles").upsert({
+        user_id: createdUserId,
+        email: admin_details.email,
+        first_name: admin_details.first_name,
+        last_name: admin_details.last_name,
+        registration_status: "registered",
+        needs_onboarding: false,
+        phone: admin_details.contact_number || null,
+      }, { onConflict: "user_id" });
+      if (profileErr) console.error("[provision-tenant] Profile upsert error:", profileErr);
+
       // Bootstrap tenant admin roles
       const { error: bootstrapError } = await admin.rpc("bootstrap_tenant_admin", {
         p_tenant_id: tenant_id, p_user_id: createdUserId,
