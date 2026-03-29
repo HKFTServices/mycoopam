@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
@@ -10,14 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
-import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
+import DashboardCustomizer, { DashboardCustomizerTrigger } from "@/components/dashboard/DashboardCustomizer";
 import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
 import MetricCard from "@/components/dashboard/MetricCard";
 import RecentMemberDeposits from "@/components/dashboard/RecentMemberDeposits";
 import MemberActivityCard from "@/components/dashboard/MemberActivityCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp, isCriticalDocName } from "@/components/dashboard/dashboardUtils";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
-import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark, HelpCircle } from "lucide-react";
+import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark, HelpCircle, FileText, CreditCard } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -43,12 +44,25 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const [loanApplyOpen, setLoanApplyOpen] = useState(false);
   const [debitOrderOpen, setDebitOrderOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(true);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [headerTargets, setHeaderTargets] = useState<{ mobile: HTMLElement | null; desktop: HTMLElement | null }>({
+    mobile: null,
+    desktop: null,
+  });
 
   const onboarding = useOnboardingTour();
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
     useDashboardWidgets(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setHeaderTargets({
+      mobile: document.getElementById("dashboard-header-actions-mobile"),
+      desktop: document.getElementById("dashboard-header-actions-desktop"),
+    });
+  }, []);
 
   const rangeDays = 365;
   const fromDateStr = useMemo(() => {
@@ -343,6 +357,19 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
+      {headerTargets.mobile
+        ? createPortal(
+          <DashboardCustomizerTrigger onClick={() => setCustomizeOpen(true)} mode="icon" />,
+          headerTargets.mobile,
+        )
+        : null}
+      {headerTargets.desktop
+        ? createPortal(
+          <DashboardCustomizerTrigger onClick={() => setCustomizeOpen(true)} mode="icon" />,
+          headerTargets.desktop,
+        )
+        : null}
+
       <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0" data-tour="welcome">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
@@ -354,7 +381,6 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2" data-tour="quick-actions">
-          <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} replayTour={onboarding.hasCompleted ? onboarding.startTour : undefined} />
           {isMobile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -392,11 +418,55 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
-              <Button variant="outline" asChild><Link to="/dashboard/loan-applications">Loan Transactions</Link></Button>
-              <Button variant="outline" asChild><Link to="/dashboard/debit-orders">Debit Orders</Link></Button>
-              <Button variant="outline" disabled={!memberPrimaryAccount || memberPrimaryAccountLoading} onClick={() => setLoanApplyOpen(true)}>Loan Application</Button>
-              <Button variant="outline" disabled={!memberPrimaryAccount || memberPrimaryAccountLoading} onClick={() => setDebitOrderOpen(true)}>New Debit Order</Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="shadow-sm"
+                onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground/15 ring-1 ring-primary-foreground/30">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+                New Transaction
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="bg-background shadow-sm hover:bg-muted/40"
+              >
+                <Link to="/dashboard/loan-applications">
+                  <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/10 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-400">
+                    <FileText className="h-3.5 w-3.5" />
+                  </span>
+                  Loan Transactions
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
+                onClick={() => setDebitOrderOpen(true)}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/10 ring-1 ring-violet-500/30 text-violet-700 dark:text-violet-400">
+                  <CreditCard className="h-3.5 w-3.5" />
+                </span>
+                Debit Orders
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
+                onClick={() => setLoanApplyOpen(true)}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/10 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-400">
+                  <Banknote className="h-3.5 w-3.5" />
+                </span>
+                Loan Application
+              </Button>
             </>
           )}
         </div>
@@ -571,6 +641,17 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       )}
 
       <NewTransactionDialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen} defaultPoolId={selectedPoolId} depositOnly defaultTxnCode="DEPOSIT_FUNDS" />
+      <DashboardCustomizer
+        widgets={widgets}
+        onToggle={toggleWidget}
+        onReorder={reorderWidgets}
+        onReset={resetToDefault}
+        replayTour={onboarding.hasCompleted ? onboarding.startTour : undefined}
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        hideTrigger
+        triggerMode="icon"
+      />
       {memberPrimaryAccount ? (
         <>
           <LoanApplicationDialog open={loanApplyOpen} onOpenChange={setLoanApplyOpen} entityAccountId={memberPrimaryAccount.entityAccountId} entityId={memberPrimaryAccount.entityId} entityName={memberPrimaryAccount.entityName} />

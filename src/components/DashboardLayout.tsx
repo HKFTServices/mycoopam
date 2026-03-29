@@ -851,6 +851,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </span>
               )}
             </button>
+            <div id="dashboard-header-actions-mobile" className="flex items-center" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -907,6 +908,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </button>
             <PendingTransferNotification />
 
+            <div id="dashboard-header-actions-desktop" className="flex items-center" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors">

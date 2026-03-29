@@ -80,18 +80,40 @@ interface DashboardCustomizerProps {
   onReorder: (widgets: DashboardWidget[]) => void;
   onReset: () => void;
   replayTour?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+  triggerMode?: "button" | "icon";
 }
 
-export const DashboardCustomizerTrigger = ({ onClick }: { onClick: () => void }) => (
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={onClick}
-    className="gap-2"
-  >
-    <Settings2 className="h-4 w-4" />
-    <span className="hidden sm:inline">Customize</span>
-  </Button>
+export const DashboardCustomizerTrigger = ({
+  onClick,
+  mode = "button",
+}: {
+  onClick: () => void;
+  mode?: "button" | "icon";
+}) => (
+  mode === "icon" ? (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onClick}
+      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+      aria-label="Customize dashboard"
+    >
+      <Settings2 className="h-5 w-5" />
+    </Button>
+  ) : (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="gap-2"
+    >
+      <Settings2 className="h-4 w-4" />
+      <span className="hidden sm:inline">Customize</span>
+    </Button>
+  )
 );
 
 const DashboardCustomizer = ({
@@ -100,8 +122,15 @@ const DashboardCustomizer = ({
   onReorder,
   onReset,
   replayTour,
+  open,
+  onOpenChange,
+  hideTrigger,
+  triggerMode = "button",
 }: DashboardCustomizerProps) => {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = typeof open === "boolean" && typeof onOpenChange === "function";
+  const isOpen = isControlled ? (open as boolean) : uncontrolledOpen;
+  const setOpen = isControlled ? (onOpenChange as (open: boolean) => void) : setUncontrolledOpen;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -120,9 +149,11 @@ const DashboardCustomizer = ({
 
   return (
     <>
-      <DashboardCustomizerTrigger onClick={() => setOpen(true)} />
+      {!hideTrigger && (
+        <DashboardCustomizerTrigger onClick={() => setOpen(true)} mode={triggerMode} />
+      )}
 
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={isOpen} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
