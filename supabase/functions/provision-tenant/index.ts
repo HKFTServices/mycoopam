@@ -1062,14 +1062,18 @@ Deno.serve(async (req) => {
         .eq("account_type", 6)
         .maybeSingle();
 
-      // Find legal_entity category
-      const { data: legalEntityCategory } = await admin
-        .from("entity_categories")
-        .select("id")
-        .eq("entity_type", "legal_entity")
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
+      // Use entity category from wizard selection, or fallback to first legal_entity
+      let entityCategoryId = coop_details?.entity_category_id || null;
+      if (!entityCategoryId) {
+        const { data: legalEntityCategory } = await admin
+          .from("entity_categories")
+          .select("id")
+          .eq("entity_type", "legal_entity")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle();
+        entityCategoryId = legalEntityCategory?.id || null;
+      }
 
       // Use the tenant name passed from the wizard, or look it up
       let finalCoopName = body.name || "";
