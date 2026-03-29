@@ -69,6 +69,16 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
 
   // Admin setup tour - triggers once for new tenant admins
   const adminTour = useOnboardingTour("admin_setup_tour_completed");
+
+  // Auto-expand tenant setup sidebar when tour reaches setup steps
+  useEffect(() => {
+    if (adminTour.isActive) {
+      const currentTourStep = adminSetupTourSteps[adminTour.currentStep];
+      if (currentTourStep?.target?.startsWith("setup-") || currentTourStep?.target === "tenant-setup-group") {
+        window.dispatchEvent(new CustomEvent("expand-tenant-setup"));
+      }
+    }
+  }, [adminTour.isActive, adminTour.currentStep]);
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
