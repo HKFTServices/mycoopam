@@ -661,6 +661,16 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                 </span>
                 New Loan Application
               </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => adminTour.startTour()}
+              >
+                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                Setup Guide
+              </Button>
             </>
           )}
         </div>
