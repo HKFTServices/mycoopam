@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Save, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { CalendarIcon, Loader2, Save, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Pool = {
   id: string;
@@ -72,6 +72,7 @@ const DailyPoolPrices = () => {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  const isMobile = useIsMobile();
   const initialDate = searchParams.get("date");
   const [priceDate, setPriceDate] = useState<Date>(
     initialDate ? new Date(initialDate + "T00:00:00") : new Date()
@@ -417,17 +418,15 @@ const DailyPoolPrices = () => {
         </p>
       </div>
 
-      <MobileTableHint />
-
       {/* Date Picker */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <span className="text-sm font-medium">Price Date:</span>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-[220px] justify-start text-left font-normal",
+                "w-full sm:w-[220px] justify-start text-left font-normal",
                 !priceDate && "text-muted-foreground"
               )}
             >
@@ -454,158 +453,321 @@ const DailyPoolPrices = () => {
             <Badge variant="secondary" className="ml-1">{poolRows.length}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pool</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Stock Value</TableHead>
-                  <TableHead className="text-right">Cash Control</TableHead>
-                  <TableHead className="text-right">VAT Control</TableHead>
-                  <TableHead className="text-right">Loan Control</TableHead>
-                  <TableHead className="text-right font-semibold">Member Interest</TableHead>
-                  <TableHead className="text-right">Total Units</TableHead>
-                  <TableHead className="text-right font-semibold">Unit Price</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {poolsLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin inline mr-2" />Loading…
-                    </TableCell>
-                  </TableRow>
-                ) : poolRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      No active pools found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  poolRows.map((row) => {
-                    const isAdmin = row.pool.name.toLowerCase().includes("admin");
-                    return (
-                    <Fragment key={row.pool.id}>
-                      {/* Sell Row */}
-                      <TableRow
-                        className="cursor-pointer hover:bg-muted/50 border-b-0"
-                        style={{ backgroundColor: poolColorMap[row.pool.id] || undefined }}
+        <CardContent className={isMobile ? "p-3" : "p-0"}>
+          {isMobile ? (
+            poolsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin inline mr-2" />Loading…
+              </div>
+            ) : poolRows.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No active pools found.</div>
+            ) : (
+              <div className="space-y-3">
+                {poolRows.map((row) => {
+                  const isAdmin = row.pool.name.toLowerCase().includes("admin");
+                  const isFixedPrice = row.pool.fixed_unit_price != null && row.pool.fixed_unit_price > 0;
+                  const isExpanded = !!expandedPools[row.pool.id];
+                  const saved = !!existingMap[row.pool.id];
+                  return (
+                    <div
+                      key={row.pool.id}
+                      className="rounded-2xl border border-border p-3 bg-card/60"
+                      style={{ backgroundColor: poolColorMap[row.pool.id] || undefined }}
+                    >
+                      <button
+                        type="button"
                         onClick={() => togglePool(row.pool.id)}
+                        className="w-full flex items-start justify-between gap-3 text-left"
                       >
-                        <TableCell className="font-medium" rowSpan={2}>
-                          <span className="inline-flex items-center gap-2">
-                            {expandedPools[row.pool.id] ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
                             {row.pool.icon_url ? (
-                              <img src={row.pool.icon_url} alt={row.pool.name} className="h-6 w-6 rounded object-cover" />
+                              <img src={row.pool.icon_url} alt={row.pool.name} className="h-6 w-6 rounded object-cover shrink-0" />
                             ) : null}
-                            {row.pool.name}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">Sell</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatCurrency(row.totalStockSell, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono" rowSpan={2}>
-                          {formatCurrency(row.cashControl, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono" rowSpan={2}>
-                          {isAdmin ? "-" : formatCurrency(row.vatControl, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono" rowSpan={2}>
-                          {isAdmin ? "-" : formatCurrency(row.loanControl, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(row.memberInterestSell, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono" rowSpan={2}>
-                          {row.totalUnits.toFixed(4)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(row.unitPriceSell, sym, 4)}
-                        </TableCell>
-                        <TableCell rowSpan={2}>
-                          {existingMap[row.pool.id] ? (
-                            <Badge variant="default" className="text-xs">Saved</Badge>
+                            <span className="font-semibold truncate">{row.pool.name}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <Badge variant="outline" className="text-[10px]">{isFixedPrice ? "Fixed" : "Floating"}</Badge>
+                            <span>Units: <span className="font-mono">{row.totalUnits.toFixed(4)}</span></span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          {saved ? (
+                            <Badge variant="default" className="text-[10px]">Saved</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">Pending</Badge>
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">Pending</Badge>
                           )}
-                        </TableCell>
-                      </TableRow>
-                      {/* Buy Row */}
-                      <TableRow
-                        className="cursor-pointer hover:bg-muted/50"
-                        style={{ backgroundColor: poolColorMap[row.pool.id] || undefined }}
-                        onClick={() => togglePool(row.pool.id)}
-                      >
-                        <TableCell>
-                          <Badge variant="secondary" className="text-xs">Buy</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatCurrency(row.totalStockBuy, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(row.memberInterestBuy, sym)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {formatCurrency(row.unitPriceBuy, sym, 4)}
-                        </TableCell>
-                      </TableRow>
-                      {/* Expanded stock items */}
-                      {expandedPools[row.pool.id] && row.stockItems.length > 0 && (
-                        <>
-                          <TableRow className="bg-muted/30">
-                            <TableCell className="pl-10 text-xs font-semibold text-muted-foreground">Code</TableCell>
-                            <TableCell className="text-xs font-semibold text-muted-foreground">Description</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Qty</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Cost Price</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Buy Price</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Sell Price</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Buy</TableCell>
-                            <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Sell</TableCell>
-                            <TableCell colSpan={2} />
-                          </TableRow>
-                          {row.stockItems.map((si) => (
-                            <TableRow key={si.itemId} className="bg-muted/20">
-                              <TableCell className="pl-10 font-mono text-xs">{si.itemCode}</TableCell>
-                              <TableCell className="text-xs">{si.description}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{si.quantity.toFixed(4)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.costPrice, sym)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.buyPrice, sym)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.sellPrice, sym)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalBuy, sym)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalSell, sym)}</TableCell>
-                              <TableCell colSpan={2} />
-                            </TableRow>
-                          ))}
-                          <TableRow className="bg-muted/30 border-b-2">
-                            <TableCell className="pl-10 text-xs font-bold" colSpan={2}>Total Stock</TableCell>
-                            <TableCell className="text-right font-mono text-xs font-bold">
-                              {row.stockItems.reduce((s, i) => s + i.quantity, 0).toFixed(4)}
+                        </div>
+                      </button>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl border bg-background/70 p-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px]">Sell</Badge>
+                            <span className="font-mono font-semibold">{formatCurrency(row.unitPriceSell, sym, 4)}</span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-muted-foreground">
+                            <div className="flex justify-between gap-3">
+                              <span>Stock</span>
+                              <span className="font-mono">{formatCurrency(row.totalStockSell, sym)}</span>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                              <span>Interest</span>
+                              <span className="font-mono">{formatCurrency(row.memberInterestSell, sym)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border bg-background/70 p-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="secondary" className="text-[10px]">Buy</Badge>
+                            <span className="font-mono font-semibold">{formatCurrency(row.unitPriceBuy, sym, 4)}</span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-muted-foreground">
+                            <div className="flex justify-between gap-3">
+                              <span>Stock</span>
+                              <span className="font-mono">{formatCurrency(row.totalStockBuy, sym)}</span>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                              <span>Interest</span>
+                              <span className="font-mono">{formatCurrency(row.memberInterestBuy, sym)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                        <div className="rounded-xl border bg-background/70 p-2">
+                          <div className="text-[10px]">Cash</div>
+                          <div className="font-mono text-right text-xs text-foreground">{formatCurrency(row.cashControl, sym)}</div>
+                        </div>
+                        <div className="rounded-xl border bg-background/70 p-2">
+                          <div className="text-[10px]">VAT</div>
+                          <div className="font-mono text-right text-xs text-foreground">{isAdmin ? "-" : formatCurrency(row.vatControl, sym)}</div>
+                        </div>
+                        <div className="rounded-xl border bg-background/70 p-2">
+                          <div className="text-[10px]">Loan</div>
+                          <div className="font-mono text-right text-xs text-foreground">{isAdmin ? "-" : formatCurrency(row.loanControl, sym)}</div>
+                        </div>
+                      </div>
+
+                      {isExpanded ? (
+                        <div className="mt-3 pt-3 border-t border-border/60">
+                          {row.stockItems.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No stock items linked to this pool.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold">Stock Items</p>
+                                <Badge variant="secondary" className="text-[10px]">{row.stockItems.length}</Badge>
+                              </div>
+                              <div className="space-y-2">
+                                {row.stockItems.map((si) => (
+                                  <div key={si.itemId} className="rounded-xl border bg-background/60 p-2">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="font-mono text-xs font-semibold">{si.itemCode}</p>
+                                        <p className="text-[11px] text-muted-foreground break-words">{si.description}</p>
+                                      </div>
+                                      <div className="text-right shrink-0">
+                                        <p className="text-[10px] text-muted-foreground">Qty</p>
+                                        <p className="font-mono text-xs">{si.quantity.toFixed(4)}</p>
+                                      </div>
+                                    </div>
+                                    <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                                      <div className="flex justify-between gap-2">
+                                        <span>Total Buy</span>
+                                        <span className="font-mono text-foreground">{formatCurrency(si.totalBuy, sym)}</span>
+                                      </div>
+                                      <div className="flex justify-between gap-2">
+                                        <span>Total Sell</span>
+                                        <span className="font-mono text-foreground">{formatCurrency(si.totalSell, sym)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="rounded-xl border bg-background/60 p-2 text-[11px] text-muted-foreground">
+                                <div className="flex justify-between gap-3">
+                                  <span className="font-semibold text-foreground">Totals</span>
+                                  <span className="font-mono">
+                                    {row.stockItems.reduce((s, i) => s + i.quantity, 0).toFixed(4)}
+                                  </span>
+                                </div>
+                                <div className="mt-1 grid grid-cols-2 gap-2">
+                                  <div className="flex justify-between gap-2">
+                                    <span>Total Buy</span>
+                                    <span className="font-mono text-foreground">{formatCurrency(row.totalStockBuy, sym)}</span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span>Total Sell</span>
+                                    <span className="font-mono text-foreground">{formatCurrency(row.totalStockSell, sym)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pool</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Stock Value</TableHead>
+                    <TableHead className="text-right">Cash Control</TableHead>
+                    <TableHead className="text-right">VAT Control</TableHead>
+                    <TableHead className="text-right">Loan Control</TableHead>
+                    <TableHead className="text-right font-semibold">Member Interest</TableHead>
+                    <TableHead className="text-right">Total Units</TableHead>
+                    <TableHead className="text-right font-semibold">Unit Price</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {poolsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin inline mr-2" />Loading…
+                      </TableCell>
+                    </TableRow>
+                  ) : poolRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        No active pools found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    poolRows.map((row) => {
+                      const isAdmin = row.pool.name.toLowerCase().includes("admin");
+                      return (
+                        <Fragment key={row.pool.id}>
+                          {/* Sell Row */}
+                          <TableRow
+                            className="cursor-pointer hover:bg-muted/50 border-b-0"
+                            style={{ backgroundColor: poolColorMap[row.pool.id] || undefined }}
+                            onClick={() => togglePool(row.pool.id)}
+                          >
+                            <TableCell className="font-medium" rowSpan={2}>
+                              <span className="inline-flex items-center gap-2">
+                                {expandedPools[row.pool.id] ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                {row.pool.icon_url ? (
+                                  <img src={row.pool.icon_url} alt={row.pool.name} className="h-6 w-6 rounded object-cover" />
+                                ) : null}
+                                {row.pool.name}
+                              </span>
                             </TableCell>
-                            <TableCell colSpan={2} />
-                            <TableCell />
-                            <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockBuy, sym)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockSell, sym)}</TableCell>
-                            <TableCell colSpan={2} />
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">Sell</Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatCurrency(row.totalStockSell, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono" rowSpan={2}>
+                              {formatCurrency(row.cashControl, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono" rowSpan={2}>
+                              {isAdmin ? "-" : formatCurrency(row.vatControl, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono" rowSpan={2}>
+                              {isAdmin ? "-" : formatCurrency(row.loanControl, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              {formatCurrency(row.memberInterestSell, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono" rowSpan={2}>
+                              {row.totalUnits.toFixed(4)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              {formatCurrency(row.unitPriceSell, sym, 4)}
+                            </TableCell>
+                            <TableCell rowSpan={2}>
+                              {existingMap[row.pool.id] ? (
+                                <Badge variant="default" className="text-xs">Saved</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">Pending</Badge>
+                              )}
+                            </TableCell>
                           </TableRow>
-                        </>
-                      )}
-                    </Fragment>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                          {/* Buy Row */}
+                          <TableRow
+                            className="cursor-pointer hover:bg-muted/50"
+                            style={{ backgroundColor: poolColorMap[row.pool.id] || undefined }}
+                            onClick={() => togglePool(row.pool.id)}
+                          >
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">Buy</Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatCurrency(row.totalStockBuy, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              {formatCurrency(row.memberInterestBuy, sym)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              {formatCurrency(row.unitPriceBuy, sym, 4)}
+                            </TableCell>
+                          </TableRow>
+                          {/* Expanded stock items */}
+                          {expandedPools[row.pool.id] && row.stockItems.length > 0 && (
+                            <>
+                              <TableRow className="bg-muted/30">
+                                <TableCell className="pl-10 text-xs font-semibold text-muted-foreground">Code</TableCell>
+                                <TableCell className="text-xs font-semibold text-muted-foreground">Description</TableCell>
+                                <TableCell className="text-right text-xs font-semibold text-muted-foreground">Qty</TableCell>
+                                <TableCell className="text-right text-xs font-semibold text-muted-foreground">Cost Price</TableCell>
+                                <TableCell className="text-right text-xs font-semibold text-muted-foreground">Buy Price</TableCell>
+                                <TableCell className="text-right text-xs font-semibold text-muted-foreground">Sell Price</TableCell>
+                                <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Buy</TableCell>
+                                <TableCell className="text-right text-xs font-semibold text-muted-foreground">Total Sell</TableCell>
+                                <TableCell colSpan={2} />
+                              </TableRow>
+                              {row.stockItems.map((si) => (
+                                <TableRow key={si.itemId} className="bg-muted/20">
+                                  <TableCell className="pl-10 font-mono text-xs">{si.itemCode}</TableCell>
+                                  <TableCell className="text-xs">{si.description}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs">{si.quantity.toFixed(4)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs">{formatCurrency(si.costPrice, sym)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs">{formatCurrency(si.buyPrice, sym)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs">{formatCurrency(si.sellPrice, sym)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalBuy, sym)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs">{formatCurrency(si.totalSell, sym)}</TableCell>
+                                  <TableCell colSpan={2} />
+                                </TableRow>
+                              ))}
+                              <TableRow className="bg-muted/30 border-b-2">
+                                <TableCell className="pl-10 text-xs font-bold" colSpan={2}>Total Stock</TableCell>
+                                <TableCell className="text-right font-mono text-xs font-bold">
+                                  {row.stockItems.reduce((s, i) => s + i.quantity, 0).toFixed(4)}
+                                </TableCell>
+                                <TableCell colSpan={2} />
+                                <TableCell />
+                                <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockBuy, sym)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs font-bold">{formatCurrency(row.totalStockSell, sym)}</TableCell>
+                                <TableCell colSpan={2} />
+                              </TableRow>
+                            </>
+                          )}
+                        </Fragment>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -614,6 +776,7 @@ const DailyPoolPrices = () => {
           onClick={handleSave}
           disabled={isSaving || poolRows.length === 0}
           size="lg"
+          className="w-full sm:w-auto"
         >
           {isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Item = {
   id: string;
@@ -64,6 +64,7 @@ const DailyStockPrices = () => {
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [priceDate, setPriceDate] = useState<Date>(new Date());
   const [fetchedPrices, setFetchedPrices] = useState<Record<string, FetchedPrice>>({});
   const [isFetchingPrices, setIsFetchingPrices] = useState(false);
@@ -339,47 +340,48 @@ const DailyStockPrices = () => {
         </p>
       </div>
 
-      <MobileTableHint />
-
       {/* Date Picker & Refresh */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <span className="text-sm font-medium">Price Date:</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[220px] justify-start text-left font-normal",
-                !priceDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {priceDate ? format(priceDate, "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={priceDate}
-              onSelect={(d) => d && setPriceDate(d)}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchPricesFromApi}
-          disabled={isFetchingPrices}
-        >
-          {isFetchingPrices ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          {isFetchingPrices ? "Fetching…" : "Refresh Prices"}
-        </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full sm:w-[220px] justify-start text-left font-normal",
+                  !priceDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {priceDate ? format(priceDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={priceDate}
+                onSelect={(d) => d && setPriceDate(d)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={fetchPricesFromApi}
+            disabled={isFetchingPrices}
+          >
+            {isFetchingPrices ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {isFetchingPrices ? "Fetching…" : "Refresh Prices"}
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -395,93 +397,162 @@ const DailyStockPrices = () => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Pool</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Buy Margin %</TableHead>
-                <TableHead>Sell Margin %</TableHead>
-                <TableHead>Tax</TableHead>
-                <TableHead className="text-right">Cost Excl VAT</TableHead>
-                <TableHead className="text-right">Cost Incl VAT</TableHead>
-                <TableHead className="text-right">Buy Excl VAT</TableHead>
-                <TableHead className="text-right">Buy Incl VAT</TableHead>
-                <TableHead className="text-right">Sell Excl VAT</TableHead>
-                <TableHead className="text-right">Sell Incl VAT</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                   <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              ) : priceRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
-                    No active stock items found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                priceRows.map((row) => (
-                  <TableRow key={row.id} style={{ backgroundColor: poolColorMap[row.pool_id] || undefined }}>
-                    <TableCell className="font-mono font-medium">{row.item_code}</TableCell>
-                    <TableCell>{row.description}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {poolIconMap[row.pool_id] ? (
-                          <img src={poolIconMap[row.pool_id]} alt={row.poolName} className="h-5 w-5 rounded object-cover shrink-0" />
-                        ) : null}
-                        <Badge variant="outline">{row.poolName}</Badge>
+        <CardContent className={isMobile ? "p-3" : "p-0"}>
+          {isMobile ? (
+            isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading…</div>
+            ) : priceRows.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No active stock items found.</div>
+            ) : (
+              <div className="space-y-3">
+                {priceRows.map((row) => (
+                  <div
+                    key={row.id}
+                    className="rounded-2xl border border-border p-3 bg-card/60"
+                    style={{ backgroundColor: poolColorMap[row.pool_id] || undefined }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold text-sm">{row.item_code}</span>
+                          <Badge
+                            variant={row.pricingSource === "API" ? "default" : "secondary"}
+                            className="text-[10px]"
+                          >
+                            {row.pricingSource}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1 leading-snug break-words">
+                          {row.description}
+                        </p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={row.pricingSource === "API" ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {row.pricingSource}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{row.margin_percentage}%</TableCell>
-                    <TableCell>{row.sell_margin_percentage}%</TableCell>
-                    <TableCell className="text-xs">{row.taxName}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(row.costExclVat, currencySymbol)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(row.costInclVat, currencySymbol)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
-                      {formatCurrency(row.buyPriceExclVat, currencySymbol)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
-                      {formatCurrency(row.buyPriceInclVat, currencySymbol)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
-                      {formatCurrency(row.sellPriceExclVat, currencySymbol)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
-                      {formatCurrency(row.sellPriceInclVat, currencySymbol)}
-                    </TableCell>
-                    <TableCell>
-                      {row.hasExisting ? (
-                        <Badge variant="default" className="text-xs">Saved</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">Pending</Badge>
-                      )}
+                      <div className="shrink-0">
+                        {row.hasExisting ? (
+                          <Badge variant="default" className="text-[10px]">Saved</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">Pending</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      {poolIconMap[row.pool_id] ? (
+                        <img src={poolIconMap[row.pool_id]} alt={row.poolName} className="h-5 w-5 rounded object-cover shrink-0" />
+                      ) : null}
+                      <Badge variant="outline" className="truncate max-w-[75%]">{row.poolName}</Badge>
+                      <span className="text-[11px] text-muted-foreground ml-auto">
+                        Buy {row.margin_percentage}% • Sell {row.sell_margin_percentage}%
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                      <div className="text-muted-foreground">Cost (excl / incl)</div>
+                      <div className="text-right font-mono">
+                        {formatCurrency(row.costExclVat, currencySymbol)} / {formatCurrency(row.costInclVat, currencySymbol)}
+                      </div>
+                      <div className="text-muted-foreground">Buy (excl / incl)</div>
+                      <div className="text-right font-mono font-semibold">
+                        {formatCurrency(row.buyPriceExclVat, currencySymbol)} / {formatCurrency(row.buyPriceInclVat, currencySymbol)}
+                      </div>
+                      <div className="text-muted-foreground">Sell (excl / incl)</div>
+                      <div className="text-right font-mono font-semibold">
+                        {formatCurrency(row.sellPriceExclVat, currencySymbol)} / {formatCurrency(row.sellPriceInclVat, currencySymbol)}
+                      </div>
+                      <div className="text-muted-foreground">Tax</div>
+                      <div className="text-right text-muted-foreground">{row.taxName}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Pool</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Buy Margin %</TableHead>
+                  <TableHead>Sell Margin %</TableHead>
+                  <TableHead>Tax</TableHead>
+                  <TableHead className="text-right">Cost Excl VAT</TableHead>
+                  <TableHead className="text-right">Cost Incl VAT</TableHead>
+                  <TableHead className="text-right">Buy Excl VAT</TableHead>
+                  <TableHead className="text-right">Buy Incl VAT</TableHead>
+                  <TableHead className="text-right">Sell Excl VAT</TableHead>
+                  <TableHead className="text-right">Sell Incl VAT</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
+                      Loading…
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : priceRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
+                      No active stock items found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  priceRows.map((row) => (
+                    <TableRow key={row.id} style={{ backgroundColor: poolColorMap[row.pool_id] || undefined }}>
+                      <TableCell className="font-mono font-medium">{row.item_code}</TableCell>
+                      <TableCell>{row.description}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {poolIconMap[row.pool_id] ? (
+                            <img src={poolIconMap[row.pool_id]} alt={row.poolName} className="h-5 w-5 rounded object-cover shrink-0" />
+                          ) : null}
+                          <Badge variant="outline">{row.poolName}</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={row.pricingSource === "API" ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {row.pricingSource}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{row.margin_percentage}%</TableCell>
+                      <TableCell>{row.sell_margin_percentage}%</TableCell>
+                      <TableCell className="text-xs">{row.taxName}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatCurrency(row.costExclVat, currencySymbol)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatCurrency(row.costInclVat, currencySymbol)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        {formatCurrency(row.buyPriceExclVat, currencySymbol)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        {formatCurrency(row.buyPriceInclVat, currencySymbol)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        {formatCurrency(row.sellPriceExclVat, currencySymbol)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        {formatCurrency(row.sellPriceInclVat, currencySymbol)}
+                      </TableCell>
+                      <TableCell>
+                        {row.hasExisting ? (
+                          <Badge variant="default" className="text-xs">Saved</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Pending</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -490,6 +561,7 @@ const DailyStockPrices = () => {
           onClick={handleUpdatePrices}
           disabled={isSaving || priceRows.length === 0 || Object.keys(fetchedPrices).length === 0}
           size="lg"
+          className="w-full sm:w-auto"
         >
           {isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

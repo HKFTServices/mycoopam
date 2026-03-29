@@ -27,7 +27,7 @@ import {
 import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays, Clock, Check, X, Edit3, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
@@ -66,44 +66,74 @@ const defaultJournalForm = {
 
 // ── Ledger Preview Component ──
 const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] }) => {
+  const isMobile = useIsMobile();
   const fmt = (v: number) => `R ${v.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (lines.length === 0) return null;
+
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Ledger Entries Preview</p>
-      <Table>
-        <TableHeader>
-          <TableRow className="text-xs">
-            <TableHead className="h-7 py-1 text-xs">Side</TableHead>
-            <TableHead className="h-7 py-1 text-xs">GL Account</TableHead>
-            <TableHead className="h-7 py-1 text-xs">Control Account</TableHead>
-            <TableHead className="h-7 py-1 text-xs text-right">Debit (+)</TableHead>
-            <TableHead className="h-7 py-1 text-xs text-right">Credit (−)</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ledger Entries Preview</p>
+
+      {isMobile ? (
+        <div className="space-y-2">
           {lines.map((l, i) => (
-            <TableRow key={i} className="text-xs">
-              <TableCell className="py-1">
-                <Badge variant={l.side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
-                  {l.side}
-                </Badge>
-              </TableCell>
-              <TableCell className="py-1">
-                <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>
-                <span className="text-xs">{l.glName}</span>
-              </TableCell>
-              <TableCell className="py-1 text-xs">{l.controlAccount || "—"}</TableCell>
-              <TableCell className="py-1 text-right text-xs font-medium">
-                {l.side === "DR" ? fmt(l.amount) : ""}
-              </TableCell>
-              <TableCell className="py-1 text-right text-xs font-medium">
-                {l.side === "CR" ? fmt(l.amount) : ""}
-              </TableCell>
-            </TableRow>
+            <div key={i} className="rounded-xl border border-border bg-background/60 p-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={l.side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
+                      {l.side}
+                    </Badge>
+                    <span className="font-mono text-[10px] text-muted-foreground">{l.glCode}</span>
+                    <span className="text-xs font-medium truncate">{l.glName || "—"}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground truncate">
+                    Control: <span className="text-foreground/90">{l.controlAccount || "—"}</span>
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-[10px] text-muted-foreground">{l.side === "DR" ? "Debit (+)" : "Credit (−)"}</p>
+                  <p className="font-mono text-sm font-semibold">{fmt(l.amount)}</p>
+                </div>
+              </div>
+            </div>
           ))}
-        </TableBody>
-      </Table>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow className="text-xs">
+              <TableHead className="h-7 py-1 text-xs">Side</TableHead>
+              <TableHead className="h-7 py-1 text-xs">GL Account</TableHead>
+              <TableHead className="h-7 py-1 text-xs">Control Account</TableHead>
+              <TableHead className="h-7 py-1 text-xs text-right">Debit (+)</TableHead>
+              <TableHead className="h-7 py-1 text-xs text-right">Credit (−)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lines.map((l, i) => (
+              <TableRow key={i} className="text-xs">
+                <TableCell className="py-1">
+                  <Badge variant={l.side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
+                    {l.side}
+                  </Badge>
+                </TableCell>
+                <TableCell className="py-1">
+                  <span className="font-mono text-[10px] text-muted-foreground mr-1">{l.glCode}</span>
+                  <span className="text-xs">{l.glName}</span>
+                </TableCell>
+                <TableCell className="py-1 text-xs">{l.controlAccount || "—"}</TableCell>
+                <TableCell className="py-1 text-right text-xs font-medium">
+                  {l.side === "DR" ? fmt(l.amount) : ""}
+                </TableCell>
+                <TableCell className="py-1 text-right text-xs font-medium">
+                  {l.side === "CR" ? fmt(l.amount) : ""}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 };
@@ -112,6 +142,7 @@ const LedgerEntries = () => {
   const { user, profile } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [bankDialogOpen, setBankDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
@@ -814,161 +845,294 @@ const LedgerEntries = () => {
         </div>
       </div>
 
-      <MobileTableHint />
-
       <Tabs defaultValue="bank">
-        <TabsList>
-          <TabsTrigger value="bank">Bank Entries ({bankEntries.length})</TabsTrigger>
-          <TabsTrigger value="journal">Journal Entries ({journalEntries.length})</TabsTrigger>
-          {canReviewApprovals && (
-            <TabsTrigger value="approvals">
-              Pending Approval
-              {pendingEntries.length > 0 && (
-                <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingEntries.length}</Badge>
+        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+          <TabsList className="w-max">
+            <TabsTrigger value="bank">Bank Entries ({bankEntries.length})</TabsTrigger>
+            <TabsTrigger value="journal">Journal Entries ({journalEntries.length})</TabsTrigger>
+            {canReviewApprovals && (
+              <TabsTrigger value="approvals">
+                Pending Approval
+                {pendingEntries.length > 0 && (
+                  <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingEntries.length}</Badge>
+                )}
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="commissions">
+              Pay Commissions
+              {pendingCommissions.length > 0 && (
+                <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingCommissions.length}</Badge>
               )}
             </TabsTrigger>
-          )}
-          <TabsTrigger value="commissions">
-            Pay Commissions
-            {pendingCommissions.length > 0 && (
-              <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingCommissions.length}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* ── Bank Entries ── */}
         <TabsContent value="bank" className="space-y-3">
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => { setBankForm({ ...defaultBankForm, tax_type_id: getDefaultTaxTypeId() }); setBankDialogOpen(true); }}>
+            <Button className="w-full sm:w-auto" size="sm" onClick={() => { setBankForm({ ...defaultBankForm, tax_type_id: getDefaultTaxTypeId() }); setBankDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Bank Entry
             </Button>
           </div>
           <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>GL Account</TableHead>
-                    <TableHead>Control Account</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead className="text-right">Debit (+)</TableHead>
-                    <TableHead className="text-right">Credit (−)</TableHead>
-                    <TableHead className="text-right">Excl VAT</TableHead>
-                    <TableHead className="text-right">VAT</TableHead>
-                    {isAdmin && <TableHead className="w-10" />}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bankLoading ? (
-                    <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-                  ) : bankEntries.length === 0 ? (
-                    <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
-                  ) : bankEntries.map((r: any) => {
-                    const isExpense = r.gl_accounts?.gl_type === "expense";
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="text-sm">{r.transaction_date}</TableCell>
-                        <TableCell className="text-sm">
-                          <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                          {r.gl_accounts?.name}
-                        </TableCell>
-                        <TableCell className="text-sm">{r.control_accounts?.name || "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">{r.debit > 0 ? formatCurrency(r.debit) : ""}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">{r.credit > 0 ? formatCurrency(r.credit) : ""}</TableCell>
-                        <TableCell className="text-right text-sm text-muted-foreground">
-                          {r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}
-                        </TableCell>
-                        <TableCell className={`text-right text-sm ${isExpense ? "text-destructive" : "text-muted-foreground"}`}>
-                          {r.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(r.vat_amount)}` : "—"}
-                        </TableCell>
-                        {isAdmin && (
-                          <TableCell>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+            <CardContent className={isMobile ? "p-3" : "p-0"}>
+              {isMobile ? (
+                bankLoading ? (
+                  <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+                ) : bankEntries.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No bank entries yet</div>
+                ) : (
+                  <div className="space-y-3">
+                    {bankEntries.map((r: any) => {
+                      const isExpense = r.gl_accounts?.gl_type === "expense";
+                      const amount = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
+                      const side = Number(r.debit || 0) > 0 ? "DR" : "CR";
+                      const glLabel = `${r.gl_accounts?.code ?? ""} ${r.gl_accounts?.name ?? ""}`.trim() || "—";
+                      return (
+                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
+                                  {side}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
+                                {r.reference ? <span className="text-xs text-muted-foreground truncate">• {r.reference}</span> : null}
+                              </div>
+                              <p className="mt-2 text-sm font-medium break-words">
+                                <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
+                                {r.gl_accounts?.name || glLabel}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground break-words">
+                                Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
+                              </p>
+                            </div>
+                            {isAdmin ? (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                                onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}
+                                aria-label="Delete entry"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Amount</p>
+                              <p className="font-mono font-semibold text-right">{amount > 0 ? formatCurrency(amount) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Excl VAT</p>
+                              <p className="font-mono text-right">{r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2 col-span-2">
+                              <p className="text-[10px] text-muted-foreground">VAT</p>
+                              <p className={`font-mono text-right ${isExpense ? "text-destructive" : "text-foreground"}`}>
+                                {r.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(r.vat_amount)}` : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>GL Account</TableHead>
+                      <TableHead>Control Account</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead className="text-right">Debit (+)</TableHead>
+                      <TableHead className="text-right">Credit (−)</TableHead>
+                      <TableHead className="text-right">Excl VAT</TableHead>
+                      <TableHead className="text-right">VAT</TableHead>
+                      {isAdmin && <TableHead className="w-10" />}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bankLoading ? (
+                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                    ) : bankEntries.length === 0 ? (
+                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
+                    ) : bankEntries.map((r: any) => {
+                      const isExpense = r.gl_accounts?.gl_type === "expense";
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-sm">{r.transaction_date}</TableCell>
+                          <TableCell className="text-sm">
+                            <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
+                            {r.gl_accounts?.name}
                           </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          <TableCell className="text-sm">{r.control_accounts?.name || "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
+                          <TableCell className="text-right text-sm font-medium">{r.debit > 0 ? formatCurrency(r.debit) : ""}</TableCell>
+                          <TableCell className="text-right text-sm font-medium">{r.credit > 0 ? formatCurrency(r.credit) : ""}</TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            {r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}
+                          </TableCell>
+                          <TableCell className={`text-right text-sm ${isExpense ? "text-destructive" : "text-muted-foreground"}`}>
+                            {r.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(r.vat_amount)}` : "—"}
+                          </TableCell>
+                          {isAdmin && (
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* ── Journal Entries ── */}
         <TabsContent value="journal" className="space-y-3">
-           <div className="flex justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
+           <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
+            <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
               <CalendarDays className="h-4 w-4 mr-1" /> End of Month Run
             </Button>
-            <Button size="sm" onClick={() => { setJournalForm({ ...defaultJournalForm, tax_type_id: getDefaultTaxTypeId() }); setJournalDialogOpen(true); }}>
+            <Button className="w-full sm:w-auto" size="sm" onClick={() => { setJournalForm({ ...defaultJournalForm, tax_type_id: getDefaultTaxTypeId() }); setJournalDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Journal Entry
             </Button>
           </div>
           <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>GL Account</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Debit Control Account</TableHead>
-                    <TableHead className="text-right">Debit (+)</TableHead>
-                    <TableHead>Credit Control Account</TableHead>
-                    <TableHead className="text-right">Credit (−)</TableHead>
-                    {isVatRegistered && <TableHead className="text-right">VAT</TableHead>}
-                    {isAdmin && <TableHead className="w-10" />}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {journalLoading ? (
-                    <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-                  ) : journalEntries.length === 0 ? (
-                    <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
-                  ) : journalEntries.map((r: any) => {
-                    const child = r.childRow;
-                    const debitCA = r.control_accounts?.name || "—";
-                    const creditCA = child?.control_accounts?.name || "—";
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="text-sm">{r.transaction_date}</TableCell>
-                        <TableCell className="text-sm">
-                          <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                          {r.gl_accounts?.name}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
-                        <TableCell className="text-sm font-medium text-primary">{debitCA}</TableCell>
-                        <TableCell className="text-right text-sm font-semibold text-primary">
-                          {r.debit > 0 ? formatCurrency(r.debit) : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium text-destructive">{creditCA}</TableCell>
-                        <TableCell className="text-right text-sm font-semibold text-destructive">
-                          {child?.credit > 0 ? formatCurrency(child.credit) : "—"}
-                        </TableCell>
-                        {isVatRegistered && (
-                          <TableCell className={`text-right text-sm ${r.gl_accounts?.gl_type === "expense" ? "text-destructive" : "text-muted-foreground"}`}>
-                            {r.vat_amount > 0 ? formatCurrency(r.vat_amount) : "—"}
+            <CardContent className={isMobile ? "p-3" : "p-0"}>
+              {isMobile ? (
+                journalLoading ? (
+                  <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+                ) : journalEntries.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No journal entries yet</div>
+                ) : (
+                  <div className="space-y-3">
+                    {journalEntries.map((r: any) => {
+                      const child = r.childRow;
+                      const debitCA = r.control_accounts?.name || "—";
+                      const creditCA = child?.control_accounts?.name || "—";
+                      const isExpense = r.gl_accounts?.gl_type === "expense";
+                      return (
+                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] h-5">Journal</Badge>
+                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
+                                {r.reference ? <span className="text-xs text-muted-foreground truncate">• {r.reference}</span> : null}
+                              </div>
+                              <p className="mt-2 text-sm font-medium break-words">
+                                <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
+                                {r.gl_accounts?.name || "—"}
+                              </p>
+                            </div>
+                            {isAdmin ? (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                                onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}
+                                aria-label="Delete entry"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Debit</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{debitCA}</p>
+                              <p className="font-mono font-semibold text-right text-primary">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Credit</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{creditCA}</p>
+                              <p className="font-mono font-semibold text-right text-destructive">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</p>
+                            </div>
+                            {isVatRegistered ? (
+                              <div className="rounded-xl border bg-background/60 p-2 col-span-2">
+                                <p className="text-[10px] text-muted-foreground">VAT</p>
+                                <p className={`font-mono text-right ${isExpense ? "text-destructive" : "text-foreground"}`}>
+                                  {r.vat_amount > 0 ? formatCurrency(r.vat_amount) : "—"}
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>GL Account</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Debit Control Account</TableHead>
+                      <TableHead className="text-right">Debit (+)</TableHead>
+                      <TableHead>Credit Control Account</TableHead>
+                      <TableHead className="text-right">Credit (−)</TableHead>
+                      {isVatRegistered && <TableHead className="text-right">VAT</TableHead>}
+                      {isAdmin && <TableHead className="w-10" />}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {journalLoading ? (
+                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                    ) : journalEntries.length === 0 ? (
+                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
+                    ) : journalEntries.map((r: any) => {
+                      const child = r.childRow;
+                      const debitCA = r.control_accounts?.name || "—";
+                      const creditCA = child?.control_accounts?.name || "—";
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-sm">{r.transaction_date}</TableCell>
+                          <TableCell className="text-sm">
+                            <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
+                            {r.gl_accounts?.name}
                           </TableCell>
-                        )}
-                        {isAdmin && (
-                          <TableCell>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                          <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
+                          <TableCell className="text-sm font-medium text-primary">{debitCA}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold text-primary">
+                            {r.debit > 0 ? formatCurrency(r.debit) : "—"}
                           </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          <TableCell className="text-sm font-medium text-destructive">{creditCA}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold text-destructive">
+                            {child?.credit > 0 ? formatCurrency(child.credit) : "—"}
+                          </TableCell>
+                          {isVatRegistered && (
+                            <TableCell className={`text-right text-sm ${r.gl_accounts?.gl_type === "expense" ? "text-destructive" : "text-muted-foreground"}`}>
+                              {r.vat_amount > 0 ? formatCurrency(r.vat_amount) : "—"}
+                            </TableCell>
+                          )}
+                          {isAdmin && (
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -985,56 +1149,111 @@ const LedgerEntries = () => {
               </CardContent></Card>
             ) : (
               <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>GL Account</TableHead>
-                        <TableHead>Control Account</TableHead>
-                        <TableHead>Submitted By</TableHead>
-                        <TableHead className="text-right">Debit (+)</TableHead>
-                        <TableHead className="text-right">Credit (−)</TableHead>
-                        <TableHead>Reference</TableHead>
-                        <TableHead className="w-28" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <CardContent className={isMobile ? "p-3" : "p-0"}>
+                  {isMobile ? (
+                    <div className="space-y-3">
                       {pendingEntries.map((entry: any) => (
-                        <TableRow key={entry.id}>
-                          <TableCell className="text-sm">{entry.transaction_date}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[10px]">
-                              {entry.is_bank ? "Bank" : "Journal"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
-                            {entry.gl_accounts?.name || entry.description || "—"}
-                          </TableCell>
-                          <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{getSubmitterName(entry)}</TableCell>
-                          <TableCell className="text-right text-sm font-medium">{entry.debit > 0 ? formatCurrency(entry.debit) : ""}</TableCell>
-                          <TableCell className="text-right text-sm font-medium">{entry.credit > 0 ? formatCurrency(entry.credit) : ""}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button size="sm" variant="default" className="h-7 px-2 text-xs"
-                                onClick={() => approveMutation.mutate(entry.id)}
-                                disabled={approveMutation.isPending}>
-                                <Check className="h-3 w-3 mr-1" /> Approve
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                                onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}>
-                                <X className="h-3 w-3" />
-                              </Button>
+                        <div key={entry.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] h-5">
+                                  {entry.is_bank ? "Bank" : "Journal"}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">{entry.transaction_date}</span>
+                                {entry.reference ? <span className="text-xs text-muted-foreground truncate">• {entry.reference}</span> : null}
+                              </div>
+                              <p className="mt-2 text-sm font-medium break-words">
+                                <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
+                                {entry.gl_accounts?.name || entry.description || "—"}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground break-words">
+                                Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span>
+                              </p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">
+                                Submitted by: {getSubmitterName(entry)}
+                              </p>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] text-muted-foreground">Amount</p>
+                              <p className="font-mono font-semibold">
+                                {formatCurrency(Number(entry.debit || entry.credit || 0))}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 h-9"
+                              onClick={() => approveMutation.mutate(entry.id)}
+                              disabled={approveMutation.isPending}
+                            >
+                              <Check className="h-4 w-4 mr-1" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-9"
+                              onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>GL Account</TableHead>
+                          <TableHead>Control Account</TableHead>
+                          <TableHead>Submitted By</TableHead>
+                          <TableHead className="text-right">Debit (+)</TableHead>
+                          <TableHead className="text-right">Credit (−)</TableHead>
+                          <TableHead>Reference</TableHead>
+                          <TableHead className="w-28" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingEntries.map((entry: any) => (
+                          <TableRow key={entry.id}>
+                            <TableCell className="text-sm">{entry.transaction_date}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px]">
+                                {entry.is_bank ? "Bank" : "Journal"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
+                              {entry.gl_accounts?.name || entry.description || "—"}
+                            </TableCell>
+                            <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getSubmitterName(entry)}</TableCell>
+                            <TableCell className="text-right text-sm font-medium">{entry.debit > 0 ? formatCurrency(entry.debit) : ""}</TableCell>
+                            <TableCell className="text-right text-sm font-medium">{entry.credit > 0 ? formatCurrency(entry.credit) : ""}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="default" className="h-7 px-2 text-xs"
+                                  onClick={() => approveMutation.mutate(entry.id)}
+                                  disabled={approveMutation.isPending}>
+                                  <Check className="h-3 w-3 mr-1" /> Approve
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                  onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1086,65 +1305,116 @@ const LedgerEntries = () => {
                       )}
                     </div>
                   </div>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Referrer</TableHead>
-                          <TableHead className="text-right">Gross Deposit</TableHead>
-                          <TableHead className="text-right">Rate</TableHead>
-                          <TableHead className="text-right">Commission (excl VAT)</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="w-24" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {commissions.map((c) => (
-                          <TableRow key={c.id}>
-                            <TableCell className="text-sm">{c.transaction_date}</TableCell>
-                            <TableCell className="text-sm font-medium">
-                              {c.referrer ? `${c.referrer.name}${c.referrer.last_name ? " " + c.referrer.last_name : ""}` : "—"}
-                            </TableCell>
-                            <TableCell className="text-right text-sm">{formatCurrency(c.gross_amount)}</TableCell>
-                            <TableCell className="text-right text-sm">{c.commission_percentage}%</TableCell>
-                            <TableCell className="text-right text-sm font-semibold">{formatCurrency(c.commission_amount)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">Pending</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
-                                <DollarSign className="h-3.5 w-3.5 mr-1" /> Pay
-                              </Button>
-                            </TableCell>
+                  <CardContent className={isMobile ? "p-3" : "p-0"}>
+                    {isMobile ? (
+                      <div className="space-y-3">
+                        {commissions.map((c) => {
+                          const referrerName = c.referrer
+                            ? `${c.referrer.name}${c.referrer.last_name ? " " + c.referrer.last_name : ""}`
+                            : "—";
+                          return (
+                            <div key={c.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10 text-[10px] h-5">Pending</Badge>
+                                    <span className="text-xs text-muted-foreground">{c.transaction_date}</span>
+                                  </div>
+                                  <p className="mt-2 text-sm font-semibold truncate">{referrerName}</p>
+                                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                                    <span>Gross: <span className="font-mono text-foreground">{formatCurrency(c.gross_amount)}</span></span>
+                                    <span>• Rate: <span className="font-mono text-foreground">{c.commission_percentage}%</span></span>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <p className="text-[10px] text-muted-foreground">Commission</p>
+                                  <p className="font-mono font-semibold">{formatCurrency(c.commission_amount)}</p>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <Button className="w-full" size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
+                                  <DollarSign className="h-4 w-4 mr-1" /> Pay
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        <div className="rounded-2xl border border-border bg-muted/30 p-3 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">House Total (excl VAT)</span>
+                            <span className="font-mono font-semibold">{formatCurrency(totalExclVat)}</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-muted-foreground">VAT</span>
+                            <span className="font-mono">{isVatRegistered ? formatCurrency(totalVat) : "R 0.00"}</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/60">
+                            <span className="font-semibold">Total Payable (incl VAT)</span>
+                            <span className="font-mono font-bold text-primary">{formatCurrency(totalInclVat)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Referrer</TableHead>
+                            <TableHead className="text-right">Gross Deposit</TableHead>
+                            <TableHead className="text-right">Rate</TableHead>
+                            <TableHead className="text-right">Commission (excl VAT)</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-24" />
                           </TableRow>
-                        ))}
-                        <TableRow className="bg-muted/30 border-t-2">
-                          <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">House Total</TableCell>
-                          <TableCell className="text-right text-sm font-bold">{formatCurrency(totalExclVat)}</TableCell>
-                          <TableCell colSpan={2} />
-                        </TableRow>
-                        {isVatRegistered && (
-                          <TableRow className="bg-muted/30">
-                            <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT ({vatRate}%)</TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(totalVat)}</TableCell>
+                        </TableHeader>
+                        <TableBody>
+                          {commissions.map((c) => (
+                            <TableRow key={c.id}>
+                              <TableCell className="text-sm">{c.transaction_date}</TableCell>
+                              <TableCell className="text-sm font-medium">
+                                {c.referrer ? `${c.referrer.name}${c.referrer.last_name ? " " + c.referrer.last_name : ""}` : "—"}
+                              </TableCell>
+                              <TableCell className="text-right text-sm">{formatCurrency(c.gross_amount)}</TableCell>
+                              <TableCell className="text-right text-sm">{c.commission_percentage}%</TableCell>
+                              <TableCell className="text-right text-sm font-semibold">{formatCurrency(c.commission_amount)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">Pending</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
+                                  <DollarSign className="h-3.5 w-3.5 mr-1" /> Pay
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="bg-muted/30 border-t-2">
+                            <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">House Total</TableCell>
+                            <TableCell className="text-right text-sm font-bold">{formatCurrency(totalExclVat)}</TableCell>
                             <TableCell colSpan={2} />
                           </TableRow>
-                        )}
-                        {!isVatRegistered && (
-                          <TableRow className="bg-muted/30">
-                            <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT</TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">R 0.00</TableCell>
+                          {isVatRegistered && (
+                            <TableRow className="bg-muted/30">
+                              <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT ({vatRate}%)</TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(totalVat)}</TableCell>
+                              <TableCell colSpan={2} />
+                            </TableRow>
+                          )}
+                          {!isVatRegistered && (
+                            <TableRow className="bg-muted/30">
+                              <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT</TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">R 0.00</TableCell>
+                              <TableCell colSpan={2} />
+                            </TableRow>
+                          )}
+                          <TableRow className="bg-muted/30 border-t">
+                            <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider">Total Payable (incl VAT)</TableCell>
+                            <TableCell className="text-right text-sm font-bold text-primary">{formatCurrency(totalInclVat)}</TableCell>
                             <TableCell colSpan={2} />
                           </TableRow>
-                        )}
-                        <TableRow className="bg-muted/30 border-t">
-                          <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider">Total Payable (incl VAT)</TableCell>
-                          <TableCell className="text-right text-sm font-bold text-primary">{formatCurrency(totalInclVat)}</TableCell>
-                          <TableCell colSpan={2} />
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                        </TableBody>
+                      </Table>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -1155,7 +1425,7 @@ const LedgerEntries = () => {
 
       {/* ── Bank Entry Dialog ── */}
       <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Landmark className="h-5 w-5" />Post Bank Entry</DialogTitle>
             <DialogDescription>
@@ -1185,7 +1455,7 @@ const LedgerEntries = () => {
               </Select>
             </div>
             {bankForm.gl_account_id && (<>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>Control Account *</Label>
                   <Select value={bankForm.control_account_id} onValueChange={(v) => setBankForm({ ...bankForm, control_account_id: v })}>
@@ -1206,7 +1476,7 @@ const LedgerEntries = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>Date *</Label>
                   <Input type="date" value={bankForm.transaction_date} onChange={(e) => setBankForm({ ...bankForm, transaction_date: e.target.value })} />
@@ -1217,7 +1487,7 @@ const LedgerEntries = () => {
                 </div>
               </div>
               {isVatRegistered && bankForm.amount > 0 && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label>VAT Type</Label>
                     <Select value={bankForm.tax_type_id} onValueChange={(v) => setBankForm({ ...bankForm, tax_type_id: v })}>
@@ -1238,7 +1508,7 @@ const LedgerEntries = () => {
                   })()}
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>Reference</Label>
                   <Input value={bankForm.reference} onChange={(e) => setBankForm({ ...bankForm, reference: e.target.value })} placeholder="e.g. BNK-001" />
@@ -1265,7 +1535,7 @@ const LedgerEntries = () => {
 
       {/* ── Journal Entry Dialog ── */}
       <Dialog open={journalDialogOpen} onOpenChange={setJournalDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Post Journal Entry</DialogTitle>
             <DialogDescription>
@@ -1296,7 +1566,7 @@ const LedgerEntries = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Debit Control Account (+)</Label>
                 <Select value={journalForm.debit_control_account_id} onValueChange={(v) => setJournalForm({ ...journalForm, debit_control_account_id: v === "none" ? "" : v })}>
@@ -1318,7 +1588,7 @@ const LedgerEntries = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Date *</Label>
                 <Input type="date" value={journalForm.transaction_date} onChange={(e) => setJournalForm({ ...journalForm, transaction_date: e.target.value })} />
@@ -1329,7 +1599,7 @@ const LedgerEntries = () => {
               </div>
             </div>
             {isVatRegistered && journalForm.amount > 0 && journalForm.gl_account_id && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>VAT Type</Label>
                   <Select value={journalForm.tax_type_id} onValueChange={(v) => setJournalForm({ ...journalForm, tax_type_id: v })}>
@@ -1350,7 +1620,7 @@ const LedgerEntries = () => {
                 })()}
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Reference</Label>
                 <Input value={journalForm.reference} onChange={(e) => setJournalForm({ ...journalForm, reference: e.target.value })} placeholder="e.g. JNL-001" />
@@ -1376,7 +1646,7 @@ const LedgerEntries = () => {
 
       {/* ── Decline Dialog ── */}
       <Dialog open={!!reviewEntry} onOpenChange={(o) => { if (!o) { setReviewEntry(null); setDeclineReason(""); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive"><X className="h-5 w-5" /> Decline Entry</DialogTitle>
             <DialogDescription>
