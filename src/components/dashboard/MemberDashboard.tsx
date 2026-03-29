@@ -344,7 +344,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
       <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0" data-tour="welcome">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{greeting}</p>
           {!isMobile && (
@@ -353,8 +353,8 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2" data-tour="quick-actions">
+          <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} replayTour={onboarding.hasCompleted ? onboarding.startTour : undefined} />
           {isMobile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -482,10 +482,14 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
           {(isWidgetVisible("metric-primary") || isWidgetVisible("metric-secondary")) && (
             <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "lg:grid-cols-2"}`}>
               {isWidgetVisible("metric-primary") && (
-                <MetricCard title="Primary account" subtitle="My portfolio" value={memberTotalValue} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
+                <div data-tour="metric-primary">
+                  <MetricCard title="Primary account" subtitle="My portfolio" value={memberTotalValue} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
+                </div>
               )}
               {isWidgetVisible("metric-secondary") && (
-                <MetricCard title="Secondary account" subtitle="Deposits (12 months)" value={rangeTotal} ringValue={55} changePct={null} variant="neutral" compact={isMobile} />
+                <div data-tour="metric-secondary">
+                  <MetricCard title="Secondary account" subtitle="Deposits (12 months)" value={rangeTotal} ringValue={55} changePct={null} variant="neutral" compact={isMobile} />
+                </div>
               )}
             </div>
           )}
@@ -494,6 +498,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
           <div className="space-y-4">
             {/* Deposits chart */}
             {isWidgetVisible("deposits-chart") && memberDepositsOverTime.length > 1 && (
+              <div data-tour="deposits-chart">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Deposits (12 months)</CardTitle>
@@ -526,6 +531,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
             )}
 
             {isWidgetVisible("recent-deposits") && (
+              <div data-tour="recent-deposits">
               <Collapsible open={recentOpen} onOpenChange={setRecentOpen}>
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-2 pb-2">
@@ -544,6 +550,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
+              </div>
             )}
           </div>
         </>
