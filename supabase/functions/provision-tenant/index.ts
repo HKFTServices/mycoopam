@@ -1092,7 +1092,7 @@ Deno.serve(async (req) => {
         tenant_id,
         name: finalCoopName.trim(),
         registration_number: registration_number?.trim() || null,
-        entity_category_id: legalEntityCategory?.id || null,
+        entity_category_id: entityCategoryId,
         is_active: true,
         is_registration_complete: true,
         is_vat_registered: coop_details?.is_vat_registered || false,
