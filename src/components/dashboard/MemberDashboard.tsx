@@ -578,6 +578,16 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
         </>
       ) : null}
       {myEntityId && <EditEntityProfileDialog open={docsDialogOpen} onOpenChange={setDocsDialogOpen} entityId={myEntityId} entityType={myEntityType} initialTab="documents" />}
+
+      <OnboardingTour
+        steps={memberDashboardTourSteps}
+        isActive={onboarding.isActive}
+        currentStep={onboarding.currentStep}
+        onNext={() => onboarding.nextStep(memberDashboardTourSteps.length)}
+        onPrev={onboarding.prevStep}
+        onSkip={onboarding.skipTour}
+        onComplete={onboarding.completeTour}
+      />
     </div>
   );
 };
