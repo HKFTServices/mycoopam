@@ -124,53 +124,57 @@ const EntityAccountTypes = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Entity Account Types</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage account types such as Membership, Customer, Supplier.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Entity Account Types</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage account types such as Membership, Customer, Supplier.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Type</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Type
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Prefix</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Public Reg.</TableHead>
-                <TableHead>Num Count</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : types.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No account types yet.</TableCell></TableRow>
-              ) : (
-                types.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell>{t.prefix}</TableCell>
-                    <TableCell>{accountTypeLabels[t.account_type] ?? t.account_type}</TableCell>
-                    <TableCell>{t.allow_public_registration ? "Yes" : "No"}</TableCell>
-                    <TableCell>{t.number_count}</TableCell>
-                    <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(t.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Prefix</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Public Reg.</TableHead>
+                  <TableHead>Num Count</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : types.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No account types yet.</TableCell></TableRow>
+                ) : (
+                  types.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">{t.name}</TableCell>
+                      <TableCell>{t.prefix}</TableCell>
+                      <TableCell>{accountTypeLabels[t.account_type] ?? t.account_type}</TableCell>
+                      <TableCell>{t.allow_public_registration ? "Yes" : "No"}</TableCell>
+                      <TableCell>{t.number_count}</TableCell>
+                      <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(t.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -180,7 +184,7 @@ const EntityAccountTypes = () => {
             <DialogTitle>{editing ? "Edit Account Type" : "New Account Type"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Name *</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Membership" />
@@ -190,7 +194,7 @@ const EntityAccountTypes = () => {
                 <Input value={form.prefix} onChange={(e) => setForm({ ...form, prefix: e.target.value })} placeholder="e.g. AEM" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Account Type</Label>
                 <select
@@ -208,7 +212,7 @@ const EntityAccountTypes = () => {
                 <Input type="number" value={form.number_count} onChange={(e) => setForm({ ...form, number_count: parseInt(e.target.value) || 5 })} />
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={form.allow_public_registration} onCheckedChange={(v) => setForm({ ...form, allow_public_registration: v })} />
                 <Label>Allow Public Registration</Label>

@@ -88,8 +88,8 @@ const LoanSettings = () => {
       <div className="flex items-center gap-3">
         <Banknote className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">Loan Settings</h1>
-          <p className="text-sm text-muted-foreground">Configure loan rules, interest rates and fees</p>
+          <h1 className="text-lg sm:text-2xl font-bold">Loan Settings</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Configure loan rules, interest rates and fees</p>
         </div>
       </div>
 
@@ -142,7 +142,7 @@ const LoanSettings = () => {
             <CardDescription>Annual interest rate (%) and once-off loan fee (R)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {(["low", "medium", "high"] as const).map((risk) => (
                 <div key={risk} className="space-y-3">
                   <h4 className="text-sm font-semibold capitalize text-center">{risk} Risk</h4>
@@ -174,7 +174,7 @@ const LoanSettings = () => {
         </Card>
       </div>
 
-      <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+      <Button className="w-full sm:w-auto" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
         {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
         Save Settings
       </Button>

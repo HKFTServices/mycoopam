@@ -133,65 +133,67 @@ const TransactionTypes = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ArrowLeftRight className="h-8 w-8 text-primary" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3">
+          <ArrowLeftRight className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Transaction Types</h1>
-            <p className="text-muted-foreground">Manage transaction types and approval workflows</p>
+            <h1 className="text-lg sm:text-3xl font-bold tracking-tight">Transaction Types</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">Manage transaction types and approval workflows</p>
           </div>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={openCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Type
         </Button>
       </div>
 
       <div className="rounded-lg border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Initiator</TableHead>
-              <TableHead>1st Approval</TableHead>
-              <TableHead>Final Approval</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead className="w-16" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+        <div className="w-full overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Code</TableHead>
+                <TableHead>Initiator</TableHead>
+                <TableHead>1st Approval</TableHead>
+                <TableHead>Final Approval</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead className="w-16" />
               </TableRow>
-            ) : transactionTypes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No transaction types found</TableCell>
-              </TableRow>
-            ) : (
-              transactionTypes.map((tt) => (
-                <TableRow key={tt.id}>
-                  <TableCell className="font-medium">{tt.name}</TableCell>
-                  <TableCell className="font-mono text-xs">{tt.code}</TableCell>
-                  <TableCell>{roleBadge(tt.initiator_role)}</TableCell>
-                  <TableCell>{roleBadge(tt.first_approval_role)}</TableCell>
-                  <TableCell>{roleBadge(tt.final_approval_role)}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tt.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                      {tt.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(tt)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : transactionTypes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No transaction types found</TableCell>
+                </TableRow>
+              ) : (
+                transactionTypes.map((tt) => (
+                  <TableRow key={tt.id}>
+                    <TableCell className="font-medium">{tt.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{tt.code}</TableCell>
+                    <TableCell>{roleBadge(tt.initiator_role)}</TableCell>
+                    <TableCell>{roleBadge(tt.first_approval_role)}</TableCell>
+                    <TableCell>{roleBadge(tt.final_approval_role)}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tt.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {tt.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(tt)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -200,7 +202,7 @@ const TransactionTypes = () => {
             <DialogTitle>{editing ? "Edit Transaction Type" : "Add Transaction Type"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Name</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Deposit Funds" />
@@ -217,7 +219,7 @@ const TransactionTypes = () => {
 
             <div className="border-t pt-4 space-y-4">
               <h4 className="text-sm font-semibold">Approval Workflow</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Initiator</Label>
                   <Select value={form.initiator_role} onValueChange={(v) => setForm({ ...form, initiator_role: v })}>

@@ -102,58 +102,62 @@ const DocumentTypes = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Document Types</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage KYC and other document types required for registration.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Document Types</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage KYC and other document types required for registration.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Document Type</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Document Type
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Instruction</TableHead>
-                <TableHead className="hidden lg:table-cell">Template</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : types.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No document types yet.</TableCell></TableRow>
-              ) : (
-                types.map((dt) => {
-                  const tmpl = templateOptions.find((t) => t.key === dt.template_key);
-                  return (
-                    <TableRow key={dt.id}>
-                      <TableCell className="font-medium">{dt.name}</TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-xs truncate">{dt.comment_instruction || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
-                        {tmpl ? (
-                          <span className="inline-flex items-center gap-1 text-primary">
-                            <FileDown className="h-3.5 w-3.5" />
-                            {tmpl.label}
-                          </span>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell>{dt.is_active ? "Yes" : "No"}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(dt)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Instruction</TableHead>
+                  <TableHead className="hidden lg:table-cell">Template</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : types.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No document types yet.</TableCell></TableRow>
+                ) : (
+                  types.map((dt) => {
+                    const tmpl = templateOptions.find((t) => t.key === dt.template_key);
+                    return (
+                      <TableRow key={dt.id}>
+                        <TableCell className="font-medium">{dt.name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-xs truncate">{dt.comment_instruction || "—"}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">
+                          {tmpl ? (
+                            <span className="inline-flex items-center gap-1 text-primary">
+                              <FileDown className="h-3.5 w-3.5" />
+                              {tmpl.label}
+                            </span>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>{dt.is_active ? "Yes" : "No"}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(dt)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

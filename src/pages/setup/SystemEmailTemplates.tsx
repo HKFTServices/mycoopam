@@ -218,68 +218,72 @@ const SystemEmailTemplates = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">System Email Templates</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage global system default email templates. Tenants can import and customize these.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">System Email Templates</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage global system default email templates. Tenants can import and customize these.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <Select value={langFilter} onValueChange={setLangFilter}>
-            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Languages</SelectItem>
               {LANGUAGES.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Template</Button>
+          <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-1.5" />Add Template
+          </Button>
         </div>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Event</TableHead>
-                <TableHead>Lang</TableHead>
-                <TableHead>Channels</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No system templates yet.</TableCell></TableRow>
-              ) : (
-                filtered.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                      {APPLICATION_EVENTS.find((e) => e.value === t.application_event)?.label || t.application_event}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs uppercase">{t.language_code}</Badge>
-                    </TableCell>
-                    <TableCell>{channelIcons(t)}</TableCell>
-                    <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(t)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Event</TableHead>
+                  <TableHead>Lang</TableHead>
+                  <TableHead>Channels</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No system templates yet.</TableCell></TableRow>
+                ) : (
+                  filtered.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">{t.name}</TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                        {APPLICATION_EVENTS.find((e) => e.value === t.application_event)?.label || t.application_event}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs uppercase">{t.language_code}</Badge>
+                      </TableCell>
+                      <TableCell>{channelIcons(t)}</TableCell>
+                      <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(t)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -325,7 +329,7 @@ const SystemEmailTemplates = () => {
 
             <div className="space-y-2">
               <Label>Email Subject</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input ref={subjectInputRef} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Welcome to {{tenant_name}}!" className="flex-1" />
                 <MergeFieldPicker onInsert={(tag) => {
                   const input = subjectInputRef.current;
@@ -347,7 +351,7 @@ const SystemEmailTemplates = () => {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <Label>Email Body</Label>
                 <div className="flex gap-1">
                   <MergeFieldPicker onInsert={(tag) => {

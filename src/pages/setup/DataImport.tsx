@@ -898,18 +898,20 @@ const DataImport = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Data Import</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Data Import</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
           Import legacy reference data for {currentTenant?.name ?? "this cooperative"}.
         </p>
       </div>
 
       <Tabs defaultValue="import" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="import">Import Data</TabsTrigger>
-          <TabsTrigger value="entity-documents">Entity Documents</TabsTrigger>
-          <TabsTrigger value="reconciliation">CFT Reconciliation</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+          <TabsList className="w-max whitespace-nowrap">
+            <TabsTrigger value="import">Import Data</TabsTrigger>
+            <TabsTrigger value="entity-documents">Entity Documents</TabsTrigger>
+            <TabsTrigger value="reconciliation">CFT Reconciliation</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="reconciliation">
           <CftReconciliation />
@@ -1019,10 +1021,12 @@ const DataImport = () => {
       {/* Data source tabs */}
       {selectedTable && (
         <Tabs defaultValue="file" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="file" className="gap-1.5"><FileJson className="h-4 w-4" />Upload File</TabsTrigger>
-            <TabsTrigger value="server" className="gap-1.5"><ServerCog className="h-4 w-4" />Fetch from SQL Server</TabsTrigger>
-          </TabsList>
+          <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+            <TabsList className="w-max whitespace-nowrap">
+              <TabsTrigger value="file" className="gap-1.5"><FileJson className="h-4 w-4" />Upload File</TabsTrigger>
+              <TabsTrigger value="server" className="gap-1.5"><ServerCog className="h-4 w-4" />Fetch from SQL Server</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* File upload tab */}
           <TabsContent value="file">

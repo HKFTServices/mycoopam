@@ -92,49 +92,53 @@ const BankAccountTypes = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bank Account Types</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage account types such as Cheque, Savings, Credit Card.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Bank Account Types</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage account types such as Cheque, Savings, Credit Card.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Type</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Type
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : types.length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No account types yet. Add one to get started.</TableCell></TableRow>
-              ) : (
-                types.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(t.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : types.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No account types yet. Add one to get started.</TableCell></TableRow>
+                ) : (
+                  types.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">{t.name}</TableCell>
+                      <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(t.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

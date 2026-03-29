@@ -103,46 +103,50 @@ const RelationshipTypes = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Relationship Types</h1>
-          <p className="text-muted-foreground text-sm mt-1">Define how users relate to entities (e.g. Director, Trustee, Myself).</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Relationship Types</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Define how users relate to entities (e.g. Director, Trustee, Myself).</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Relationship</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Relationship
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Entity Category</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : types.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No relationship types yet.</TableCell></TableRow>
-              ) : (
-                types.map((rt) => (
-                  <TableRow key={rt.id}>
-                    <TableCell className="font-medium">{rt.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{rt.entity_categories?.name || "—"}</TableCell>
-                    <TableCell>{rt.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(rt)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Entity Category</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : types.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No relationship types yet.</TableCell></TableRow>
+                ) : (
+                  types.map((rt) => (
+                    <TableRow key={rt.id}>
+                      <TableCell className="font-medium">{rt.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{rt.entity_categories?.name || "—"}</TableCell>
+                      <TableCell>{rt.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(rt)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

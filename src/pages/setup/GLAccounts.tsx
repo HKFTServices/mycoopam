@@ -130,80 +130,82 @@ const GLAccounts = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-primary" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3">
+          <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">GL Accounts</h1>
-            <p className="text-muted-foreground text-sm mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">GL Accounts</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1">
               Manage General Ledger accounts with linked control accounts
             </p>
           </div>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={openCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />Add GL Account
         </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Control Account</TableHead>
-                <TableHead>Entry Type</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Control Account</TableHead>
+                  <TableHead>Entry Type</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16" />
                 </TableRow>
-              ) : glAccounts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No GL accounts found</TableCell>
-                </TableRow>
-              ) : (
-                glAccounts.map(gl => (
-                  <TableRow key={gl.id}>
-                    <TableCell className="font-mono text-sm">{gl.code}</TableCell>
-                    <TableCell className="font-medium">{gl.name}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                        gl.gl_type === "income" ? "bg-green-500/10 text-green-700" :
-                        gl.gl_type === "expense" ? "bg-red-500/10 text-red-700" :
-                        gl.gl_type === "asset" ? "bg-blue-500/10 text-blue-700" :
-                        "bg-orange-500/10 text-orange-700"
-                      }`}>
-                        {gl.gl_type}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {gl.control_accounts?.name ?? <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={gl.default_entry_type === "debit" ? "default" : "outline"}>
-                        {gl.default_entry_type === "debit" ? "Debit (↑)" : "Credit (↓)"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${gl.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        {gl.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(gl)}><Pencil className="h-4 w-4" /></Button>
-                    </TableCell>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : glAccounts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No GL accounts found</TableCell>
+                  </TableRow>
+                ) : (
+                  glAccounts.map(gl => (
+                    <TableRow key={gl.id}>
+                      <TableCell className="font-mono text-sm">{gl.code}</TableCell>
+                      <TableCell className="font-medium">{gl.name}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+                          gl.gl_type === "income" ? "bg-green-500/10 text-green-700" :
+                          gl.gl_type === "expense" ? "bg-red-500/10 text-red-700" :
+                          gl.gl_type === "asset" ? "bg-blue-500/10 text-blue-700" :
+                          "bg-orange-500/10 text-orange-700"
+                        }`}>
+                          {gl.gl_type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {gl.control_accounts?.name ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={gl.default_entry_type === "debit" ? "default" : "outline"}>
+                          {gl.default_entry_type === "debit" ? "Debit (↑)" : "Credit (↓)"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${gl.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                          {gl.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(gl)}><Pencil className="h-4 w-4" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -211,7 +213,7 @@ const GLAccounts = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Edit GL Account" : "Add GL Account"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Code *</Label>
                 <Input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="e.g. 4100" className="font-mono" />
@@ -233,7 +235,7 @@ const GLAccounts = () => {
               <Label>Name *</Label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Admin Income" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Control Account</Label>
                 <Select value={form.control_account_id} onValueChange={v => setForm({ ...form, control_account_id: v === "none" ? "" : v })}>

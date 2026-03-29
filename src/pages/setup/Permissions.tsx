@@ -220,8 +220,8 @@ const Permissions = () => {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Permissions</h1>
-          <p className="text-muted-foreground text-sm mt-1">You do not have access to manage permissions.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Permissions</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">You do not have access to manage permissions.</p>
         </div>
       </div>
     );
@@ -238,16 +238,16 @@ const Permissions = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6" /> Permissions
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6" /> Permissions
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
           Configure what each role can do. Permissions cascade upward — higher roles inherit all lower-role permissions.
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="max-w-xs flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="w-full sm:max-w-xs">
           <Select value={selectedRole} onValueChange={setSelectedRole}>
             <SelectTrigger>
               <SelectValue placeholder="Select role" />
@@ -289,50 +289,52 @@ const Permissions = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Permission</TableHead>
-                      <TableHead className="w-24 text-center">Allowed</TableHead>
-                      <TableHead className="w-24 text-center">Inherited</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {group.items.map(item => {
-                      const inherited = isInherited(item.resource, item.action);
-                      const directlyAllowed = isAllowed(item.resource, item.action);
-                      return (
-                        <TableRow key={`${item.resource}_${item.action}`}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{item.label}</span>
-                              <Badge variant="outline" className="text-[10px]">{item.action}</Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox
-                              checked={directlyAllowed}
-                              onCheckedChange={(checked) => {
-                                toggleMutation.mutate({
-                                  resource: item.resource,
-                                  action: item.action,
-                                  is_allowed: !!checked,
-                                });
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {inherited && (
-                              <Badge variant="secondary" className="text-[10px]">
-                                Inherited
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="w-full overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Permission</TableHead>
+                        <TableHead className="w-24 text-center">Allowed</TableHead>
+                        <TableHead className="w-24 text-center">Inherited</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map(item => {
+                        const inherited = isInherited(item.resource, item.action);
+                        const directlyAllowed = isAllowed(item.resource, item.action);
+                        return (
+                          <TableRow key={`${item.resource}_${item.action}`}>
+                            <TableCell>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm">{item.label}</span>
+                                <Badge variant="outline" className="text-[10px]">{item.action}</Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                checked={directlyAllowed}
+                                onCheckedChange={(checked) => {
+                                  toggleMutation.mutate({
+                                    resource: item.resource,
+                                    action: item.action,
+                                    is_allowed: !!checked,
+                                  });
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {inherited && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  Inherited
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           ))}

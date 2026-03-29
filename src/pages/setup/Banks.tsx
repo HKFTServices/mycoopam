@@ -123,71 +123,75 @@ const Banks = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Banks</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage banks available for member banking details.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Banks</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage banks available for member banking details.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Bank</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Bank
+        </Button>
       </div>
 
-      <div className="max-w-sm">
+      <div className="w-full sm:max-w-sm">
         <Input placeholder="Search banks..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Branch Code</TableHead>
-                <TableHead>SWIFT</TableHead>
-                <TableHead>Country</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No banks found.</TableCell></TableRow>
-              ) : (
-                filtered.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {b.logo_url ? (
-                          <img
-                            src={b.logo_url}
-                            alt=""
-                            className="h-5 w-5 rounded-sm object-contain bg-background"
-                            loading="lazy"
-                          />
-                        ) : null}
-                        <span>{b.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{b.branch_code ?? "—"}</TableCell>
-                    <TableCell>{b.swift_code ?? "—"}</TableCell>
-                    <TableCell>{getCountryName(b.country_id)}</TableCell>
-                    <TableCell>{b.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(b)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(b.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Branch Code</TableHead>
+                  <TableHead>SWIFT</TableHead>
+                  <TableHead>Country</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No banks found.</TableCell></TableRow>
+                ) : (
+                  filtered.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {b.logo_url ? (
+                            <img
+                              src={b.logo_url}
+                              alt=""
+                              className="h-5 w-5 rounded-sm object-contain bg-background"
+                              loading="lazy"
+                            />
+                          ) : null}
+                          <span>{b.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{b.branch_code ?? "—"}</TableCell>
+                      <TableCell>{b.swift_code ?? "—"}</TableCell>
+                      <TableCell>{getCountryName(b.country_id)}</TableCell>
+                      <TableCell>{b.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(b)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(b.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -212,7 +216,7 @@ const Banks = () => {
                 Optional. Used as a small icon next to the bank name in debit order details.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Branch Code</Label>
                 <Input value={form.branch_code} onChange={(e) => setForm({ ...form, branch_code: e.target.value })} placeholder="e.g. 051 001" />
@@ -222,7 +226,7 @@ const Banks = () => {
                 <Input value={form.swift_code} onChange={(e) => setForm({ ...form, swift_code: e.target.value })} placeholder="e.g. SBZAZAJJ" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Sort/Route Code</Label>
                 <Input value={form.sort_route_code} onChange={(e) => setForm({ ...form, sort_route_code: e.target.value })} placeholder="Optional" />

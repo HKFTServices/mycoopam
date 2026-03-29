@@ -131,55 +131,59 @@ const TermsConditions = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Terms & Conditions</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage T&C documents for registration, membership, pools and tax.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Terms & Conditions</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage T&amp;C documents for registration, membership, pools and tax.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Terms</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Terms
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead>Effective From</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : terms.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No terms yet. Add one to get started.</TableCell></TableRow>
-              ) : (
-                terms.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground">
-                        {typeLabel(t.condition_type)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{langLabel(t.language_code)}</TableCell>
-                    <TableCell>{new Date(t.effective_from).toLocaleDateString()}</TableCell>
-                    <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setPreviewContent(t.content); setPreviewOpen(true); }}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Language</TableHead>
+                  <TableHead>Effective From</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : terms.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No terms yet. Add one to get started.</TableCell></TableRow>
+                ) : (
+                  terms.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground">
+                          {typeLabel(t.condition_type)}
+                        </span>
+                      </TableCell>
+                      <TableCell>{langLabel(t.language_code)}</TableCell>
+                      <TableCell>{new Date(t.effective_from).toLocaleDateString()}</TableCell>
+                      <TableCell>{t.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setPreviewContent(t.content); setPreviewOpen(true); }}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -190,7 +194,7 @@ const TermsConditions = () => {
             <DialogTitle>{editing ? "Edit Terms" : "New Terms"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select value={form.condition_type} onValueChange={(v) => setForm({ ...form, condition_type: v as ConditionType })}>

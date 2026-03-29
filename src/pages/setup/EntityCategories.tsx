@@ -86,54 +86,58 @@ const EntityCategories = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Entity Categories</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage entity types such as Natural Person, Company, Trust, etc.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Entity Categories</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Manage entity types such as Natural Person, Company, Trust, etc.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Category</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Category
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Entity Type</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : categories.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No categories yet. Add one to get started.</TableCell></TableRow>
-              ) : (
-                categories.map((cat) => (
-                  <TableRow key={cat.id}>
-                    <TableCell className="font-medium">{cat.name}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        cat.entity_type === "natural_person"
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-secondary text-secondary-foreground"
-                      }`}>
-                        {cat.entity_type === "natural_person" ? "Natural Person" : "Legal Entity"}
-                      </span>
-                    </TableCell>
-                    <TableCell>{cat.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Entity Type</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-16" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : categories.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No categories yet. Add one to get started.</TableCell></TableRow>
+                ) : (
+                  categories.map((cat) => (
+                    <TableRow key={cat.id}>
+                      <TableCell className="font-medium">{cat.name}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          cat.entity_type === "natural_person"
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-secondary text-secondary-foreground"
+                        }`}>
+                          {cat.entity_type === "natural_person" ? "Natural Person" : "Legal Entity"}
+                        </span>
+                      </TableCell>
+                      <TableCell>{cat.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

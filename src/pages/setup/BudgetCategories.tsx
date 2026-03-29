@@ -106,16 +106,16 @@ const BudgetCategories = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ClipboardList className="h-6 w-6 text-primary" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3">
+          <ClipboardList className="h-6 w-6 text-primary shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold">Budget Categories</h1>
-            <p className="text-sm text-muted-foreground">Configure income and expense items for loan affordability assessments</p>
+            <h1 className="text-lg sm:text-2xl font-bold">Budget Categories</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Configure income and expense items for loan affordability assessments</p>
           </div>
         </div>
         {categories.length === 0 && (
-          <Button variant="outline" onClick={() => seedDefaults.mutate()} disabled={seedDefaults.isPending}>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => seedDefaults.mutate()} disabled={seedDefaults.isPending}>
             {seedDefaults.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Seed Default Categories
           </Button>
@@ -125,12 +125,12 @@ const BudgetCategories = () => {
       {/* Add new */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex gap-3 items-end">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1 space-y-1">
               <label className="text-xs font-medium">Category Name</label>
               <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Medical Aid" />
             </div>
-            <div className="w-40 space-y-1">
+            <div className="w-full sm:w-40 space-y-1">
               <label className="text-xs font-medium">Type</label>
               <Select value={newType} onValueChange={(v: any) => setNewType(v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -140,7 +140,7 @@ const BudgetCategories = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !newName.trim()}>
+            <Button className="w-full sm:w-auto" onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !newName.trim()}>
               <Plus className="h-4 w-4 mr-1" /> Add
             </Button>
           </div>
@@ -152,29 +152,31 @@ const BudgetCategories = () => {
         <Card>
           <CardHeader><CardTitle className="text-base text-emerald-600">Income Sources</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="w-16"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {incomeCategories.map((c: any) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-sm">{c.name}</TableCell>
-                    <TableCell>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteMutation.mutate(c.id)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </TableCell>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="w-16"></TableHead>
                   </TableRow>
-                ))}
-                {incomeCategories.length === 0 && (
-                  <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground text-sm">No income categories</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {incomeCategories.map((c: any) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-sm">{c.name}</TableCell>
+                      <TableCell>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteMutation.mutate(c.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {incomeCategories.length === 0 && (
+                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground text-sm">No income categories</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -182,29 +184,31 @@ const BudgetCategories = () => {
         <Card>
           <CardHeader><CardTitle className="text-base text-red-600">Expense Items</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="w-16"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenseCategories.map((c: any) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-sm">{c.name}</TableCell>
-                    <TableCell>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteMutation.mutate(c.id)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </TableCell>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="w-16"></TableHead>
                   </TableRow>
-                ))}
-                {expenseCategories.length === 0 && (
-                  <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground text-sm">No expense categories</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {expenseCategories.map((c: any) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-sm">{c.name}</TableCell>
+                      <TableCell>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteMutation.mutate(c.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {expenseCategories.length === 0 && (
+                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground text-sm">No expense categories</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

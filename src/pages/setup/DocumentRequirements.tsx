@@ -133,53 +133,57 @@ const DocumentRequirements = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Document Requirements</h1>
-          <p className="text-muted-foreground text-sm mt-1">Map which documents are required for each relationship type.</p>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Document Requirements</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Map which documents are required for each relationship type.</p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Requirement</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Requirement
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Document</TableHead>
-                <TableHead>Relationship</TableHead>
-                <TableHead>Required for Registration</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : requirements.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No requirements configured yet.</TableCell></TableRow>
-              ) : (
-                requirements.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.document_types?.name || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.relationship_types?.name || "—"}</TableCell>
-                    <TableCell>{r.is_required_for_registration ? "Yes" : "No"}</TableCell>
-                    <TableCell>{r.is_active ? "Yes" : "No"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(r.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Relationship</TableHead>
+                  <TableHead>Required for Registration</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : requirements.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No requirements configured yet.</TableCell></TableRow>
+                ) : (
+                  requirements.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">{r.document_types?.name || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{r.relationship_types?.name || "—"}</TableCell>
+                      <TableCell>{r.is_required_for_registration ? "Yes" : "No"}</TableCell>
+                      <TableCell>{r.is_active ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(r.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -128,59 +128,63 @@ const ApiProviders = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">API Providers</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">API Providers</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             Configure external price feed providers. Items can reference a provider to fetch live prices.
           </p>
         </div>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add Provider</Button>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />Add Provider
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Base URL</TableHead>
-                <TableHead>Auth Method</TableHead>
-                <TableHead>Secret Name</TableHead>
-                <TableHead>Base Currency</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : providers.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No providers configured.</TableCell></TableRow>
-              ) : (
-                providers.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="font-mono text-xs max-w-[250px] truncate">{p.base_url}</TableCell>
-                    <TableCell><Badge variant="outline">{p.auth_method}</Badge></TableCell>
-                    <TableCell className="font-mono text-xs">{p.secret_name}</TableCell>
-                    <TableCell>{p.base_currency}</TableCell>
-                    <TableCell>
-                      <Badge variant={p.is_active ? "default" : "secondary"}>
-                        {p.is_active ? "Yes" : "No"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Base URL</TableHead>
+                  <TableHead>Auth Method</TableHead>
+                  <TableHead>Secret Name</TableHead>
+                  <TableHead>Base Currency</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                ) : providers.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No providers configured.</TableCell></TableRow>
+                ) : (
+                  providers.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="font-mono text-xs max-w-[250px] truncate">{p.base_url}</TableCell>
+                      <TableCell><Badge variant="outline">{p.auth_method}</Badge></TableCell>
+                      <TableCell className="font-mono text-xs">{p.secret_name}</TableCell>
+                      <TableCell>{p.base_currency}</TableCell>
+                      <TableCell>
+                        <Badge variant={p.is_active ? "default" : "secondary"}>
+                          {p.is_active ? "Yes" : "No"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -198,7 +202,7 @@ const ApiProviders = () => {
               <Label>Base URL *</Label>
               <Input value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} placeholder="e.g. https://metals-api.com/api" className="font-mono text-sm" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Auth Method</Label>
                 <Input value={form.auth_method} onChange={(e) => setForm({ ...form, auth_method: e.target.value })} placeholder="query_param" />
@@ -208,7 +212,7 @@ const ApiProviders = () => {
                 <Input value={form.auth_param_name} onChange={(e) => setForm({ ...form, auth_param_name: e.target.value })} placeholder="access_key" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Secret Name *</Label>
                 <Input value={form.secret_name} onChange={(e) => setForm({ ...form, secret_name: e.target.value })} placeholder="e.g. METALS_API_KEY" className="font-mono text-sm" />

@@ -20,10 +20,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { toast } from "sonner";
 import { GlobalPriceScheduleCard } from "@/components/pools/GlobalPriceScheduleCard";
 import { PoolTransactionRulesTab } from "@/components/pools/PoolTransactionRulesTab";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ControlAccount = {
   id: string;
@@ -54,6 +54,7 @@ type Pool = {
 const Pools = () => {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Pool | null>(null);
   const [search, setSearch] = useState("");
@@ -224,122 +225,219 @@ const Pools = () => {
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             Manage investment pools. Each pool auto-creates Cash, VAT and Loan control accounts.
           </p>
-        </div>
-        <Button onClick={openNew} size="sm">
+      </div>
+        <Button onClick={openNew} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1.5" />Add Pool
         </Button>
       </div>
 
-      <MobileTableHint />
-
       {/* Global Price Update Schedule */}
       <GlobalPriceScheduleCard />
 
-      <div className="max-w-sm">
+      <div className="w-full sm:max-w-sm">
         <Input placeholder="Search pools..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">Icon</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Statement Description</TableHead>
-                <TableHead>Display Type</TableHead>
-                <TableHead>Open UP</TableHead>
-                <TableHead>Fixed UP</TableHead>
-                <TableHead>Control Accounts</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                 <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Loading…</TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                   <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No pools found.</TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((p) => {
+        <CardContent className={isMobile ? "p-3" : "p-0"}>
+          {isMobile ? (
+            isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                Loading…
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No pools found.</div>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((p) => {
                   const cas = getControlAccountsForPool(p.id);
                   const displayTypeLabel: Record<string, string> = {
                     display_in_summary: "In Summary",
                     display_below_summary: "Below Summary",
                     do_not_display: "Hidden",
                   };
+                  const displayType = p.pool_statement_display_type
+                    ? displayTypeLabel[p.pool_statement_display_type] ?? p.pool_statement_display_type
+                    : "—";
+
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        {p.icon_url ? (
-                          <img src={p.icon_url} alt={p.name} className="h-8 w-8 rounded object-cover" />
-                        ) : (
-                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                            {p.name.charAt(0)}
+                    <div key={p.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex items-start gap-3">
+                          {p.icon_url ? (
+                            <img src={p.icon_url} alt={p.name} className="h-10 w-10 rounded-xl object-cover shrink-0" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground shrink-0">
+                              {p.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold truncate">{p.name}</p>
+                              <Badge variant={p.is_active ? "default" : "secondary"} className="text-[10px] h-5">
+                                {p.is_active ? "Active" : "Inactive"}
+                              </Badge>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground break-words">{p.description ?? "—"}</p>
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                        {p.description ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                        {p.pool_statement_description ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        {p.pool_statement_display_type
-                          ? displayTypeLabel[p.pool_statement_display_type] ?? p.pool_statement_display_type
-                          : "—"}
-                      </TableCell>
-                      <TableCell>{(p as any).open_unit_price?.toFixed(2) ?? "1.00"}</TableCell>
-                      <TableCell>{p.fixed_unit_price.toFixed(2)}</TableCell>
-                      <TableCell>
+                        </div>
+                        <div className="shrink-0 flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => openEdit(p)} aria-label="Edit pool">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive hover:text-destructive"
+                            onClick={() => deleteMutation.mutate(p.id)}
+                            aria-label="Delete pool"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl border bg-background/60 p-2">
+                          <p className="text-[10px] text-muted-foreground">Open Unit Price</p>
+                          <p className="font-mono font-semibold text-right">{(p as any).open_unit_price?.toFixed(2) ?? "1.00"}</p>
+                        </div>
+                        <div className="rounded-xl border bg-background/60 p-2">
+                          <p className="text-[10px] text-muted-foreground">Fixed Unit Price</p>
+                          <p className="font-mono font-semibold text-right">{p.fixed_unit_price.toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-xs text-muted-foreground space-y-1">
+                        <p className="break-words">
+                          Statement: <span className="text-foreground/90">{p.pool_statement_description ?? "—"}</span>
+                        </p>
+                        <p className="break-words">
+                          Display Type: <span className="text-foreground/90">{displayType}</span>
+                        </p>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Control Accounts</p>
                         <div className="flex flex-wrap gap-1">
                           {cas.map((ca) => (
                             <span key={ca.id}>{accountTypeBadge(ca.account_type)}</span>
                           ))}
                           {cas.length === 0 && <span className="text-muted-foreground text-sm">—</span>}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={p.is_active ? "default" : "secondary"}>
-                          {p.is_active ? "Yes" : "No"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                        {new Date(p.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                        {new Date(p.updated_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => deleteMutation.mutate(p.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Created: {new Date(p.created_at).toLocaleDateString()}</span>
+                        <span>Updated: {new Date(p.updated_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   );
-                })
-              )}
-            </TableBody>
-          </Table>
+                })}
+              </div>
+            )
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">Icon</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Statement Description</TableHead>
+                  <TableHead>Display Type</TableHead>
+                  <TableHead>Open UP</TableHead>
+                  <TableHead>Fixed UP</TableHead>
+                  <TableHead>Control Accounts</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Loading…</TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No pools found.</TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((p) => {
+                    const cas = getControlAccountsForPool(p.id);
+                    const displayTypeLabel: Record<string, string> = {
+                      display_in_summary: "In Summary",
+                      display_below_summary: "Below Summary",
+                      do_not_display: "Hidden",
+                    };
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          {p.icon_url ? (
+                            <img src={p.icon_url} alt={p.name} className="h-8 w-8 rounded object-cover" />
+                          ) : (
+                            <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                              {p.name.charAt(0)}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                          {p.description ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                          {p.pool_statement_description ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          {p.pool_statement_display_type
+                            ? displayTypeLabel[p.pool_statement_display_type] ?? p.pool_statement_display_type
+                            : "—"}
+                        </TableCell>
+                        <TableCell>{(p as any).open_unit_price?.toFixed(2) ?? "1.00"}</TableCell>
+                        <TableCell>{p.fixed_unit_price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {cas.map((ca) => (
+                              <span key={ca.id}>{accountTypeBadge(ca.account_type)}</span>
+                            ))}
+                            {cas.length === 0 && <span className="text-muted-foreground text-sm">—</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={p.is_active ? "default" : "secondary"}>
+                            {p.is_active ? "Yes" : "No"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {new Date(p.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {new Date(p.updated_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => deleteMutation.mutate(p.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -347,7 +445,7 @@ const Pools = () => {
 
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={editing ? "max-w-2xl" : undefined}>
+        <DialogContent className={editing ? "w-[calc(100vw-1rem)] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto" : "w-[calc(100vw-1rem)] sm:w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"}>
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Pool" : "New Pool"}</DialogTitle>
             <DialogDescription>
@@ -414,7 +512,7 @@ const PoolDetailsForm = ({
     </div>
     <div className="space-y-2">
       <Label>Icon URL</Label>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {form.icon_url && (
           <img src={form.icon_url} alt="Pool icon" className="h-10 w-10 rounded object-cover" />
         )}
@@ -458,7 +556,7 @@ const PoolDetailsForm = ({
         </SelectContent>
       </Select>
     </div>
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-2">
         <Label>Open Unit Price</Label>
         <Input

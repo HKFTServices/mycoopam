@@ -11,17 +11,18 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, RotateCcw } from "lucide-react";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import MyCommissionsTab from "@/components/reports/MyCommissionsTab";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Reports = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
+  const isMobile = useIsMobile();
 
   // Check if user is admin (super_admin or tenant_admin)
   const { data: isAdmin = false } = useQuery({
@@ -93,7 +94,7 @@ const Reports = () => {
     queryFn: async () => {
       let q = (supabase as any)
         .from("unit_transactions")
-        .select("id, transaction_id, transaction_date, pool_id, entity_account_id, unit_price, debit, credit, value, transaction_type, notes, pools(name), entity_accounts(account_number, entities(name, last_name))")
+        .select("id, transaction_id, legacy_transaction_id, transaction_date, pool_id, entity_account_id, unit_price, debit, credit, value, transaction_type, notes, pools(name), entity_accounts(account_number, entities(name, last_name))")
         .eq("tenant_id", tenantId)
         .order("transaction_date", { ascending: false })
         .limit(500);
@@ -350,7 +351,7 @@ const Reports = () => {
           <h1 className="text-2xl font-bold">Reports</h1>
         </div>
         <Tabs defaultValue="my-comm">
-          <TabsList>
+          <TabsList className="w-max">
             <TabsTrigger value="my-comm">My Commissions</TabsTrigger>
           </TabsList>
           <TabsContent value="my-comm">
@@ -379,7 +380,11 @@ const Reports = () => {
           ))}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("justify-start text-left font-normal w-full sm:w-auto", !dateRange && "text-muted-foreground")}
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {dateRange?.from ? (
                   dateRange.to ? (
@@ -388,12 +393,12 @@ const Reports = () => {
                 ) : "Pick dates"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
+            <PopoverContent className={cn("w-auto p-0", isMobile && "max-w-[calc(100vw-1rem)]")} align={isMobile ? "center" : "end"}>
               <Calendar
                 mode="range"
                 selected={dateRange}
                 onSelect={setDateRange}
-                numberOfMonths={2}
+                numberOfMonths={isMobile ? 1 : 2}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
@@ -402,10 +407,9 @@ const Reports = () => {
         </div>
       </div>
 
-      <MobileTableHint />
-
       <Tabs defaultValue="is">
-        <TabsList className="flex-wrap">
+        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+          <TabsList className="w-max whitespace-nowrap">
           <TabsTrigger value="is">Income Statement</TabsTrigger>
           <TabsTrigger value="bs">GL Balances</TabsTrigger>
           <TabsTrigger value="cft">CFT ({cftData.length})</TabsTrigger>
@@ -414,7 +418,8 @@ const Reports = () => {
           <TabsTrigger value="st">Stock Txns ({stData.length})</TabsTrigger>
           <TabsTrigger value="emails">Emails ({emailLogs.length})</TabsTrigger>
           {isReferrerOrHouse && <TabsTrigger value="my-comm">My Commissions</TabsTrigger>}
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* ── INCOME STATEMENT ── */}
         <TabsContent value="is">
@@ -424,68 +429,151 @@ const Reports = () => {
               <p className="text-sm text-muted-foreground">Period: {dateRange?.from ? format(dateRange.from, "dd MMM yyyy") : "—"} – {dateRange?.to ? format(dateRange.to, "dd MMM yyyy") : "—"}</p>
             </CardHeader>
             <CardContent>
-              {/* Revenue — excl VAT only */}
-              <h3 className="font-semibold text-sm mb-1">Revenue</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>GL Code</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Amount (Excl VAT)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isAggregated.filter(r => r.gl_type === "income").map(r => (
-                    <TableRow key={r.code}>
-                      <TableCell className="font-mono text-xs">{r.code}</TableCell>
-                      <TableCell>{r.name}</TableCell>
-                      {/* Income = GL Credit (contra of CFT Debit) */}
-                      <TableCell className="text-right">{fmtAmt(r.exclVatCredit - r.exclVatDebit)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {isAggregated.filter(r => r.gl_type === "income").length === 0 && (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No income records</TableCell></TableRow>
-                  )}
-                  <TableRow className="font-semibold bg-muted/50">
-                    <TableCell colSpan={2}>Total Revenue</TableCell>
-                    <TableCell className="text-right text-green-600">{fmtAmt(totalIncomeExclVat)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              {isMobile ? (
+                <div className="space-y-4">
+                  {/* Revenue */}
+                  <div className="rounded-2xl border border-border bg-card/60 p-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-sm">Revenue</h3>
+                      <Badge variant="outline" className="text-[10px] h-5">Excl VAT</Badge>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {isAggregated.filter(r => r.gl_type === "income").map(r => (
+                        <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium break-words">{r.name}</p>
+                              <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] text-muted-foreground">Amount</p>
+                              <p className="font-mono font-semibold text-green-700">{fmtAmt(r.exclVatCredit - r.exclVatDebit)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {isAggregated.filter(r => r.gl_type === "income").length === 0 && (
+                        <div className="text-center text-muted-foreground py-4 text-sm">No income records</div>
+                      )}
+                      <div className="rounded-xl border bg-muted/30 p-2 flex items-center justify-between">
+                        <span className="text-xs font-semibold">Total Revenue</span>
+                        <span className="font-mono font-bold text-green-700">{fmtAmt(totalIncomeExclVat)}</span>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Expenses — excl VAT only */}
-              <h3 className="font-semibold text-sm mt-6 mb-1">Expenses</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>GL Code</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Amount (Excl VAT)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isAggregated.filter(r => r.gl_type === "expense").map(r => (
-                    <TableRow key={r.code}>
-                      <TableCell className="font-mono text-xs">{r.code}</TableCell>
-                      <TableCell>{r.name}</TableCell>
-                      {/* Expense must display as a positive amount in the IS */}
-                      <TableCell className="text-right">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</TableCell>
-                    </TableRow>
-                  ))}
-                  {isAggregated.filter(r => r.gl_type === "expense").length === 0 && (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No expense records</TableCell></TableRow>
-                  )}
-                  <TableRow className="font-semibold bg-muted/50">
-                    <TableCell colSpan={2}>Total Expenses</TableCell>
-                    <TableCell className="text-right text-destructive">{fmtAmt(totalExpenseExclVat)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                  {/* Expenses */}
+                  <div className="rounded-2xl border border-border bg-card/60 p-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-sm">Expenses</h3>
+                      <Badge variant="outline" className="text-[10px] h-5">Excl VAT</Badge>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {isAggregated.filter(r => r.gl_type === "expense").map(r => (
+                        <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium break-words">{r.name}</p>
+                              <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] text-muted-foreground">Amount</p>
+                              <p className="font-mono font-semibold text-destructive">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {isAggregated.filter(r => r.gl_type === "expense").length === 0 && (
+                        <div className="text-center text-muted-foreground py-4 text-sm">No expense records</div>
+                      )}
+                      <div className="rounded-xl border bg-muted/30 p-2 flex items-center justify-between">
+                        <span className="text-xs font-semibold">Total Expenses</span>
+                        <span className="font-mono font-bold text-destructive">{fmtAmt(totalExpenseExclVat)}</span>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className={`mt-4 p-4 rounded-lg border-2 flex justify-between items-center font-bold text-lg ${netProfit >= 0 ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"}`}>
-                <span>{netProfit >= 0 ? "Net Profit" : "Net Loss"}</span>
-                <span>{fmtAmt(netProfit)}</span>
-              </div>
+                  {/* Net Profit/Loss */}
+                  <div className={cn(
+                    "p-3 rounded-2xl border-2 font-bold",
+                    netProfit >= 0 ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">{netProfit >= 0 ? "Net Profit" : "Net Loss"}</span>
+                      <span className="font-mono text-base">{fmtAmt(netProfit)}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Revenue — excl VAT only */}
+                  <h3 className="font-semibold text-sm mb-1">Revenue</h3>
+                  <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>GL Code</TableHead>
+                          <TableHead>Account</TableHead>
+                          <TableHead className="text-right">Amount (Excl VAT)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isAggregated.filter(r => r.gl_type === "income").map(r => (
+                          <TableRow key={r.code}>
+                            <TableCell className="font-mono text-xs">{r.code}</TableCell>
+                            <TableCell>{r.name}</TableCell>
+                            {/* Income = GL Credit (contra of CFT Debit) */}
+                            <TableCell className="text-right">{fmtAmt(r.exclVatCredit - r.exclVatDebit)}</TableCell>
+                          </TableRow>
+                        ))}
+                        {isAggregated.filter(r => r.gl_type === "income").length === 0 && (
+                          <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No income records</TableCell></TableRow>
+                        )}
+                        <TableRow className="font-semibold bg-muted/50">
+                          <TableCell colSpan={2}>Total Revenue</TableCell>
+                          <TableCell className="text-right text-green-600">{fmtAmt(totalIncomeExclVat)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Expenses — excl VAT only */}
+                  <h3 className="font-semibold text-sm mt-6 mb-1">Expenses</h3>
+                  <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>GL Code</TableHead>
+                          <TableHead>Account</TableHead>
+                          <TableHead className="text-right">Amount (Excl VAT)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isAggregated.filter(r => r.gl_type === "expense").map(r => (
+                          <TableRow key={r.code}>
+                            <TableCell className="font-mono text-xs">{r.code}</TableCell>
+                            <TableCell>{r.name}</TableCell>
+                            {/* Expense must display as a positive amount in the IS */}
+                            <TableCell className="text-right">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</TableCell>
+                          </TableRow>
+                        ))}
+                        {isAggregated.filter(r => r.gl_type === "expense").length === 0 && (
+                          <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No expense records</TableCell></TableRow>
+                        )}
+                        <TableRow className="font-semibold bg-muted/50">
+                          <TableCell colSpan={2}>Total Expenses</TableCell>
+                          <TableCell className="text-right text-destructive">{fmtAmt(totalExpenseExclVat)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className={`mt-4 p-4 rounded-lg border-2 flex justify-between items-center font-bold text-lg ${netProfit >= 0 ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"}`}>
+                    <span>{netProfit >= 0 ? "Net Profit" : "Net Loss"}</span>
+                    <span>{fmtAmt(netProfit)}</span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -498,75 +586,155 @@ const Reports = () => {
               <p className="text-sm text-muted-foreground">All-time cumulative Dr/Cr per GL account as at {format(new Date(), "dd MMM yyyy")}</p>
             </CardHeader>
             <CardContent>
-              {/* Single unified table so all columns align */}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-24">GL Code</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right w-40">Debit</TableHead>
-                    <TableHead className="text-right w-40">Credit</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(["asset","liability","equity"] as const).map(glType => {
+              {isMobile ? (
+                <div className="space-y-4">
+                  {(["asset", "liability", "equity"] as const).map((glType) => {
                     const labelMap: Record<string, string> = { asset: "Assets", liability: "Liabilities", equity: "Equity" };
                     const section = glType === "asset" ? glAssets : glType === "liability" ? glLiabilities : glEquity;
                     const showAccProfit = glType === "equity";
                     const totalDr = section.totalDr + (showAccProfit && accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
                     const totalCr = section.totalCr + (showAccProfit && accumulatedProfit >= 0 ? accumulatedProfit : 0);
+
                     return (
-                      <>
-                        {/* Section heading row */}
-                        <TableRow key={`heading-${glType}`} className="bg-muted/30 border-t-2">
-                          <TableCell colSpan={4} className="font-semibold text-sm py-2">{labelMap[glType]}</TableCell>
-                        </TableRow>
-                        {/* Data rows */}
-                        {section.rows.map(r => (
-                          <TableRow key={r.code}>
-                            <TableCell className="font-mono text-xs pl-6">{r.code}</TableCell>
-                            <TableCell className="pl-6">{r.name}</TableCell>
-                            <TableCell className="text-right">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</TableCell>
-                            <TableCell className="text-right">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</TableCell>
-                          </TableRow>
-                        ))}
-                        {section.rows.length === 0 && !showAccProfit && (
-                          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground pl-6 text-xs">No records</TableCell></TableRow>
-                        )}
-                        {showAccProfit && (
-                          <TableRow className="italic text-muted-foreground">
-                            <TableCell className="font-mono text-xs pl-6">—</TableCell>
-                            <TableCell className="pl-6">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
-                            <TableCell className="text-right">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
-                            <TableCell className="text-right">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
-                          </TableRow>
-                        )}
-                        {/* Section total row */}
-                        <TableRow key={`total-${glType}`} className="font-semibold bg-muted/50 border-b-2">
-                          <TableCell colSpan={2}>Total {labelMap[glType]}</TableCell>
-                          <TableCell className="text-right">{totalDr > 0 ? fmtAmt(totalDr) : "—"}</TableCell>
-                          <TableCell className="text-right">{totalCr > 0 ? fmtAmt(totalCr) : "—"}</TableCell>
-                        </TableRow>
-                      </>
+                      <div key={glType} className="rounded-2xl border border-border bg-card/60 p-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold">{labelMap[glType]}</h3>
+                          <Badge variant="outline" className="text-[10px] h-5">All-time</Badge>
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          {section.rows.map((r) => (
+                            <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium break-words">{r.name}</p>
+                                  <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+                                </div>
+                                <div className="shrink-0 text-right text-xs">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <span className="text-muted-foreground">Dr</span>
+                                    <span className="font-mono">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</span>
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2 mt-1">
+                                    <span className="text-muted-foreground">Cr</span>
+                                    <span className="font-mono">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {section.rows.length === 0 && !showAccProfit && (
+                            <div className="text-center text-muted-foreground py-4 text-sm">No records</div>
+                          )}
+
+                          {showAccProfit && (
+                            <div className="rounded-xl border bg-muted/30 p-2 text-xs">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</p>
+                                  <p className="text-[11px] text-muted-foreground">Calculated from all-time income/expense</p>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <span className="text-muted-foreground">Dr</span>
+                                    <span className="font-mono">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</span>
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2 mt-1">
+                                    <span className="text-muted-foreground">Cr</span>
+                                    <span className="font-mono">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="rounded-xl border bg-muted/30 p-2">
+                            <div className="flex items-center justify-between text-xs font-semibold">
+                              <span>Total {labelMap[glType]}</span>
+                              <span className="font-mono">Dr {totalDr > 0 ? fmtAmt(totalDr) : "—"} | Cr {totalCr > 0 ? fmtAmt(totalCr) : "—"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
+                </div>
+              ) : (
+                <>
+                  {/* Single unified table so all columns align */}
+                  <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-24">GL Code</TableHead>
+                          <TableHead>Account</TableHead>
+                          <TableHead className="text-right w-40">Debit</TableHead>
+                          <TableHead className="text-right w-40">Credit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(["asset","liability","equity"] as const).map(glType => {
+                          const labelMap: Record<string, string> = { asset: "Assets", liability: "Liabilities", equity: "Equity" };
+                          const section = glType === "asset" ? glAssets : glType === "liability" ? glLiabilities : glEquity;
+                          const showAccProfit = glType === "equity";
+                          const totalDr = section.totalDr + (showAccProfit && accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
+                          const totalCr = section.totalCr + (showAccProfit && accumulatedProfit >= 0 ? accumulatedProfit : 0);
+                          return (
+                            <>
+                              {/* Section heading row */}
+                              <TableRow key={`heading-${glType}`} className="bg-muted/30 border-t-2">
+                                <TableCell colSpan={4} className="font-semibold text-sm py-2">{labelMap[glType]}</TableCell>
+                              </TableRow>
+                              {/* Data rows */}
+                              {section.rows.map(r => (
+                                <TableRow key={r.code}>
+                                  <TableCell className="font-mono text-xs pl-6">{r.code}</TableCell>
+                                  <TableCell className="pl-6">{r.name}</TableCell>
+                                  <TableCell className="text-right">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</TableCell>
+                                  <TableCell className="text-right">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</TableCell>
+                                </TableRow>
+                              ))}
+                              {section.rows.length === 0 && !showAccProfit && (
+                                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground pl-6 text-xs">No records</TableCell></TableRow>
+                              )}
+                              {showAccProfit && (
+                                <TableRow className="italic text-muted-foreground">
+                                  <TableCell className="font-mono text-xs pl-6">—</TableCell>
+                                  <TableCell className="pl-6">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
+                                  <TableCell className="text-right">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
+                                  <TableCell className="text-right">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
+                                </TableRow>
+                              )}
+                              {/* Section total row */}
+                              <TableRow key={`total-${glType}`} className="font-semibold bg-muted/50 border-b-2">
+                                <TableCell colSpan={2}>Total {labelMap[glType]}</TableCell>
+                                <TableCell className="text-right">{totalDr > 0 ? fmtAmt(totalDr) : "—"}</TableCell>
+                                <TableCell className="text-right">{totalCr > 0 ? fmtAmt(totalCr) : "—"}</TableCell>
+                              </TableRow>
+                            </>
+                          );
+                        })}
 
-                  {/* Grand Total row */}
-                  {(() => {
-                    const baseDr = glAssets.totalDr + glLiabilities.totalDr + glEquity.totalDr;
-                    const baseCr = glAssets.totalCr + glLiabilities.totalCr + glEquity.totalCr;
-                    const totalDr = baseDr + (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
-                    const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
-                    return (
-                      <TableRow className="font-bold text-base border-t-4 border-foreground/30">
-                        <TableCell colSpan={2} className="text-base font-bold py-3">Grand Total</TableCell>
-                        <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalDr)}</TableCell>
-                        <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalCr)}</TableCell>
-                      </TableRow>
-                    );
-                  })()}
-                </TableBody>
-              </Table>
+                        {/* Grand Total row */}
+                        {(() => {
+                          const baseDr = glAssets.totalDr + glLiabilities.totalDr + glEquity.totalDr;
+                          const baseCr = glAssets.totalCr + glLiabilities.totalCr + glEquity.totalCr;
+                          const totalDr = baseDr + (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
+                          const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
+                          return (
+                            <TableRow className="font-bold text-base border-t-4 border-foreground/30">
+                              <TableCell colSpan={2} className="text-base font-bold py-3">Grand Total</TableCell>
+                              <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalDr)}</TableCell>
+                              <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalCr)}</TableCell>
+                            </TableRow>
+                          );
+                        })()}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
 
               {/* Trial balance indicator */}
               {(() => {
@@ -576,9 +744,12 @@ const Reports = () => {
                 const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
                 const isBalanced = Math.abs(totalDr - totalCr) < 0.01;
                 return (
-                  <div className={`mt-4 p-4 rounded-lg border-2 flex justify-between items-center font-bold ${isBalanced ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"}`}>
-                    <span>{isBalanced ? "✓ Trial Balance — Debits = Credits" : "✗ Out of Balance"}</span>
-                    <span>Dr {fmtAmt(totalDr)} | Cr {fmtAmt(totalCr)}</span>
+                  <div className={cn(
+                    "mt-4 p-4 rounded-lg border-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 font-bold",
+                    isBalanced ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"
+                  )}>
+                    <span className="text-sm">{isBalanced ? "✓ Trial Balance — Debits = Credits" : "✗ Out of Balance"}</span>
+                    <span className="text-sm font-mono">Dr {fmtAmt(totalDr)} | Cr {fmtAmt(totalCr)}</span>
                   </div>
                 );
               })()}
@@ -611,7 +782,7 @@ const Reports = () => {
                 // First pass: assign group numbers to parents that have children
                 const parentIds = new Set((cftData as any[]).filter((r: any) => r.parent_id).map((r: any) => r.parent_id));
                 for (const r of cftData as any[]) {
-                  if (parentIds.has(r.id) && !parentGroupMap[r.id]) {
+                  if (parentIds.has(r.id) && parentGroupMap[r.id] === undefined) {
                     parentGroupMap[r.id] = groupCounter++;
                   }
                 }
@@ -645,7 +816,89 @@ const Reports = () => {
                   return undefined;
                 };
 
-                return (
+                return isMobile ? (
+                  <div className="space-y-3">
+                    {orderedData.map((r: any) => {
+                      const isChild = !!r.parent_id;
+                      const bgColor = getGroupColor(r);
+                      const accountName = r.entity_accounts
+                        ? `${[r.entity_accounts.entities?.name, r.entity_accounts.entities?.last_name].filter(Boolean).join(" ")} (${r.entity_accounts.account_number || "—"})`
+                        : "—";
+
+                      return (
+                        <div
+                          key={r.id}
+                          className={cn(
+                            "rounded-2xl border border-border p-3",
+                            bgColor || "bg-card/60",
+                            isChild && "border-l-4 border-l-primary/40"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs">{r.transaction_id ? shortId(r.transaction_id) : shortId(r.id)}</span>
+                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
+                                {r.is_bank ? <Badge variant="outline" className="text-[10px] h-5">Bank</Badge> : null}
+                              </div>
+                              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                <span className={cn(
+                                  "text-[11px] px-2 py-0.5 rounded font-medium",
+                                  r.is_bank && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                  r.entry_type === "fee" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                  r.entry_type === "vat" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                                  r.entry_type === "pool_redemption" && "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+                                  r.entry_type === "pool_allocation" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                                  r.entry_type === "stock_control" && "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+                                )}>
+                                  {isChild ? "↳ " : ""}{r.entry_type}
+                                </span>
+                                <p className="text-sm font-medium break-words">{r.description || "—"}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                            <p className="break-words">
+                              Account: <span className="text-foreground/90">{accountName}</span>
+                            </p>
+                            <p className="break-words">
+                              GL: <span className="text-foreground/90">{r.gl_accounts ? `${r.gl_accounts.code} ${r.gl_accounts.name}` : "—"}</span>
+                            </p>
+                            <p className="break-words">
+                              Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
+                            </p>
+                            <p className="break-words">
+                              Pool: <span className="text-foreground/90">{r.pools?.name || "—"}</span>
+                            </p>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Debit</p>
+                              <p className="font-mono text-right">{Number(r.debit) > 0 ? fmtAmt(Number(r.debit)) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Credit</p>
+                              <p className="font-mono text-right">{Number(r.credit) > 0 ? fmtAmt(Number(r.credit)) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Excl VAT</p>
+                              <p className="font-mono text-right">{r.amount_excl_vat != null ? fmtAmt(Number(r.amount_excl_vat)) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">VAT</p>
+                              <p className="font-mono text-right text-destructive">{Number(r.vat_amount) > 0 ? fmtAmt(-Number(r.vat_amount)) : "—"}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {cftData.length === 0 && (
+                      <div className="text-center text-muted-foreground py-8">No records</div>
+                    )}
+                  </div>
+                ) : (
                   <Table>
                     <TableHeader>
                     <TableRow>
@@ -740,7 +993,7 @@ const Reports = () => {
                 const utGroupMap: Record<string, number> = {};
                 let utGroupCounter = 0;
                 for (const r of utData as any[]) {
-                  if (r.legacy_transaction_id && !utGroupMap[r.legacy_transaction_id]) {
+                  if (r.legacy_transaction_id && utGroupMap[r.legacy_transaction_id] === undefined) {
                     utGroupMap[r.legacy_transaction_id] = utGroupCounter++;
                   }
                 }
@@ -752,7 +1005,69 @@ const Reports = () => {
                   }
                 }
 
-                return (
+                return isMobile ? (
+                  <div className="space-y-3">
+                    {(utData as any[]).map((r: any) => {
+                      const txnId = r.legacy_transaction_id;
+                      const hasGroup = txnId && utTxnCounts[txnId] > 1;
+                      const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
+                      const accountName = r.entity_accounts
+                        ? `${[r.entity_accounts.entities?.name, r.entity_accounts.entities?.last_name].filter(Boolean).join(" ")} (${r.entity_accounts.account_number || "—"})`
+                        : "—";
+                      const poolName = r.pools?.name || shortId(r.pool_id);
+
+                      return (
+                        <div key={r.id} className={cn("rounded-2xl border border-border p-3", bgColor || "bg-card/60")}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs">{r.transaction_id ? shortId(r.transaction_id) : shortId(r.id)}</span>
+                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
+                                {hasGroup ? <Badge variant="outline" className="text-[10px] h-5">Grouped</Badge> : null}
+                              </div>
+                              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-[10px] h-5">{r.transaction_type}</Badge>
+                                <span className="text-xs text-muted-foreground">Pool:</span>
+                                <span className="text-xs font-medium">{poolName}</span>
+                              </div>
+                              <p className="mt-2 text-xs text-muted-foreground break-words">
+                                Account: <span className="text-foreground/90">{accountName}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Unit Price</p>
+                              <p className="font-mono text-right">{fmtAmt(Number(r.unit_price || 0))}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Value</p>
+                              <p className="font-mono text-right">{fmtAmt(Number(r.value || 0))}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Debit (Units)</p>
+                              <p className="font-mono text-right">{Number(r.debit) > 0 ? fmt(r.debit) : "—"}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Credit (Units)</p>
+                              <p className="font-mono text-right text-destructive">{Number(r.credit) > 0 ? fmt(r.credit) : "—"}</p>
+                            </div>
+                          </div>
+
+                          {r.notes ? (
+                            <p className="mt-3 text-xs text-muted-foreground break-words">
+                              Notes: <span className="text-foreground/90">{r.notes}</span>
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                    {utData.length === 0 && (
+                      <div className="text-center text-muted-foreground py-8">No records</div>
+                    )}
+                  </div>
+                ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -808,31 +1123,69 @@ const Reports = () => {
             <CardHeader><CardTitle>Member Shares</CardTitle></CardHeader>
             <CardContent>
               {shareLoading ? <p>Loading…</p> : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                isMobile ? (
+                  <div className="space-y-3">
                     {shareData.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
-                        <TableCell>{r.transaction_date}</TableCell>
-                        <TableCell className="font-mono text-xs">{shortId(r.entity_account_id)}</TableCell>
-                        <TableCell>{r.membership_type}</TableCell>
-                        <TableCell className="text-right">{fmt(r.quantity)}</TableCell>
-                        <TableCell className="text-right">{fmt(r.value)}</TableCell>
-                      </TableRow>
+                      <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-xs">{shortId(r.id)}</span>
+                              <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
+                              {r.membership_type ? <Badge variant="outline" className="text-[10px] h-5">{r.membership_type}</Badge> : null}
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground break-words">
+                              Account: <span className="font-mono text-foreground/90">{shortId(r.entity_account_id)}</span>
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] text-muted-foreground">Value</p>
+                            <p className="font-mono font-semibold">{fmtAmt(Number(r.value || 0))}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-xl border bg-background/60 p-2">
+                            <p className="text-[10px] text-muted-foreground">Qty</p>
+                            <p className="font-mono text-right">{fmt(r.quantity)}</p>
+                          </div>
+                          <div className="rounded-xl border bg-background/60 p-2">
+                            <p className="text-[10px] text-muted-foreground">Value</p>
+                            <p className="font-mono text-right">{fmtAmt(Number(r.value || 0))}</p>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                    {shareData.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
+                    {shareData.length === 0 && (
+                      <div className="text-center text-muted-foreground py-8">No records</div>
+                    )}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Account</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {shareData.map((r: any) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
+                          <TableCell>{r.transaction_date}</TableCell>
+                          <TableCell className="font-mono text-xs">{shortId(r.entity_account_id)}</TableCell>
+                          <TableCell>{r.membership_type}</TableCell>
+                          <TableCell className="text-right">{fmt(r.quantity)}</TableCell>
+                          <TableCell className="text-right">{fmt(r.value)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {shareData.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No records</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                )
               )}
             </CardContent>
           </Card>
@@ -844,52 +1197,111 @@ const Reports = () => {
             <CardHeader><CardTitle>Stock Transactions</CardTitle></CardHeader>
             <CardContent>
               {stLoading ? <p>Loading…</p> : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>CFT ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Cost Price</TableHead>
-                      <TableHead className="text-right">Line Value</TableHead>
-                      <TableHead>Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                isMobile ? (
+                  <div className="space-y-3">
                     {stData.map((r: any) => {
                       const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const isIn = Number(r.debit || 0) > 0;
                       const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
                       return (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
-                          <TableCell className="font-mono text-xs">{r.transaction_id ? shortId(r.transaction_id) : "—"}</TableCell>
-                          <TableCell>{r.transaction_date}</TableCell>
-                          <TableCell className="text-xs">{r.entity_accounts?.account_number || shortId(r.entity_account_id)}</TableCell>
-                          <TableCell className="text-xs">{r.items?.description || "—"}</TableCell>
-                          <TableCell className="font-mono text-xs">{r.items?.item_code || "—"}</TableCell>
-                          <TableCell>
-                            <span className={isIn ? "text-green-600 font-medium" : "text-destructive font-medium"}>
-                              {isIn ? "IN" : "OUT"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">{fmt(qty)}</TableCell>
-                          <TableCell className="text-right">{fmt(r.cost_price)}</TableCell>
-                          <TableCell className="text-right">{fmt(lineValue)}</TableCell>
-                          <TableCell className="text-xs">{r.notes || "—"}</TableCell>
-                        </TableRow>
+                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs">{shortId(r.id)}</span>
+                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
+                                <Badge variant="outline" className={cn("text-[10px] h-5", isIn ? "text-green-700 border-green-500/40 bg-green-500/10" : "text-destructive border-destructive/40 bg-destructive/10")}>
+                                  {isIn ? "IN" : "OUT"}
+                                </Badge>
+                              </div>
+                              <p className="mt-2 text-sm font-medium break-words">{r.items?.description || "—"}</p>
+                              <p className="mt-1 text-xs text-muted-foreground break-words">
+                                Code: <span className="font-mono text-foreground/90">{r.items?.item_code || "—"}</span>
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground break-words">
+                                Account: <span className="text-foreground/90">{r.entity_accounts?.account_number || shortId(r.entity_account_id)}</span>
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground break-words">
+                                CFT: <span className="font-mono text-foreground/90">{r.transaction_id ? shortId(r.transaction_id) : "—"}</span>
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] text-muted-foreground">Line Value</p>
+                              <p className="font-mono font-semibold">{fmtAmt(lineValue)}</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Qty</p>
+                              <p className="font-mono text-right">{fmt(qty)}</p>
+                            </div>
+                            <div className="rounded-xl border bg-background/60 p-2">
+                              <p className="text-[10px] text-muted-foreground">Cost Price</p>
+                              <p className="font-mono text-right">{fmtAmt(Number(r.cost_price || 0))}</p>
+                            </div>
+                          </div>
+
+                          {r.notes ? (
+                            <p className="mt-3 text-xs text-muted-foreground break-words">
+                              Notes: <span className="text-foreground/90">{r.notes}</span>
+                            </p>
+                          ) : null}
+                        </div>
                       );
                     })}
                     {stData.length === 0 && (
-                      <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">No records</TableCell></TableRow>
+                      <div className="text-center text-muted-foreground py-8">No records</div>
                     )}
-                  </TableBody>
-                </Table>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>CFT ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Account</TableHead>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Cost Price</TableHead>
+                        <TableHead className="text-right">Line Value</TableHead>
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stData.map((r: any) => {
+                        const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
+                        const isIn = Number(r.debit || 0) > 0;
+                        const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
+                        return (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
+                            <TableCell className="font-mono text-xs">{r.transaction_id ? shortId(r.transaction_id) : "—"}</TableCell>
+                            <TableCell>{r.transaction_date}</TableCell>
+                            <TableCell className="text-xs">{r.entity_accounts?.account_number || shortId(r.entity_account_id)}</TableCell>
+                            <TableCell className="text-xs">{r.items?.description || "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{r.items?.item_code || "—"}</TableCell>
+                            <TableCell>
+                              <span className={isIn ? "text-green-600 font-medium" : "text-destructive font-medium"}>
+                                {isIn ? "IN" : "OUT"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">{fmt(qty)}</TableCell>
+                            <TableCell className="text-right">{fmt(r.cost_price)}</TableCell>
+                            <TableCell className="text-right">{fmt(lineValue)}</TableCell>
+                            <TableCell className="text-xs">{r.notes || "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {stData.length === 0 && (
+                        <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">No records</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )
               )}
             </CardContent>
           </Card>
@@ -905,54 +1317,109 @@ const Reports = () => {
               {emailLoading ? (
                 <p className="text-muted-foreground text-sm">Loading…</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Recipient</TableHead>
-                      <TableHead>Event</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Error</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                isMobile ? (
+                  <div className="space-y-3">
                     {emailLogs.map((log: any) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {log.created_at ? format(new Date(log.created_at), "dd MMM yyyy HH:mm") : "—"}
-                        </TableCell>
-                        <TableCell className="text-xs">{log.recipient_email}</TableCell>
-                        <TableCell className="text-xs font-mono">{log.application_event}</TableCell>
-                        <TableCell className="text-xs max-w-[200px] truncate">{log.subject || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant={log.status === "sent" ? "default" : "destructive"} className="text-xs">
-                            {log.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-destructive max-w-[150px] truncate">{log.error_message || "—"}</TableCell>
-                        <TableCell className="text-xs font-mono max-w-[100px] truncate">{log.message_id || "—"}</TableCell>
-                        <TableCell>
-                          {log.status === "failed" && log.recipient_user_id && log.metadata?.transaction_data && (
+                      <div key={log.id} className="rounded-2xl border border-border bg-card/60 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-muted-foreground">
+                                {log.created_at ? format(new Date(log.created_at), "dd MMM yyyy HH:mm") : "—"}
+                              </span>
+                              <Badge variant={log.status === "sent" ? "default" : "destructive"} className="text-[10px] h-5">
+                                {log.status}
+                              </Badge>
+                            </div>
+                            <p className="mt-2 text-sm font-medium break-words">{log.subject || "—"}</p>
+                            <p className="mt-1 text-xs text-muted-foreground break-words">
+                              Recipient: <span className="text-foreground/90">{log.recipient_email}</span>
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground break-words">
+                              Event: <span className="font-mono text-foreground/90">{log.application_event}</span>
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground break-words">
+                              Message ID: <span className="font-mono text-foreground/90">{log.message_id || "—"}</span>
+                            </p>
+                            {log.error_message ? (
+                              <p className="mt-2 text-xs text-destructive break-words">
+                                Error: {log.error_message}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {log.status === "failed" && log.recipient_user_id && log.metadata?.transaction_data ? (
+                          <div className="mt-3">
                             <Button
                               size="sm"
                               variant="outline"
+                              className="w-full"
                               disabled={resendingId === log.id}
                               onClick={() => handleResendEmail(log)}
                             >
-                              <RotateCcw className={cn("h-3 w-3 mr-1", resendingId === log.id && "animate-spin")} />
+                              <RotateCcw className={cn("h-3.5 w-3.5 mr-1", resendingId === log.id && "animate-spin")} />
                               Resend
                             </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                          </div>
+                        ) : null}
+                      </div>
                     ))}
                     {emailLogs.length === 0 && (
-                      <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">No email logs</TableCell></TableRow>
+                      <div className="text-center text-muted-foreground py-8">No email logs</div>
                     )}
-                  </TableBody>
-                </Table>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Recipient</TableHead>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Error</TableHead>
+                        <TableHead>Message ID</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {emailLogs.map((log: any) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {log.created_at ? format(new Date(log.created_at), "dd MMM yyyy HH:mm") : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">{log.recipient_email}</TableCell>
+                          <TableCell className="text-xs font-mono">{log.application_event}</TableCell>
+                          <TableCell className="text-xs max-w-[200px] truncate">{log.subject || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={log.status === "sent" ? "default" : "destructive"} className="text-xs">
+                              {log.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-destructive max-w-[150px] truncate">{log.error_message || "—"}</TableCell>
+                          <TableCell className="text-xs font-mono max-w-[100px] truncate">{log.message_id || "—"}</TableCell>
+                          <TableCell>
+                            {log.status === "failed" && log.recipient_user_id && log.metadata?.transaction_data && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={resendingId === log.id}
+                                onClick={() => handleResendEmail(log)}
+                              >
+                                <RotateCcw className={cn("h-3 w-3 mr-1", resendingId === log.id && "animate-spin")} />
+                                Resend
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {emailLogs.length === 0 && (
+                        <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">No email logs</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )
               )}
             </CardContent>
           </Card>
