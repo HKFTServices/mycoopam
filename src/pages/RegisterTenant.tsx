@@ -1415,8 +1415,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 8: Documents ═══ */}
-            {step === 8 && (
+            {/* ═══ Step 9: Admin Documents ═══ */}
+            {step === 9 && (
               <div className="space-y-5">
                 {documentRequirements.length === 0 ? (
                   <div className="text-center py-8">
