@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -27,7 +28,6 @@ import {
 import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays, Clock, Check, X, Edit3, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
@@ -66,7 +66,6 @@ const defaultJournalForm = {
 
 // ── Ledger Preview Component ──
 const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] }) => {
-  const isMobile = useIsMobile();
   const fmt = (v: number) => `R ${v.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (lines.length === 0) return null;
 
@@ -74,7 +73,7 @@ const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; 
     <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ledger Entries Preview</p>
 
-      {isMobile ? (
+      <div className="sm:hidden">
         <div className="space-y-2">
           {lines.map((l, i) => (
             <div key={i} className="rounded-xl border border-border bg-background/60 p-2">
@@ -99,7 +98,9 @@ const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; 
             </div>
           ))}
         </div>
-      ) : (
+      </div>
+
+      <div className="hidden sm:block">
         <Table>
           <TableHeader>
             <TableRow className="text-xs">
@@ -133,7 +134,7 @@ const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; 
             ))}
           </TableBody>
         </Table>
-      )}
+      </div>
     </div>
   );
 };
@@ -142,7 +143,6 @@ const LedgerEntries = () => {
   const { user, profile } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
 
   const [bankDialogOpen, setBankDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
@@ -874,74 +874,96 @@ const LedgerEntries = () => {
               <Plus className="h-4 w-4 mr-1" /> Bank Entry
             </Button>
           </div>
-          <Card className={isMobile ? "overflow-hidden" : undefined}>
-            <CardContent className={isMobile ? "p-3" : "p-0"}>
-              {isMobile ? (
-                bankLoading ? (
+          <Card className="overflow-hidden">
+            <CardContent className="p-3 sm:p-0">
+              <div className="sm:hidden">
+                {bankLoading ? (
                   <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
                 ) : bankEntries.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No bank entries yet</div>
                 ) : (
-                  <div className="space-y-3">
+                  <Accordion type="single" collapsible className="space-y-2">
                     {bankEntries.map((r: any) => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       const amount = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const side = Number(r.debit || 0) > 0 ? "DR" : "CR";
                       const glLabel = `${r.gl_accounts?.code ?? ""} ${r.gl_accounts?.name ?? ""}`.trim() || "—";
                       return (
-                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Badge variant={side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
-                                  {side}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
-                                {r.reference ? <span className="text-xs text-muted-foreground truncate">• {r.reference}</span> : null}
+                        <AccordionItem
+                          key={r.id}
+                          value={r.id}
+                          className="border-b-0 rounded-2xl border border-border bg-card/60 px-3"
+                        >
+                          <AccordionTrigger className="py-3 hover:no-underline items-start">
+                            <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <Badge variant={side === "DR" ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
+                                    {side}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">{r.transaction_date}</span>
+                                  {r.reference ? (
+                                    <span className="text-xs text-muted-foreground truncate max-w-[55vw]">• {r.reference}</span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-1 text-sm font-medium break-words">
+                                  <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
+                                  {r.gl_accounts?.name || glLabel}
+                                </p>
                               </div>
-                              <p className="mt-2 text-sm font-medium break-words">
-                                <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                                {r.gl_accounts?.name || glLabel}
-                              </p>
-                              <p className="mt-1 text-xs text-muted-foreground break-words">
-                                Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
-                              </p>
+                              <div className="text-right max-w-[45%] break-words">
+                                <p className="text-[10px] text-muted-foreground">Amount</p>
+                                <p className="font-mono font-semibold break-all">{amount > 0 ? formatCurrency(amount) : "—"}</p>
+                              </div>
                             </div>
-                            {isAdmin ? (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                                onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}
-                                aria-label="Delete entry"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            ) : null}
-                          </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-3">
+                            <div className="space-y-3">
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <p className="break-words">
+                                  Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
+                                </p>
+                                {r.notes ? (
+                                  <p className="break-words">
+                                    Notes: <span className="text-foreground/90">{r.notes}</span>
+                                  </p>
+                                ) : null}
+                              </div>
 
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                            <div className="rounded-xl border bg-background/60 p-2">
-                              <p className="text-[10px] text-muted-foreground">Amount</p>
-                              <p className="font-mono font-semibold text-right break-all">{amount > 0 ? formatCurrency(amount) : "—"}</p>
+                              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs">
+                                <div className="rounded-xl border bg-background/60 p-2">
+                                  <p className="text-[10px] text-muted-foreground">Excl VAT</p>
+                                  <p className="font-mono text-right break-all">{r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}</p>
+                                </div>
+                                <div className="rounded-xl border bg-background/60 p-2">
+                                  <p className="text-[10px] text-muted-foreground">VAT</p>
+                                  <p className={`font-mono text-right break-all ${isExpense ? "text-destructive" : "text-foreground"}`}>
+                                    {r.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(r.vat_amount)}` : "—"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {isAdmin ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full text-destructive border-destructive/40 hover:text-destructive"
+                                  onClick={() => setDeleteConfirmEntry({ id: r.id, type: "bank" })}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete Entry
+                                </Button>
+                              ) : null}
                             </div>
-                            <div className="rounded-xl border bg-background/60 p-2">
-                              <p className="text-[10px] text-muted-foreground">Excl VAT</p>
-                              <p className="font-mono text-right break-all">{r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}</p>
-                            </div>
-                            <div className="rounded-xl border bg-background/60 p-2 col-span-2">
-                              <p className="text-[10px] text-muted-foreground">VAT</p>
-                              <p className={`font-mono text-right ${isExpense ? "text-destructive" : "text-foreground"}`}>
-                                {r.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(r.vat_amount)}` : "—"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       );
                     })}
-                  </div>
-                )
-              ) : (
+                  </Accordion>
+                )}
+              </div>
+
+              <div className="hidden sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -993,14 +1015,14 @@ const LedgerEntries = () => {
                     })}
                   </TableBody>
                 </Table>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* ── Journal Entries ── */}
         <TabsContent value="journal" className="space-y-3">
-           <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
               <CalendarDays className="h-4 w-4 mr-1" /> End of Month Run
             </Button>
@@ -1008,73 +1030,95 @@ const LedgerEntries = () => {
               <Plus className="h-4 w-4 mr-1" /> Journal Entry
             </Button>
           </div>
-          <Card className={isMobile ? "overflow-hidden" : undefined}>
-            <CardContent className={isMobile ? "p-3" : "p-0"}>
-              {isMobile ? (
-                journalLoading ? (
+          <Card className="overflow-hidden">
+            <CardContent className="p-3 sm:p-0">
+              <div className="sm:hidden">
+                {journalLoading ? (
                   <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
                 ) : journalEntries.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No journal entries yet</div>
                 ) : (
-                  <div className="space-y-3">
+                  <Accordion type="single" collapsible className="space-y-2">
                     {journalEntries.map((r: any) => {
                       const child = r.childRow;
                       const debitCA = r.control_accounts?.name || "—";
                       const creditCA = child?.control_accounts?.name || "—";
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       return (
-                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-[10px] h-5">Journal</Badge>
-                                <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
-                                {r.reference ? <span className="text-xs text-muted-foreground truncate">• {r.reference}</span> : null}
-                              </div>
-                              <p className="mt-2 text-sm font-medium break-words">
-                                <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                                {r.gl_accounts?.name || "—"}
-                              </p>
-                            </div>
-                            {isAdmin ? (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                                onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}
-                                aria-label="Delete entry"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                            <div className="rounded-xl border bg-background/60 p-2">
-                              <p className="text-[10px] text-muted-foreground">Debit</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{debitCA}</p>
-                              <p className="font-mono font-semibold text-right text-primary break-all">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</p>
-                            </div>
-                            <div className="rounded-xl border bg-background/60 p-2">
-                              <p className="text-[10px] text-muted-foreground">Credit</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{creditCA}</p>
-                              <p className="font-mono font-semibold text-right text-destructive break-all">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</p>
-                            </div>
-                            {isVatRegistered ? (
-                              <div className="rounded-xl border bg-background/60 p-2 col-span-2">
-                                <p className="text-[10px] text-muted-foreground">VAT</p>
-                                <p className={`font-mono text-right ${isExpense ? "text-destructive" : "text-foreground"}`}>
-                                  {r.vat_amount > 0 ? formatCurrency(r.vat_amount) : "—"}
+                        <AccordionItem
+                          key={r.id}
+                          value={r.id}
+                          className="border-b-0 rounded-2xl border border-border bg-card/60 px-3"
+                        >
+                          <AccordionTrigger className="py-3 hover:no-underline items-start">
+                            <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <Badge variant="outline" className="text-[10px] h-5">Journal</Badge>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">{r.transaction_date}</span>
+                                  {r.reference ? (
+                                    <span className="text-xs text-muted-foreground truncate max-w-[55vw]">• {r.reference}</span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-1 text-sm font-medium break-words">
+                                  <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
+                                  {r.gl_accounts?.name || "—"}
                                 </p>
                               </div>
-                            ) : null}
-                          </div>
-                        </div>
+                              <div className="text-right max-w-[45%] break-words">
+                                <p className="text-[10px] text-muted-foreground">Dr / Cr</p>
+                                <p className="font-mono text-xs">
+                                  <span className="text-primary font-semibold break-all">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</span>
+                                  <span className="text-muted-foreground"> | </span>
+                                  <span className="text-destructive font-semibold break-all">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-3">
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs">
+                                <div className="rounded-xl border bg-background/60 p-2">
+                                  <p className="text-[10px] text-muted-foreground">Debit</p>
+                                  <p className="text-[11px] text-muted-foreground truncate">{debitCA}</p>
+                                  <p className="font-mono font-semibold text-right text-primary break-all">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</p>
+                                </div>
+                                <div className="rounded-xl border bg-background/60 p-2">
+                                  <p className="text-[10px] text-muted-foreground">Credit</p>
+                                  <p className="text-[11px] text-muted-foreground truncate">{creditCA}</p>
+                                  <p className="font-mono font-semibold text-right text-destructive break-all">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</p>
+                                </div>
+                                {isVatRegistered ? (
+                                  <div className="rounded-xl border bg-background/60 p-2 col-span-2">
+                                    <p className="text-[10px] text-muted-foreground">VAT</p>
+                                    <p className={`font-mono text-right break-all ${isExpense ? "text-destructive" : "text-foreground"}`}>
+                                      {r.vat_amount > 0 ? formatCurrency(r.vat_amount) : "—"}
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              {isAdmin ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full text-destructive border-destructive/40 hover:text-destructive"
+                                  onClick={() => setDeleteConfirmEntry({ id: r.id, type: "journal" })}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete Entry
+                                </Button>
+                              ) : null}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       );
                     })}
-                  </div>
-                )
-              ) : (
+                  </Accordion>
+                )}
+              </div>
+
+              <div className="hidden sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1132,7 +1176,7 @@ const LedgerEntries = () => {
                     })}
                   </TableBody>
                 </Table>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1148,62 +1192,81 @@ const LedgerEntries = () => {
                 No entries pending approval
               </CardContent></Card>
             ) : (
-              <Card className={isMobile ? "overflow-hidden" : undefined}>
-                <CardContent className={isMobile ? "p-3" : "p-0"}>
-                  {isMobile ? (
-                    <div className="space-y-3">
-                      {pendingEntries.map((entry: any) => (
-                        <div key={entry.id} className="rounded-2xl border border-border bg-card/60 p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-[10px] h-5">
-                                  {entry.is_bank ? "Bank" : "Journal"}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">{entry.transaction_date}</span>
-                                {entry.reference ? <span className="text-xs text-muted-foreground truncate">• {entry.reference}</span> : null}
+              <Card className="overflow-hidden">
+                <CardContent className="p-3 sm:p-0">
+                  <div className="sm:hidden">
+                    <Accordion type="single" collapsible className="space-y-2">
+                      {pendingEntries.map((entry: any) => {
+                        const amount = Number(entry.debit || entry.credit || 0);
+                        return (
+                          <AccordionItem
+                            key={entry.id}
+                            value={entry.id}
+                            className="border-b-0 rounded-2xl border border-border bg-card/60 px-3"
+                          >
+                            <AccordionTrigger className="py-3 hover:no-underline items-start">
+                              <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                    <Badge variant="outline" className="text-[10px] h-5">
+                                      {entry.is_bank ? "Bank" : "Journal"}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">{entry.transaction_date}</span>
+                                    {entry.reference ? (
+                                      <span className="text-xs text-muted-foreground truncate max-w-[55vw]">• {entry.reference}</span>
+                                    ) : null}
+                                  </div>
+                                  <p className="mt-1 text-sm font-medium break-words">
+                                    <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
+                                    {entry.gl_accounts?.name || entry.description || "—"}
+                                  </p>
+                                </div>
+                                <div className="text-right max-w-[45%] break-words">
+                                  <p className="text-[10px] text-muted-foreground">Amount</p>
+                                  <p className="font-mono font-semibold break-all">
+                                    {amount > 0 ? formatCurrency(amount) : "—"}
+                                  </p>
+                                </div>
                               </div>
-                              <p className="mt-2 text-sm font-medium break-words">
-                                <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
-                                {entry.gl_accounts?.name || entry.description || "—"}
-                              </p>
-                              <p className="mt-1 text-xs text-muted-foreground break-words">
-                                Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span>
-                              </p>
-                              <p className="mt-1 text-[11px] text-muted-foreground">
-                                Submitted by: {getSubmitterName(entry)}
-                              </p>
-                            </div>
-                            <div className="text-right max-w-[45%] break-words">
-                              <p className="text-[10px] text-muted-foreground">Amount</p>
-                              <p className="font-mono font-semibold break-all">
-                                {formatCurrency(Number(entry.debit || entry.credit || 0))}
-                              </p>
-                            </div>
-                          </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-3">
+                              <div className="space-y-3">
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                  <p className="break-words">
+                                    Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span>
+                                  </p>
+                                  <p className="break-words">
+                                    Submitted by: <span className="text-foreground/90">{getSubmitterName(entry)}</span>
+                                  </p>
+                                </div>
 
-                          <div className="mt-3 flex gap-2">
-                            <Button
-                              size="sm"
-                              className="flex-1 h-9"
-                              onClick={() => approveMutation.mutate(entry.id)}
-                              disabled={approveMutation.isPending}
-                            >
-                              <Check className="h-4 w-4 mr-1" /> Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-9"
-                              onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="flex-1 h-9"
+                                    onClick={() => approveMutation.mutate(entry.id)}
+                                    disabled={approveMutation.isPending}
+                                  >
+                                    <Check className="h-4 w-4 mr-1" /> Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9"
+                                    onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </div>
+
+                  <div className="hidden sm:block">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1253,7 +1316,7 @@ const LedgerEntries = () => {
                         ))}
                       </TableBody>
                     </Table>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1305,57 +1368,74 @@ const LedgerEntries = () => {
                       )}
                     </div>
                   </div>
-                  <CardContent className={isMobile ? "p-3" : "p-0"}>
-                    {isMobile ? (
-                      <div className="space-y-3">
+                  <CardContent className="p-3 sm:p-0">
+                    <div className="sm:hidden space-y-3">
+                      <Accordion type="single" collapsible className="space-y-2">
                         {commissions.map((c) => {
                           const referrerName = c.referrer
                             ? `${c.referrer.name}${c.referrer.last_name ? " " + c.referrer.last_name : ""}`
                             : "—";
                           return (
-                            <div key={c.id} className="rounded-2xl border border-border bg-card/60 p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10 text-[10px] h-5">Pending</Badge>
-                                    <span className="text-xs text-muted-foreground">{c.transaction_date}</span>
+                            <AccordionItem
+                              key={c.id}
+                              value={c.id}
+                              className="border-b-0 rounded-2xl border border-border bg-card/60 px-3"
+                            >
+                              <AccordionTrigger className="py-3 hover:no-underline items-start">
+                                <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                      <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10 text-[10px] h-5">Pending</Badge>
+                                      <span className="text-xs text-muted-foreground whitespace-nowrap">{c.transaction_date}</span>
+                                    </div>
+                                    <p className="mt-1 text-sm font-semibold truncate">{referrerName}</p>
                                   </div>
-                                  <p className="mt-2 text-sm font-semibold truncate">{referrerName}</p>
-                                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                                    <span>Gross: <span className="font-mono text-foreground">{formatCurrency(c.gross_amount)}</span></span>
-                                    <span>• Rate: <span className="font-mono text-foreground">{c.commission_percentage}%</span></span>
+                                  <div className="text-right max-w-[45%] break-words">
+                                    <p className="text-[10px] text-muted-foreground">Commission</p>
+                                    <p className="font-mono font-semibold break-all">{formatCurrency(c.commission_amount)}</p>
                                   </div>
                                 </div>
-                                <div className="text-right max-w-[45%] break-words">
-                                  <p className="text-[10px] text-muted-foreground">Commission</p>
-                                  <p className="font-mono font-semibold break-all">{formatCurrency(c.commission_amount)}</p>
+                              </AccordionTrigger>
+                              <AccordionContent className="pb-3">
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs">
+                                    <div className="rounded-xl border bg-background/60 p-2">
+                                      <p className="text-[10px] text-muted-foreground">Gross</p>
+                                      <p className="font-mono text-right break-all">{formatCurrency(c.gross_amount)}</p>
+                                    </div>
+                                    <div className="rounded-xl border bg-background/60 p-2">
+                                      <p className="text-[10px] text-muted-foreground">Rate</p>
+                                      <p className="font-mono text-right">{c.commission_percentage}%</p>
+                                    </div>
+                                  </div>
+
+                                  <Button className="w-full" size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
+                                    <DollarSign className="h-4 w-4 mr-1" /> Pay
+                                  </Button>
                                 </div>
-                              </div>
-                              <div className="mt-3">
-                                <Button className="w-full" size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
-                                  <DollarSign className="h-4 w-4 mr-1" /> Pay
-                                </Button>
-                              </div>
-                            </div>
+                              </AccordionContent>
+                            </AccordionItem>
                           );
                         })}
+                      </Accordion>
 
-                        <div className="rounded-2xl border border-border bg-muted/30 p-3 text-sm">
-                          <div className="flex items-start justify-between gap-3 min-w-0">
-                            <span className="text-muted-foreground min-w-0">House Total (excl VAT)</span>
-                            <span className="font-mono font-semibold text-right break-all max-w-[55%]">{formatCurrency(totalExclVat)}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3 min-w-0 mt-2">
-                            <span className="text-muted-foreground min-w-0">VAT</span>
-                            <span className="font-mono text-right break-all max-w-[55%]">{isVatRegistered ? formatCurrency(totalVat) : "R 0.00"}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3 min-w-0 mt-2 pt-2 border-t border-border/60">
-                            <span className="font-semibold min-w-0">Total Payable (incl VAT)</span>
-                            <span className="font-mono font-bold text-primary text-right break-all max-w-[55%]">{formatCurrency(totalInclVat)}</span>
-                          </div>
+                      <div className="rounded-2xl border border-border bg-muted/30 p-3 text-sm">
+                        <div className="flex items-start justify-between gap-3 min-w-0">
+                          <span className="text-muted-foreground min-w-0">House Total (excl VAT)</span>
+                          <span className="font-mono font-semibold text-right break-all max-w-[55%]">{formatCurrency(totalExclVat)}</span>
+                        </div>
+                        <div className="flex items-start justify-between gap-3 min-w-0 mt-2">
+                          <span className="text-muted-foreground min-w-0">VAT</span>
+                          <span className="font-mono text-right break-all max-w-[55%]">{isVatRegistered ? formatCurrency(totalVat) : "R 0.00"}</span>
+                        </div>
+                        <div className="flex items-start justify-between gap-3 min-w-0 mt-2 pt-2 border-t border-border/60">
+                          <span className="font-semibold min-w-0">Total Payable (incl VAT)</span>
+                          <span className="font-mono font-bold text-primary text-right break-all max-w-[55%]">{formatCurrency(totalInclVat)}</span>
                         </div>
                       </div>
-                    ) : (
+                    </div>
+
+                    <div className="hidden sm:block">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -1414,7 +1494,7 @@ const LedgerEntries = () => {
                           </TableRow>
                         </TableBody>
                       </Table>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               );
