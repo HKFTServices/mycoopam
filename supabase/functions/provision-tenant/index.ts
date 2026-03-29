@@ -105,14 +105,24 @@ Deno.serve(async (req) => {
       });
       
       if (createError) {
-        // Check if user already exists
+        // If user already exists, look them up and reuse
         if (createError.message?.includes("already been registered") || createError.message?.includes("already exists")) {
-          return new Response(
-            JSON.stringify({ error: "An account with this email already exists. Please use a different email." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          console.log("[provision-tenant] User already exists, looking up:", admin_details.email);
+          const { data: listData } = await admin.auth.admin.listUsers();
+          const existingUser = listData?.users?.find((u: any) => u.email === admin_details.email);
+          if (existingUser) {
+            createdUserId = existingUser.id;
+            admin_details.user_id = createdUserId;
+            console.log("[provision-tenant] Reusing existing user:", createdUserId);
+          } else {
+            return new Response(
+              JSON.stringify({ error: "An account with this email already exists but could not be resolved. Please contact support." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          throw createError;
         }
-        throw createError;
       }
       
       createdUserId = createData.user.id;
