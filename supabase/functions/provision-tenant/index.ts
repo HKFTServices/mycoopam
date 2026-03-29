@@ -1089,6 +1089,39 @@ Deno.serve(async (req) => {
           if (leAccErr) console.warn("[provision-tenant] Legal entity account error:", leAccErr.message);
         }
 
+        // Create co-op address if provided
+        if (coop_details?.street_address?.trim() && coop_details?.city?.trim()) {
+          const { error: addrErr } = await admin.from("addresses").insert({
+            tenant_id,
+            entity_id: legalEntityId,
+            street_address: coop_details.street_address.trim(),
+            suburb: coop_details.suburb || null,
+            city: coop_details.city.trim(),
+            province: coop_details.province || null,
+            postal_code: coop_details.postal_code || null,
+            country: coop_details.country || "South Africa",
+            address_type: "physical",
+            is_primary: true,
+          });
+          if (addrErr) console.warn("[provision-tenant] Co-op address error:", addrErr.message);
+          else console.log("[provision-tenant] Co-op address created");
+        }
+
+        // Create co-op bank details if provided
+        if (coop_details?.bank_id && coop_details?.bank_account_type_id && coop_details?.account_number?.trim()) {
+          const { error: bankErr } = await admin.from("entity_bank_details").insert({
+            tenant_id,
+            entity_id: legalEntityId,
+            bank_id: coop_details.bank_id,
+            bank_account_type_id: coop_details.bank_account_type_id,
+            account_holder: coop_details.account_holder?.trim() || finalCoopName.trim(),
+            account_number: coop_details.account_number.trim(),
+            is_active: true,
+          });
+          if (bankErr) console.warn("[provision-tenant] Co-op bank details error:", bankErr.message);
+          else console.log("[provision-tenant] Co-op bank details created");
+        }
+
         // Link admin user to legal entity if user was created
         if (createdUserId) {
           const relTypeNames = ["Director of Co-operative", "Authorised Representative", "Director of Company"];
@@ -1118,8 +1151,8 @@ Deno.serve(async (req) => {
         await admin.from("tenant_configuration")
           .update({
             legal_entity_id: legalEntityId,
-            vat_number: null,
-            directors: null,
+            vat_number: coop_details?.is_vat_registered ? coop_details?.vat_number || null : null,
+            directors: coop_details?.directors || null,
           })
           .eq("tenant_id", tenant_id);
 
