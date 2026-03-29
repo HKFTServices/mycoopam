@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Github, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Search, Twitter, Building2 } from "lucide-react";
+import { ArrowRight, BarChart3, BellRing, ClipboardCheck, CreditCard, Github, Landmark, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Search, ShieldCheck, TrendingUp, Twitter, Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -94,16 +94,40 @@ const Landing = () => {
 
   const features = [
     {
-      title: "Membership Management",
-      desc: "Whether you have 10 or 10,000 members, our membership tools keep everyone onboarded, compliant, and engaged.",
+      title: "Member & Entity Management",
+      desc: "Manage people, organisations, relationships, and accounts with clean profiles and a single source of truth.",
+      icon: Users,
+      points: ["Entities, accounts, and relationships", "Fast search and filtering", "Role-based access controls"],
     },
     {
-      title: "Pooled Investment Tracking",
-      desc: "A complete investment management platform that helps you track pools, unit prices, and member holdings with full transparency.",
+      title: "Compliance & Document Workflows",
+      desc: "Collect, review, and approve member documents with auditability built in from day one.",
+      icon: ShieldCheck,
+      points: ["Document requirements per tenant", "Review and approvals", "Clear status and history"],
     },
     {
-      title: "Reporting & Compliance",
-      desc: "Measure what matters with easy-to-use reports. Filter, export, and drill down on member data, transactions, and financials in a couple of clicks.",
+      title: "Transactions & Approvals",
+      desc: "Operational workflows for deposits, withdrawals, switches, and transfers — with review steps when you need them.",
+      icon: ClipboardCheck,
+      points: ["Two-step approvals support", "Proof of payment handling", "Consistent review dialogs"],
+    },
+    {
+      title: "Pools, Pricing & Holdings",
+      desc: "Track pools, unit prices, and member holdings with transparency for members and control for admins.",
+      icon: TrendingUp,
+      points: ["Daily pool pricing", "Holdings and statements", "Unit-based accounting views"],
+    },
+    {
+      title: "Loans & Debit Orders",
+      desc: "Built-in tools to manage loan applications and recurring debit orders without leaving the platform.",
+      icon: CreditCard,
+      points: ["Loan applications and review", "Debit order mandate sign-up", "Allocation rules and confirmations"],
+    },
+    {
+      title: "Reporting, Alerts & Communication",
+      desc: "Stay informed with notifications and reports that make day-to-day operations easier to run.",
+      icon: BellRing,
+      points: ["Unread notification counts", "Operational dashboards", "Exports and reporting views"],
     },
   ];
 
@@ -159,15 +183,6 @@ const Landing = () => {
                 >
                   Register Your Co-operative
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-base px-10 h-12 rounded-full bg-background/60 backdrop-blur hover:bg-background"
-                  onClick={openTenantPicker}
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Member Login
                 </Button>
               </div>
             </div>
@@ -229,35 +244,83 @@ const Landing = () => {
             <div className="max-w-2xl mb-16">
               <p className="text-sm font-semibold text-primary mb-3">Features</p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                Overflowing with useful features
+                Built for modern co-operative operations
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
-                Powerful, self-serve co-operative management tools to help you onboard, engage, and grow your member base.
+                From onboarding to transactions, pricing, and approvals — MyCoop brings your day-to-day workflows into one clean, auditable platform.
               </p>
             </div>
 
-            {/* Content: left features + right screenshots */}
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-              {/* Left — stacked feature items */}
-              <div className="space-y-10">
-                {features.map((feature, i) => (
-                  <div key={i} className="border-l-2 border-border pl-6 space-y-2">
-                    <h3 className="font-semibold text-lg">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-md">{feature.desc}</p>
+            {/* Content: left features + right screenshot */}
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+              {/* Left — overview + feature grid */}
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold tracking-tight">Everything in one place</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Reduce admin load, standardise approvals, and give your members a smoother experience on web and mobile.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 shrink-0">
+                      <div className="rounded-xl border bg-background p-3 text-center">
+                        <Wallet className="h-4 w-4 mx-auto text-primary" />
+                        <p className="mt-1 text-[11px] font-semibold">Pools</p>
+                      </div>
+                      <div className="rounded-xl border bg-background p-3 text-center">
+                        <Landmark className="h-4 w-4 mx-auto text-primary" />
+                        <p className="mt-1 text-[11px] font-semibold">Accounts</p>
+                      </div>
+                      <div className="rounded-xl border bg-background p-3 text-center">
+                        <BarChart3 className="h-4 w-4 mx-auto text-primary" />
+                        <p className="mt-1 text-[11px] font-semibold">Reports</p>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {features.map((feature, i) => (
+                    <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <feature.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold leading-tight">{feature.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{feature.desc}</p>
+                        </div>
+                      </div>
+                      <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
+                        {feature.points.map((p: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary/70 shrink-0" />
+                            <span className="min-w-0">{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Right — feature screenshot */}
-              <div className="rounded-xl shadow-2xl border border-border overflow-hidden bg-card">
-                <img
-                  src={dashboardWeb}
-                  alt="MyCoop feature dashboard"
-                  className="w-full h-auto"
-                  loading="lazy"
-                  width={963}
-                  height={685}
+              <div className="relative">
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary/15 via-transparent to-transparent blur-2xl"
                 />
+                <div className="relative rounded-2xl shadow-2xl border border-border overflow-hidden bg-card">
+                  <img
+                    src={dashboardWeb}
+                    alt="MyCoop feature dashboard"
+                    className="w-full h-auto"
+                    loading="lazy"
+                    width={963}
+                    height={685}
+                  />
+                </div>
               </div>
             </div>
           </div>
