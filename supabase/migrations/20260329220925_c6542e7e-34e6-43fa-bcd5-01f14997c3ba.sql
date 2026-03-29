@@ -1,0 +1,1 @@
+DELETE FROM tenants WHERE slug = 'test' AND id = '2795804b-5181-4139-af87-c6c68c4059d4';
