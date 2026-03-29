@@ -495,8 +495,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
     const subItems = params.items.filter((i) => i.path !== params.viewAll.path);
 
-    return (
-      <SidebarMenuItem key={params.label}>
+      return (
+      <SidebarMenuItem key={params.label} data-tour={params.dataTour}>
         <SidebarMenuButton asChild isActive={isActive}>
           <button
             type="button"
@@ -514,7 +514,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {effectiveOpen ? (
           <SidebarMenuSub>
             {subItems.map((item) => (
-              <SidebarMenuSubItem key={item.path}>
+              <SidebarMenuSubItem key={item.path} data-tour={item.dataTour}>
                 <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
                   <Link to={item.path}>
                     <item.icon />
