@@ -1464,8 +1464,66 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 9: Terms & Conditions ═══ */}
-            {step === 9 && (
+            {/* ═══ Step 10: Co-op Documents ═══ */}
+            {step === 10 && (
+              <div className="space-y-5">
+                {coopDocRequirements.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No document requirements found for the selected entity type.</p>
+                    <p className="text-sm text-muted-foreground mt-1">You can upload co-op documents later from the dashboard.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Upload the required compliance documents for your co-operative entity. These are optional during registration — you can upload them later from the dashboard.
+                    </p>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Skipping document uploads? A reminder will appear on your dashboard until all required documents are submitted.
+                      </p>
+                    </div>
+                    {coopDocRequirements.map((req: any) => {
+                      const docType = req.document_types;
+                      const uploaded = coopUploadedDocs[req.document_type_id];
+                      return (
+                        <div key={req.id} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-medium">{docType?.name || "Document"}</Label>
+                            {uploaded && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                          </div>
+                          {uploaded ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground truncate flex-1">{uploaded.name}</span>
+                              <Button variant="ghost" size="sm" onClick={() => setCoopUploadedDocs((prev) => {
+                                const next = { ...prev }; delete next[req.document_type_id]; return next;
+                              })}><X className="h-4 w-4" /></Button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center justify-center h-16 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                              <Upload className="h-4 w-4 text-muted-foreground mr-2" />
+                              <span className="text-sm text-muted-foreground">Click to upload</span>
+                              <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) setCoopUploadedDocs((prev) => ({ ...prev, [req.document_type_id]: { file, name: file.name } }));
+                              }} />
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 11: Terms & Conditions ═══ */}
+            {step === 11 && (
               <div className="space-y-5">
                 {terms.length === 0 ? (
                   <div className="text-center py-8">
