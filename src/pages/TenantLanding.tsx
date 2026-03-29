@@ -133,22 +133,6 @@ const TenantLanding = () => {
         is_active: true,
       });
 
-      // Check if user has a natural_person entity in this tenant
-      const { data: entityRel } = await (supabase as any)
-        .from("user_entity_relationships")
-        .select("entity_id")
-        .eq("user_id", userId)
-        .eq("tenant_id", tenantId)
-        .maybeSingle();
-
-      if (!entityRel) {
-        // User needs onboarding for this new co-op
-        await supabase.from("profiles").update({
-          needs_onboarding: true,
-          registration_status: "incomplete",
-        } as any).eq("user_id", userId);
-      }
-
       console.log(`[TenantLanding] Created tenant_membership for user ${userId} in tenant ${tenantId}`);
       return true; // new membership created
     }
