@@ -454,17 +454,26 @@ const RegisterTenant = () => {
         }
         return true;
       case 6:
+        if (!coopEntityCategoryId) {
+          toast({ title: "Please select the entity type", variant: "destructive" }); return false;
+        }
+        if (!coopRelationshipTypeId) {
+          toast({ title: "Please select your relationship to the entity", variant: "destructive" }); return false;
+        }
+        return true;
+      case 7:
         if (!titleId || !firstName.trim() || !lastName.trim() || !idNumber.trim() || idError || !gender || !dateOfBirth || !phone.trim() || phoneError) {
           toast({ title: "Please complete all required fields", variant: "destructive" }); return false;
         }
         return true;
-      case 7:
+      case 8:
         if (!streetAddress.trim() || !city.trim()) {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 8: return true; // documents optional
-      case 9: {
+      case 9: return true; // admin documents optional
+      case 10: return true; // co-op documents optional
+      case 11: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
           toast({ title: "Please accept all terms & conditions", variant: "destructive" }); return false;
