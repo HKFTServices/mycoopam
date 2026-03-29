@@ -363,7 +363,7 @@ const Reports = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-x-hidden min-w-0 max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-lg sm:text-2xl font-bold">Reports</h1>
         <div className="flex items-center gap-2 flex-wrap">
@@ -408,22 +408,22 @@ const Reports = () => {
       </div>
 
       <Tabs defaultValue="is">
-        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
-          <TabsList className="w-max whitespace-nowrap">
-          <TabsTrigger value="is">Income Statement</TabsTrigger>
-          <TabsTrigger value="bs">GL Balances</TabsTrigger>
-          <TabsTrigger value="cft">CFT ({cftData.length})</TabsTrigger>
-          <TabsTrigger value="ut">UT ({utData.length})</TabsTrigger>
-          <TabsTrigger value="shares">Shares ({shareData.length})</TabsTrigger>
-          <TabsTrigger value="st">Stock Txns ({stData.length})</TabsTrigger>
-          <TabsTrigger value="emails">Emails ({emailLogs.length})</TabsTrigger>
-          {isReferrerOrHouse && <TabsTrigger value="my-comm">My Commissions</TabsTrigger>}
+        <div className="max-w-full overflow-x-auto pb-1">
+          <TabsList className="min-w-max whitespace-nowrap justify-start">
+            <TabsTrigger value="is">Income Statement</TabsTrigger>
+            <TabsTrigger value="bs">GL Balances</TabsTrigger>
+            <TabsTrigger value="cft">CFT ({cftData.length})</TabsTrigger>
+            <TabsTrigger value="ut">UT ({utData.length})</TabsTrigger>
+            <TabsTrigger value="shares">Shares ({shareData.length})</TabsTrigger>
+            <TabsTrigger value="st">Stock Txns ({stData.length})</TabsTrigger>
+            <TabsTrigger value="emails">Emails ({emailLogs.length})</TabsTrigger>
+            {isReferrerOrHouse && <TabsTrigger value="my-comm">My Commissions</TabsTrigger>}
           </TabsList>
         </div>
 
         {/* ── INCOME STATEMENT ── */}
         <TabsContent value="is">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader>
               <CardTitle>Income Statement</CardTitle>
               <p className="text-sm text-muted-foreground">Period: {dateRange?.from ? format(dateRange.from, "dd MMM yyyy") : "—"} – {dateRange?.to ? format(dateRange.to, "dd MMM yyyy") : "—"}</p>
@@ -438,29 +438,29 @@ const Reports = () => {
                       <Badge variant="outline" className="text-[10px] h-5">Excl VAT</Badge>
                     </div>
                     <div className="mt-3 space-y-2">
-                      {isAggregated.filter(r => r.gl_type === "income").map(r => (
-                        <div key={r.code} className="rounded-xl border bg-background/60 p-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium break-words">{r.name}</p>
-                              <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-[10px] text-muted-foreground">Amount</p>
-                              <p className="font-mono font-semibold text-green-700">{fmtAmt(r.exclVatCredit - r.exclVatDebit)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+	                      {isAggregated.filter(r => r.gl_type === "income").map(r => (
+	                        <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+	                          <div className="flex items-start justify-between gap-3">
+	                            <div className="min-w-0">
+	                              <p className="text-sm font-medium break-words">{r.name}</p>
+	                              <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+	                            </div>
+	                            <div className="text-right max-w-[45%] break-words">
+	                              <p className="text-[10px] text-muted-foreground">Amount</p>
+	                              <p className="font-mono font-semibold text-green-700 break-all">{fmtAmt(r.exclVatCredit - r.exclVatDebit)}</p>
+	                            </div>
+	                          </div>
+	                        </div>
+	                      ))}
                       {isAggregated.filter(r => r.gl_type === "income").length === 0 && (
                         <div className="text-center text-muted-foreground py-4 text-sm">No income records</div>
                       )}
-                      <div className="rounded-xl border bg-muted/30 p-2 flex items-center justify-between">
-                        <span className="text-xs font-semibold">Total Revenue</span>
-                        <span className="font-mono font-bold text-green-700">{fmtAmt(totalIncomeExclVat)}</span>
-                      </div>
-                    </div>
-                  </div>
+	                      <div className="rounded-xl border bg-muted/30 p-2 flex items-start justify-between gap-3 min-w-0">
+	                        <span className="text-xs font-semibold min-w-0">Total Revenue</span>
+	                        <span className="font-mono font-bold text-green-700 text-right break-all max-w-[55%]">{fmtAmt(totalIncomeExclVat)}</span>
+	                      </div>
+	                    </div>
+	                  </div>
 
                   {/* Expenses */}
                   <div className="rounded-2xl border border-border bg-card/60 p-3">
@@ -469,42 +469,42 @@ const Reports = () => {
                       <Badge variant="outline" className="text-[10px] h-5">Excl VAT</Badge>
                     </div>
                     <div className="mt-3 space-y-2">
-                      {isAggregated.filter(r => r.gl_type === "expense").map(r => (
-                        <div key={r.code} className="rounded-xl border bg-background/60 p-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium break-words">{r.name}</p>
-                              <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-[10px] text-muted-foreground">Amount</p>
-                              <p className="font-mono font-semibold text-destructive">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+	                      {isAggregated.filter(r => r.gl_type === "expense").map(r => (
+	                        <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+	                          <div className="flex items-start justify-between gap-3">
+	                            <div className="min-w-0">
+	                              <p className="text-sm font-medium break-words">{r.name}</p>
+	                              <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+	                            </div>
+	                            <div className="text-right max-w-[45%] break-words">
+	                              <p className="text-[10px] text-muted-foreground">Amount</p>
+	                              <p className="font-mono font-semibold text-destructive break-all">{fmtAmt(Math.abs(r.exclVatDebit - r.exclVatCredit))}</p>
+	                            </div>
+	                          </div>
+	                        </div>
+	                      ))}
                       {isAggregated.filter(r => r.gl_type === "expense").length === 0 && (
                         <div className="text-center text-muted-foreground py-4 text-sm">No expense records</div>
                       )}
-                      <div className="rounded-xl border bg-muted/30 p-2 flex items-center justify-between">
-                        <span className="text-xs font-semibold">Total Expenses</span>
-                        <span className="font-mono font-bold text-destructive">{fmtAmt(totalExpenseExclVat)}</span>
-                      </div>
-                    </div>
-                  </div>
+	                      <div className="rounded-xl border bg-muted/30 p-2 flex items-start justify-between gap-3 min-w-0">
+	                        <span className="text-xs font-semibold min-w-0">Total Expenses</span>
+	                        <span className="font-mono font-bold text-destructive text-right break-all max-w-[55%]">{fmtAmt(totalExpenseExclVat)}</span>
+	                      </div>
+	                    </div>
+	                  </div>
 
                   {/* Net Profit/Loss */}
-                  <div className={cn(
-                    "p-3 rounded-2xl border-2 font-bold",
-                    netProfit >= 0 ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">{netProfit >= 0 ? "Net Profit" : "Net Loss"}</span>
-                      <span className="font-mono text-base">{fmtAmt(netProfit)}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
+	                  <div className={cn(
+	                    "p-3 rounded-2xl border-2 font-bold",
+	                    netProfit >= 0 ? "border-green-500 bg-green-50 text-green-700" : "border-destructive bg-red-50 text-destructive"
+	                  )}>
+	                    <div className="flex items-start justify-between gap-3 min-w-0">
+	                      <span className="text-sm min-w-0">{netProfit >= 0 ? "Net Profit" : "Net Loss"}</span>
+	                      <span className="font-mono text-base text-right break-all max-w-[55%]">{fmtAmt(netProfit)}</span>
+	                    </div>
+	                  </div>
+	                </div>
+	              ) : (
                 <>
                   {/* Revenue — excl VAT only */}
                   <h3 className="font-semibold text-sm mb-1">Revenue</h3>
@@ -580,7 +580,7 @@ const Reports = () => {
 
         {/* ── GL BALANCES (TRIAL BALANCE) ── */}
         <TabsContent value="bs">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader>
               <CardTitle>GL Balances (Trial Balance)</CardTitle>
               <p className="text-sm text-muted-foreground">All-time cumulative Dr/Cr per GL account as at {format(new Date(), "dd MMM yyyy")}</p>
@@ -603,60 +603,60 @@ const Reports = () => {
                         </div>
 
                         <div className="mt-3 space-y-2">
-                          {section.rows.map((r) => (
-                            <div key={r.code} className="rounded-xl border bg-background/60 p-2">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium break-words">{r.name}</p>
-                                  <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
-                                </div>
-                                <div className="shrink-0 text-right text-xs">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <span className="text-muted-foreground">Dr</span>
-                                    <span className="font-mono">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</span>
-                                  </div>
-                                  <div className="flex items-center justify-end gap-2 mt-1">
-                                    <span className="text-muted-foreground">Cr</span>
-                                    <span className="font-mono">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+	                          {section.rows.map((r) => (
+	                            <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+	                              <div className="flex items-start justify-between gap-3">
+	                                <div className="min-w-0">
+	                                  <p className="text-sm font-medium break-words">{r.name}</p>
+	                                  <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+	                                </div>
+	                                <div className="text-right text-xs max-w-[55%] break-words">
+	                                  <div className="flex items-center justify-end gap-2">
+	                                    <span className="text-muted-foreground">Dr</span>
+	                                    <span className="font-mono break-all">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</span>
+	                                  </div>
+	                                  <div className="flex items-center justify-end gap-2 mt-1">
+	                                    <span className="text-muted-foreground">Cr</span>
+	                                    <span className="font-mono break-all">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</span>
+	                                  </div>
+	                                </div>
+	                              </div>
+	                            </div>
+	                          ))}
 
                           {section.rows.length === 0 && !showAccProfit && (
                             <div className="text-center text-muted-foreground py-4 text-sm">No records</div>
                           )}
 
-                          {showAccProfit && (
-                            <div className="rounded-xl border bg-muted/30 p-2 text-xs">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</p>
-                                  <p className="text-[11px] text-muted-foreground">Calculated from all-time income/expense</p>
-                                </div>
-                                <div className="shrink-0 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <span className="text-muted-foreground">Dr</span>
-                                    <span className="font-mono">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</span>
-                                  </div>
-                                  <div className="flex items-center justify-end gap-2 mt-1">
-                                    <span className="text-muted-foreground">Cr</span>
-                                    <span className="font-mono">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+	                          {showAccProfit && (
+	                            <div className="rounded-xl border bg-muted/30 p-2 text-xs">
+	                              <div className="flex items-start justify-between gap-3">
+	                                <div className="min-w-0">
+	                                  <p className="text-sm font-medium">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</p>
+	                                  <p className="text-[11px] text-muted-foreground">Calculated from all-time income/expense</p>
+	                                </div>
+	                                <div className="text-right max-w-[55%] break-words">
+	                                  <div className="flex items-center justify-end gap-2">
+	                                    <span className="text-muted-foreground">Dr</span>
+	                                    <span className="font-mono break-all">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</span>
+	                                  </div>
+	                                  <div className="flex items-center justify-end gap-2 mt-1">
+	                                    <span className="text-muted-foreground">Cr</span>
+	                                    <span className="font-mono break-all">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</span>
+	                                  </div>
+	                                </div>
+	                              </div>
+	                            </div>
+	                          )}
 
-                          <div className="rounded-xl border bg-muted/30 p-2">
-                            <div className="flex items-center justify-between text-xs font-semibold">
-                              <span>Total {labelMap[glType]}</span>
-                              <span className="font-mono">Dr {totalDr > 0 ? fmtAmt(totalDr) : "—"} | Cr {totalCr > 0 ? fmtAmt(totalCr) : "—"}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+	                          <div className="rounded-xl border bg-muted/30 p-2">
+	                            <div className="flex items-start justify-between gap-3 text-xs font-semibold min-w-0">
+	                              <span className="min-w-0">Total {labelMap[glType]}</span>
+	                              <span className="font-mono text-right break-all max-w-[65%]">Dr {totalDr > 0 ? fmtAmt(totalDr) : "—"} | Cr {totalCr > 0 ? fmtAmt(totalCr) : "—"}</span>
+	                            </div>
+	                          </div>
+	                        </div>
+	                      </div>
                     );
                   })}
                 </div>
@@ -760,7 +760,7 @@ const Reports = () => {
 
         {/* ── CFT ── */}
         <TabsContent value="cft">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader><CardTitle>Cashflow Transactions (CFT)</CardTitle></CardHeader>
             <CardContent>
               {cftLoading ? <p>Loading…</p> : (() => {
@@ -975,7 +975,7 @@ const Reports = () => {
 
         {/* ── UT ── */}
         <TabsContent value="ut">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader><CardTitle>Unit Transactions (UT)</CardTitle></CardHeader>
             <CardContent>
               {utLoading ? <p>Loading…</p> : (() => {
@@ -1119,16 +1119,16 @@ const Reports = () => {
 
         {/* ── Member Shares ── */}
         <TabsContent value="shares">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader><CardTitle>Member Shares</CardTitle></CardHeader>
             <CardContent>
               {shareLoading ? <p>Loading…</p> : (
                 isMobile ? (
                   <div className="space-y-3">
-                    {shareData.map((r: any) => (
-                      <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
+	                    {shareData.map((r: any) => (
+	                      <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
+	                        <div className="flex items-start justify-between gap-3">
+	                          <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono text-xs">{shortId(r.id)}</span>
                               <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
@@ -1136,14 +1136,14 @@ const Reports = () => {
                             </div>
                             <p className="mt-2 text-xs text-muted-foreground break-words">
                               Account: <span className="font-mono text-foreground/90">{shortId(r.entity_account_id)}</span>
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="text-[10px] text-muted-foreground">Value</p>
-                            <p className="font-mono font-semibold">{fmtAmt(Number(r.value || 0))}</p>
-                          </div>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+	                            </p>
+	                          </div>
+	                          <div className="text-right max-w-[45%] break-words">
+	                            <p className="text-[10px] text-muted-foreground">Value</p>
+	                            <p className="font-mono font-semibold break-all">{fmtAmt(Number(r.value || 0))}</p>
+	                          </div>
+	                        </div>
+	                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                           <div className="rounded-xl border bg-background/60 p-2">
                             <p className="text-[10px] text-muted-foreground">Qty</p>
                             <p className="font-mono text-right">{fmt(r.quantity)}</p>
@@ -1193,7 +1193,7 @@ const Reports = () => {
 
         {/* ── Stock Transactions ── */}
         <TabsContent value="st">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader><CardTitle>Stock Transactions</CardTitle></CardHeader>
             <CardContent>
               {stLoading ? <p>Loading…</p> : (
@@ -1203,10 +1203,10 @@ const Reports = () => {
                       const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const isIn = Number(r.debit || 0) > 0;
                       const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
-                      return (
-                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
+	                      return (
+	                        <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
+	                          <div className="flex items-start justify-between gap-3">
+	                            <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-mono text-xs">{shortId(r.id)}</span>
                                 <span className="text-xs text-muted-foreground">{r.transaction_date}</span>
@@ -1223,13 +1223,13 @@ const Reports = () => {
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground break-words">
                                 CFT: <span className="font-mono text-foreground/90">{r.transaction_id ? shortId(r.transaction_id) : "—"}</span>
-                              </p>
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-[10px] text-muted-foreground">Line Value</p>
-                              <p className="font-mono font-semibold">{fmtAmt(lineValue)}</p>
-                            </div>
-                          </div>
+	                              </p>
+	                            </div>
+	                            <div className="text-right max-w-[45%] break-words">
+	                              <p className="text-[10px] text-muted-foreground">Line Value</p>
+	                              <p className="font-mono font-semibold break-all">{fmtAmt(lineValue)}</p>
+	                            </div>
+	                          </div>
 
                           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                             <div className="rounded-xl border bg-background/60 p-2">
@@ -1309,7 +1309,7 @@ const Reports = () => {
 
         {/* ── EMAIL LOGS ── */}
         <TabsContent value="emails">
-          <Card>
+          <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader>
               <CardTitle>Email Logs</CardTitle>
             </CardHeader>

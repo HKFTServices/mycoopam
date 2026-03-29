@@ -927,7 +927,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         )}
 
-        <main className="flex-1 p-4 lg:p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto overflow-x-hidden min-w-0 max-w-full">
+          {children}
+        </main>
       </SidebarInset>
 
       {myEntity?.entity_id && (
