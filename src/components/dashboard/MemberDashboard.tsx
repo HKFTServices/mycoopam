@@ -44,6 +44,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const [debitOrderOpen, setDebitOrderOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(true);
 
+  const onboarding = useOnboardingTour();
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
