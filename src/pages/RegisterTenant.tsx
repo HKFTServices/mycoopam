@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Loader2, ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Upload, X, Coins, Plus, ShieldCheck,
-  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle, Scale, Check, Minus, Download,
+  User, MapPin, FileText, Shield, CheckCircle2, AlertCircle, Scale, Check, Minus, Download, Landmark, Phone,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -45,13 +45,13 @@ function generatePrefixes(tenantName: string): Record<number, string> {
 interface PoolOption { id: string; name: string; description: string | null; isAdmin?: boolean; }
 type AddressSuggestion = { description: string; place_id: string };
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 const stepTitles = [
   "Co-operative & Admin", "Service Agreement", "Branding & Prefixes", "Investment Pools",
-  "Personal Details", "Residential Address", "Documents",
+  "Co-op Details", "Personal Details", "Residential Address", "Documents",
   "Terms & Conditions",
 ];
-const stepIcons = [Building2, Scale, Upload, Coins, User, MapPin, FileText, Shield];
+const stepIcons = [Building2, Scale, Upload, Coins, Landmark, User, MapPin, FileText, Shield];
 
 const toSentenceCase = (val: string): string =>
   val.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/(?<=\w)\w*/g, (c) => c.toLowerCase());
@@ -106,7 +106,31 @@ const RegisterTenant = () => {
   const [newPoolName, setNewPoolName] = useState("");
   const [poolsLoading, setPoolsLoading] = useState(false);
 
-  // ─── Step 5: Personal Details ───
+  // ─── Step 5: Co-op Details (address, bank, VAT, directors, contact) ───
+  const [coopContactNumber, setCoopContactNumber] = useState("");
+  const [coopEmail, setCoopEmail] = useState("");
+  const [coopWebsite, setCoopWebsite] = useState("");
+  const [isVatRegistered, setIsVatRegistered] = useState(false);
+  const [vatNumber, setVatNumber] = useState("");
+  const [directors, setDirectors] = useState("");
+  // Co-op address
+  const [coopStreetAddress, setCoopStreetAddress] = useState("");
+  const [coopSuburb, setCoopSuburb] = useState("");
+  const [coopCity, setCoopCity] = useState("");
+  const [coopProvince, setCoopProvince] = useState("");
+  const [coopPostalCode, setCoopPostalCode] = useState("");
+  const [coopCountry, setCoopCountry] = useState("South Africa");
+  const [coopAddressSearch, setCoopAddressSearch] = useState("");
+  const [coopSuggestions, setCoopSuggestions] = useState<AddressSuggestion[]>([]);
+  const [coopSearchTimeout, setCoopSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  // Co-op bank details
+  const [coopBankId, setCoopBankId] = useState("");
+  const [coopBankAccountTypeId, setCoopBankAccountTypeId] = useState("");
+  const [coopAccountHolder, setCoopAccountHolder] = useState("");
+  const [coopAccountNumber, setCoopAccountNumber] = useState("");
+  const [coopContactError, setCoopContactError] = useState("");
+
+  // ─── Step 6: Personal Details ───
   const [titleId, setTitleId] = useState("");
   const [initials, setInitials] = useState("");
   const [knownAs, setKnownAs] = useState("");
@@ -122,7 +146,7 @@ const RegisterTenant = () => {
   const [phoneError, setPhoneError] = useState("");
   const [altPhoneError, setAltPhoneError] = useState("");
 
-  // ─── Step 6: Address ───
+  // ─── Step 7: Address ───
   const [streetAddress, setStreetAddress] = useState("");
   const [suburb, setSuburb] = useState("");
   const [city, setCity] = useState("");
@@ -133,10 +157,10 @@ const RegisterTenant = () => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  // ─── Step 7: Documents ───
+  // ─── Step 8: Documents ───
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, { file: File; name: string }>>({});
 
-  // ─── Step 8: T&Cs ───
+  // ─── Step 9: T&Cs ───
   const [acceptedTerms, setAcceptedTerms] = useState<Record<string, boolean>>({});
 
   // ─── Reference data (fetched once) ───
@@ -161,6 +185,14 @@ const RegisterTenant = () => {
   // Load reference data when reaching step 5
   useEffect(() => {
     if (step >= 5 && !refData && !refLoading) loadRefData();
+  }, [step]);
+
+  // Pre-fill co-op email and account holder from admin details
+  useEffect(() => {
+    if (step === 5) {
+      if (!coopEmail && email) setCoopEmail(email);
+      if (!coopAccountHolder && name) setCoopAccountHolder(name.trim());
+    }
   }, [step]);
 
   const loadFeePlans = async () => {
@@ -259,7 +291,42 @@ const RegisterTenant = () => {
     setNewPoolName("");
   };
 
-  // Address autocomplete
+  // Co-op address autocomplete
+  const searchCoopAddress = async (input: string) => {
+    if (input.length < 3) { setCoopSuggestions([]); return; }
+    try {
+      const res = await supabase.functions.invoke("google-places", { body: { input, type: "autocomplete" } });
+      if (res.data?.predictions) {
+        setCoopSuggestions(res.data.predictions.map((p: any) => ({ description: p.description, place_id: p.place_id })));
+      }
+    } catch { setCoopSuggestions([]); }
+  };
+
+  const selectCoopAddress = async (suggestion: AddressSuggestion) => {
+    setCoopSuggestions([]);
+    setCoopAddressSearch(suggestion.description);
+    try {
+      const res = await supabase.functions.invoke("google-places", { body: { input: suggestion.place_id, type: "details" } });
+      if (res.data?.result) {
+        const components = res.data.result.address_components ?? [];
+        const get = (type: string) => components.find((c: any) => c.types.includes(type))?.long_name ?? "";
+        setCoopStreetAddress([get("street_number"), get("route")].filter(Boolean).join(" "));
+        setCoopSuburb(get("sublocality") || get("sublocality_level_1") || get("neighborhood"));
+        setCoopCity(get("locality") || get("administrative_area_level_2"));
+        setCoopProvince(get("administrative_area_level_1"));
+        setCoopPostalCode(get("postal_code"));
+        setCoopCountry(get("country") || "South Africa");
+      }
+    } catch { /* keep manual entry */ }
+  };
+
+  const handleCoopAddressSearchChange = (value: string) => {
+    setCoopAddressSearch(value);
+    if (coopSearchTimeout) clearTimeout(coopSearchTimeout);
+    setCoopSearchTimeout(setTimeout(() => searchCoopAddress(value), 400));
+  };
+
+  // Admin address autocomplete
   const searchAddress = async (input: string) => {
     if (input.length < 3) { setSuggestions([]); return; }
     try {
@@ -336,17 +403,29 @@ const RegisterTenant = () => {
         }
         return true;
       case 5:
+        // Co-op details: address and bank are required
+        if (!coopStreetAddress.trim() || !coopCity.trim()) {
+          toast({ title: "Co-op registered address is required", description: "Please enter at least street address and city.", variant: "destructive" }); return false;
+        }
+        if (!coopBankId || !coopBankAccountTypeId || !coopAccountNumber.trim()) {
+          toast({ title: "Co-op bank details are required", description: "Please provide the co-operative's bank account details.", variant: "destructive" }); return false;
+        }
+        if (coopContactError) {
+          toast({ title: "Invalid contact number", variant: "destructive" }); return false;
+        }
+        return true;
+      case 6:
         if (!titleId || !firstName.trim() || !lastName.trim() || !idNumber.trim() || idError || !gender || !dateOfBirth || !phone.trim() || phoneError) {
           toast({ title: "Please complete all required fields", variant: "destructive" }); return false;
         }
         return true;
-      case 6:
+      case 7:
         if (!streetAddress.trim() || !city.trim()) {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 7: return true; // documents optional
-      case 8: {
+      case 8: return true; // documents optional
+      case 9: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
           toast({ title: "Please accept all terms & conditions", variant: "destructive" }); return false;
@@ -398,7 +477,7 @@ const RegisterTenant = () => {
       localStorage.setItem("tenantSlug", slug);
       localStorage.setItem("pendingTenantSlug", slug);
 
-      // 7. Prepare document base64
+      // Prepare document base64
       const adminDocuments: any[] = [];
       for (const [docTypeId, docInfo] of Object.entries(uploadedDocs)) {
         if (!docInfo.file) continue;
@@ -416,7 +495,7 @@ const RegisterTenant = () => {
         });
       }
 
-      // 8. Provision tenant with all data
+      // Provision tenant with all data including co-op details
       const { data: provData, error: provError } = await supabase.functions.invoke("provision-tenant", {
         body: {
           tenant_id: tenant.id,
@@ -429,6 +508,25 @@ const RegisterTenant = () => {
           logo_data: logoBase64,
           logo_file_name: logoFileName,
           logo_mime_type: logoMimeType,
+          // Co-op details for legal entity
+          coop_details: {
+            contact_number: coopContactNumber ? formatToInternational(coopContactNumber) : null,
+            email_address: coopEmail?.trim() || null,
+            website: coopWebsite?.trim() || null,
+            is_vat_registered: isVatRegistered,
+            vat_number: isVatRegistered ? vatNumber?.trim() : null,
+            directors: directors?.trim() || null,
+            street_address: coopStreetAddress.trim(),
+            suburb: coopSuburb?.trim() || null,
+            city: coopCity.trim(),
+            province: coopProvince?.trim() || null,
+            postal_code: coopPostalCode?.trim() || null,
+            country: coopCountry?.trim() || "South Africa",
+            bank_id: coopBankId || null,
+            bank_account_type_id: coopBankAccountTypeId || null,
+            account_holder: coopAccountHolder?.trim() || name.trim(),
+            account_number: coopAccountNumber?.trim() || null,
+          },
           admin_details: {
             email: email.trim(),
             password,
@@ -482,6 +580,8 @@ const RegisterTenant = () => {
 
   const titles = refData?.titles ?? [];
   const countries = refData?.countries ?? [];
+  const banks = refData?.banks ?? [];
+  const bankAccountTypes = refData?.bank_account_types ?? [];
   const terms = refData?.terms ?? [];
   const documentRequirements = refData?.document_requirements ?? [];
 
@@ -860,8 +960,148 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 5: Personal Details ═══ */}
+            {/* ═══ Step 5: Co-op Details (Address, Bank, VAT, Directors) ═══ */}
             {step === 5 && (
+              <div className="space-y-5">
+                {refLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Enter the co-operative's contact details, registered address, and bank account information.
+                    </p>
+
+                    {/* Contact & VAT */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact & VAT</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Co-op Contact Number</Label>
+                          <Input value={coopContactNumber} onChange={(e) => {
+                            setCoopContactNumber(e.target.value);
+                            if (e.target.value.trim()) setCoopContactError(validatePhone(e.target.value));
+                            else setCoopContactError("");
+                          }}
+                          onBlur={() => { if (coopContactNumber.trim()) { const f = formatToInternational(coopContactNumber.trim()); setCoopContactNumber(f); setCoopContactError(validatePhone(f)); } }}
+                          placeholder="+27123456789" className={coopContactError ? "border-destructive" : ""} />
+                          {coopContactError && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3 w-3" /> {coopContactError}</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Co-op Email</Label>
+                          <Input type="email" value={coopEmail} onChange={(e) => setCoopEmail(e.target.value)} placeholder="info@cooperative.co.za" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Website</Label>
+                          <Input value={coopWebsite} onChange={(e) => setCoopWebsite(e.target.value)} placeholder="https://www.cooperative.co.za" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Directors / Key Personnel</Label>
+                          <Input value={directors} onChange={(e) => setDirectors(e.target.value)} placeholder="e.g. J. Smith, A. Jones" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Checkbox id="vat-reg" checked={isVatRegistered} onCheckedChange={(checked) => setIsVatRegistered(!!checked)} />
+                        <Label htmlFor="vat-reg">VAT Registered</Label>
+                      </div>
+                      {isVatRegistered && (
+                        <div className="space-y-2">
+                          <Label>VAT Number *</Label>
+                          <Input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} placeholder="e.g. 4123456789" maxLength={20} />
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Registered Address */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Registered Address *</h3>
+                      <div className="space-y-2 relative">
+                        <Label>Search Address</Label>
+                        <Input value={coopAddressSearch} onChange={(e) => handleCoopAddressSearchChange(e.target.value)} placeholder="Start typing the address..." />
+                        {coopSuggestions.length > 0 && (
+                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {coopSuggestions.map((s) => (
+                              <button key={s.place_id} className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors" onClick={() => selectCoopAddress(s)}>
+                                {s.description}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Street Address *</Label>
+                        <Input value={coopStreetAddress} onChange={(e) => setCoopStreetAddress(e.target.value)} placeholder="Street number and name" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2"><Label>Suburb</Label><Input value={coopSuburb} onChange={(e) => setCoopSuburb(e.target.value)} placeholder="Suburb" /></div>
+                        <div className="space-y-2"><Label>City *</Label><Input value={coopCity} onChange={(e) => setCoopCity(e.target.value)} placeholder="City" /></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-2"><Label>Province</Label><Input value={coopProvince} onChange={(e) => setCoopProvince(e.target.value)} placeholder="Province" /></div>
+                        <div className="space-y-2"><Label>Postal Code</Label><Input value={coopPostalCode} onChange={(e) => setCoopPostalCode(e.target.value)} placeholder="Postal code" /></div>
+                        <div className="space-y-2">
+                          <Label>Country</Label>
+                          <Select value={coopCountry} onValueChange={setCoopCountry}>
+                            <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
+                            <SelectContent>
+                              {countries.length > 0 ? countries.map((c: any) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))
+                                : <SelectItem value="South Africa">South Africa</SelectItem>}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Bank Details */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Bank Account *</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Bank *</Label>
+                          <Select value={coopBankId} onValueChange={setCoopBankId}>
+                            <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
+                            <SelectContent>
+                              {banks.map((b: any) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Account Type *</Label>
+                          <Select value={coopBankAccountTypeId} onValueChange={setCoopBankAccountTypeId}>
+                            <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                            <SelectContent>
+                              {bankAccountTypes.map((t: any) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Account Holder</Label>
+                          <Input value={coopAccountHolder} onChange={(e) => setCoopAccountHolder(e.target.value)} placeholder="Account holder name" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Account Number *</Label>
+                          <Input value={coopAccountNumber} onChange={(e) => setCoopAccountNumber(e.target.value)} placeholder="Bank account number" />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext} disabled={refLoading}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 6: Personal Details ═══ */}
+            {step === 6 && (
               <div className="space-y-5">
                 {refLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -992,8 +1232,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 6: Address ═══ */}
-            {step === 6 && (
+            {/* ═══ Step 7: Address ═══ */}
+            {step === 7 && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">Search or manually enter your residential address.</p>
                 <div className="space-y-2 relative">
@@ -1038,8 +1278,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 7: Documents ═══ */}
-            {step === 7 && (
+            {/* ═══ Step 8: Documents ═══ */}
+            {step === 8 && (
               <div className="space-y-5">
                 {documentRequirements.length === 0 ? (
                   <div className="text-center py-8">
@@ -1087,8 +1327,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 8: Terms & Conditions ═══ */}
-            {step === 8 && (
+            {/* ═══ Step 9: Terms & Conditions ═══ */}
+            {step === 9 && (
               <div className="space-y-5">
                 {terms.length === 0 ? (
                   <div className="text-center py-8">

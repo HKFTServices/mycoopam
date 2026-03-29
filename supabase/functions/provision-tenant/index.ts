@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents, registration_number, sla_fee_plan_id, sla_signature } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents, registration_number, sla_fee_plan_id, sla_signature, coop_details } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1061,9 +1061,12 @@ Deno.serve(async (req) => {
         entity_category_id: legalEntityCategory?.id || null,
         is_active: true,
         is_registration_complete: true,
+        is_vat_registered: coop_details?.is_vat_registered || false,
+        vat_number: coop_details?.is_vat_registered ? coop_details?.vat_number || null : null,
         creator_user_id: createdUserId || null,
-        email_address: admin_details?.email || null,
-        contact_number: admin_details?.contact_number || null,
+        email_address: coop_details?.email_address || admin_details?.email || null,
+        contact_number: coop_details?.contact_number || admin_details?.contact_number || null,
+        website: coop_details?.website || null,
       });
 
       if (leError) {
@@ -1084,6 +1087,39 @@ Deno.serve(async (req) => {
             status: "active",
           });
           if (leAccErr) console.warn("[provision-tenant] Legal entity account error:", leAccErr.message);
+        }
+
+        // Create co-op address if provided
+        if (coop_details?.street_address?.trim() && coop_details?.city?.trim()) {
+          const { error: addrErr } = await admin.from("addresses").insert({
+            tenant_id,
+            entity_id: legalEntityId,
+            street_address: coop_details.street_address.trim(),
+            suburb: coop_details.suburb || null,
+            city: coop_details.city.trim(),
+            province: coop_details.province || null,
+            postal_code: coop_details.postal_code || null,
+            country: coop_details.country || "South Africa",
+            address_type: "physical",
+            is_primary: true,
+          });
+          if (addrErr) console.warn("[provision-tenant] Co-op address error:", addrErr.message);
+          else console.log("[provision-tenant] Co-op address created");
+        }
+
+        // Create co-op bank details if provided
+        if (coop_details?.bank_id && coop_details?.bank_account_type_id && coop_details?.account_number?.trim()) {
+          const { error: bankErr } = await admin.from("entity_bank_details").insert({
+            tenant_id,
+            entity_id: legalEntityId,
+            bank_id: coop_details.bank_id,
+            bank_account_type_id: coop_details.bank_account_type_id,
+            account_holder: coop_details.account_holder?.trim() || finalCoopName.trim(),
+            account_number: coop_details.account_number.trim(),
+            is_active: true,
+          });
+          if (bankErr) console.warn("[provision-tenant] Co-op bank details error:", bankErr.message);
+          else console.log("[provision-tenant] Co-op bank details created");
         }
 
         // Link admin user to legal entity if user was created
@@ -1115,8 +1151,8 @@ Deno.serve(async (req) => {
         await admin.from("tenant_configuration")
           .update({
             legal_entity_id: legalEntityId,
-            vat_number: null,
-            directors: null,
+            vat_number: coop_details?.is_vat_registered ? coop_details?.vat_number || null : null,
+            directors: coop_details?.directors || null,
           })
           .eq("tenant_id", tenant_id);
 
