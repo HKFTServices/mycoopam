@@ -60,6 +60,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
+  // Wait for roles to load before making role-dependent decisions
+  if (rolesLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname === "/membership-application";
 
   // Per-tenant onboarding check — only for non-admin regular users
