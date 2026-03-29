@@ -17,7 +17,7 @@ import RecentMemberDeposits from "@/components/dashboard/RecentMemberDeposits";
 import MemberActivityCard from "@/components/dashboard/MemberActivityCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp, isCriticalDocName } from "@/components/dashboard/dashboardUtils";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
-import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark } from "lucide-react";
+import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark, HelpCircle } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -25,6 +25,9 @@ import NewTransactionDialog from "@/components/transactions/NewTransactionDialog
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
+import OnboardingTour from "@/components/onboarding/OnboardingTour";
+import { memberDashboardTourSteps } from "@/components/onboarding/tourSteps";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
 interface MemberDashboardProps {
   tenantId: string;
@@ -41,6 +44,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const [debitOrderOpen, setDebitOrderOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(true);
 
+  const onboarding = useOnboardingTour();
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
@@ -340,7 +344,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
       <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0" data-tour="welcome">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{greeting}</p>
           {!isMobile && (
@@ -349,8 +353,8 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2" data-tour="quick-actions">
+          <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} replayTour={onboarding.hasCompleted ? onboarding.startTour : undefined} />
           {isMobile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -478,10 +482,14 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
           {(isWidgetVisible("metric-primary") || isWidgetVisible("metric-secondary")) && (
             <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "lg:grid-cols-2"}`}>
               {isWidgetVisible("metric-primary") && (
-                <MetricCard title="Primary account" subtitle="My portfolio" value={memberTotalValue} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
+                <div data-tour="metric-primary">
+                  <MetricCard title="Primary account" subtitle="My portfolio" value={memberTotalValue} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
+                </div>
               )}
               {isWidgetVisible("metric-secondary") && (
-                <MetricCard title="Secondary account" subtitle="Deposits (12 months)" value={rangeTotal} ringValue={55} changePct={null} variant="neutral" compact={isMobile} />
+                <div data-tour="metric-secondary">
+                  <MetricCard title="Secondary account" subtitle="Deposits (12 months)" value={rangeTotal} ringValue={55} changePct={null} variant="neutral" compact={isMobile} />
+                </div>
               )}
             </div>
           )}
@@ -490,38 +498,43 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
           <div className="space-y-4">
             {/* Deposits chart */}
             {isWidgetVisible("deposits-chart") && memberDepositsOverTime.length > 1 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Deposits (12 months)</CardTitle>
-                  <CardDescription className="text-xs">Monthly deposit contributions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className={isMobile ? "h-[180px]" : "h-[220px]"}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={memberDepositsOverTime}>
-                        <defs>
-                          <linearGradient id="memberDepGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="url(#memberDepGrad)" strokeWidth={2} dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              <div data-tour="deposits-chart">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Deposits (12 months)</CardTitle>
+                    <CardDescription className="text-xs">Monthly deposit contributions</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={isMobile ? "h-[180px]" : "h-[220px]"}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={memberDepositsOverTime}>
+                          <defs>
+                            <linearGradient id="memberDepGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                          <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                          <Tooltip content={<ChartTooltip />} />
+                          <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="url(#memberDepGrad)" strokeWidth={2} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {/* Activity + Recent Deposits */}
             {isWidgetVisible("member-activity") && (
-              <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
+              <div data-tour="member-activity">
+                <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
+              </div>
             )}
 
             {isWidgetVisible("recent-deposits") && (
+              <div data-tour="recent-deposits">
               <Collapsible open={recentOpen} onOpenChange={setRecentOpen}>
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-2 pb-2">
@@ -540,6 +553,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
+              </div>
             )}
           </div>
         </>
@@ -564,6 +578,16 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
         </>
       ) : null}
       {myEntityId && <EditEntityProfileDialog open={docsDialogOpen} onOpenChange={setDocsDialogOpen} entityId={myEntityId} entityType={myEntityType} initialTab="documents" />}
+
+      <OnboardingTour
+        steps={memberDashboardTourSteps}
+        isActive={onboarding.isActive}
+        currentStep={onboarding.currentStep}
+        onNext={() => onboarding.nextStep(memberDashboardTourSteps.length)}
+        onPrev={onboarding.prevStep}
+        onSkip={onboarding.skipTour}
+        onComplete={onboarding.completeTour}
+      />
     </div>
   );
 };
