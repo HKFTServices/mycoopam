@@ -41,12 +41,26 @@ const severityConfig = {
 
 const DashboardAlerts = () => {
   const { user } = useAuth();
-  const { currentTenant, userRoles } = useTenant();
+  const { currentTenant } = useTenant();
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const tenantId = currentTenant?.id;
-  const isAdmin = userRoles.some((r) =>
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ["dashboard_alert_roles", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      return (data ?? []).map((r: any) => r.role as string);
+    },
+    enabled: !!user,
+  });
+
+  const isAdmin = roles.some((r) =>
     ["super_admin", "tenant_admin"].includes(r)
   );
 
