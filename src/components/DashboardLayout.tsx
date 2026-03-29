@@ -138,18 +138,18 @@ const adminOnlyNavItems: NavItem[] = [
 ];
 
 const tenantSetupNavItems: NavItem[] = [
-  { label: "Pools", icon: Wallet, path: "/dashboard/pools" },
-  { label: "Items", icon: Gem, path: "/dashboard/items" },
-  { label: "Fees", icon: DollarSign, path: "/dashboard/fees" },
-  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
-  { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts" },
-  { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements" },
-  { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
-  { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" },
-  { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
+  { label: "Pools", icon: Wallet, path: "/dashboard/pools", dataTour: "setup-pools" },
+  { label: "Items", icon: Gem, path: "/dashboard/items", dataTour: "setup-items" },
+  { label: "Fees", icon: DollarSign, path: "/dashboard/fees", dataTour: "setup-fees" },
+  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types", dataTour: "setup-account-types" },
+  { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts", dataTour: "setup-gl-accounts" },
+  { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements", dataTour: "setup-doc-reqs" },
+  { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions", dataTour: "setup-terms" },
+  { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications", dataTour: "setup-campaigns" },
+  { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration", dataTour: "setup-config" },
   { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings" },
   { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
-  { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions" },
+  { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions", dataTour: "setup-permissions" },
   { label: "Data Import", icon: Package, path: "/dashboard/setup/data-import" },
   { label: "Legacy GL Allocation", icon: BookOpen, path: "/dashboard/legacy-gl-allocation" },
 ];
