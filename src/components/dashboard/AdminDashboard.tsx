@@ -27,6 +27,7 @@ import { PoolSummaryMiniCard } from "@/components/dashboard/PoolSummaryMiniCard"
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp } from "@/components/dashboard/dashboardUtils";
 import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown, MoreHorizontal, Plus, Landmark, Loader2, Eye } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
@@ -601,6 +602,11 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   New Debit Order
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => adminTour.startTour()}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Setup Guide
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
