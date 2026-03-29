@@ -45,6 +45,16 @@ const Auth = () => {
       const params = new URLSearchParams(hash);
       const tokenHash = params.get("token_hash");
       const type = params.get("type");
+
+      // Recovery tokens must be handled by the /reset-password page, not here.
+      // Verifying them here would auto-log the user in without letting them set a new password.
+      if (type === "recovery" && tokenHash) {
+        console.log("[Auth] Recovery token detected — redirecting to /reset-password");
+        const resetUrl = `/reset-password#${hash}`;
+        window.location.replace(resetUrl);
+        return;
+      }
+
       if (tokenHash && type && !session) {
         console.log("[Auth] Verifying token_hash from URL:", type);
         try {

@@ -96,8 +96,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build the correct tenant-specific reset URL
-    const resetRedirectUrl = redirect_url || buildTenantUrl(tenantSlug, "/reset-password");
+    // Always use the canonical production tenant URL for the redirect —
+    // never trust the client-supplied redirect_url which could be a preview domain.
+    const resetRedirectUrl = buildTenantUrl(tenantSlug, "/reset-password");
 
     // Generate the password reset link via admin API
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
