@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HelpCircle } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -78,6 +79,7 @@ interface DashboardCustomizerProps {
   onToggle: (id: string) => void;
   onReorder: (widgets: DashboardWidget[]) => void;
   onReset: () => void;
+  replayTour?: () => void;
 }
 
 export const DashboardCustomizerTrigger = ({ onClick }: { onClick: () => void }) => (
@@ -97,6 +99,7 @@ const DashboardCustomizer = ({
   onToggle,
   onReorder,
   onReset,
+  replayTour,
 }: DashboardCustomizerProps) => {
   const [open, setOpen] = useState(false);
 
@@ -154,7 +157,7 @@ const DashboardCustomizer = ({
             </DndContext>
           </div>
 
-          <SheetFooter className="border-t pt-4">
+          <SheetFooter className="border-t pt-4 flex-row justify-between">
             <Button
               variant="ghost"
               size="sm"
@@ -164,6 +167,17 @@ const DashboardCustomizer = ({
               <RotateCcw className="h-4 w-4" />
               Reset to default
             </Button>
+            {replayTour && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setOpen(false); setTimeout(replayTour, 300); }}
+                className="gap-2"
+              >
+                <HelpCircle className="h-4 w-4" />
+                Replay Tour
+              </Button>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>
