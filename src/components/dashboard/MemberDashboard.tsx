@@ -499,35 +499,38 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
             {/* Deposits chart */}
             {isWidgetVisible("deposits-chart") && memberDepositsOverTime.length > 1 && (
               <div data-tour="deposits-chart">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Deposits (12 months)</CardTitle>
-                  <CardDescription className="text-xs">Monthly deposit contributions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className={isMobile ? "h-[180px]" : "h-[220px]"}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={memberDepositsOverTime}>
-                        <defs>
-                          <linearGradient id="memberDepGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="url(#memberDepGrad)" strokeWidth={2} dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Deposits (12 months)</CardTitle>
+                    <CardDescription className="text-xs">Monthly deposit contributions</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={isMobile ? "h-[180px]" : "h-[220px]"}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={memberDepositsOverTime}>
+                          <defs>
+                            <linearGradient id="memberDepGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                          <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                          <Tooltip content={<ChartTooltip />} />
+                          <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="url(#memberDepGrad)" strokeWidth={2} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {/* Activity + Recent Deposits */}
             {isWidgetVisible("member-activity") && (
-              <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
+              <div data-tour="member-activity">
+                <MemberActivityCard loanApps={memberLoanApplications} debitOrders={memberDebitOrders} />
+              </div>
             )}
 
             {isWidgetVisible("recent-deposits") && (
