@@ -1061,9 +1061,12 @@ Deno.serve(async (req) => {
         entity_category_id: legalEntityCategory?.id || null,
         is_active: true,
         is_registration_complete: true,
+        is_vat_registered: coop_details?.is_vat_registered || false,
+        vat_number: coop_details?.is_vat_registered ? coop_details?.vat_number || null : null,
         creator_user_id: createdUserId || null,
-        email_address: admin_details?.email || null,
-        contact_number: admin_details?.contact_number || null,
+        email_address: coop_details?.email_address || admin_details?.email || null,
+        contact_number: coop_details?.contact_number || admin_details?.contact_number || null,
+        website: coop_details?.website || null,
       });
 
       if (leError) {
