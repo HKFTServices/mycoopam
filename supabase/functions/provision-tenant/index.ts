@@ -1158,26 +1158,61 @@ Deno.serve(async (req) => {
 
         // Link admin user to legal entity if user was created
         if (createdUserId) {
-          const relTypeNames = ["Director of Co-operative", "Authorised Representative", "Director of Company"];
-          let relType: any = null;
-          for (const rtName of relTypeNames) {
-            const { data: rt } = await admin
-              .from("relationship_types")
-              .select("id")
-              .eq("name", rtName)
-              .eq("is_active", true)
-              .maybeSingle();
-            if (rt) { relType = rt; break; }
+          // Use relationship type from wizard selection, or fallback to hardcoded list
+          let relTypeId = coop_details?.relationship_type_id || null;
+          if (!relTypeId) {
+            const relTypeNames = ["Director of Co-operative", "Authorised Representative", "Director of Company"];
+            for (const rtName of relTypeNames) {
+              const { data: rt } = await admin
+                .from("relationship_types")
+                .select("id")
+                .eq("name", rtName)
+                .eq("is_active", true)
+                .maybeSingle();
+              if (rt) { relTypeId = rt.id; break; }
+            }
           }
-          if (relType) {
+          if (relTypeId) {
             const { error: relErr } = await admin.from("user_entity_relationships").insert({
               tenant_id,
               user_id: createdUserId,
               entity_id: legalEntityId,
-              relationship_type_id: relType.id,
+              relationship_type_id: relTypeId,
               is_active: true,
             });
             if (relErr) console.warn("[provision-tenant] Legal entity user link error:", relErr.message);
+          }
+        }
+
+        // Upload co-op documents if provided
+        if (coop_documents && Array.isArray(coop_documents) && coop_documents.length > 0) {
+          for (const doc of coop_documents) {
+            try {
+              const fileBytes = Uint8Array.from(atob(doc.file_data), (c) => c.charCodeAt(0));
+              const filePath = `${tenant_id}/${legalEntityId}/${doc.doc_type_id}/${doc.file_name}`;
+              const { error: uploadErr } = await admin.storage
+                .from("member-documents")
+                .upload(filePath, fileBytes, { contentType: doc.mime_type || "application/octet-stream", upsert: true });
+              if (uploadErr) {
+                console.warn("[provision-tenant] Co-op doc upload error:", uploadErr.message);
+                continue;
+              }
+              const { error: docErr } = await admin.from("entity_documents").insert({
+                tenant_id,
+                entity_id: legalEntityId,
+                document_type_id: doc.doc_type_id,
+                file_name: doc.file_name,
+                file_path: filePath,
+                file_size: doc.file_size || null,
+                mime_type: doc.mime_type || null,
+                is_active: true,
+                creator_user_id: createdUserId || null,
+              });
+              if (docErr) console.warn("[provision-tenant] Co-op doc record error:", docErr.message);
+              else console.log("[provision-tenant] Co-op document uploaded:", doc.file_name);
+            } catch (docUploadErr: any) {
+              console.warn("[provision-tenant] Co-op doc error:", docUploadErr.message);
+            }
           }
         }
 
