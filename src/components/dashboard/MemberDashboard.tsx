@@ -17,7 +17,7 @@ import RecentMemberDeposits from "@/components/dashboard/RecentMemberDeposits";
 import MemberActivityCard from "@/components/dashboard/MemberActivityCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp, isCriticalDocName } from "@/components/dashboard/dashboardUtils";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
-import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark } from "lucide-react";
+import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark, HelpCircle } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -25,6 +25,9 @@ import NewTransactionDialog from "@/components/transactions/NewTransactionDialog
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDialog";
+import OnboardingTour from "@/components/onboarding/OnboardingTour";
+import { memberDashboardTourSteps } from "@/components/onboarding/tourSteps";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
 interface MemberDashboardProps {
   tenantId: string;
