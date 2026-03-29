@@ -951,6 +951,17 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
           accountNumber={(memberPrimaryAccount ?? adminSelectedDebitEntity)!.accountNumber}
         />
       ) : null}
+
+      {/* Admin Setup Tour */}
+      <OnboardingTour
+        steps={adminSetupTourSteps}
+        isActive={adminTour.isActive}
+        currentStep={adminTour.currentStep}
+        onNext={() => adminTour.nextStep(adminSetupTourSteps.length)}
+        onPrev={adminTour.prevStep}
+        onSkip={adminTour.skipTour}
+        onComplete={adminTour.completeTour}
+      />
     </div>
   );
 };
