@@ -1478,9 +1478,9 @@ const RegisterTenant = () => {
                     <p className="text-sm text-muted-foreground">
                       Upload the required compliance documents for your co-operative entity. These are optional during registration — you can upload them later from the dashboard.
                     </p>
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                      <p className="text-xs text-destructive">
                         Skipping document uploads? A reminder will appear on your dashboard until all required documents are submitted.
                       </p>
                     </div>
