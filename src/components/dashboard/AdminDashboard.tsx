@@ -67,8 +67,9 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     desktop: null,
   });
 
-  // Admin setup tour - triggers once for new tenant admins
-  const adminTour = useOnboardingTour("admin_setup_tour_completed");
+  // Admin setup tour - triggers once per tenant for new tenant admins
+  const adminTourKey = `admin_setup_tour_completed_${tenantId}`;
+  const adminTour = useOnboardingTour(adminTourKey);
 
   // Auto-expand tenant setup sidebar when tour reaches setup steps
   useEffect(() => {
