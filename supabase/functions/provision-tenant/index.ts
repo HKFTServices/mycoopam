@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     // ─── List reference data for registration wizard ───
     if (action === "list_reference_data") {
-      const [titlesRes, countriesRes, banksRes, bankAccountTypesRes, termsRes, docReqsRes] = await Promise.all([
+      const [titlesRes, countriesRes, banksRes, bankAccountTypesRes, termsRes, docReqsRes, entityCatsRes, relTypesAllRes] = await Promise.all([
         admin.from("titles").select("id, description").eq("is_active", true).order("description"),
         admin.from("countries").select("id, name, iso_code").eq("is_active", true).order("name"),
         admin.from("banks").select("id, name, branch_code, country_id").eq("is_active", true).order("name"),
@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
         admin.from("document_entity_requirements")
           .select("id, document_type_id, relationship_type_id, is_required_for_registration, document_types!inner(id, name)")
           .eq("tenant_id", SOURCE_TENANT_ID).eq("is_active", true).eq("is_required_for_registration", true),
+        admin.from("entity_categories").select("id, name, entity_type").eq("is_active", true).order("name"),
+        admin.from("relationship_types").select("id, name, entity_category_id").eq("is_active", true).order("name"),
       ]);
 
       // Filter doc requirements to natural person "Myself" relationship type and deduplicate by document_type_id
@@ -69,6 +71,21 @@ Deno.serve(async (req) => {
         return true;
       });
 
+      // Separate legal entity categories and their relationship types
+      const legalEntityCategories = (entityCatsRes.data ?? []).filter((c: any) => c.entity_type === "legal_entity");
+      const legalEntityCategoryIds = new Set(legalEntityCategories.map((c: any) => c.id));
+      const legalEntityRelTypes = (relTypesAllRes.data ?? []).filter((r: any) => legalEntityCategoryIds.has(r.entity_category_id));
+
+      // All doc requirements (unfiltered by relationship) for co-op document step
+      const allDocReqs = docReqsRes.data ?? [];
+      // Deduplicate all doc reqs by document_type_id
+      const seenAll = new Set<string>();
+      const allDocReqsDeduped = allDocReqs.filter((r: any) => {
+        if (seenAll.has(r.document_type_id)) return false;
+        seenAll.add(r.document_type_id);
+        return true;
+      });
+
       return new Response(
         JSON.stringify({
           titles: titlesRes.data ?? [],
@@ -77,6 +94,9 @@ Deno.serve(async (req) => {
           bank_account_types: bankAccountTypesRes.data ?? [],
           terms: termsRes.data ?? [],
           document_requirements: filteredDocReqs,
+          entity_categories: legalEntityCategories,
+          relationship_types: legalEntityRelTypes,
+          all_document_requirements: allDocReqsDeduped,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
