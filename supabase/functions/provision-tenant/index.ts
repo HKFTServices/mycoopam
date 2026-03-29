@@ -123,11 +123,11 @@ Deno.serve(async (req) => {
         } else {
           throw createError;
         }
+      } else {
+        createdUserId = createData.user.id;
+        admin_details.user_id = createdUserId;
+        console.log("[provision-tenant] User created:", createdUserId);
       }
-      
-      createdUserId = createData.user.id;
-      admin_details.user_id = createdUserId;
-      console.log("[provision-tenant] User created:", createdUserId);
 
       // Confirm the user's email so they can log in
       const { error: confirmErr } = await admin.auth.admin.updateUserById(createdUserId, {
