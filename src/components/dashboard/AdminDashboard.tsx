@@ -66,6 +66,8 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     desktop: null,
   });
 
+  // Admin setup tour - triggers once for new tenant admins
+  const adminTour = useOnboardingTour("admin_setup_tour_completed");
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
