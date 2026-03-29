@@ -1041,14 +1041,8 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      const coopName = body.admin_details?.first_name
-        ? (body.name || tenant?.name || "Co-operative")
-        : (body.name || "Co-operative");
-      // Use the tenant name passed from the wizard
-      const tenantName = body.name || "";
-
-      // Look up the tenant record for the name if not in body
-      let finalCoopName = tenantName;
+      // Use the tenant name passed from the wizard, or look it up
+      let finalCoopName = body.name || "";
       if (!finalCoopName) {
         const { data: tenantRec } = await admin
           .from("tenants")
