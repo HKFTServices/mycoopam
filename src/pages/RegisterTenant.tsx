@@ -45,13 +45,13 @@ function generatePrefixes(tenantName: string): Record<number, string> {
 interface PoolOption { id: string; name: string; description: string | null; isAdmin?: boolean; }
 type AddressSuggestion = { description: string; place_id: string };
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 11;
 const stepTitles = [
   "Co-operative & Admin", "Service Agreement", "Branding & Prefixes", "Investment Pools",
-  "Co-op Details", "Personal Details", "Residential Address", "Documents",
-  "Terms & Conditions",
+  "Co-op Details", "Entity Type & Relationship", "Personal Details", "Residential Address",
+  "Documents", "Co-op Documents", "Terms & Conditions",
 ];
-const stepIcons = [Building2, Scale, Upload, Coins, Landmark, User, MapPin, FileText, Shield];
+const stepIcons = [Building2, Scale, Upload, Coins, Landmark, Building2, User, MapPin, FileText, FileText, Shield];
 
 const toSentenceCase = (val: string): string =>
   val.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/(?<=\w)\w*/g, (c) => c.toLowerCase());
@@ -129,6 +129,13 @@ const RegisterTenant = () => {
   const [coopAccountHolder, setCoopAccountHolder] = useState("");
   const [coopAccountNumber, setCoopAccountNumber] = useState("");
   const [coopContactError, setCoopContactError] = useState("");
+
+  // ─── Step 6: Entity Type & Relationship ───
+  const [coopEntityCategoryId, setCoopEntityCategoryId] = useState("");
+  const [coopRelationshipTypeId, setCoopRelationshipTypeId] = useState("");
+
+  // ─── Co-op Documents (step 10) ───
+  const [coopUploadedDocs, setCoopUploadedDocs] = useState<Record<string, { file: File; name: string }>>({}); 
 
   // ─── Step 6: Personal Details ───
   const [titleId, setTitleId] = useState("");
@@ -447,17 +454,26 @@ const RegisterTenant = () => {
         }
         return true;
       case 6:
+        if (!coopEntityCategoryId) {
+          toast({ title: "Please select the entity type", variant: "destructive" }); return false;
+        }
+        if (!coopRelationshipTypeId) {
+          toast({ title: "Please select your relationship to the entity", variant: "destructive" }); return false;
+        }
+        return true;
+      case 7:
         if (!titleId || !firstName.trim() || !lastName.trim() || !idNumber.trim() || idError || !gender || !dateOfBirth || !phone.trim() || phoneError) {
           toast({ title: "Please complete all required fields", variant: "destructive" }); return false;
         }
         return true;
-      case 7:
+      case 8:
         if (!streetAddress.trim() || !city.trim()) {
           toast({ title: "Street address and city are required", variant: "destructive" }); return false;
         }
         return true;
-      case 8: return true; // documents optional
-      case 9: {
+      case 9: return true; // admin documents optional
+      case 10: return true; // co-op documents optional
+      case 11: {
         const terms = refData?.terms ?? [];
         if (terms.length > 0 && !terms.every((t: any) => acceptedTerms[t.id])) {
           toast({ title: "Please accept all terms & conditions", variant: "destructive" }); return false;
@@ -527,6 +543,24 @@ const RegisterTenant = () => {
         });
       }
 
+      // Prepare co-op document base64
+      const coopDocuments: any[] = [];
+      for (const [docTypeId, docInfo] of Object.entries(coopUploadedDocs)) {
+        if (!docInfo.file) continue;
+        const arrayBuf = await docInfo.file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        coopDocuments.push({
+          doc_type_id: docTypeId,
+          file_name: docInfo.name,
+          file_data: base64,
+          file_size: docInfo.file.size,
+          mime_type: docInfo.file.type,
+        });
+      }
+
       // Provision tenant with all data including co-op details
       const { data: provData, error: provError } = await supabase.functions.invoke("provision-tenant", {
         body: {
@@ -542,6 +576,8 @@ const RegisterTenant = () => {
           logo_mime_type: logoMimeType,
           // Co-op details for legal entity
           coop_details: {
+            entity_category_id: coopEntityCategoryId || null,
+            relationship_type_id: coopRelationshipTypeId || null,
             contact_number: coopContactNumber ? formatToInternational(coopContactNumber) : null,
             email_address: coopEmail?.trim() || null,
             website: coopWebsite?.trim() || null,
@@ -589,6 +625,7 @@ const RegisterTenant = () => {
             accepted_term_ids: Object.keys(acceptedTerms).filter((k) => acceptedTerms[k]),
           },
           admin_documents: adminDocuments.length > 0 ? adminDocuments : undefined,
+          coop_documents: coopDocuments.length > 0 ? coopDocuments : undefined,
         },
       });
 
@@ -616,6 +653,19 @@ const RegisterTenant = () => {
   const bankAccountTypes = refData?.bank_account_types ?? [];
   const terms = refData?.terms ?? [];
   const documentRequirements = refData?.document_requirements ?? [];
+  const entityCategories = refData?.entity_categories ?? [];
+  const relationshipTypes = refData?.relationship_types ?? [];
+  const allDocumentRequirements = refData?.all_document_requirements ?? [];
+
+  // Filter relationship types based on selected entity category
+  const filteredRelTypes = coopEntityCategoryId
+    ? relationshipTypes.filter((rt: any) => rt.entity_category_id === coopEntityCategoryId)
+    : [];
+
+  // Filter co-op doc requirements based on selected relationship type
+  const coopDocRequirements = coopRelationshipTypeId
+    ? allDocumentRequirements.filter((r: any) => r.relationship_type_id === coopRelationshipTypeId)
+    : [];
 
   const isLastStep = step === TOTAL_STEPS;
 
@@ -1132,8 +1182,63 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 6: Personal Details ═══ */}
+            {/* ═══ Step 6: Entity Type & Relationship ═══ */}
             {step === 6 && (
+              <div className="space-y-5">
+                {refLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Select the type of legal entity being registered and your relationship to it.
+                    </p>
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Entity Type *</h3>
+                      <Select value={coopEntityCategoryId} onValueChange={(val) => { setCoopEntityCategoryId(val); setCoopRelationshipTypeId(""); }}>
+                        <SelectTrigger><SelectValue placeholder="Select entity type" /></SelectTrigger>
+                        <SelectContent>
+                          {entityCategories.map((ec: any) => (
+                            <SelectItem key={ec.id} value={ec.id}>{ec.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {coopEntityCategoryId && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Your Relationship to Entity *</h3>
+                        {filteredRelTypes.length > 0 ? (
+                          <Select value={coopRelationshipTypeId} onValueChange={setCoopRelationshipTypeId}>
+                            <SelectTrigger><SelectValue placeholder="Select relationship type" /></SelectTrigger>
+                            <SelectContent>
+                              {filteredRelTypes.map((rt: any) => (
+                                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">No relationship types configured for this entity type.</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground">
+                        This information determines which compliance documents will be required for the co-operative entity.
+                      </p>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext} disabled={refLoading}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 7: Personal Details ═══ */}
+            {step === 7 && (
               <div className="space-y-5">
                 {refLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -1264,8 +1369,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 7: Address ═══ */}
-            {step === 7 && (
+            {/* ═══ Step 8: Address ═══ */}
+            {step === 8 && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">Search or manually enter your residential address.</p>
                 <div className="space-y-2 relative">
@@ -1310,8 +1415,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 8: Documents ═══ */}
-            {step === 8 && (
+            {/* ═══ Step 9: Admin Documents ═══ */}
+            {step === 9 && (
               <div className="space-y-5">
                 {documentRequirements.length === 0 ? (
                   <div className="text-center py-8">
@@ -1359,8 +1464,66 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 9: Terms & Conditions ═══ */}
-            {step === 9 && (
+            {/* ═══ Step 10: Co-op Documents ═══ */}
+            {step === 10 && (
+              <div className="space-y-5">
+                {coopDocRequirements.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No document requirements found for the selected entity type.</p>
+                    <p className="text-sm text-muted-foreground mt-1">You can upload co-op documents later from the dashboard.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Upload the required compliance documents for your co-operative entity. These are optional during registration — you can upload them later from the dashboard.
+                    </p>
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                      <p className="text-xs text-destructive">
+                        Skipping document uploads? A reminder will appear on your dashboard until all required documents are submitted.
+                      </p>
+                    </div>
+                    {coopDocRequirements.map((req: any) => {
+                      const docType = req.document_types;
+                      const uploaded = coopUploadedDocs[req.document_type_id];
+                      return (
+                        <div key={req.id} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-medium">{docType?.name || "Document"}</Label>
+                            {uploaded && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                          </div>
+                          {uploaded ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground truncate flex-1">{uploaded.name}</span>
+                              <Button variant="ghost" size="sm" onClick={() => setCoopUploadedDocs((prev) => {
+                                const next = { ...prev }; delete next[req.document_type_id]; return next;
+                              })}><X className="h-4 w-4" /></Button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center justify-center h-16 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                              <Upload className="h-4 w-4 text-muted-foreground mr-2" />
+                              <span className="text-sm text-muted-foreground">Click to upload</span>
+                              <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) setCoopUploadedDocs((prev) => ({ ...prev, [req.document_type_id]: { file, name: file.name } }));
+                              }} />
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 11: Terms & Conditions ═══ */}
+            {step === 11 && (
               <div className="space-y-5">
                 {terms.length === 0 ? (
                   <div className="text-center py-8">

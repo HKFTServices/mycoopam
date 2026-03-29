@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents, registration_number, sla_fee_plan_id, sla_signature, coop_details } = body;
+    const { action, tenant_id, selected_pool_ids, custom_pools, entity_account_type_prefixes, logo_url, logo_data, logo_file_name, logo_mime_type, admin_details, admin_documents, coop_documents, registration_number, sla_fee_plan_id, sla_signature, coop_details } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     // ─── List reference data for registration wizard ───
     if (action === "list_reference_data") {
-      const [titlesRes, countriesRes, banksRes, bankAccountTypesRes, termsRes, docReqsRes] = await Promise.all([
+      const [titlesRes, countriesRes, banksRes, bankAccountTypesRes, termsRes, docReqsRes, entityCatsRes, relTypesAllRes] = await Promise.all([
         admin.from("titles").select("id, description").eq("is_active", true).order("description"),
         admin.from("countries").select("id, name, iso_code").eq("is_active", true).order("name"),
         admin.from("banks").select("id, name, branch_code, country_id").eq("is_active", true).order("name"),
@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
         admin.from("document_entity_requirements")
           .select("id, document_type_id, relationship_type_id, is_required_for_registration, document_types!inner(id, name)")
           .eq("tenant_id", SOURCE_TENANT_ID).eq("is_active", true).eq("is_required_for_registration", true),
+        admin.from("entity_categories").select("id, name, entity_type").eq("is_active", true).order("name"),
+        admin.from("relationship_types").select("id, name, entity_category_id").eq("is_active", true).order("name"),
       ]);
 
       // Filter doc requirements to natural person "Myself" relationship type and deduplicate by document_type_id
@@ -69,6 +71,21 @@ Deno.serve(async (req) => {
         return true;
       });
 
+      // Separate legal entity categories and their relationship types
+      const legalEntityCategories = (entityCatsRes.data ?? []).filter((c: any) => c.entity_type === "legal_entity");
+      const legalEntityCategoryIds = new Set(legalEntityCategories.map((c: any) => c.id));
+      const legalEntityRelTypes = (relTypesAllRes.data ?? []).filter((r: any) => legalEntityCategoryIds.has(r.entity_category_id));
+
+      // All doc requirements (unfiltered by relationship) for co-op document step
+      const allDocReqs = docReqsRes.data ?? [];
+      // Deduplicate all doc reqs by document_type_id
+      const seenAll = new Set<string>();
+      const allDocReqsDeduped = allDocReqs.filter((r: any) => {
+        if (seenAll.has(r.document_type_id)) return false;
+        seenAll.add(r.document_type_id);
+        return true;
+      });
+
       return new Response(
         JSON.stringify({
           titles: titlesRes.data ?? [],
@@ -77,6 +94,9 @@ Deno.serve(async (req) => {
           bank_account_types: bankAccountTypesRes.data ?? [],
           terms: termsRes.data ?? [],
           document_requirements: filteredDocReqs,
+          entity_categories: legalEntityCategories,
+          relationship_types: legalEntityRelTypes,
+          all_document_requirements: allDocReqsDeduped,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -1042,14 +1062,18 @@ Deno.serve(async (req) => {
         .eq("account_type", 6)
         .maybeSingle();
 
-      // Find legal_entity category
-      const { data: legalEntityCategory } = await admin
-        .from("entity_categories")
-        .select("id")
-        .eq("entity_type", "legal_entity")
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
+      // Use entity category from wizard selection, or fallback to first legal_entity
+      let entityCategoryId = coop_details?.entity_category_id || null;
+      if (!entityCategoryId) {
+        const { data: legalEntityCategory } = await admin
+          .from("entity_categories")
+          .select("id")
+          .eq("entity_type", "legal_entity")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle();
+        entityCategoryId = legalEntityCategory?.id || null;
+      }
 
       // Use the tenant name passed from the wizard, or look it up
       let finalCoopName = body.name || "";
@@ -1068,7 +1092,7 @@ Deno.serve(async (req) => {
         tenant_id,
         name: finalCoopName.trim(),
         registration_number: registration_number?.trim() || null,
-        entity_category_id: legalEntityCategory?.id || null,
+        entity_category_id: entityCategoryId,
         is_active: true,
         is_registration_complete: true,
         is_vat_registered: coop_details?.is_vat_registered || false,
@@ -1134,26 +1158,61 @@ Deno.serve(async (req) => {
 
         // Link admin user to legal entity if user was created
         if (createdUserId) {
-          const relTypeNames = ["Director of Co-operative", "Authorised Representative", "Director of Company"];
-          let relType: any = null;
-          for (const rtName of relTypeNames) {
-            const { data: rt } = await admin
-              .from("relationship_types")
-              .select("id")
-              .eq("name", rtName)
-              .eq("is_active", true)
-              .maybeSingle();
-            if (rt) { relType = rt; break; }
+          // Use relationship type from wizard selection, or fallback to hardcoded list
+          let relTypeId = coop_details?.relationship_type_id || null;
+          if (!relTypeId) {
+            const relTypeNames = ["Director of Co-operative", "Authorised Representative", "Director of Company"];
+            for (const rtName of relTypeNames) {
+              const { data: rt } = await admin
+                .from("relationship_types")
+                .select("id")
+                .eq("name", rtName)
+                .eq("is_active", true)
+                .maybeSingle();
+              if (rt) { relTypeId = rt.id; break; }
+            }
           }
-          if (relType) {
+          if (relTypeId) {
             const { error: relErr } = await admin.from("user_entity_relationships").insert({
               tenant_id,
               user_id: createdUserId,
               entity_id: legalEntityId,
-              relationship_type_id: relType.id,
+              relationship_type_id: relTypeId,
               is_active: true,
             });
             if (relErr) console.warn("[provision-tenant] Legal entity user link error:", relErr.message);
+          }
+        }
+
+        // Upload co-op documents if provided
+        if (coop_documents && Array.isArray(coop_documents) && coop_documents.length > 0) {
+          for (const doc of coop_documents) {
+            try {
+              const fileBytes = Uint8Array.from(atob(doc.file_data), (c) => c.charCodeAt(0));
+              const filePath = `${tenant_id}/${legalEntityId}/${doc.doc_type_id}/${doc.file_name}`;
+              const { error: uploadErr } = await admin.storage
+                .from("member-documents")
+                .upload(filePath, fileBytes, { contentType: doc.mime_type || "application/octet-stream", upsert: true });
+              if (uploadErr) {
+                console.warn("[provision-tenant] Co-op doc upload error:", uploadErr.message);
+                continue;
+              }
+              const { error: docErr } = await admin.from("entity_documents").insert({
+                tenant_id,
+                entity_id: legalEntityId,
+                document_type_id: doc.doc_type_id,
+                file_name: doc.file_name,
+                file_path: filePath,
+                file_size: doc.file_size || null,
+                mime_type: doc.mime_type || null,
+                is_active: true,
+                creator_user_id: createdUserId || null,
+              });
+              if (docErr) console.warn("[provision-tenant] Co-op doc record error:", docErr.message);
+              else console.log("[provision-tenant] Co-op document uploaded:", doc.file_name);
+            } catch (docUploadErr: any) {
+              console.warn("[provision-tenant] Co-op doc error:", docUploadErr.message);
+            }
           }
         }
 
