@@ -20,9 +20,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, BookOpen, RotateCcw, Landmark, Archive } from "lucide-react";
+import { Loader2, BookOpen, RotateCcw, Landmark, Archive } from "lucide-react";
 import { toast } from "sonner";
-import { MobileTableHint } from "@/components/ui/mobile-table-hint";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
@@ -56,6 +56,7 @@ const OperatingJournals = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [bankDialogOpen, setBankDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
   const [reversalDialog, setReversalDialog] = useState<string | null>(null);
@@ -268,8 +269,6 @@ const OperatingJournals = () => {
         </div>
       </div>
 
-      <MobileTableHint />
-
       {/* Legacy notice */}
       <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
         <Archive className="h-4 w-4 shrink-0" />
@@ -277,7 +276,7 @@ const OperatingJournals = () => {
       </div>
 
       {/* Search */}
-      <div className="max-w-md">
+      <div className="w-full sm:max-w-md">
         <Input placeholder="Search reference, notes, accounts..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
@@ -287,50 +286,109 @@ const OperatingJournals = () => {
           <h2 className="text-lg font-semibold flex items-center gap-2"><Landmark className="h-5 w-5 text-muted-foreground" />Bank Entries <span className="text-xs font-normal text-muted-foreground">(legacy)</span></h2>
         </div>
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>GL Account</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead className="text-right">Debit(+)</TableHead>
-                  <TableHead className="text-right">Credit(-)</TableHead>
-                  {isVatRegistered && <TableHead className="text-right">VAT</TableHead>}
-                  <TableHead>Control Account</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-12" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={isVatRegistered ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-                ) : bankEntries.length === 0 ? (
-                  <TableRow><TableCell colSpan={isVatRegistered ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries found.</TableCell></TableRow>
-                ) : bankEntries.map((j: any) => {
-                  const controlName = j.debit_control?.name || j.credit_control?.name || "—";
-                  const isDebit = !!j.debit_control_account_id && !j.credit_control_account_id;
-                  return (
-                    <TableRow key={j.id} className={j.is_reversed ? "opacity-50 line-through" : ""}>
-                      <TableCell className="text-sm">{new Date(j.transaction_date).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-sm">{j.gl_accounts?.name ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{j.reference || "—"}</TableCell>
-                      <TableCell className="text-right text-sm font-medium">{isDebit ? formatCurrency(j.amount) : ""}</TableCell>
-                      <TableCell className="text-right text-sm font-medium">{!isDebit ? formatCurrency(j.amount) : ""}</TableCell>
-                      {isVatRegistered && (() => {
-                        const isExpense = j.gl_accounts?.gl_type === "expense";
-                        return <TableCell className={`text-right text-sm font-medium ${isExpense ? "text-destructive" : "text-muted-foreground"}`}>
-                          {j.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(j.vat_amount)}` : "—"}
-                        </TableCell>;
-                      })()}
-                      <TableCell className="text-sm">{controlName}</TableCell>
-                      <TableCell>{j.is_reversed ? <Badge variant="destructive">Reversed</Badge> : <Badge variant="default">Posted</Badge>}</TableCell>
-                      <TableCell>{renderReverseBtn(j.id, j.is_reversed)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          <CardContent className={isMobile ? "p-3" : "p-0"}>
+            {isMobile ? (
+              isLoading ? (
+                <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+              ) : bankEntries.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No bank entries found.</div>
+              ) : (
+                <div className="space-y-3">
+                  {bankEntries.map((j: any) => {
+                    const controlName = j.debit_control?.name || j.credit_control?.name || "—";
+                    const isDebit = !!j.debit_control_account_id && !j.credit_control_account_id;
+                    const isExpense = j.gl_accounts?.gl_type === "expense";
+                    return (
+                      <div key={j.id} className={`rounded-2xl border border-border bg-card/60 p-3 ${j.is_reversed ? "opacity-60" : ""}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={isDebit ? "default" : "destructive"} className="text-[10px] h-5 px-1.5">
+                                {isDebit ? "DR" : "CR"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">{new Date(j.transaction_date).toLocaleDateString()}</span>
+                              {j.reference ? <span className="text-xs text-muted-foreground truncate">• {j.reference}</span> : null}
+                            </div>
+                            <p className="mt-2 text-sm font-medium break-words">{j.gl_accounts?.name ?? "—"}</p>
+                            <p className="mt-1 text-xs text-muted-foreground break-words">
+                              Control: <span className="text-foreground/90">{controlName}</span>
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] text-muted-foreground">Amount</p>
+                            <p className="font-mono font-semibold">{formatCurrency(j.amount)}</p>
+                          </div>
+                        </div>
+
+                        {isVatRegistered ? (
+                          <div className="mt-3 rounded-xl border bg-background/60 p-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">VAT</span>
+                              <span className={`font-mono ${isExpense ? "text-destructive" : "text-foreground"}`}>
+                                {j.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(j.vat_amount)}` : "—"}
+                              </span>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          {j.is_reversed ? <Badge variant="destructive">Reversed</Badge> : <Badge variant="default">Posted</Badge>}
+                          {!j.is_reversed ? (
+                            <Button size="sm" variant="outline" className="h-9" onClick={() => setReversalDialog(j.id)}>
+                              <RotateCcw className="h-4 w-4 mr-1" /> Reverse
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>GL Account</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Debit(+)</TableHead>
+                    <TableHead className="text-right">Credit(-)</TableHead>
+                    {isVatRegistered && <TableHead className="text-right">VAT</TableHead>}
+                    <TableHead>Control Account</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={isVatRegistered ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                  ) : bankEntries.length === 0 ? (
+                    <TableRow><TableCell colSpan={isVatRegistered ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries found.</TableCell></TableRow>
+                  ) : bankEntries.map((j: any) => {
+                    const controlName = j.debit_control?.name || j.credit_control?.name || "—";
+                    const isDebit = !!j.debit_control_account_id && !j.credit_control_account_id;
+                    return (
+                      <TableRow key={j.id} className={j.is_reversed ? "opacity-50 line-through" : ""}>
+                        <TableCell className="text-sm">{new Date(j.transaction_date).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-sm">{j.gl_accounts?.name ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{j.reference || "—"}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">{isDebit ? formatCurrency(j.amount) : ""}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">{!isDebit ? formatCurrency(j.amount) : ""}</TableCell>
+                        {isVatRegistered && (() => {
+                          const isExpense = j.gl_accounts?.gl_type === "expense";
+                          return <TableCell className={`text-right text-sm font-medium ${isExpense ? "text-destructive" : "text-muted-foreground"}`}>
+                            {j.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(j.vat_amount)}` : "—"}
+                          </TableCell>;
+                        })()}
+                        <TableCell className="text-sm">{controlName}</TableCell>
+                        <TableCell>{j.is_reversed ? <Badge variant="destructive">Reversed</Badge> : <Badge variant="default">Posted</Badge>}</TableCell>
+                        <TableCell>{renderReverseBtn(j.id, j.is_reversed)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -341,53 +399,109 @@ const OperatingJournals = () => {
           <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen className="h-5 w-5 text-muted-foreground" />Journal Entries <span className="text-xs font-normal text-muted-foreground">(legacy)</span></h2>
         </div>
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Debit (+)</TableHead>
-                  <TableHead>Credit (−)</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  {isVatRegistered && <TableHead className="text-right">VAT</TableHead>}
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-12" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={isVatRegistered ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-                ) : journalEntries.length === 0 ? (
-                  <TableRow><TableCell colSpan={isVatRegistered ? 9 : 8} className="text-center py-8 text-muted-foreground">No journal entries found.</TableCell></TableRow>
-                ) : journalEntries.map((j: any) => (
-                  <TableRow key={j.id} className={j.is_reversed ? "opacity-50 line-through" : ""}>
-                    <TableCell className="text-sm">{new Date(j.transaction_date).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-sm">{j.gl_accounts?.name || j.description || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{j.reference || "—"}</TableCell>
-                    <TableCell className="text-sm">{j.debit_control?.name ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{j.credit_control?.name ?? "—"}</TableCell>
-                    <TableCell className="text-right text-sm font-medium">{formatCurrency(j.amount)}</TableCell>
-                    {isVatRegistered && (() => {
-                      const isExpense = j.gl_accounts?.gl_type === "expense";
-                      return <TableCell className={`text-right text-sm font-medium ${isExpense ? "text-destructive" : "text-muted-foreground"}`}>
-                        {j.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(j.vat_amount)}` : "—"}
-                      </TableCell>;
-                    })()}
-                    <TableCell>{j.is_reversed ? <Badge variant="destructive">Reversed</Badge> : <Badge variant="default">Posted</Badge>}</TableCell>
-                    <TableCell>{renderReverseBtn(j.id, j.is_reversed)}</TableCell>
+          <CardContent className={isMobile ? "p-3" : "p-0"}>
+            {isMobile ? (
+              isLoading ? (
+                <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+              ) : journalEntries.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No journal entries found.</div>
+              ) : (
+                <div className="space-y-3">
+                  {journalEntries.map((j: any) => {
+                    const isExpense = j.gl_accounts?.gl_type === "expense";
+                    return (
+                      <div key={j.id} className={`rounded-2xl border border-border bg-card/60 p-3 ${j.is_reversed ? "opacity-60" : ""}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px] h-5">Journal</Badge>
+                              <span className="text-xs text-muted-foreground">{new Date(j.transaction_date).toLocaleDateString()}</span>
+                              {j.reference ? <span className="text-xs text-muted-foreground truncate">• {j.reference}</span> : null}
+                            </div>
+                            <p className="mt-2 text-sm font-medium break-words">{j.gl_accounts?.name || j.description || "—"}</p>
+                            <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground">
+                              <p className="break-words">Debit: <span className="text-foreground/90">{j.debit_control?.name ?? "—"}</span></p>
+                              <p className="break-words">Credit: <span className="text-foreground/90">{j.credit_control?.name ?? "—"}</span></p>
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] text-muted-foreground">Amount</p>
+                            <p className="font-mono font-semibold">{formatCurrency(j.amount)}</p>
+                          </div>
+                        </div>
+
+                        {isVatRegistered ? (
+                          <div className="mt-3 rounded-xl border bg-background/60 p-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">VAT</span>
+                              <span className={`font-mono ${isExpense ? "text-destructive" : "text-foreground"}`}>
+                                {j.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(j.vat_amount)}` : "—"}
+                              </span>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          {j.is_reversed ? <Badge variant="destructive">Reversed</Badge> : <Badge variant="default">Posted</Badge>}
+                          {!j.is_reversed ? (
+                            <Button size="sm" variant="outline" className="h-9" onClick={() => setReversalDialog(j.id)}>
+                              <RotateCcw className="h-4 w-4 mr-1" /> Reverse
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Debit (+)</TableHead>
+                    <TableHead>Credit (−)</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    {isVatRegistered && <TableHead className="text-right">VAT</TableHead>}
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={isVatRegistered ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                  ) : journalEntries.length === 0 ? (
+                    <TableRow><TableCell colSpan={isVatRegistered ? 9 : 8} className="text-center py-8 text-muted-foreground">No journal entries found.</TableCell></TableRow>
+                  ) : journalEntries.map((j: any) => (
+                    <TableRow key={j.id} className={j.is_reversed ? "opacity-50 line-through" : ""}>
+                      <TableCell className="text-sm">{new Date(j.transaction_date).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm">{j.gl_accounts?.name || j.description || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{j.reference || "—"}</TableCell>
+                      <TableCell className="text-sm">{j.debit_control?.name ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{j.credit_control?.name ?? "—"}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{formatCurrency(j.amount)}</TableCell>
+                      {isVatRegistered && (() => {
+                        const isExpense = j.gl_accounts?.gl_type === "expense";
+                        return <TableCell className={`text-right text-sm font-medium ${isExpense ? "text-destructive" : "text-muted-foreground"}`}>
+                          {j.vat_amount > 0 ? `${isExpense ? "-" : ""}${formatCurrency(j.vat_amount)}` : "—"}
+                        </TableCell>;
+                      })()}
+                      <TableCell>{j.is_reversed ? <Badge variant="destructive">Reversed</Badge> : <Badge variant="default">Posted</Badge>}</TableCell>
+                      <TableCell>{renderReverseBtn(j.id, j.is_reversed)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* ── Bank Entry Dialog ── */}
       <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Post Bank Entry</DialogTitle>
             <DialogDescription>Record a bank debit or credit against a GL and control account.</DialogDescription>
@@ -415,7 +529,7 @@ const OperatingJournals = () => {
               </Select>
             </div>
             {bankForm.gl_account_id && (<>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Control Account *</Label>
                 <Select value={bankForm.control_account_id} onValueChange={(v) => setBankForm({ ...bankForm, control_account_id: v })}>
@@ -438,7 +552,7 @@ const OperatingJournals = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Transaction Date *</Label>
                 <Input type="date" value={bankForm.transaction_date} onChange={(e) => setBankForm({ ...bankForm, transaction_date: e.target.value })} />
@@ -449,7 +563,7 @@ const OperatingJournals = () => {
               </div>
             </div>
             {isVatRegistered && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>VAT Type</Label>
                   <Select value={bankForm.tax_type_id} onValueChange={(v) => setBankForm({ ...bankForm, tax_type_id: v })}>
@@ -472,7 +586,7 @@ const OperatingJournals = () => {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Reference</Label>
                 <Input value={bankForm.reference} onChange={(e) => setBankForm({ ...bankForm, reference: e.target.value })} placeholder="e.g. DEP-001" />
@@ -495,7 +609,7 @@ const OperatingJournals = () => {
 
       {/* ── Journal Entry Dialog ── */}
       <Dialog open={journalDialogOpen} onOpenChange={setJournalDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Post Journal Entry</DialogTitle>
             <DialogDescription>Record a double-entry journal with debit and credit control accounts.</DialogDescription>
@@ -507,7 +621,7 @@ const OperatingJournals = () => {
               <RadioGroup
                 value={journalForm.use_gl_account ? "gl" : "custom"}
                 onValueChange={(v) => setJournalForm({ ...journalForm, use_gl_account: v === "gl", gl_account_id: "", description: "" })}
-                className="flex gap-4"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4"
               >
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="gl" id="j-gl" />
@@ -551,7 +665,7 @@ const OperatingJournals = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Debit Control Account (+)</Label>
                 <Select value={journalForm.debit_control_account_id} onValueChange={(v) => setJournalForm({ ...journalForm, debit_control_account_id: v === "none" ? "" : v })}>
@@ -573,7 +687,7 @@ const OperatingJournals = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Transaction Date *</Label>
                 <Input type="date" value={journalForm.transaction_date} onChange={(e) => setJournalForm({ ...journalForm, transaction_date: e.target.value })} />
@@ -584,7 +698,7 @@ const OperatingJournals = () => {
               </div>
             </div>
             {isVatRegistered && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>VAT Type</Label>
                   <Select value={journalForm.tax_type_id} onValueChange={(v) => setJournalForm({ ...journalForm, tax_type_id: v })}>
@@ -607,7 +721,7 @@ const OperatingJournals = () => {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Reference</Label>
                 <Input value={journalForm.reference} onChange={(e) => setJournalForm({ ...journalForm, reference: e.target.value })} placeholder="e.g. JNL-001" />
@@ -629,7 +743,7 @@ const OperatingJournals = () => {
 
       {/* Reversal Dialog */}
       <Dialog open={!!reversalDialog} onOpenChange={(o) => { if (!o) setReversalDialog(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Reverse Entry</DialogTitle>
             <DialogDescription>This will mark the entry as reversed. This action cannot be undone.</DialogDescription>
