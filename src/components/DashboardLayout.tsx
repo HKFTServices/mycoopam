@@ -784,6 +784,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           setOpen: setTenantSetupOpen,
                           viewAll: { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
                           items: filteredTenantSetup,
+                          dataTour: "tenant-setup-group",
                         })}
                       </SidebarMenu>
                     </SidebarGroupContent>
