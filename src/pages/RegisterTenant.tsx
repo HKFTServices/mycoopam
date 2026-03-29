@@ -543,6 +543,24 @@ const RegisterTenant = () => {
         });
       }
 
+      // Prepare co-op document base64
+      const coopDocuments: any[] = [];
+      for (const [docTypeId, docInfo] of Object.entries(coopUploadedDocs)) {
+        if (!docInfo.file) continue;
+        const arrayBuf = await docInfo.file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        coopDocuments.push({
+          doc_type_id: docTypeId,
+          file_name: docInfo.name,
+          file_data: base64,
+          file_size: docInfo.file.size,
+          mime_type: docInfo.file.type,
+        });
+      }
+
       // Provision tenant with all data including co-op details
       const { data: provData, error: provError } = await supabase.functions.invoke("provision-tenant", {
         body: {
@@ -558,6 +576,8 @@ const RegisterTenant = () => {
           logo_mime_type: logoMimeType,
           // Co-op details for legal entity
           coop_details: {
+            entity_category_id: coopEntityCategoryId || null,
+            relationship_type_id: coopRelationshipTypeId || null,
             contact_number: coopContactNumber ? formatToInternational(coopContactNumber) : null,
             email_address: coopEmail?.trim() || null,
             website: coopWebsite?.trim() || null,
@@ -605,6 +625,7 @@ const RegisterTenant = () => {
             accepted_term_ids: Object.keys(acceptedTerms).filter((k) => acceptedTerms[k]),
           },
           admin_documents: adminDocuments.length > 0 ? adminDocuments : undefined,
+          coop_documents: coopDocuments.length > 0 ? coopDocuments : undefined,
         },
       });
 
