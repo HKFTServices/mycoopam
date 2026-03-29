@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, BarChart3, BellRing, ClipboardCheck, CreditCard, Github, Landmark, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Search, ShieldCheck, TrendingUp, Twitter, Users, Wallet } from "lucide-react";
+import { ArrowRight, BarChart3, BellRing, Building2, ClipboardCheck, CreditCard, Github, Landmark, Linkedin, LifeBuoy, LogIn, MapPin, MessageSquare, PhoneCall, Search, ShieldCheck, TrendingUp, Twitter, Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
