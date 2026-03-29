@@ -2,20 +2,33 @@ import { useState, useCallback, useEffect } from "react";
 
 const DEFAULT_STORAGE_KEY = "member_onboarding_completed";
 
-export function useOnboardingTour(storageKey: string = DEFAULT_STORAGE_KEY) {
+export function useOnboardingTour(storageKey: string | null = DEFAULT_STORAGE_KEY) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasCompleted, setHasCompleted] = useState(() => {
+    if (!storageKey) return true; // treat null key as "already completed" to prevent auto-trigger
     try { return localStorage.getItem(storageKey) === "true"; } catch { return false; }
   });
 
-  // Auto-trigger on first visit
+  // Re-evaluate hasCompleted when storageKey changes (e.g. tenant resolved)
   useEffect(() => {
-    if (!hasCompleted) {
-      const timer = setTimeout(() => setIsActive(true), 800);
-      return () => clearTimeout(timer);
+    if (!storageKey) {
+      setHasCompleted(true);
+      return;
     }
-  }, [hasCompleted]);
+    try {
+      setHasCompleted(localStorage.getItem(storageKey) === "true");
+    } catch {
+      setHasCompleted(false);
+    }
+  }, [storageKey]);
+
+  // Auto-trigger on first visit (only if key is resolved)
+  useEffect(() => {
+    if (!storageKey || hasCompleted) return;
+    const timer = setTimeout(() => setIsActive(true), 800);
+    return () => clearTimeout(timer);
+  }, [hasCompleted, storageKey]);
 
   const startTour = useCallback(() => {
     setCurrentStep(0);
@@ -38,7 +51,9 @@ export function useOnboardingTour(storageKey: string = DEFAULT_STORAGE_KEY) {
     setIsActive(false);
     setCurrentStep(0);
     setHasCompleted(true);
-    try { localStorage.setItem(storageKey, "true"); } catch {}
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, "true"); } catch {}
+    }
   }, [storageKey]);
 
   const skipTour = useCallback(() => {
