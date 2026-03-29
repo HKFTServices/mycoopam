@@ -245,6 +245,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
   const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
 
+  // Listen for tour events to auto-expand Tenant Setup sidebar
+  useEffect(() => {
+    const handler = () => setTenantSetupOpen(true);
+    window.addEventListener("expand-tenant-setup", handler);
+    return () => window.removeEventListener("expand-tenant-setup", handler);
+  }, []);
+
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
