@@ -653,6 +653,19 @@ const RegisterTenant = () => {
   const bankAccountTypes = refData?.bank_account_types ?? [];
   const terms = refData?.terms ?? [];
   const documentRequirements = refData?.document_requirements ?? [];
+  const entityCategories = refData?.entity_categories ?? [];
+  const relationshipTypes = refData?.relationship_types ?? [];
+  const allDocumentRequirements = refData?.all_document_requirements ?? [];
+
+  // Filter relationship types based on selected entity category
+  const filteredRelTypes = coopEntityCategoryId
+    ? relationshipTypes.filter((rt: any) => rt.entity_category_id === coopEntityCategoryId)
+    : [];
+
+  // Filter co-op doc requirements based on selected relationship type
+  const coopDocRequirements = coopRelationshipTypeId
+    ? allDocumentRequirements.filter((r: any) => r.relationship_type_id === coopRelationshipTypeId)
+    : [];
 
   const isLastStep = step === TOTAL_STEPS;
 
