@@ -97,6 +97,7 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   path: string;
+  dataTour?: string;
 };
 
 const mainNavItems: NavItem[] = [
@@ -484,6 +485,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     setOpen: (open: boolean) => void;
     viewAll: NavItem;
     items: NavItem[];
+    dataTour?: string;
   }) => {
     const effectiveOpen = normalizedQuery ? true : params.open;
     const show = sectionHasMatch(params.label, params.items, normalizedQuery);
