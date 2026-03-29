@@ -714,10 +714,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                               <SidebarMenuButton asChild isActive={isActive}>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (location.pathname !== "/dashboard/head-office/settings") navigate("/dashboard/head-office/settings");
-                                    setHeadOfficeOpen(!headOfficeOpen);
-                                  }}
+                                  onClick={() => setHeadOfficeOpen(!headOfficeOpen)}
                                 >
                                   <Building2 />
                                   <span>Head Office</span>
