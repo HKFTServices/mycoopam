@@ -48,7 +48,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     enabled: !!user && !!currentTenant && !isAdmin,
   });
 
-  if (loading || tenantLoading) {
+  // Wait for ALL state to stabilize before rendering any decision.
+  // During logout the session lingers briefly while roles/profile clear —
+  // rendering anything before full hydration causes flash of wrong UI.
+  const allStateReady = !loading && !tenantLoading && !rolesLoading;
+
+  if (!allStateReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -56,17 +61,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!session) {
+  // If there is no user behind the session (logout in progress), redirect
+  if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  // Wait for roles to load before making role-dependent decisions
-  if (rolesLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
   }
 
   const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname === "/membership-application";
