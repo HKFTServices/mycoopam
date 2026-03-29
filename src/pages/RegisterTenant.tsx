@@ -130,6 +130,13 @@ const RegisterTenant = () => {
   const [coopAccountNumber, setCoopAccountNumber] = useState("");
   const [coopContactError, setCoopContactError] = useState("");
 
+  // ─── Step 6: Entity Type & Relationship ───
+  const [coopEntityCategoryId, setCoopEntityCategoryId] = useState("");
+  const [coopRelationshipTypeId, setCoopRelationshipTypeId] = useState("");
+
+  // ─── Co-op Documents (step 10) ───
+  const [coopUploadedDocs, setCoopUploadedDocs] = useState<Record<string, { file: File; name: string }>>({}); 
+
   // ─── Step 6: Personal Details ───
   const [titleId, setTitleId] = useState("");
   const [initials, setInitials] = useState("");
