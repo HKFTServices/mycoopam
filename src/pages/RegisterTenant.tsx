@@ -1182,8 +1182,63 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 6: Personal Details ═══ */}
+            {/* ═══ Step 6: Entity Type & Relationship ═══ */}
             {step === 6 && (
+              <div className="space-y-5">
+                {refLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Select the type of legal entity being registered and your relationship to it.
+                    </p>
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Entity Type *</h3>
+                      <Select value={coopEntityCategoryId} onValueChange={(val) => { setCoopEntityCategoryId(val); setCoopRelationshipTypeId(""); }}>
+                        <SelectTrigger><SelectValue placeholder="Select entity type" /></SelectTrigger>
+                        <SelectContent>
+                          {entityCategories.map((ec: any) => (
+                            <SelectItem key={ec.id} value={ec.id}>{ec.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {coopEntityCategoryId && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Your Relationship to Entity *</h3>
+                        {filteredRelTypes.length > 0 ? (
+                          <Select value={coopRelationshipTypeId} onValueChange={setCoopRelationshipTypeId}>
+                            <SelectTrigger><SelectValue placeholder="Select relationship type" /></SelectTrigger>
+                            <SelectContent>
+                              {filteredRelTypes.map((rt: any) => (
+                                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">No relationship types configured for this entity type.</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground">
+                        This information determines which compliance documents will be required for the co-operative entity.
+                      </p>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+                  <Button className="flex-1" onClick={handleNext} disabled={refLoading}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ Step 7: Personal Details ═══ */}
+            {step === 7 && (
               <div className="space-y-5">
                 {refLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
