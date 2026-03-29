@@ -1369,8 +1369,8 @@ const RegisterTenant = () => {
               </div>
             )}
 
-            {/* ═══ Step 7: Address ═══ */}
-            {step === 7 && (
+            {/* ═══ Step 8: Address ═══ */}
+            {step === 8 && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">Search or manually enter your residential address.</p>
                 <div className="space-y-2 relative">
