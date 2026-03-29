@@ -149,7 +149,6 @@ Deno.serve(async (req) => {
 
     // Generate activation link
     let activationLink: string;
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "signup",
