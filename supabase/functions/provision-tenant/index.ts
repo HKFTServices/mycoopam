@@ -1246,6 +1246,8 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             tenant_id,
             user_id: createdUserId,
+            is_tenant_creator: true,
+            coop_name: coop_details?.name || body.name || "",
           }),
         });
         const emailResult = await emailRes.json();

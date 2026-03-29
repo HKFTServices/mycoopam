@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const isServiceRole = token === supabaseServiceKey || apiKeyHeader === supabaseServiceKey;
 
     const reqBody = await req.json();
-    const { tenant_id, user_id: explicitUserId, self_register_email } = reqBody;
+    const { tenant_id, user_id: explicitUserId, self_register_email, is_tenant_creator, coop_name } = reqBody;
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
         status: 400,
@@ -131,18 +131,40 @@ Deno.serve(async (req) => {
 
     // Fetch communication template
     const userLang = profile.language_code || "en";
+
+    // For tenant creators, use a dedicated template event; fallback to the standard one
+    const templateEvent = is_tenant_creator
+      ? "tenant_registration_completed"
+      : "user_registration_completed";
+
     const { data: template } = await adminClient
       .from("communication_templates")
       .select("subject, body_html")
       .eq("tenant_id", tenant_id)
-      .eq("application_event", "user_registration_completed")
+      .eq("application_event", templateEvent)
       .eq("is_active", true)
       .eq("is_email_active", true)
       .eq("language_code", userLang)
       .maybeSingle();
 
+    // If tenant creator template not found, fall back to standard
+    let finalTemplate = template;
+    if (!finalTemplate && is_tenant_creator) {
+      const { data: fallback } = await adminClient
+        .from("communication_templates")
+        .select("subject, body_html")
+        .eq("tenant_id", tenant_id)
+        .eq("application_event", "user_registration_completed")
+        .eq("is_active", true)
+        .eq("is_email_active", true)
+        .eq("language_code", userLang)
+        .maybeSingle();
+      finalTemplate = fallback;
+    }
+
     const firstName = profile.first_name || "Member";
     const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
+    const displayCoopName = coop_name || tenantName;
 
     // Build redirect URL using tenant slug → correct subdomain
     const redirectTo = buildTenantUrl(tenant?.slug, "/auth");
@@ -172,22 +194,14 @@ Deno.serve(async (req) => {
     }
 
     // Rewrite the activation link to go through the tenant domain directly.
-    // The default action_link goes through the Supabase auth server which may
-    // reject the redirect_to if it's not in the server's allowlist, falling
-    // back to site_url (wrong tenant). By extracting token_hash and type from
-    // the Supabase link and constructing a link to the tenant domain with
-    // these params in the hash fragment, the Supabase JS client on the
-    // frontend will pick them up and verify the token automatically.
     try {
       const linkUrl = new URL(activationLink);
       const tokenHash = linkUrl.searchParams.get("token_hash") || linkUrl.searchParams.get("token");
       const linkType = linkUrl.searchParams.get("type") || "signup";
       if (tokenHash) {
-        // Construct direct link: https://pmc.myco-op.co.za/auth#token_hash=xxx&type=signup
         activationLink = `${redirectTo}#token_hash=${encodeURIComponent(tokenHash)}&type=${linkType}`;
         console.log("[send-registration-email] Rewrote activation link to tenant domain:", redirectTo);
       } else {
-        // Fallback: just ensure redirect_to is set correctly
         linkUrl.searchParams.set("redirect_to", redirectTo);
         activationLink = linkUrl.toString();
         console.log("[send-registration-email] Updated redirect_to on activation link");
@@ -196,10 +210,43 @@ Deno.serve(async (req) => {
       console.warn("[send-registration-email] Could not rewrite activation link URL:", e);
     }
 
-    // Build email content
-    let subject = template?.subject || `Activate your ${tenantName} account`;
-    let body = template?.body_html ||
-      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#ffffff;">
+    // Build email content – use tenant-creator specific fallback when applicable
+    let subject: string;
+    let body: string;
+
+    if (finalTemplate?.subject && finalTemplate?.body_html) {
+      subject = finalTemplate.subject;
+      body = finalTemplate.body_html;
+    } else if (is_tenant_creator) {
+      // Tenant admin / creator specific email
+      subject = `Welcome to MyCo-Op – ${displayCoopName} has been registered!`;
+      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#ffffff;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <img src="https://www.myco-op.co.za/lovable-uploads/mycoop-logo.png" alt="MyCo-Op" style="height:48px;object-fit:contain;" />
+        </div>
+        <h2 style="color:#1a1a2e;">Congratulations – Your Co-operative is Registered! 🎉</h2>
+        <p>Dear ${firstName},</p>
+        <p>Your co-operative <strong>${displayCoopName}</strong> has been successfully registered on the MyCo-Op platform.</p>
+        <p>As the Tenant Administrator, you now have full access to configure and manage your co-operative.</p>
+        <h3 style="color:#1a1a2e;margin-top:24px;">What to do next</h3>
+        <ol style="color:#333;line-height:1.8;">
+          <li><strong>Activate your account</strong> by clicking the button below to verify your email address.</li>
+          <li><strong>Log in</strong> to your co-operative's administration portal.</li>
+          <li><strong>Follow the Tenant Setup Guide</strong> – when you first log in, an interactive setup wizard will guide you through all the essential configuration steps (SMTP email, investment pools, fees, document requirements, terms &amp; conditions, and more).</li>
+          <li><strong>Once setup is complete</strong>, your members will be able to register and transact on your platform.</li>
+        </ol>
+        <div style="margin:32px 0;text-align:center;">
+          <a href="{{activation_link}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Activate Your Account</a>
+        </div>
+        <p style="font-size:13px;color:#666;">If the button does not work, copy and paste this link into your browser:</p>
+        <p style="font-size:13px;word-break:break-all;color:#1a1a2e;">{{activation_link}}</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        <p style="font-size:13px;color:#666;">For more information, please visit <a href="https://www.myco-op.co.za" style="color:#1a1a2e;">www.myco-op.co.za</a> or contact our support team.</p>
+        <p style="font-size:13px;color:#666;">Best regards,<br/><strong>The MyCo-Op Team</strong></p>
+      </div>`;
+    } else {
+      subject = `Activate your ${tenantName} account`;
+      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#ffffff;">
         <h2 style="color:#1a1a2e;">Activate your account</h2>
         <p>Dear ${firstName},</p>
         <p>Your administrator account for <strong>${tenantName}</strong> has been created.</p>
@@ -212,6 +259,9 @@ Deno.serve(async (req) => {
         <br/>
         <p>Best regards,<br/><strong>${tenantName}</strong></p>
       </div>`;
+    }
+
+    const emailSignature = resolveEmailSignature(tenantConfig, userLang);
 
     const replacements: Record<string, string> = {
       "{{entity_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
@@ -220,18 +270,19 @@ Deno.serve(async (req) => {
       "{{first_name}}": [profile.first_name, profile.last_name].filter(Boolean).join(" ") || firstName,
       "{{last_name}}": "",
       "{{tenant_name}}": tenantName,
+      "{{coop_name}}": displayCoopName,
       "{{email}}": profile.email,
       "{{activation_link}}": activationLink,
       "{{confirmation_link}}": activationLink,
+      "{{email_signature}}": emailSignature || "",
     };
     for (const [key, val] of Object.entries(replacements)) {
       subject = subject.replaceAll(key, val);
       body = body.replaceAll(key, val);
     }
 
-    // Append email signature
-    const emailSignature = resolveEmailSignature(tenantConfig, userLang);
-    if (emailSignature) {
+    // For non-tenant-creator emails, append signature if not already in template
+    if (!is_tenant_creator && emailSignature && !body.includes(emailSignature)) {
       body = body + emailSignature;
     }
 
