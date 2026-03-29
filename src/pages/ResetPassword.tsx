@@ -49,10 +49,15 @@ const ResetPassword = () => {
     fetchBranding();
   }, []);
 
+  // Handle recovery token verification (token_hash or code or access_token)
   useEffect(() => {
     const type = searchParams.get("type");
     const code = searchParams.get("code");
     const hash = window.location.hash;
+    const hashParams = new URLSearchParams(hash.substring(1));
+    const tokenHash = hashParams.get("token_hash");
+    const hashType = hashParams.get("type");
+
     const hasRecoveryToken =
       type === "recovery" ||
       hash.includes("type=recovery") ||
@@ -64,6 +69,35 @@ const ResetPassword = () => {
 
     if (tenantSlug) {
       localStorage.setItem("tenantSlug", tenantSlug);
+    }
+
+    // If we have a token_hash for recovery, verify it to create a session
+    // so the user can then call updateUser to set a new password.
+    if (tokenHash && (hashType === "recovery" || type === "recovery")) {
+      const verifyRecoveryToken = async () => {
+        setExchanging(true);
+        try {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
+          if (error) {
+            console.error("[ResetPassword] Token verification failed:", error.message);
+            toast({ title: "Link expired or invalid", description: error.message, variant: "destructive" });
+            setIsRecovery(false);
+          } else {
+            setIsRecovery(true);
+          }
+          // Clear the hash to avoid re-verification
+          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+        } catch (err: any) {
+          console.error("[ResetPassword] Token verification error:", err);
+        } finally {
+          setExchanging(false);
+        }
+      };
+      verifyRecoveryToken();
+      return; // skip domain-correction below since we're handling verification
     }
 
     if (!tenantSlug) return;
