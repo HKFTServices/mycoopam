@@ -116,18 +116,74 @@ const TenantLanding = () => {
     setCaptchaKey((k) => k + 1);
   };
 
+  const ensureTenantMembership = async (userId: string, tenantId: string) => {
+    // Check if user already has a tenant_membership for this co-op
+    const { data: existing } = await (supabase as any)
+      .from("tenant_memberships")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (!existing) {
+      // Create tenant membership for the new co-op
+      await (supabase as any).from("tenant_memberships").insert({
+        user_id: userId,
+        tenant_id: tenantId,
+        is_active: true,
+      });
+
+      // Check if user has a natural_person entity in this tenant
+      const { data: entityRel } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("entity_id")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (!entityRel) {
+        // User needs onboarding for this new co-op
+        await supabase.from("profiles").update({
+          needs_onboarding: true,
+          registration_status: "incomplete",
+        } as any).eq("user_id", userId);
+      }
+
+      console.log(`[TenantLanding] Created tenant_membership for user ${userId} in tenant ${tenantId}`);
+      return true; // new membership created
+    }
+    return false; // already a member
+  };
+
   const submitAuth = async (token: string) => {
     setLoading(true);
     try {
       if (isLogin) {
         const args: any = { email, password };
         if (token) args.options = { captchaToken: token };
-        const { error } = await supabase.auth.signInWithPassword(args);
+        const { data: signInData, error } = await supabase.auth.signInWithPassword(args);
         if (error) throw error;
         if (rememberMe) markRememberMeIssuedAt();
         else clearRememberMeIssuedAt();
         // If they passed captcha, allow skipping for the next 5 hours (per tenant + email).
         if (token) setCaptchaBypass(slug || "tenant", email, 5);
+
+        // Ensure tenant membership exists for this co-op
+        if (signInData.user && tenant) {
+          const tenantId = tenant.tenant_id || tenant.id;
+          if (tenantId) {
+            const isNew = await ensureTenantMembership(signInData.user.id, tenantId);
+            if (isNew) {
+              // Store the tenant ID so TenantContext picks it up
+              localStorage.setItem("currentTenantId", tenantId);
+              toast({
+                title: "Welcome!",
+                description: `You've been added to ${tenant.tenant_name || tenant.name || "the cooperative"}. Please complete your profile for this co-op.`,
+              });
+            }
+          }
+        }
+
         navigate("/dashboard");
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -142,7 +198,13 @@ const TenantLanding = () => {
         if (error) throw error;
 
         if (data.user && data.user.identities && data.user.identities.length === 0) {
-          throw new Error("An account with this email already exists. Please sign in instead.");
+          // User already exists — guide them to sign in instead
+          toast({
+            title: "Account exists",
+            description: "An account with this email already exists. Please sign in to join this co-operative.",
+          });
+          setIsLogin(true);
+          return;
         }
 
         // Send branded activation email via tenant SMTP (fire-and-forget)
