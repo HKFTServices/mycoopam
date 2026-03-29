@@ -1022,6 +1022,117 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── 21. Create Legal Entity for the co-operative ───
+    try {
+      // Find the Legal Entity account type (account_type = 6)
+      const { data: legalEntityType } = await admin
+        .from("entity_account_types")
+        .select("id, prefix, number_count")
+        .eq("tenant_id", tenant_id)
+        .eq("account_type", 6)
+        .maybeSingle();
+
+      // Find legal_entity category
+      const { data: legalEntityCategory } = await admin
+        .from("entity_categories")
+        .select("id")
+        .eq("entity_type", "legal_entity")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      const coopName = body.admin_details?.first_name
+        ? (body.name || tenant?.name || "Co-operative")
+        : (body.name || "Co-operative");
+      // Use the tenant name passed from the wizard
+      const tenantName = body.name || "";
+
+      // Look up the tenant record for the name if not in body
+      let finalCoopName = tenantName;
+      if (!finalCoopName) {
+        const { data: tenantRec } = await admin
+          .from("tenants")
+          .select("name")
+          .eq("id", tenant_id)
+          .single();
+        finalCoopName = tenantRec?.name || "Co-operative";
+      }
+
+      const legalEntityId = uuid();
+      const { error: leError } = await admin.from("entities").insert({
+        id: legalEntityId,
+        tenant_id,
+        name: finalCoopName.trim(),
+        registration_number: registration_number?.trim() || null,
+        entity_category_id: legalEntityCategory?.id || null,
+        is_active: true,
+        is_registration_complete: true,
+        creator_user_id: createdUserId || null,
+        email_address: admin_details?.email || null,
+        contact_number: admin_details?.contact_number || null,
+      });
+
+      if (leError) {
+        console.error("[provision-tenant] Legal entity creation error:", leError);
+      } else {
+        // Create entity account for legal entity
+        if (legalEntityType) {
+          const prefix = legalEntityType.prefix || "LE";
+          const numCount = legalEntityType.number_count || 5;
+          const accountNum = `${prefix}${"1".padStart(numCount, "0")}`;
+          const { error: leAccErr } = await admin.from("entity_accounts").insert({
+            tenant_id,
+            entity_id: legalEntityId,
+            entity_account_type_id: legalEntityType.id,
+            account_number: accountNum,
+            is_active: true,
+            is_approved: true,
+            status: "active",
+          });
+          if (leAccErr) console.warn("[provision-tenant] Legal entity account error:", leAccErr.message);
+        }
+
+        // Link admin user to legal entity if user was created
+        if (createdUserId) {
+          const relTypeNames = ["Director of Co-operative", "Authorised Representative", "Director of Company"];
+          let relType: any = null;
+          for (const rtName of relTypeNames) {
+            const { data: rt } = await admin
+              .from("relationship_types")
+              .select("id")
+              .eq("name", rtName)
+              .eq("is_active", true)
+              .maybeSingle();
+            if (rt) { relType = rt; break; }
+          }
+          if (relType) {
+            const { error: relErr } = await admin.from("user_entity_relationships").insert({
+              tenant_id,
+              user_id: createdUserId,
+              entity_id: legalEntityId,
+              relationship_type_id: relType.id,
+              is_active: true,
+            });
+            if (relErr) console.warn("[provision-tenant] Legal entity user link error:", relErr.message);
+          }
+        }
+
+        // Update tenant_configuration with legal_entity_id
+        await admin.from("tenant_configuration")
+          .update({
+            legal_entity_id: legalEntityId,
+            vat_number: null,
+            directors: null,
+          })
+          .eq("tenant_id", tenant_id);
+
+        results.legal_entity = 1;
+        console.log("[provision-tenant] Legal entity created:", legalEntityId);
+      }
+    } catch (leErr: any) {
+      console.error("[provision-tenant] Legal entity error:", leErr.message);
+    }
+
     // ─── Send branded registration email via SMTP (not Supabase default) ───
     if (createdUserId && admin_details?.email) {
       try {
