@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const isServiceRole = token === supabaseServiceKey || apiKeyHeader === supabaseServiceKey;
 
     const reqBody = await req.json();
-    const { tenant_id, user_id: explicitUserId, self_register_email } = reqBody;
+    const { tenant_id, user_id: explicitUserId, self_register_email, is_tenant_creator, coop_name } = reqBody;
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
         status: 400,
