@@ -67,9 +67,18 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     desktop: null,
   });
 
-  // Admin setup tour - triggers once per tenant for new tenant admins
-  // Pass null until tenantId is resolved to prevent premature triggering
+  // Admin setup tour - only auto-trigger for tenants created in the last 24 hours
+  // For older tenants, mark the tour as already completed so it never auto-triggers
+  const isFreshTenant = (() => {
+    if (!currentTenant?.created_at) return false;
+    const created = new Date(currentTenant.created_at).getTime();
+    return Date.now() - created < 24 * 60 * 60 * 1000;
+  })();
   const adminTourKey = tenantId ? `admin_setup_tour_completed_${tenantId}` : null;
+  // Pre-seed localStorage for older tenants so the tour never auto-fires
+  if (adminTourKey && !isFreshTenant) {
+    try { if (!localStorage.getItem(adminTourKey)) localStorage.setItem(adminTourKey, "true"); } catch {}
+  }
   const adminTour = useOnboardingTour(adminTourKey);
 
   // Auto-expand tenant setup sidebar when tour reaches setup steps
