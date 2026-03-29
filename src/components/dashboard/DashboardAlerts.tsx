@@ -97,32 +97,7 @@ const DashboardAlerts = () => {
       if (!data) return true; // No entity at all
       return !data.contact_number || !data.email_address;
     },
-    enabled: !!tenantId && !!user,
-  });
-
-  // Check SMTP config for tenant admins
-  const { data: smtpMissing = false } = useQuery({
-    queryKey: ["smtp_check", tenantId],
-    queryFn: async () => {
-      if (!tenantId) return false;
-      const { data } = await (supabase as any)
-        .from("tenant_settings")
-        .select("setting_value")
-        .eq("tenant_id", tenantId)
-        .eq("setting_key", "use_global_email_settings")
-        .maybeSingle();
-      // If using global, no issue
-      if (data?.setting_value === "true") return false;
-      // Check if own SMTP is configured
-      const { data: host } = await (supabase as any)
-        .from("tenant_settings")
-        .select("setting_value")
-        .eq("tenant_id", tenantId)
-        .eq("setting_key", "smtp_host")
-        .maybeSingle();
-      return !host?.setting_value;
-    },
-    enabled: !!tenantId && isAdmin,
+    enabled: !!tenantId && !!user && !isAdmin,
   });
 
   const alerts = useMemo<DashboardAlert[]>(() => {
@@ -138,7 +113,8 @@ const DashboardAlerts = () => {
       });
     }
 
-    if (profileIncomplete) {
+    // Members only
+    if (!isAdmin && profileIncomplete) {
       list.push({
         id: "profile-incomplete",
         severity: "info",
@@ -149,22 +125,8 @@ const DashboardAlerts = () => {
       });
     }
 
-    if (isAdmin && smtpMissing) {
-      list.push({
-        id: "smtp-missing",
-        severity: "warning",
-        title: "Email settings not configured",
-        description:
-          "Email notifications may not be sent. Configure your email settings or enable global email.",
-        action: {
-          label: "Configure",
-          to: "/dashboard/setup/tenant-configuration",
-        },
-      });
-    }
-
     return list.filter((a) => !dismissed.has(a.id));
-  }, [isAdmin, pendingApprovals, profileIncomplete, smtpMissing, dismissed]);
+  }, [isAdmin, pendingApprovals, profileIncomplete, dismissed]);
 
   if (alerts.length === 0) return null;
 

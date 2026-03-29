@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleton";
-import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
+import DashboardCustomizer, { DashboardCustomizerTrigger } from "@/components/dashboard/DashboardCustomizer";
 import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
 import MiniStatCard from "@/components/dashboard/MiniStatCard";
 import MetricCard from "@/components/dashboard/MetricCard";
@@ -18,7 +22,7 @@ import AdminChartsCard from "@/components/dashboard/AdminChartsCard";
 import RecentAdminTransactions from "@/components/dashboard/RecentAdminTransactions";
 import { PoolSummaryMiniCard } from "@/components/dashboard/PoolSummaryMiniCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp } from "@/components/dashboard/dashboardUtils";
-import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark } from "lucide-react";
+import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown, MoreHorizontal, Plus, Landmark, Loader2, Eye } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
@@ -44,12 +48,32 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [loanApplyOpen, setLoanApplyOpen] = useState(false);
   const [debitOrderOpen, setDebitOrderOpen] = useState(false);
+  const [debitOrderAccountSelectOpen, setDebitOrderAccountSelectOpen] = useState(false);
+  const [debitOrderAccountQuery, setDebitOrderAccountQuery] = useState("");
+  const [adminSelectedDebitEntity, setAdminSelectedDebitEntity] = useState<{
+    entityId: string;
+    entityName: string;
+    entityAccountId: string;
+    accountNumber?: string;
+  } | null>(null);
   const [recentOpen, setRecentOpen] = useState(true);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [headerTargets, setHeaderTargets] = useState<{ mobile: HTMLElement | null; desktop: HTMLElement | null }>({
+    mobile: null,
+    desktop: null,
+  });
 
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
     useDashboardWidgets(true);
+
+  useEffect(() => {
+    setHeaderTargets({
+      mobile: document.getElementById("dashboard-header-actions-mobile"),
+      desktop: document.getElementById("dashboard-header-actions-desktop"),
+    });
+  }, []);
 
   const { data: memberPrimaryAccount, isLoading: memberPrimaryAccountLoading } = useQuery({
     queryKey: ["admin_loan_apply_primary_account", tenantId, user?.id],
@@ -93,6 +117,45 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     },
     enabled: !!user && !!tenantId,
   });
+
+  const canAdminPickDebitEntity = isSuperAdmin || isTenantAdmin;
+
+  const { data: adminEntityAccounts = [], isLoading: loadingAdminEntityAccounts } = useQuery({
+    queryKey: ["admin_entity_accounts_debit_order_dashboard", tenantId, debitOrderAccountSelectOpen],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id, account_number, entity_id, entities(name, last_name)")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .eq("is_approved", true)
+        .order("account_number", { ascending: true })
+        .limit(300);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!tenantId && canAdminPickDebitEntity && debitOrderAccountSelectOpen,
+  });
+
+  const filteredAdminEntityAccounts = useMemo(() => {
+    const q = debitOrderAccountQuery.trim().toLowerCase();
+    if (!q) return adminEntityAccounts;
+    return (adminEntityAccounts as any[]).filter((a: any) => {
+      const name = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ").toLowerCase();
+      const acct = String(a.account_number ?? "").toLowerCase();
+      return name.includes(q) || acct.includes(q);
+    });
+  }, [adminEntityAccounts, debitOrderAccountQuery]);
+
+  const openNewDebitOrder = () => {
+    if (memberPrimaryAccount) {
+      setDebitOrderOpen(true);
+      return;
+    }
+    if (canAdminPickDebitEntity) {
+      setDebitOrderAccountSelectOpen(true);
+    }
+  };
 
   // Legal entity check
   const { data: tenantHasLegalEntity, isLoading: legalEntityCheckLoading } = useQuery({
@@ -474,6 +537,19 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
+      {headerTargets.mobile
+        ? createPortal(
+          <DashboardCustomizerTrigger onClick={() => setCustomizeOpen(true)} mode="icon" />,
+          headerTargets.mobile,
+        )
+        : null}
+      {headerTargets.desktop
+        ? createPortal(
+          <DashboardCustomizerTrigger onClick={() => setCustomizeOpen(true)} mode="icon" />,
+          headerTargets.desktop,
+        )
+        : null}
+
       <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Dashboard</h1>
@@ -485,7 +561,6 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <DashboardCustomizer widgets={widgets} onToggle={toggleWidget} onReorder={reorderWidgets} onReset={resetToDefault} />
           {isMobile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -498,6 +573,10 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                   <Plus className="mr-2 h-4 w-4" />
                   New Transaction
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLoanDialogOpen(true)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Loan Transactions
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
                   onSelect={() => {
@@ -505,29 +584,72 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                     setLoanApplyOpen(true);
                   }}
                 >
-                  <Banknote className="mr-2 h-4 w-4" />
-                  Loan Application
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Loan Application
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
                   onSelect={() => {
-                    if (!memberPrimaryAccount || memberPrimaryAccountLoading) return;
-                    setDebitOrderOpen(true);
+                    if (memberPrimaryAccountLoading) return;
+                    openNewDebitOrder();
                   }}
                 >
-                  <Landmark className="mr-2 h-4 w-4" />
-                  Debit Order
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Debit Order
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="outline" onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}>New Transaction</Button>
-              <Button variant="outline" onClick={() => setLoanDialogOpen(true)}>Loan Transactions</Button>
-              <Button variant="outline" asChild><Link to="/dashboard/debit-orders">Debit Orders</Link></Button>
-              <Button variant="outline" disabled={!memberPrimaryAccount || memberPrimaryAccountLoading} onClick={() => setLoanApplyOpen(true)}>Loan Application</Button>
-              <Button variant="outline" disabled={!memberPrimaryAccount || memberPrimaryAccountLoading} onClick={() => setDebitOrderOpen(true)}>New Debit Order</Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="shadow-sm"
+                onClick={() => { setSelectedPoolId(undefined); setTxnDialogOpen(true); }}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground/15 ring-1 ring-primary-foreground/30">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+                New Transaction
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-background shadow-sm hover:bg-muted/40"
+                onClick={() => setLoanDialogOpen(true)}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/10 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-400">
+                  <Eye className="h-3.5 w-3.5" />
+                </span>
+                View Loan Transactions
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-background shadow-sm hover:bg-muted/40"
+                disabled={memberPrimaryAccountLoading}
+                onClick={openNewDebitOrder}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30 text-emerald-700 dark:text-emerald-400">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+                New Debit Order
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
+                onClick={() => setLoanApplyOpen(true)}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/10 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-400">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+                New Loan Application
+              </Button>
             </>
           )}
         </div>
@@ -729,6 +851,79 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
 
       <NewTransactionDialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen} defaultPoolId={selectedPoolId} depositOnly defaultTxnCode="DEPOSIT_FUNDS" />
       <LoanDetailsDialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen} loanSummaries={loanSummaries} totalOutstanding={totalLoansOutstanding} />
+      <DashboardCustomizer
+        widgets={widgets}
+        onToggle={toggleWidget}
+        onReorder={reorderWidgets}
+        onReset={resetToDefault}
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        hideTrigger
+      />
+
+      <Dialog
+        open={debitOrderAccountSelectOpen}
+        onOpenChange={(open) => {
+          setDebitOrderAccountSelectOpen(open);
+          if (!open) setDebitOrderAccountQuery("");
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Member Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={debitOrderAccountQuery}
+              onChange={(e) => setDebitOrderAccountQuery(e.target.value)}
+              placeholder="Search by member name or account number..."
+            />
+            <ScrollArea className="h-[360px] pr-3">
+              {loadingAdminEntityAccounts ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredAdminEntityAccounts.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No matching accounts found.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredAdminEntityAccounts.map((a: any) => {
+                    const entityName = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ") || "Entity";
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => {
+                          setAdminSelectedDebitEntity({
+                            entityId: a.entity_id,
+                            entityName,
+                            entityAccountId: a.id,
+                            accountNumber: a.account_number,
+                          });
+                          setDebitOrderAccountSelectOpen(false);
+                          setDebitOrderOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{entityName}</p>
+                          <p className="text-xs text-muted-foreground truncate">Account: {a.account_number ?? "—"}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          Select
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {memberPrimaryAccount ? (
         <LoanApplicationDialog
           open={loanApplyOpen}
@@ -738,14 +933,17 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
           entityName={memberPrimaryAccount.entityName}
         />
       ) : null}
-      {memberPrimaryAccount ? (
+      {(memberPrimaryAccount || adminSelectedDebitEntity) ? (
         <DebitOrderSignUpDialog
           open={debitOrderOpen}
-          onOpenChange={setDebitOrderOpen}
-          entityId={memberPrimaryAccount.entityId}
-          entityName={memberPrimaryAccount.entityName}
-          entityAccountId={memberPrimaryAccount.entityAccountId}
-          accountNumber={memberPrimaryAccount.accountNumber}
+          onOpenChange={(o) => {
+            setDebitOrderOpen(o);
+            if (!o && !memberPrimaryAccount) setAdminSelectedDebitEntity(null);
+          }}
+          entityId={(memberPrimaryAccount ?? adminSelectedDebitEntity)!.entityId}
+          entityName={(memberPrimaryAccount ?? adminSelectedDebitEntity)!.entityName}
+          entityAccountId={(memberPrimaryAccount ?? adminSelectedDebitEntity)!.entityAccountId}
+          accountNumber={(memberPrimaryAccount ?? adminSelectedDebitEntity)!.accountNumber}
         />
       ) : null}
     </div>

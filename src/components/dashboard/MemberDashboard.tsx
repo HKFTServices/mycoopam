@@ -18,7 +18,7 @@ import RecentMemberDeposits from "@/components/dashboard/RecentMemberDeposits";
 import MemberActivityCard from "@/components/dashboard/MemberActivityCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp, isCriticalDocName } from "@/components/dashboard/dashboardUtils";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
-import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Banknote, Landmark, HelpCircle, FileText, CreditCard } from "lucide-react";
+import { Wallet, Gem, Clock, AlertTriangle, FileDown, ChevronDown, MoreHorizontal, Plus, Landmark, HelpCircle, CreditCard, Eye } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { PoolIcon } from "@/components/pools/PoolIcon";
@@ -393,6 +393,10 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   <Plus className="mr-2 h-4 w-4" />
                   New Transaction
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/loan-applications")}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Loan Transactions
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
                   onSelect={() => {
@@ -400,8 +404,8 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                     setLoanApplyOpen(true);
                   }}
                 >
-                  <Banknote className="mr-2 h-4 w-4" />
-                  Loan Application
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Loan Application
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -438,9 +442,9 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
               >
                 <Link to="/dashboard/loan-applications">
                   <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/10 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-400">
-                    <FileText className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5" />
                   </span>
-                  Loan Transactions
+                  View Loan Transactions
                 </Link>
               </Button>
               <Button
@@ -463,9 +467,9 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 onClick={() => setLoanApplyOpen(true)}
               >
                 <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/10 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-400">
-                  <Banknote className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
                 </span>
-                Loan Application
+                New Loan Application
               </Button>
             </>
           )}

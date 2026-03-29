@@ -410,75 +410,83 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Entity Profile</DialogTitle>
-        </DialogHeader>
+      {/* Desktop-only polish: remove visible scrollbar + use a cleaner header/body/footer layout.
+          Mobile stays as-is (bottom sheet behavior comes from `DialogContent` base styles). */}
+      <DialogContent className="sm:w-[min(96vw,56rem)] sm:max-w-none sm:h-[85vh] sm:p-0 sm:overflow-hidden">
+        <div className="sm:flex sm:flex-col sm:h-full">
+          <DialogHeader className="sm:px-6 sm:py-5 sm:border-b sm:bg-muted/20">
+            <DialogTitle className="sm:text-xl">Edit Profile</DialogTitle>
+          </DialogHeader>
 
-        {loadingEntity ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-              <TabsList className="w-full grid grid-cols-5">
-                <TabsTrigger value="details" className="gap-1.5 text-xs">
-                  {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
-                  Details
-                </TabsTrigger>
-                <TabsTrigger value="address" className="gap-1.5 text-xs">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Address
-                </TabsTrigger>
-                <TabsTrigger value="bank" className="gap-1.5 text-xs">
-                  <Landmark className="h-3.5 w-3.5" />
-                  Bank
-                </TabsTrigger>
-                <TabsTrigger value="referrer" className="gap-1.5 text-xs">
-                  <Users className="h-3.5 w-3.5" />
-                  Referrer
-                </TabsTrigger>
-                <TabsTrigger value="documents" className="gap-1.5 text-xs">
-                  <FileText className="h-3.5 w-3.5" />
-                  Documents
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="details" className="mt-4">
-                {isNaturalPerson ? (
-                  <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
-                ) : (
-                  <EntityDetailsStep data={data} update={update} tenantId={currentTenant.id} />
-                )}
-              </TabsContent>
-
-              <TabsContent value="address" className="mt-4">
-                <AddressStep data={data} update={update} tenantId={currentTenant.id} />
-              </TabsContent>
-
-              <TabsContent value="bank" className="mt-4">
-                <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired} />
-              </TabsContent>
-
-              <TabsContent value="referrer" className="mt-4">
-                <ReferrerStep data={data} update={update} tenantId={currentTenant.id} />
-              </TabsContent>
-
-              <TabsContent value="documents" className="mt-4">
-                <DocumentsStep data={data} update={update} tenantId={currentTenant.id} entityId={entityId} />
-              </TabsContent>
-            </Tabs>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
-                Save Changes
-              </Button>
+          {loadingEntity ? (
+            <div className="flex items-center justify-center py-12 sm:py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="sm:flex sm:flex-col sm:flex-1 sm:min-h-0">
+                <div className="sm:px-6 sm:pt-4">
+                  <TabsList className="w-full grid grid-cols-5 sm:flex sm:w-fit sm:gap-1 sm:rounded-xl sm:bg-muted/40 sm:p-1">
+                    <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
+                      {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
+                      Details
+                    </TabsTrigger>
+                    <TabsTrigger value="address" className="gap-1.5 text-xs sm:text-sm">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Address
+                    </TabsTrigger>
+                    <TabsTrigger value="bank" className="gap-1.5 text-xs sm:text-sm">
+                      <Landmark className="h-3.5 w-3.5" />
+                      Bank
+                    </TabsTrigger>
+                    <TabsTrigger value="referrer" className="gap-1.5 text-xs sm:text-sm">
+                      <Users className="h-3.5 w-3.5" />
+                      Referrer
+                    </TabsTrigger>
+                    <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm">
+                      <FileText className="h-3.5 w-3.5" />
+                      Documents
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-6 sm:pt-4 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
+                  <TabsContent value="details" className="mt-4 sm:mt-0">
+                    {isNaturalPerson ? (
+                      <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
+                    ) : (
+                      <EntityDetailsStep data={data} update={update} tenantId={currentTenant.id} />
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="address" className="mt-4 sm:mt-0">
+                    <AddressStep data={data} update={update} tenantId={currentTenant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="bank" className="mt-4 sm:mt-0">
+                    <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired} />
+                  </TabsContent>
+
+                  <TabsContent value="referrer" className="mt-4 sm:mt-0">
+                    <ReferrerStep data={data} update={update} tenantId={currentTenant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="documents" className="mt-4 sm:mt-0">
+                    <DocumentsStep data={data} update={update} tenantId={currentTenant.id} entityId={entityId} />
+                  </TabsContent>
+                </div>
+              </Tabs>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-border sm:px-6 sm:py-4 sm:bg-background">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
+                  Save Changes
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
