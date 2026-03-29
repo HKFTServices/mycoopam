@@ -254,17 +254,49 @@ const RegisterTenant = () => {
     setSlug(value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 30));
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const resizeImage = (file: File, maxSize: number): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width <= maxSize && height <= maxSize) {
+          resolve(file);
+          return;
+        }
+        const scale = Math.min(maxSize / width, maxSize / height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error("Resize failed")); return; }
+          resolve(new File([blob], file.name.replace(/\.\w+$/, ".png"), { type: "image/png" }));
+        }, "image/png");
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       toast({ title: "Logo too large", description: "Maximum 5MB", variant: "destructive" });
       return;
     }
-    setLogoFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setLogoPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    try {
+      const resized = await resizeImage(file, 200);
+      setLogoFile(resized);
+      const reader = new FileReader();
+      reader.onload = () => setLogoPreview(reader.result as string);
+      reader.readAsDataURL(resized);
+    } catch {
+      toast({ title: "Could not process logo", variant: "destructive" });
+    }
   };
 
   const removeLogo = () => { setLogoFile(null); setLogoPreview(null); };
