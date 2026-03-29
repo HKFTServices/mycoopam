@@ -705,7 +705,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           if (!hoShow) return null;
                           const effectiveOpen = normalizedQuery ? true : headOfficeOpen;
                           const isActive = [...headOfficeNavItems, ...globalSetupNavItems].some((i) => i.path === location.pathname);
-                          const hoSubItems = filteredHeadOfficeAll.filter((i) => i.path !== "/dashboard/head-office/settings");
+                          const hoSubItems = filteredHeadOfficeAll;
                           const globalEffectiveOpen = normalizedQuery ? true : globalSetupOpen;
                           const globalShow = sectionHasMatch("Global Setup", globalSetupNavItems, normalizedQuery);
 
