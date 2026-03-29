@@ -91,9 +91,9 @@ const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; 
                     Control: <span className="text-foreground/90">{l.controlAccount || "—"}</span>
                   </p>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="text-right max-w-[45%] break-words">
                   <p className="text-[10px] text-muted-foreground">{l.side === "DR" ? "Debit (+)" : "Credit (−)"}</p>
-                  <p className="font-mono text-sm font-semibold">{fmt(l.amount)}</p>
+                  <p className="font-mono text-sm font-semibold break-all">{fmt(l.amount)}</p>
                 </div>
               </div>
             </div>
@@ -834,8 +834,8 @@ const LedgerEntries = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
+      <div className="flex items-center gap-3 min-w-0">
         <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
         <div>
           <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Ledger Entries</h1>
@@ -846,8 +846,8 @@ const LedgerEntries = () => {
       </div>
 
       <Tabs defaultValue="bank">
-        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
-          <TabsList className="w-max">
+        <div className="max-w-full overflow-x-auto pb-1">
+          <TabsList className="min-w-max whitespace-nowrap justify-start">
             <TabsTrigger value="bank">Bank Entries ({bankEntries.length})</TabsTrigger>
             <TabsTrigger value="journal">Journal Entries ({journalEntries.length})</TabsTrigger>
             {canReviewApprovals && (
@@ -874,7 +874,7 @@ const LedgerEntries = () => {
               <Plus className="h-4 w-4 mr-1" /> Bank Entry
             </Button>
           </div>
-          <Card>
+          <Card className={isMobile ? "overflow-hidden" : undefined}>
             <CardContent className={isMobile ? "p-3" : "p-0"}>
               {isMobile ? (
                 bankLoading ? (
@@ -923,11 +923,11 @@ const LedgerEntries = () => {
                           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                             <div className="rounded-xl border bg-background/60 p-2">
                               <p className="text-[10px] text-muted-foreground">Amount</p>
-                              <p className="font-mono font-semibold text-right">{amount > 0 ? formatCurrency(amount) : "—"}</p>
+                              <p className="font-mono font-semibold text-right break-all">{amount > 0 ? formatCurrency(amount) : "—"}</p>
                             </div>
                             <div className="rounded-xl border bg-background/60 p-2">
                               <p className="text-[10px] text-muted-foreground">Excl VAT</p>
-                              <p className="font-mono text-right">{r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}</p>
+                              <p className="font-mono text-right break-all">{r.amount_excl_vat > 0 ? formatCurrency(r.amount_excl_vat) : "—"}</p>
                             </div>
                             <div className="rounded-xl border bg-background/60 p-2 col-span-2">
                               <p className="text-[10px] text-muted-foreground">VAT</p>
@@ -1008,7 +1008,7 @@ const LedgerEntries = () => {
               <Plus className="h-4 w-4 mr-1" /> Journal Entry
             </Button>
           </div>
-          <Card>
+          <Card className={isMobile ? "overflow-hidden" : undefined}>
             <CardContent className={isMobile ? "p-3" : "p-0"}>
               {isMobile ? (
                 journalLoading ? (
@@ -1053,12 +1053,12 @@ const LedgerEntries = () => {
                             <div className="rounded-xl border bg-background/60 p-2">
                               <p className="text-[10px] text-muted-foreground">Debit</p>
                               <p className="text-[11px] text-muted-foreground truncate">{debitCA}</p>
-                              <p className="font-mono font-semibold text-right text-primary">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</p>
+                              <p className="font-mono font-semibold text-right text-primary break-all">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</p>
                             </div>
                             <div className="rounded-xl border bg-background/60 p-2">
                               <p className="text-[10px] text-muted-foreground">Credit</p>
                               <p className="text-[11px] text-muted-foreground truncate">{creditCA}</p>
-                              <p className="font-mono font-semibold text-right text-destructive">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</p>
+                              <p className="font-mono font-semibold text-right text-destructive break-all">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</p>
                             </div>
                             {isVatRegistered ? (
                               <div className="rounded-xl border bg-background/60 p-2 col-span-2">
@@ -1148,7 +1148,7 @@ const LedgerEntries = () => {
                 No entries pending approval
               </CardContent></Card>
             ) : (
-              <Card>
+              <Card className={isMobile ? "overflow-hidden" : undefined}>
                 <CardContent className={isMobile ? "p-3" : "p-0"}>
                   {isMobile ? (
                     <div className="space-y-3">
@@ -1174,9 +1174,9 @@ const LedgerEntries = () => {
                                 Submitted by: {getSubmitterName(entry)}
                               </p>
                             </div>
-                            <div className="shrink-0 text-right">
+                            <div className="text-right max-w-[45%] break-words">
                               <p className="text-[10px] text-muted-foreground">Amount</p>
-                              <p className="font-mono font-semibold">
+                              <p className="font-mono font-semibold break-all">
                                 {formatCurrency(Number(entry.debit || entry.credit || 0))}
                               </p>
                             </div>
@@ -1291,9 +1291,9 @@ const LedgerEntries = () => {
               return (
                 <Card key={houseId} className="overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <Building2 className="h-4 w-4 text-primary" />
-                      <span className="font-semibold text-sm">{houseName}</span>
+                      <span className="font-semibold text-sm min-w-0 truncate max-w-[55vw] sm:max-w-none">{houseName}</span>
                       {isVatRegistered ? (
                         <Badge variant="outline" className="text-[10px] h-5 gap-1 text-emerald-600 border-emerald-500/40 bg-emerald-500/10">
                           <ShieldCheck className="h-3 w-3" /> VAT Registered
@@ -1326,9 +1326,9 @@ const LedgerEntries = () => {
                                     <span>• Rate: <span className="font-mono text-foreground">{c.commission_percentage}%</span></span>
                                   </div>
                                 </div>
-                                <div className="shrink-0 text-right">
+                                <div className="text-right max-w-[45%] break-words">
                                   <p className="text-[10px] text-muted-foreground">Commission</p>
-                                  <p className="font-mono font-semibold">{formatCurrency(c.commission_amount)}</p>
+                                  <p className="font-mono font-semibold break-all">{formatCurrency(c.commission_amount)}</p>
                                 </div>
                               </div>
                               <div className="mt-3">
@@ -1341,17 +1341,17 @@ const LedgerEntries = () => {
                         })}
 
                         <div className="rounded-2xl border border-border bg-muted/30 p-3 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">House Total (excl VAT)</span>
-                            <span className="font-mono font-semibold">{formatCurrency(totalExclVat)}</span>
+                          <div className="flex items-start justify-between gap-3 min-w-0">
+                            <span className="text-muted-foreground min-w-0">House Total (excl VAT)</span>
+                            <span className="font-mono font-semibold text-right break-all max-w-[55%]">{formatCurrency(totalExclVat)}</span>
                           </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-muted-foreground">VAT</span>
-                            <span className="font-mono">{isVatRegistered ? formatCurrency(totalVat) : "R 0.00"}</span>
+                          <div className="flex items-start justify-between gap-3 min-w-0 mt-2">
+                            <span className="text-muted-foreground min-w-0">VAT</span>
+                            <span className="font-mono text-right break-all max-w-[55%]">{isVatRegistered ? formatCurrency(totalVat) : "R 0.00"}</span>
                           </div>
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/60">
-                            <span className="font-semibold">Total Payable (incl VAT)</span>
-                            <span className="font-mono font-bold text-primary">{formatCurrency(totalInclVat)}</span>
+                          <div className="flex items-start justify-between gap-3 min-w-0 mt-2 pt-2 border-t border-border/60">
+                            <span className="font-semibold min-w-0">Total Payable (incl VAT)</span>
+                            <span className="font-mono font-bold text-primary text-right break-all max-w-[55%]">{formatCurrency(totalInclVat)}</span>
                           </div>
                         </div>
                       </div>
@@ -1425,7 +1425,7 @@ const LedgerEntries = () => {
 
       {/* ── Bank Entry Dialog ── */}
       <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
-        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Landmark className="h-5 w-5" />Post Bank Entry</DialogTitle>
             <DialogDescription>
@@ -1535,7 +1535,7 @@ const LedgerEntries = () => {
 
       {/* ── Journal Entry Dialog ── */}
       <Dialog open={journalDialogOpen} onOpenChange={setJournalDialogOpen}>
-        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Post Journal Entry</DialogTitle>
             <DialogDescription>
@@ -1646,7 +1646,7 @@ const LedgerEntries = () => {
 
       {/* ── Decline Dialog ── */}
       <Dialog open={!!reviewEntry} onOpenChange={(o) => { if (!o) { setReviewEntry(null); setDeclineReason(""); } }}>
-        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive"><X className="h-5 w-5" /> Decline Entry</DialogTitle>
             <DialogDescription>

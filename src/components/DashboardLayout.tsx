@@ -61,6 +61,7 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  CircleUser,
   ClipboardCheck,
   ClipboardList,
   Cog,
@@ -850,6 +851,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </span>
               )}
             </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Profile"
+                >
+                  <CircleUser className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setEditProfileOpen(true)}>Edit Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setChangePasswordOpen(true)}>Change Password</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <PendingTransferNotification />
           </div>
         </header>
