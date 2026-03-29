@@ -97,6 +97,7 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   path: string;
+  dataTour?: string;
 };
 
 const mainNavItems: NavItem[] = [
@@ -137,18 +138,18 @@ const adminOnlyNavItems: NavItem[] = [
 ];
 
 const tenantSetupNavItems: NavItem[] = [
-  { label: "Pools", icon: Wallet, path: "/dashboard/pools" },
-  { label: "Items", icon: Gem, path: "/dashboard/items" },
-  { label: "Fees", icon: DollarSign, path: "/dashboard/fees" },
-  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types" },
-  { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts" },
-  { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements" },
-  { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions" },
-  { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" },
-  { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
+  { label: "Pools", icon: Wallet, path: "/dashboard/pools", dataTour: "setup-pools" },
+  { label: "Items", icon: Gem, path: "/dashboard/items", dataTour: "setup-items" },
+  { label: "Fees", icon: DollarSign, path: "/dashboard/fees", dataTour: "setup-fees" },
+  { label: "Entity Account Types", icon: Briefcase, path: "/dashboard/setup/entity-account-types", dataTour: "setup-account-types" },
+  { label: "GL Accounts", icon: BookOpen, path: "/dashboard/setup/gl-accounts", dataTour: "setup-gl-accounts" },
+  { label: "Document Requirements", icon: ShieldCheck, path: "/dashboard/setup/document-requirements", dataTour: "setup-doc-reqs" },
+  { label: "Terms & Conditions", icon: FileText, path: "/dashboard/setup/terms-conditions", dataTour: "setup-terms" },
+  { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications", dataTour: "setup-campaigns" },
+  { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration", dataTour: "setup-config" },
   { label: "Loan Settings", icon: Banknote, path: "/dashboard/setup/loan-settings" },
   { label: "Budget Categories", icon: ClipboardList, path: "/dashboard/setup/budget-categories" },
-  { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions" },
+  { label: "Permissions", icon: ShieldCheck, path: "/dashboard/setup/permissions", dataTour: "setup-permissions" },
   { label: "Data Import", icon: Package, path: "/dashboard/setup/data-import" },
   { label: "Legacy GL Allocation", icon: BookOpen, path: "/dashboard/legacy-gl-allocation" },
 ];
@@ -243,6 +244,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [headOfficeOpen, setHeadOfficeOpen] = useState(location.pathname.includes("/dashboard/head-office") || location.pathname.includes("/dashboard/setup"));
   const [globalSetupOpen, setGlobalSetupOpen] = useState(location.pathname.includes("/dashboard/setup"));
   const [mamOpen, setMamOpen] = useState(location.pathname.includes("/dashboard/mam"));
+
+  // Listen for tour events to auto-expand Tenant Setup sidebar
+  useEffect(() => {
+    const handler = () => setTenantSetupOpen(true);
+    window.addEventListener("expand-tenant-setup", handler);
+    return () => window.removeEventListener("expand-tenant-setup", handler);
+  }, []);
 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -484,6 +492,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     setOpen: (open: boolean) => void;
     viewAll: NavItem;
     items: NavItem[];
+    dataTour?: string;
   }) => {
     const effectiveOpen = normalizedQuery ? true : params.open;
     const show = sectionHasMatch(params.label, params.items, normalizedQuery);
@@ -495,8 +504,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
     const subItems = params.items.filter((i) => i.path !== params.viewAll.path);
 
-    return (
-      <SidebarMenuItem key={params.label}>
+      return (
+      <SidebarMenuItem key={params.label} data-tour={params.dataTour}>
         <SidebarMenuButton asChild isActive={isActive}>
           <button
             type="button"
@@ -514,7 +523,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {effectiveOpen ? (
           <SidebarMenuSub>
             {subItems.map((item) => (
-              <SidebarMenuSubItem key={item.path}>
+              <SidebarMenuSubItem key={item.path} data-tour={item.dataTour}>
                 <SidebarMenuSubButton asChild isActive={location.pathname === item.path}>
                   <Link to={item.path}>
                     <item.icon />
@@ -782,6 +791,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           setOpen: setTenantSetupOpen,
                           viewAll: { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
                           items: filteredTenantSetup,
+                          dataTour: "tenant-setup-group",
                         })}
                       </SidebarMenu>
                     </SidebarGroupContent>

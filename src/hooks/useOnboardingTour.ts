@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 
-const STORAGE_KEY = "member_onboarding_completed";
+const DEFAULT_STORAGE_KEY = "member_onboarding_completed";
 
-export function useOnboardingTour() {
+export function useOnboardingTour(storageKey: string = DEFAULT_STORAGE_KEY) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasCompleted, setHasCompleted] = useState(() => {
-    try { return localStorage.getItem(STORAGE_KEY) === "true"; } catch { return false; }
+    try { return localStorage.getItem(storageKey) === "true"; } catch { return false; }
   });
 
   // Auto-trigger on first visit
@@ -38,8 +38,8 @@ export function useOnboardingTour() {
     setIsActive(false);
     setCurrentStep(0);
     setHasCompleted(true);
-    try { localStorage.setItem(STORAGE_KEY, "true"); } catch {}
-  }, []);
+    try { localStorage.setItem(storageKey, "true"); } catch {}
+  }, [storageKey]);
 
   const skipTour = useCallback(() => {
     completeTour();

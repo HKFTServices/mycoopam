@@ -3,6 +3,9 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { adminSetupTourSteps } from "@/components/onboarding/adminSetupTourSteps";
+import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +27,7 @@ import { PoolSummaryMiniCard } from "@/components/dashboard/PoolSummaryMiniCard"
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp } from "@/components/dashboard/dashboardUtils";
 import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown, MoreHorizontal, Plus, Landmark, Loader2, Eye } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { ChartTooltip } from "@/components/dashboard/DonutBlock";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
@@ -63,6 +67,18 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
     desktop: null,
   });
 
+  // Admin setup tour - triggers once for new tenant admins
+  const adminTour = useOnboardingTour("admin_setup_tour_completed");
+
+  // Auto-expand tenant setup sidebar when tour reaches setup steps
+  useEffect(() => {
+    if (adminTour.isActive) {
+      const currentTourStep = adminSetupTourSteps[adminTour.currentStep];
+      if (currentTourStep?.target?.startsWith("setup-") || currentTourStep?.target === "tenant-setup-group") {
+        window.dispatchEvent(new CustomEvent("expand-tenant-setup"));
+      }
+    }
+  }, [adminTour.isActive, adminTour.currentStep]);
   const greeting = profile?.first_name ? `Welcome back, ${profile.first_name}!` : "Welcome back!";
 
   const { widgets, isWidgetVisible, toggleWidget, reorderWidgets, resetToDefault, isMobile } =
@@ -597,6 +613,11 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                   <Plus className="mr-2 h-4 w-4" />
                   New Debit Order
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => adminTour.startTour()}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Setup Guide
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -649,6 +670,16 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                   <Plus className="h-3.5 w-3.5" />
                 </span>
                 New Loan Application
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => adminTour.startTour()}
+              >
+                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                Setup Guide
               </Button>
             </>
           )}
@@ -946,6 +977,17 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
           accountNumber={(memberPrimaryAccount ?? adminSelectedDebitEntity)!.accountNumber}
         />
       ) : null}
+
+      {/* Admin Setup Tour */}
+      <OnboardingTour
+        steps={adminSetupTourSteps}
+        isActive={adminTour.isActive}
+        currentStep={adminTour.currentStep}
+        onNext={() => adminTour.nextStep(adminSetupTourSteps.length)}
+        onPrev={adminTour.prevStep}
+        onSkip={adminTour.skipTour}
+        onComplete={adminTour.completeTour}
+      />
     </div>
   );
 };
