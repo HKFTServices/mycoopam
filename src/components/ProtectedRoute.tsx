@@ -10,7 +10,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentTenant, loading: tenantLoading } = useTenant();
   const location = useLocation();
 
+  // Check user roles to skip per-tenant entity check for admins
+  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
+    queryKey: ["protected_route_roles", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await (supabase as any)
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id);
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const isSuperAdmin = userRoles.some((r: any) => r.role === "super_admin");
+  const isTenantAdmin = userRoles.some((r: any) =>
+    r.role === "tenant_admin" && (!r.tenant_id || r.tenant_id === currentTenant?.id)
+  );
+  const isAdmin = isSuperAdmin || isTenantAdmin;
+
   // Check if user has an entity relationship in the current tenant
+  // Skip for admins — they manage tenants and may not have entities in every one
   const { data: hasEntityInTenant, isLoading: entityCheckLoading } = useQuery({
     queryKey: ["has_entity_in_tenant", user?.id, currentTenant?.id],
     queryFn: async () => {
@@ -24,7 +45,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
       return !!data?.entity_id;
     },
-    enabled: !!user && !!currentTenant,
+    enabled: !!user && !!currentTenant && !isAdmin,
   });
 
   if (loading || tenantLoading) {
@@ -41,12 +62,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname === "/membership-application";
 
-  // Check per-tenant onboarding: user is a member of this tenant but has no entity
-  // Wait for the entity check to complete before redirecting
-  if (currentTenant && !entityCheckLoading && hasEntityInTenant === false && !isOnboardingRoute) {
-    // Check if user is a tenant_admin (they may have been provisioned via provision-tenant)
-    // Admins created via provision-tenant already have entities, so this case is for
-    // existing users joining a new co-op
+  // Per-tenant onboarding check — only for non-admin regular users
+  if (
+    !isAdmin &&
+    currentTenant &&
+    !entityCheckLoading &&
+    !rolesLoading &&
+    hasEntityInTenant === false &&
+    !isOnboardingRoute
+  ) {
     return <Navigate to="/onboarding" replace />;
   }
 
@@ -56,8 +80,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (
     profile &&
+    !isAdmin &&
     regStatus === "incomplete" &&
-    // Only redirect if the user also has no entity in current tenant
     hasEntityInTenant !== true &&
     !isOnboardingRoute
   ) {
@@ -67,6 +91,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Redirect registered legacy users who haven't completed onboarding
   if (
     profile &&
+    !isAdmin &&
     regStatus === "registered" &&
     needsOnboarding === true &&
     hasEntityInTenant !== true &&
@@ -78,6 +103,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Show pending approval message for users awaiting document review
   if (
     profile &&
+    !isAdmin &&
     regStatus === "pending_approval" &&
     !isOnboardingRoute
   ) {
