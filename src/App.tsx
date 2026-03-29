@@ -1,5 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -17,7 +16,6 @@ import RelationshipTypes from "./pages/setup/RelationshipTypes";
 import DocumentRequirements from "./pages/setup/DocumentRequirements";
 import Titles from "./pages/setup/Titles";
 import TermsConditions from "./pages/setup/TermsConditions";
-
 
 import Communications from "./pages/setup/Communications";
 import SystemEmailTemplates from "./pages/setup/SystemEmailTemplates";
@@ -129,7 +127,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
         <AuthProvider>
           <TenantProvider>

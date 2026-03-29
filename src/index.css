@@ -202,3 +202,30 @@
   background: hsl(var(--popover));
   border-color: hsl(var(--border));
 }
+
+/* Sonner toast overrides */
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  opacity: 0.6;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+  opacity: 1;
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="success"] [data-description] {
+  color: hsl(var(--success-foreground)) !important;
+  opacity: 0.9;
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="error"] [data-description] {
+  color: hsl(var(--destructive-foreground)) !important;
+  opacity: 0.9;
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="info"] [data-description] {
+  color: hsl(var(--info-foreground)) !important;
+  opacity: 0.9;
+}
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"] [data-description] {
+  color: hsl(var(--warning-foreground)) !important;
+  opacity: 0.9;
+}

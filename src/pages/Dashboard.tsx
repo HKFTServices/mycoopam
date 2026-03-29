@@ -8,6 +8,7 @@ import AdminDashboardSkeleton from "@/components/dashboard/AdminDashboardSkeleto
 import UserDashboardSkeleton from "@/components/dashboard/UserDashboardSkeleton";
 import AdminDashboard from "@/components/dashboard/AdminDashboard";
 import MemberDashboard from "@/components/dashboard/MemberDashboard";
+import DashboardAlerts from "@/components/dashboard/DashboardAlerts";
 
 const Dashboard = () => {
   const { currentTenant, tenants, loading: tenantLoading } = useTenant();
@@ -62,11 +63,16 @@ const Dashboard = () => {
   if (!tenantId) return null;
 
   // Route to the correct dashboard
-  if (isAdmin) {
-    return <AdminDashboard tenantId={tenantId} isSuperAdmin={isSuperAdmin} isTenantAdmin={isTenantAdmin} />;
-  }
-
-  return <MemberDashboard tenantId={tenantId} />;
+  return (
+    <>
+      <DashboardAlerts />
+      {isAdmin ? (
+        <AdminDashboard tenantId={tenantId} isSuperAdmin={isSuperAdmin} isTenantAdmin={isTenantAdmin} />
+      ) : (
+        <MemberDashboard tenantId={tenantId} />
+      )}
+    </>
+  );
 };
 
 export default Dashboard;
