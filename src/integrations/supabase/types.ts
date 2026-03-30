@@ -6650,6 +6650,7 @@ export type Database = {
         | "transaction_confirmation"
         | "first_membership_dep_stock"
         | "pending_approval_notification"
+        | "member_invitation"
       entity_type: "natural_person" | "legal_entity"
       gender_type: "male" | "female" | "other"
       registration_status: "incomplete" | "pending_verification" | "registered"
@@ -6812,6 +6813,7 @@ export const Constants = {
         "transaction_confirmation",
         "first_membership_dep_stock",
         "pending_approval_notification",
+        "member_invitation",
       ],
       entity_type: ["natural_person", "legal_entity"],
       gender_type: ["male", "female", "other"],
