@@ -477,9 +477,9 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                 </div>
               </Tabs>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border sm:px-6 sm:py-4 sm:bg-background">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button onClick={handleSave} disabled={saving}>
+              <div className="flex justify-end gap-3 pt-3 border-t border-border sm:px-6 sm:py-3 sm:bg-background sm:shrink-0">
+                <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button size="sm" onClick={handleSave} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
                   Save Changes
                 </Button>
