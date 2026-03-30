@@ -347,7 +347,7 @@ const Auth = () => {
               </Button>
             </form>
             {isLogin && (
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center space-y-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -357,6 +357,17 @@ const Auth = () => {
                   className="text-sm text-muted-foreground hover:text-primary hover:underline"
                 >
                   Forgot your password?
+                </button>
+                <br />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActivateEmail(email);
+                    setActivateOpen(true);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                >
+                  Need to activate your account?
                 </button>
               </div>
             )}
