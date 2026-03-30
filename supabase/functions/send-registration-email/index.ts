@@ -300,6 +300,30 @@ Deno.serve(async (req) => {
       body = body.replaceAll(key, val);
     }
 
+    // If the template body doesn't contain the activation link anywhere (custom templates missing the placeholder),
+    // inject an activation button block before the closing tag or at the end
+    if (!body.includes(activationLink)) {
+      const activationBlock = `
+        <div style="margin:28px 0;text-align:center;">
+          <a href="${activationLink}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Activate My Account</a>
+        </div>
+        <p style="font-size:13px;color:#888;">If the button does not work, copy and paste this link into your browser:</p>
+        <p style="font-size:13px;word-break:break-all;color:#1a1a2e;">${activationLink}</p>`;
+
+      // Try to insert before closing </div>, </body>, or signature — or just append
+      if (body.includes("{{email_signature}}") || body.includes(emailSignature)) {
+        const sigTarget = body.includes(emailSignature) ? emailSignature : "";
+        if (sigTarget) {
+          body = body.replace(sigTarget, activationBlock + sigTarget);
+        } else {
+          body = body + activationBlock;
+        }
+      } else {
+        body = body + activationBlock;
+      }
+      console.log("[send-registration-email] Injected activation link into custom template");
+    }
+
     // For non-tenant-creator emails, append signature if not already in template
     if (!is_tenant_creator && emailSignature && !body.includes(emailSignature)) {
       body = body + emailSignature;
