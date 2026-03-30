@@ -114,7 +114,9 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const today = new Date().toISOString().slice(0, 10);
+    // Use SAST (UTC+2) for the date to avoid wrong date near midnight
+    const nowForDate = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const today = nowForDate.toISOString().slice(0, 10);
 
     // Get current time in SAST (UTC+2)
     const nowUtc = new Date();
