@@ -749,6 +749,7 @@ const TenantConfiguration = () => {
             <TabsTrigger value="vault" className="gap-1.5 text-xs sm:text-sm"><Vault className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Vault &amp; Invoice</span><span className="sm:hidden">Vault</span></TabsTrigger>
             {!isMobile && <TabsTrigger value="signature" className="gap-1.5 text-xs sm:text-sm"><FileSignature className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email Signature</span><span className="sm:hidden">Sig.</span></TabsTrigger>}
             <TabsTrigger value="theme" className="gap-1.5 text-xs sm:text-sm"><Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Theme</TabsTrigger>
+            <TabsTrigger value="data" className="gap-1.5 text-xs sm:text-sm"><Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Data</TabsTrigger>
           </TabsList>
         </div>
 
