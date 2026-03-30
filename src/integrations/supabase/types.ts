@@ -2190,9 +2190,12 @@ export type Database = {
           id: string
           import_batch: string | null
           imported_at: string
+          is_posted: boolean
           legacy_id: string
           new_id: string
           notes: string | null
+          posted_at: string | null
+          posted_by: string | null
           table_name: string
           tenant_id: string
         }
@@ -2201,9 +2204,12 @@ export type Database = {
           id?: string
           import_batch?: string | null
           imported_at?: string
+          is_posted?: boolean
           legacy_id: string
           new_id: string
           notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
           table_name: string
           tenant_id: string
         }
@@ -2212,9 +2218,12 @@ export type Database = {
           id?: string
           import_batch?: string | null
           imported_at?: string
+          is_posted?: boolean
           legacy_id?: string
           new_id?: string
           notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
           table_name?: string
           tenant_id?: string
         }
