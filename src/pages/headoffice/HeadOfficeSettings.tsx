@@ -612,13 +612,13 @@ const HeadOfficeSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Clear Test Data Confirmation Dialog */}
-      <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+      {/* Clear Test Data — Step 1 */}
+      <AlertDialog open={clearDialogOpen && !confirmStep2} onOpenChange={(o) => { if (!o) setClearDialogOpen(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Clear Test Data — Are you sure?
+              Clear Test Data — Step 1 of 2
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
@@ -634,6 +634,39 @@ const HeadOfficeSettings = () => {
                     </li>
                   ))}
                 </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={(e) => { e.preventDefault(); setConfirmStep2(true); }}
+            >
+              Continue to Final Confirmation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Test Data — Step 2: type CONFIRM */}
+      <AlertDialog open={confirmStep2} onOpenChange={(o) => { if (!o && !clearTestDataMutation.isPending) { setConfirmStep2(false); setClearDialogOpen(false); setConfirmInput(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Final Confirmation — Step 2 of 2
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Type <strong className="text-foreground">CONFIRM</strong> below to proceed with deletion.</p>
+                <input
+                  className="w-full border rounded px-3 py-2 text-sm bg-background text-foreground"
+                  placeholder="Type CONFIRM"
+                  value={confirmInput}
+                  onChange={(e) => setConfirmInput(e.target.value)}
+                  disabled={clearTestDataMutation.isPending}
+                />
                 {clearProgress.length > 0 && (
                   <div className="bg-muted rounded p-2 text-xs font-mono space-y-0.5">
                     {clearProgress.map((s, i) => <div key={i} className="text-primary">{s}</div>)}
@@ -646,10 +679,10 @@ const HeadOfficeSettings = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={clearTestDataMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={clearTestDataMutation.isPending} onClick={() => { setConfirmStep2(false); setConfirmInput(""); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
-              disabled={clearTestDataMutation.isPending}
+              disabled={confirmInput !== "CONFIRM" || clearTestDataMutation.isPending}
               onClick={(e) => {
                 e.preventDefault();
                 clearTestDataMutation.mutate(Number(clearDays));
@@ -658,7 +691,7 @@ const HeadOfficeSettings = () => {
               {clearTestDataMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" />Clearing…</>
               ) : (
-                "Yes, delete all test data"
+                "Yes, permanently delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
