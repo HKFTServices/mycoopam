@@ -291,6 +291,19 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Auto-prompt debit order after loan acceptance */}
+    {app?.entity_accounts?.id && app?.entities?.id && (
+      <DebitOrderSignUpDialog
+        open={showDebitOrder}
+        onOpenChange={setShowDebitOrder}
+        entityId={app.entities.id ?? app.entity_id}
+        entityName={entityName}
+        entityAccountId={app.entity_account_id}
+        accountNumber={app.entity_accounts?.account_number}
+      />
+    )}
+  </>
   );
 };
 
