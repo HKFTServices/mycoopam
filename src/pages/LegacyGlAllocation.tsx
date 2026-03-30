@@ -104,6 +104,7 @@ const TRANSACTION_TYPES = [
 
 const LegacyGlAllocation = () => {
   const { currentTenant } = useTenant();
+  const { user } = useAuth();
   const [selectedTxType, setSelectedTxType] = useState("1912");
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
   const [dateFrom, setDateFrom] = useState<Date>(new Date("2025-03-01"));
