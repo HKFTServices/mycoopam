@@ -193,12 +193,13 @@ const Memberships = () => {
 
       const { data: refs } = await (supabase as any)
         .from("referrers")
-        .select("referrer_number")
+        .select("id, referrer_number, referral_code")
         .eq("user_id", user.id)
         .eq("tenant_id", currentTenant.id)
         .eq("is_active", true)
         .limit(1);
-      return { hasRole: true, referrerNumber: refs?.[0]?.referrer_number ?? null };
+      const ref = refs?.[0];
+      return { hasRole: true, referrerNumber: ref?.referrer_number ?? null, referrerId: ref?.id ?? null, referralCode: ref?.referral_code ?? null };
     },
     enabled: !!user && !!currentTenant,
   });
