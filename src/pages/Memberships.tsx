@@ -922,6 +922,16 @@ const Memberships = () => {
                               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" /> : <X className="h-3 w-3 text-destructive" />}
                               <code className="font-mono text-xs">{a.accountNumber}</code>
                               <span className="text-muted-foreground">)</span>
+                              {a.id === "referrer-virtual" && isActive && (
+                                <span className="flex gap-0.5 ml-1">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                                    <Share2 className="h-3 w-3" />
+                                  </Button>
+                                </span>
+                              )}
                               {!isActive && !isPending && a.status && (
                                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">{isDeactivated ? "Inactive" : statusLabel(a.status)}</Badge>
                               )}
