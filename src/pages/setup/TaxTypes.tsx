@@ -51,7 +51,7 @@ const TaxTypes = () => {
         const { error } = await (supabase as any).from("tax_types").update(payload).eq("id", values.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any).from("tax_types").insert({ ...payload, tenant_id: currentTenant?.id });
+        const { error } = await (supabase as any).from("tax_types").insert(payload);
         if (error) throw error;
       }
     },
