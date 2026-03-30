@@ -350,11 +350,35 @@ const Memberships = () => {
     enabled: !!currentTenant,
   });
 
-  // Calculate combined unit value per entity_account
+  // Fetch pool display types to exclude "do_not_display" pools from value calculation
+  const { data: poolDisplayTypes = [] } = useQuery({
+    queryKey: ["pool_display_types", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("pools")
+        .select("id, pool_statement_display_type")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .eq("is_deleted", false);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  // Calculate combined unit value per entity_account (excluding do_not_display pools)
   const accountValueMap: Record<string, number> = useMemo(() => {
+    const excludedPoolIds = new Set(
+      poolDisplayTypes
+        .filter((p: any) => p.pool_statement_display_type === "do_not_display")
+        .map((p: any) => p.id)
+    );
     const priceByPool: Record<string, number> = {};
     for (const pp of latestPoolPrices) {
-      priceByPool[pp.pool_id] = Number(pp.unit_price_sell);
+      if (!excludedPoolIds.has(pp.pool_id)) {
+        priceByPool[pp.pool_id] = Number(pp.unit_price_sell);
+      }
     }
     const values: Record<string, number> = {};
     for (const row of accountPoolUnits) {
@@ -364,7 +388,7 @@ const Memberships = () => {
       values[acctId] = (values[acctId] || 0) + units * price;
     }
     return values;
-  }, [accountPoolUnits, latestPoolPrices]);
+  }, [accountPoolUnits, latestPoolPrices, poolDisplayTypes]);
 
   // Combined value for an entire entity (sum of all its accounts)
   const entityValueMap: Record<string, number> = useMemo(() => {
