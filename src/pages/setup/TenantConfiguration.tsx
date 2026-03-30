@@ -1139,6 +1139,11 @@ const TenantConfiguration = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ── Data Maintenance ── */}
+        <TabsContent value="data" className="space-y-4">
+          <ClearTestDataCard />
+        </TabsContent>
       </Tabs>
 
       <div className="flex justify-end">
