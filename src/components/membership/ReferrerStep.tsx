@@ -101,6 +101,7 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
         <div className="flex items-center gap-3">
           <Switch checked={data.hasReferrer} onCheckedChange={(v) => update({ hasReferrer: v, referrerId: "" })} />
           <Label>I was referred by an existing member</Label>
+          {autoApplied && <Badge variant="secondary" className="text-xs">Auto-applied from referral link</Badge>}
         </div>
         {data.hasReferrer && (
           <div className="space-y-4 border-t border-border pt-4">
