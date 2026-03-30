@@ -120,10 +120,23 @@ const LoanDetailsStep = ({
             min={0}
             step={100}
             value={form.monthly_available_repayment || ""}
-            placeholder="0"
+            placeholder={monthlyInstalment > 0 ? monthlyInstalment.toFixed(2) : "0"}
             onChange={(e) => update({ monthly_available_repayment: parseFloat(e.target.value) || 0 })}
           />
-          <p className="text-xs text-muted-foreground">Including existing + new loan repayments</p>
+          {monthlyInstalment > 0 && (
+            <p className={`text-xs ${form.monthly_available_repayment > 0 && form.monthly_available_repayment < monthlyInstalment ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              Minimum required: {formatCurrency(monthlyInstalment)}/month
+              {form.monthly_available_repayment > 0 && form.monthly_available_repayment < monthlyInstalment && (
+                <span className="block">⚠ Below minimum — admin review required</span>
+              )}
+              {form.monthly_available_repayment >= monthlyInstalment && form.monthly_available_repayment > 0 && (
+                <span className="block text-emerald-600">✓ Meets or exceeds minimum instalment</span>
+              )}
+            </p>
+          )}
+          {monthlyInstalment <= 0 && (
+            <p className="text-xs text-muted-foreground">Enter loan amount above to see minimum instalment</p>
+          )}
         </div>
       </div>
 
