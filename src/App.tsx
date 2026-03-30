@@ -164,21 +164,21 @@ const App = () => (
               {/* Staff: admin + manager + clerk */}
               <Route path="/dashboard/account-approvals" element={<StaffRoute><AccountApprovals /></StaffRoute>} />
 
-              {/* Admin only: tenant_admin + super_admin */}
-              <Route path="/dashboard/entities" element={<AdminRoute><Entities /></AdminRoute>} />
-              <Route path="/dashboard/entity-accounts" element={<AdminRoute><EntityAccounts /></AdminRoute>} />
-              <Route path="/dashboard/entity-relationships" element={<AdminRoute><EntityRelationships /></AdminRoute>} />
+              {/* Staff: admin + manager + clerk */}
+              <Route path="/dashboard/entities" element={<StaffRoute><Entities /></StaffRoute>} />
+              <Route path="/dashboard/entity-accounts" element={<StaffRoute><EntityAccounts /></StaffRoute>} />
+              <Route path="/dashboard/entity-relationships" element={<StaffRoute><EntityRelationships /></StaffRoute>} />
               <Route path="/dashboard/users" element={<AdminRoute><Users /></AdminRoute>} />
               <Route path="/dashboard/pools" element={<AdminRoute><Pools /></AdminRoute>} />
               <Route path="/dashboard/items" element={<AdminRoute><Items /></AdminRoute>} />
               <Route path="/dashboard/income-expense-items" element={<AdminRoute><IncomeExpenseItems /></AdminRoute>} />
               <Route path="/dashboard/fees" element={<AdminRoute><Fees /></AdminRoute>} />
-              <Route path="/dashboard/operating-journals" element={<AdminRoute><OperatingJournals /></AdminRoute>} />
-              <Route path="/dashboard/ledger-entries" element={<AdminRoute><LedgerEntries /></AdminRoute>} />
-              <Route path="/dashboard/daily-prices/stock" element={<AdminRoute><DailyStockPrices /></AdminRoute>} />
-              <Route path="/dashboard/daily-prices/pools" element={<AdminRoute><DailyPoolPrices /></AdminRoute>} />
-              <Route path="/dashboard/send-message" element={<AdminRoute><SendMessage /></AdminRoute>} />
-              <Route path="/dashboard/message-history" element={<AdminRoute><MessageHistory /></AdminRoute>} />
+              <Route path="/dashboard/operating-journals" element={<StaffRoute><OperatingJournals /></StaffRoute>} />
+              <Route path="/dashboard/ledger-entries" element={<StaffRoute><LedgerEntries /></StaffRoute>} />
+              <Route path="/dashboard/daily-prices/stock" element={<StaffRoute><DailyStockPrices /></StaffRoute>} />
+              <Route path="/dashboard/daily-prices/pools" element={<StaffRoute><DailyPoolPrices /></StaffRoute>} />
+              <Route path="/dashboard/send-message" element={<StaffRoute><SendMessage /></StaffRoute>} />
+              <Route path="/dashboard/message-history" element={<StaffRoute><MessageHistory /></StaffRoute>} />
 
               {/* Tenant setup: tenant_admin + super_admin */}
               <Route path="/dashboard/setup/document-requirements" element={<AdminRoute><DocumentRequirements /></AdminRoute>} />
