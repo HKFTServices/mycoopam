@@ -402,7 +402,7 @@ const EmailSignatureSection = ({
               {showHtmlSource ? (
                 <Textarea
                   value={form.email_signature_en}
-                  onChange={(e) => setForm({ ...form, email_signature_en: e.target.value })}
+                  onChange={(e) => setForm((f: any) => ({ ...f, email_signature_en: e.target.value }))}
                   rows={10}
                   className="font-mono text-xs"
                   placeholder="Enter HTML email signature..."
@@ -410,7 +410,7 @@ const EmailSignatureSection = ({
               ) : (
                 <RichTextEditor
                   value={form.email_signature_en}
-                  onChange={(val) => setForm({ ...form, email_signature_en: val })}
+                  onChange={(val) => setForm((f: any) => ({ ...f, email_signature_en: val }))}
                   placeholder="Enter email signature..."
                 />
               )}
@@ -423,7 +423,7 @@ const EmailSignatureSection = ({
               {showHtmlSource ? (
                 <Textarea
                   value={form.email_signature_af}
-                  onChange={(e) => setForm({ ...form, email_signature_af: e.target.value })}
+                  onChange={(e) => setForm((f: any) => ({ ...f, email_signature_af: e.target.value }))}
                   rows={10}
                   className="font-mono text-xs"
                   placeholder="Voer HTML e-poshandtekening in..."
@@ -431,7 +431,7 @@ const EmailSignatureSection = ({
               ) : (
                 <RichTextEditor
                   value={form.email_signature_af}
-                  onChange={(val) => setForm({ ...form, email_signature_af: val })}
+                  onChange={(val) => setForm((f: any) => ({ ...f, email_signature_af: val }))}
                   placeholder="Voer e-poshandtekening in..."
                 />
               )}
