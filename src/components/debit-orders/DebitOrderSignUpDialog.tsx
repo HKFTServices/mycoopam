@@ -59,6 +59,7 @@ const DebitOrderSignUpDialog = ({
   const [startDate, setStartDate] = useState(getFirstOfNextMonth());
   const [allocations, setAllocations] = useState<PoolAllocation[]>([]);
   const [manualLoanInstalment, setManualLoanInstalment] = useState("");
+  const [manualLoanTerm, setManualLoanTerm] = useState("");
   const [notes, setNotes] = useState("");
 
   // Bank details
@@ -87,6 +88,7 @@ const DebitOrderSignUpDialog = ({
     const savedNotes = (() => { try { return JSON.parse(existingOrder.notes); } catch { return null; } })();
     setNotes(savedNotes?.user_notes ?? "");
     setManualLoanInstalment(savedNotes?.loan_instalment != null ? String(savedNotes.loan_instalment) : "");
+    setManualLoanTerm(savedNotes?.loan_term_months != null ? String(savedNotes.loan_term_months) : "");
     const savedPools = Array.isArray(existingOrder.pool_allocations) ? existingOrder.pool_allocations : [];
     if (savedPools.length > 0) {
       setAllocations(savedPools.map((p: any) => ({
@@ -392,7 +394,10 @@ const DebitOrderSignUpDialog = ({
 
   // ── Waterfall calculation ──
   const totalAmount = parseFloat(monthlyAmount) || 0;
-  const suggestedInstalment = outstandingLoanInfo?.instalment ?? 0;
+  const effectiveTerm = manualLoanTerm !== "" ? (parseInt(manualLoanTerm) || repaymentTermMonths) : repaymentTermMonths;
+  const suggestedInstalment = outstandingLoanInfo
+    ? (outstandingLoanInfo.outstanding / effectiveTerm)
+    : 0;
   const loanInstalment = manualLoanInstalment !== "" ? (parseFloat(manualLoanInstalment) || 0) : suggestedInstalment;
   const afterLoan = Math.max(0, totalAmount - loanInstalment);
   const feeCalc = calculateFees(afterLoan);
@@ -436,6 +441,8 @@ const DebitOrderSignUpDialog = ({
         signed_at: new Date().toISOString(),
         notes: JSON.stringify({
           loan_instalment: loanInstalment,
+          loan_term_months: effectiveTerm,
+          loan_outstanding: outstandingLoanInfo?.outstanding ?? 0,
           admin_fees: feeCalc.totalFee,
           fee_breakdown: feeCalc.breakdown,
           net_to_pools: afterFees,
@@ -482,6 +489,7 @@ const DebitOrderSignUpDialog = ({
     setStartDate(getFirstOfNextMonth());
     setAllocations([]);
     setManualLoanInstalment("");
+    setManualLoanTerm("");
     setSignatureData(null);
     setNotes("");
     setBankName("");
@@ -563,6 +571,21 @@ const DebitOrderSignUpDialog = ({
                   {/* Loan Instalment */}
                   <div className="space-y-1.5">
                     <div className="flex items-end gap-2">
+                      <div className="w-28">
+                        <Label className="text-xs">Term (months)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="120"
+                          placeholder={String(repaymentTermMonths)}
+                          value={manualLoanTerm}
+                          onChange={(e) => {
+                            setManualLoanTerm(e.target.value);
+                            setManualLoanInstalment(""); // recalculate instalment from new term
+                          }}
+                          className="h-8 text-sm"
+                        />
+                      </div>
                       <div className="flex-1">
                         <Label className="text-xs">Loan Instalment ({sym})</Label>
                         <Input
@@ -575,21 +598,21 @@ const DebitOrderSignUpDialog = ({
                           className="h-8 text-sm"
                         />
                       </div>
-                      {suggestedInstalment > 0 && manualLoanInstalment !== "" && (
-                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setManualLoanInstalment("")}>
+                      {(manualLoanInstalment !== "" || manualLoanTerm !== "") && (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setManualLoanInstalment(""); setManualLoanTerm(""); }}>
                           Reset
                         </Button>
                       )}
                     </div>
-                    {suggestedInstalment > 0 && (
+                    {outstandingLoanInfo && (
                       <div className="text-xs text-muted-foreground space-y-0.5">
                         <p>
-                          Suggested instalment: {formatCurrency(suggestedInstalment, sym)}
-                          {" "}(outstanding {formatCurrency(outstandingLoanInfo?.outstanding ?? 0, sym)} ÷ {repaymentTermMonths} months)
+                          Outstanding: {formatCurrency(outstandingLoanInfo.outstanding, sym)}
+                          {" "}÷ {effectiveTerm} months = {formatCurrency(suggestedInstalment, sym)}/mo
                         </p>
-                        {(outstandingLoanInfo?.legacyOutstanding ?? 0) > 0 && (
+                        {(outstandingLoanInfo.legacyOutstanding ?? 0) > 0 && (
                           <p className="italic">
-                            Includes legacy loan balance: {formatCurrency(outstandingLoanInfo!.legacyOutstanding, sym)}
+                            Includes legacy loan balance: {formatCurrency(outstandingLoanInfo.legacyOutstanding, sym)}
                           </p>
                         )}
                       </div>
