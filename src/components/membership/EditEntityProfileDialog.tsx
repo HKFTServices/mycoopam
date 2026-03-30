@@ -451,7 +451,7 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-3 sm:px-6">
-                  <TabsContent value="details" className="mt-4 sm:mt-0">
+                  <TabsContent value="details" className="mt-0">
                     {isNaturalPerson ? (
                       <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
                     ) : (
@@ -459,25 +459,25 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                     )}
                   </TabsContent>
 
-                  <TabsContent value="address" className="mt-4 sm:mt-0">
+                  <TabsContent value="address" className="mt-0">
                     <AddressStep data={data} update={update} tenantId={currentTenant.id} />
                   </TabsContent>
 
-                  <TabsContent value="bank" className="mt-4 sm:mt-0">
+                  <TabsContent value="bank" className="mt-0">
                     <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired} />
                   </TabsContent>
 
-                  <TabsContent value="referrer" className="mt-4 sm:mt-0">
+                  <TabsContent value="referrer" className="mt-0">
                     <ReferrerStep data={data} update={update} tenantId={currentTenant.id} />
                   </TabsContent>
 
-                  <TabsContent value="documents" className="mt-4 sm:mt-0">
+                  <TabsContent value="documents" className="mt-0">
                     <DocumentsStep data={data} update={update} tenantId={currentTenant.id} entityId={entityId} />
                   </TabsContent>
                 </div>
               </Tabs>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-border sm:px-6 sm:py-3 sm:bg-background sm:shrink-0">
+              <div className="flex justify-end gap-3 px-4 py-3 border-t border-border bg-background shrink-0 sm:px-6">
                 <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
                 <Button size="sm" onClick={handleSave} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
