@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/contexts/TenantContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,20 +28,24 @@ type TaxType = {
 
 const TaxTypes = () => {
   const queryClient = useQueryClient();
+  const { currentTenant } = useTenant();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TaxType | null>(null);
   const [form, setForm] = useState({ name: "", description: "", percentage: 0, is_active: true });
 
   const { data: types = [], isLoading } = useQuery({
-    queryKey: ["tax_types"],
+    queryKey: ["tax_types", currentTenant?.id],
     queryFn: async () => {
+      if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("tax_types")
         .select("*")
+        .eq("tenant_id", currentTenant.id)
         .order("name");
       if (error) throw error;
       return data as TaxType[];
     },
+    enabled: !!currentTenant,
   });
 
   const upsert = useMutation({
@@ -50,7 +55,7 @@ const TaxTypes = () => {
         const { error } = await (supabase as any).from("tax_types").update(payload).eq("id", values.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any).from("tax_types").insert(payload);
+        const { error } = await (supabase as any).from("tax_types").insert({ ...payload, tenant_id: currentTenant?.id });
         if (error) throw error;
       }
     },
