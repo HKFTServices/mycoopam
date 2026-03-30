@@ -281,8 +281,17 @@ const DepositDetailsStep = ({
             type="text"
             inputMode="decimal"
             placeholder={formatCurrency(loanInstalment)}
-            value={loanRepaymentAmount > 0 ? formatCurrency(loanRepaymentAmount) : ""}
-            onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/[^\d.]/g, ""))}
+            value={loanFieldFocused ? loanDisplayAmount : (loanRepaymentAmount > 0 ? formatCurrency(loanRepaymentAmount) : "")}
+            onFocus={() => {
+              setLoanFieldFocused(true);
+              setLoanDisplayAmount(loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : "");
+            }}
+            onBlur={() => setLoanFieldFocused(false)}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^\d.]/g, "");
+              setLoanDisplayAmount(raw);
+              onLoanRepaymentAmountChange?.(raw);
+            }}
             className="text-lg font-bold h-10"
           />
           {loanRepaymentAmount > outstandingLoanBalance && outstandingLoanBalance > 0 && (
