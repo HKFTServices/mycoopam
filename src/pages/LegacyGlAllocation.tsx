@@ -920,7 +920,7 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Stock Purchase/Sale pool allocations — same as pool deposit/withdrawal ──
+      // ── Stock Purchase/Sale pool allocations — Cash Control only (no Member Interest) ──
       else if ((isStockPurchase || isStockSale) && stockPoolEntryTypes.has(entry.entry_type_id)) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
@@ -932,16 +932,6 @@ const LegacyGlAllocation = () => {
           control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: "stock_pool_allocation",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-        proposed.push({
-          description: `Member Interest — ${poolName}`,
-          debit: entry.credit, credit: entry.debit,
-          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
-          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
-          control_account_id: null, control_account_label: "",
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "member_interest",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
