@@ -16,6 +16,7 @@ import { generateAodHtml } from "@/lib/generateAod";
 import SignaturePad from "@/components/ui/signature-pad";
 import LoanAodContent from "@/components/loans/LoanAodContent";
 import LoanRepaymentSchedule from "@/components/loans/LoanRepaymentSchedule";
+import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
 interface Props {
   open: boolean;
