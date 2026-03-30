@@ -239,7 +239,8 @@ const NewTransactionDialog = ({
     queryKey: ["outstanding_loan_for_txn", selectedAccountId, currentTenant?.id],
     queryFn: async () => {
       if (!selectedAccountId || !currentTenant) return null;
-      // Get disbursed loans
+
+      // 1) Check modern loan_applications first
       const { data: loans } = await (supabase as any)
         .from("loan_applications")
         .select("id, monthly_instalment, total_loan, amount_approved, pool_id")
@@ -247,31 +248,58 @@ const NewTransactionDialog = ({
         .eq("tenant_id", currentTenant.id)
         .eq("status", "disbursed")
         .order("created_at", { ascending: false });
-      if (!loans?.length) return null;
 
-      // Calculate outstanding from cashflow_transactions
-      const { data: cftRows } = await (supabase as any)
-        .from("cashflow_transactions")
-        .select("debit, credit")
-        .eq("entity_account_id", selectedAccountId)
-        .eq("tenant_id", currentTenant.id)
-        .eq("is_active", true)
-        .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
+      if (loans?.length) {
+        // Calculate outstanding from cashflow_transactions
+        const { data: cftRows } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("debit, credit")
+          .eq("entity_account_id", selectedAccountId)
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true)
+          .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
 
-      const outstanding = (cftRows || []).reduce((sum: number, r: any) =>
-        sum + Number(r.debit) - Number(r.credit), 0);
+        const outstanding = (cftRows || []).reduce((sum: number, r: any) =>
+          sum + Number(r.debit) - Number(r.credit), 0);
 
-      if (outstanding <= 0) return null;
+        if (outstanding > 0) {
+          const totalInstalment = loans.reduce((sum: number, l: any) =>
+            sum + (Number(l.monthly_instalment) || 0), 0);
+          return {
+            loanIds: loans.map((l: any) => l.id),
+            loanPoolIds: loans.map((l: any) => l.pool_id).filter(Boolean),
+            outstanding,
+            instalment: totalInstalment,
+          };
+        }
+      }
 
-      const totalInstalment = loans.reduce((sum: number, l: any) =>
-        sum + (Number(l.monthly_instalment) || 0), 0);
+      // 2) Fallback: check legacy loan data via RPC
+      const { data: legacyLoans } = await (supabase as any)
+        .rpc("get_loan_outstanding", { p_tenant_id: currentTenant.id });
 
-      return {
-        loanIds: loans.map((l: any) => l.id),
-        loanPoolIds: loans.map((l: any) => l.pool_id).filter(Boolean),
-        outstanding,
-        instalment: totalInstalment,
-      };
+      if (legacyLoans?.length) {
+        // Match by entity_account_id → entity_id
+        const { data: acct } = await (supabase as any)
+          .from("entity_accounts")
+          .select("entity_id")
+          .eq("id", selectedAccountId)
+          .single();
+
+        if (acct?.entity_id) {
+          const match = legacyLoans.find((l: any) => l.entity_id === acct.entity_id && Number(l.outstanding) > 0);
+          if (match) {
+            return {
+              loanIds: [],
+              loanPoolIds: [],
+              outstanding: Number(match.outstanding),
+              instalment: Math.round(Number(match.outstanding) / 12 * 100) / 100, // estimate monthly
+            };
+          }
+        }
+      }
+
+      return null;
     },
     enabled: !!selectedAccountId && !!currentTenant && open,
   });
