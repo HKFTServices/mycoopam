@@ -144,12 +144,9 @@ const Users = () => {
       return data as { token_hash: string; email: string };
     },
     onSuccess: async (data) => {
-      // Store admin info for the impersonation banner
       const adminEmail = currentUser?.email ?? "admin";
       localStorage.setItem("impersonating_from", adminEmail);
-      // Sign out current user
       await supabase.auth.signOut();
-      // Use the OTP verify with the token hash
       const { error } = await supabase.auth.verifyOtp({
         token_hash: data.token_hash,
         type: "magiclink",
@@ -164,6 +161,28 @@ const Users = () => {
     },
     onError: (err: any) => {
       toast({ title: "Impersonation failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Send invite email mutation
+  const sendInviteMutation = useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      const { data, error } = await supabase.functions.invoke("send-registration-email", {
+        body: { tenant_id: currentTenant!.id, user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return { ...data, email };
+    },
+    onSuccess: (data) => {
+      if (data.email_sent) {
+        toast({ title: "Invite sent", description: `Activation email sent to ${data.email}` });
+      } else {
+        toast({ title: "Email failed", description: data.smtp_error || "Could not send email. Check SMTP settings.", variant: "destructive" });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
