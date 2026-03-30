@@ -4,5 +4,8 @@ project_id = "yhzajyegudbecyjpznjr"
 site_url = "https://www.myco-op.co.za"
 additional_redirect_urls = ["https://*.myco-op.co.za", "https://*.myco-op.co.za/**", "https://www.myco-op.co.za/**", "https://mycoopam.lovable.app/**", "https://id-preview--c772d78d-4880-461b-886c-3c8c1929e673.lovable.app/**", "https://pmc.myco-op.co.za/**", "https://aem.myco-op.co.za/**"]
 
+[auth.otp]
+otp_expiry = 86400
+
 [functions.google-places]
 verify_jwt = false
