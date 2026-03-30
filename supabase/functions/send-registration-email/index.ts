@@ -279,6 +279,13 @@ Deno.serve(async (req) => {
           <p style="font-size:13px;color:#888;margin:0 0 8px;">If the button does not work, copy and paste this link into your browser:</p>
           <p style="font-size:13px;word-break:break-all;color:#1a1a2e;margin:0 0 24px;">{{activation_link}}</p>
 
+          <div style="background:#f8f9fa;border-left:4px solid #1a1a2e;padding:16px 20px;margin:24px 0;border-radius:4px;">
+            <p style="font-size:14px;color:#333;margin:0 0 8px;font-weight:600;">A note from your admin team:</p>
+            <p style="font-size:13px;color:#555;margin:0;line-height:1.6;">
+              As with any new system, there may be occasional bugs or issues as we settle in. Your patience and understanding are greatly appreciated during this period. If you experience any problems or have suggestions on how we can improve the platform, please do not hesitate to contact your administrator immediately. Your feedback is invaluable in helping us make this system the best it can be.
+            </p>
+          </div>
+
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
           <p style="font-size:14px;color:#333;margin:0;">Best regards,<br/><strong>${tenantName}</strong></p>
         </div>
