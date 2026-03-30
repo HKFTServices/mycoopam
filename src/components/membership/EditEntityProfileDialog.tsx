@@ -412,10 +412,10 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Desktop-only polish: remove visible scrollbar + use a cleaner header/body/footer layout.
           Mobile stays as-is (bottom sheet behavior comes from `DialogContent` base styles). */}
-      <DialogContent className="sm:w-[min(94vw,48rem)] sm:max-w-none sm:h-[min(85vh,720px)] sm:p-0 sm:overflow-hidden">
-        <div className="sm:flex sm:flex-col sm:h-full">
-          <DialogHeader className="sm:px-6 sm:py-4 sm:border-b sm:bg-muted/20 sm:shrink-0">
-            <DialogTitle className="sm:text-lg">Edit Profile</DialogTitle>
+      <DialogContent className="p-0 overflow-hidden flex flex-col max-h-[92dvh] sm:w-[min(94vw,48rem)] sm:max-w-none sm:h-[min(85vh,720px)] sm:max-h-[85vh]">
+        <div className="flex flex-col h-full min-h-0">
+          <DialogHeader className="px-4 py-3 border-b bg-muted/20 shrink-0 sm:px-6 sm:py-4">
+            <DialogTitle className="text-base sm:text-lg">Edit Profile</DialogTitle>
           </DialogHeader>
 
           {loadingEntity ? (
@@ -424,34 +424,34 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
             </div>
           ) : (
             <>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="sm:flex sm:flex-col sm:flex-1 sm:min-h-0">
-                <div className="sm:px-6 sm:pt-3 sm:shrink-0">
-                  <TabsList className="w-full grid grid-cols-5 sm:flex sm:w-fit sm:gap-1 sm:rounded-xl sm:bg-muted/40 sm:p-1">
-                    <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex flex-col flex-1 min-h-0">
+                <div className="px-4 pt-3 shrink-0 sm:px-6 overflow-x-auto">
+                  <TabsList className="w-fit flex gap-1 rounded-xl bg-muted/40 p-1">
+                    <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
                       Details
                     </TabsTrigger>
-                    <TabsTrigger value="address" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="address" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <MapPin className="h-3.5 w-3.5" />
                       Address
                     </TabsTrigger>
-                    <TabsTrigger value="bank" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="bank" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <Landmark className="h-3.5 w-3.5" />
                       Bank
                     </TabsTrigger>
-                    <TabsTrigger value="referrer" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="referrer" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <Users className="h-3.5 w-3.5" />
                       Referrer
                     </TabsTrigger>
-                    <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <FileText className="h-3.5 w-3.5" />
                       Documents
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
-                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-4 sm:pt-3">
-                  <TabsContent value="details" className="mt-4 sm:mt-0">
+                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-3 sm:px-6">
+                  <TabsContent value="details" className="mt-0">
                     {isNaturalPerson ? (
                       <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
                     ) : (
@@ -459,25 +459,25 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                     )}
                   </TabsContent>
 
-                  <TabsContent value="address" className="mt-4 sm:mt-0">
+                  <TabsContent value="address" className="mt-0">
                     <AddressStep data={data} update={update} tenantId={currentTenant.id} />
                   </TabsContent>
 
-                  <TabsContent value="bank" className="mt-4 sm:mt-0">
+                  <TabsContent value="bank" className="mt-0">
                     <BankDetailsStep data={data} update={update} tenantId={currentTenant.id} bankProofRequired={bankProofRequired} />
                   </TabsContent>
 
-                  <TabsContent value="referrer" className="mt-4 sm:mt-0">
+                  <TabsContent value="referrer" className="mt-0">
                     <ReferrerStep data={data} update={update} tenantId={currentTenant.id} />
                   </TabsContent>
 
-                  <TabsContent value="documents" className="mt-4 sm:mt-0">
+                  <TabsContent value="documents" className="mt-0">
                     <DocumentsStep data={data} update={update} tenantId={currentTenant.id} entityId={entityId} />
                   </TabsContent>
                 </div>
               </Tabs>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-border sm:px-6 sm:py-3 sm:bg-background sm:shrink-0">
+              <div className="flex justify-end gap-3 px-4 py-3 border-t border-border bg-background shrink-0 sm:px-6">
                 <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
                 <Button size="sm" onClick={handleSave} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
