@@ -111,10 +111,11 @@ const Items = () => {
   });
 
   const { data: taxTypes = [] } = useQuery({
-    queryKey: ["tax_types_list"],
+    queryKey: ["tax_types_list", currentTenant?.id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("tax_types").select("id, name, percentage")
+        .eq("tenant_id", currentTenant!.id)
         .eq("is_active", true).order("name");
       if (error) throw error;
       return data as TaxType[];

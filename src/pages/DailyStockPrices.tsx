@@ -90,15 +90,17 @@ const DailyStockPrices = () => {
   });
 
   const { data: taxTypes = [] } = useQuery({
-    queryKey: ["tax_types_active"],
+    queryKey: ["tax_types_active", currentTenant?.id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("tax_types")
         .select("id, name, percentage")
+        .eq("tenant_id", currentTenant!.id)
         .eq("is_active", true);
       if (error) throw error;
       return data as TaxType[];
     },
+    enabled: !!currentTenant,
   });
 
   const { data: pools = [] } = useQuery({

@@ -281,12 +281,12 @@ const LedgerEntries = () => {
   const isVatRegistered = tenantConfig?.is_vat_registered ?? false;
 
   const { data: taxTypes = [] } = useQuery({
-    queryKey: ["tax_types_le"],
+    queryKey: ["tax_types_le", currentTenant?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("tax_types").select("id, name, percentage").eq("is_active", true).order("name");
+      const { data } = await (supabase as any).from("tax_types").select("id, name, percentage").eq("tenant_id", currentTenant!.id).eq("is_active", true).order("name");
       return data as TaxType[] ?? [];
     },
-    enabled: isVatRegistered,
+    enabled: !!currentTenant && isVatRegistered,
   });
 
   // ── Helpers ──────────────────────────────────────────────────────────────
