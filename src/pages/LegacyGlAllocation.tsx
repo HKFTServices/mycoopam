@@ -989,12 +989,13 @@ const LegacyGlAllocation = () => {
           transaction_date: txDate, entry_type: "loan_payout_gl",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
-        // 2) Pool Loan Control DR
+        // 2) Pool Loan Control DR + Cash Control CR
         if (ca) {
           const poolName = ca.pool_name ?? ca.name ?? "";
-          // Find the loan control account for this pool
+          const poolId = (ca as any).pool_id;
+          // Loan Control DR
           const loanCa = controlAccounts?.find(c =>
-            c.pool_id === (ca as any).pool_id &&
+            c.pool_id === poolId &&
             c.account_type?.toLowerCase().includes("loan")
           );
           if (loanCa) {
@@ -1003,11 +1004,21 @@ const LegacyGlAllocation = () => {
               debit: amount, credit: 0,
               gl_account_id: null, gl_account_label: "",
               control_account_id: loanCa.new_id, control_account_label: `${loanCa.name} (${loanCa.pool_name})`,
-              pool_id: (loanCa as any).pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+              pool_id: poolId ?? null, entity_account_id: eaInfo?.id ?? null,
               transaction_date: txDate, entry_type: "loan_payout_control",
               reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
             });
           }
+          // Cash Control CR
+          proposed.push({
+            description: `Cash Control — ${poolName}`,
+            debit: 0, credit: amount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca.new_id, control_account_label: `${ca.name} (${ca.pool_name})`,
+            pool_id: poolId ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "loan_payout_cash_control",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
         }
       }
       // ── Fallback for non-deposit or unmapped entries ──
