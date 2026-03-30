@@ -80,6 +80,8 @@ const HeadOfficeSettings = () => {
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [clearDays, setClearDays] = useState("7");
   const [clearProgress, setClearProgress] = useState<string[]>([]);
+  const [confirmStep2, setConfirmStep2] = useState(false);
+  const [confirmInput, setConfirmInput] = useState("");
 
   const getVal = (key: string) => form[key] ?? settings?.[key] ?? "";
 
