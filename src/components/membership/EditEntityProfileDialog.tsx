@@ -412,10 +412,10 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Desktop-only polish: remove visible scrollbar + use a cleaner header/body/footer layout.
           Mobile stays as-is (bottom sheet behavior comes from `DialogContent` base styles). */}
-      <DialogContent className="sm:w-[min(94vw,48rem)] sm:max-w-none sm:h-[min(85vh,720px)] sm:p-0 sm:overflow-hidden">
-        <div className="sm:flex sm:flex-col sm:h-full">
-          <DialogHeader className="sm:px-6 sm:py-4 sm:border-b sm:bg-muted/20 sm:shrink-0">
-            <DialogTitle className="sm:text-lg">Edit Profile</DialogTitle>
+      <DialogContent className="p-0 overflow-hidden flex flex-col max-h-[92dvh] sm:w-[min(94vw,48rem)] sm:max-w-none sm:h-[min(85vh,720px)] sm:max-h-[85vh]">
+        <div className="flex flex-col h-full min-h-0">
+          <DialogHeader className="px-4 py-3 border-b bg-muted/20 shrink-0 sm:px-6 sm:py-4">
+            <DialogTitle className="text-base sm:text-lg">Edit Profile</DialogTitle>
           </DialogHeader>
 
           {loadingEntity ? (
