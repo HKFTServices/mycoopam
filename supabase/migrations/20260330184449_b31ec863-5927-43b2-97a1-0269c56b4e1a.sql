@@ -1,0 +1,1 @@
+ALTER TYPE application_event ADD VALUE IF NOT EXISTS 'member_invitation';
