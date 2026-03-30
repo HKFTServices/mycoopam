@@ -568,6 +568,7 @@ const LegacyGlAllocation = () => {
     const isIncomeExpense = rootEntry.tx_type_id === "1952";
     const isStockPurchase = rootEntry.tx_type_id === "1953";
     const isStockSale = rootEntry.tx_type_id === "1954";
+    const isGrant = rootEntry.tx_type_id === "1960";
     // Check if this transaction includes a Share entry (1922) — determines fee treatment
     const hasShareEntry = allEntries.some(e => e.entry_type_id === "1922");
 
@@ -945,6 +946,34 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
+      // ── Grant Payout (1963) — Grants Paid DR + Pool Cash Control CR ──
+      else if (isGrant && entry.entry_type_id === "1963") {
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        const amount = entry.credit > 0 ? entry.credit : entry.debit;
+        // GL: Grants Paid DR (expense)
+        proposed.push({
+          description: `Grants Paid — ${poolName}`,
+          debit: amount, credit: 0,
+          gl_account_id: "d25cd3a3-62cc-4763-a5f4-6635bc6030d5", gl_account_label: "5120 Grants Paid",
+          control_account_id: null, control_account_label: "",
+          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "grant_gl",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+        // Control: Pool Cash Control CR (money leaves pool)
+        if (ca?.new_id) {
+          proposed.push({
+            description: `Grant — ${poolName}`,
+            debit: 0, credit: amount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: ca.new_id, control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "grant_control",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+      }
       // ── Fallback for non-deposit or unmapped entries ──
       else {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
@@ -1026,6 +1055,25 @@ const LegacyGlAllocation = () => {
           control_account_id: null, control_account_label: "",
           pool_id: null, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: isStockPurchase ? "bank_payment" : "bank_receipt",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+    }
+
+    // ── Grant — Bank CR for total payout ──
+    if (isGrant) {
+      const grantTotal = allEntries
+        .filter(e => e.entry_type_id === "1963")
+        .reduce((sum, e) => sum + (e.credit > 0 ? e.credit : e.debit), 0);
+      if (grantTotal > 0) {
+        proposed.push({
+          description: "Bank Payment — Grant",
+          debit: 0, credit: grantTotal,
+          gl_account_id: tenantGlConfig?.bankGlId ?? null,
+          gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "bank_payment",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
