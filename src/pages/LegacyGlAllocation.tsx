@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +104,7 @@ const TRANSACTION_TYPES = [
 
 const LegacyGlAllocation = () => {
   const { currentTenant } = useTenant();
+  const { user } = useAuth();
   const [selectedTxType, setSelectedTxType] = useState("1912");
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
   const [dateFrom, setDateFrom] = useState<Date>(new Date("2025-03-01"));
@@ -348,9 +350,10 @@ const LegacyGlAllocation = () => {
       while (hasMore) {
         const { data: page, error } = await supabase
           .from("legacy_id_mappings")
-          .select("legacy_id, notes")
+          .select("legacy_id, notes, is_posted")
           .eq("table_name", "cashflow_transactions")
           .eq("tenant_id", currentTenant.id)
+          .eq("is_posted", false)
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -1092,7 +1095,35 @@ const LegacyGlAllocation = () => {
         if (error) throw error;
       }
 
-      toast.success(`Posted ${toInsert.length} entries from ${balanced.length} transaction groups`);
+      // Mark legacy_id_mappings as posted
+      const postedRootIds = balanced
+        .filter(g => !alreadyPosted.has(g.root.cft_id))
+        .map(g => g.root.cft_id);
+
+      if (postedRootIds.length > 0) {
+        // Collect all legacy CFT IDs in the posted groups (root + children)
+        const allCftIds = balanced
+          .filter(g => !alreadyPosted.has(g.root.cft_id))
+          .flatMap(g => [g.root.cft_id, ...g.children.map(c => c.cft_id)]);
+
+        const uniqueCftIds = [...new Set(allCftIds)];
+        const MARK_BATCH = 100;
+        for (let i = 0; i < uniqueCftIds.length; i += MARK_BATCH) {
+          const batch = uniqueCftIds.slice(i, i + MARK_BATCH);
+          await (supabase as any)
+            .from("legacy_id_mappings")
+            .update({
+              is_posted: true,
+              posted_at: new Date().toISOString(),
+              posted_by: user?.id ?? null,
+            })
+            .eq("table_name", "cashflow_transactions")
+            .eq("tenant_id", currentTenant.id)
+            .in("legacy_id", batch);
+        }
+      }
+
+      toast.success(`Posted ${toInsert.length} entries from ${balanced.length - alreadyPosted.size} transaction groups`);
       setShowPreview(false);
     } catch (err: any) {
       toast.error("Post failed: " + err.message);
