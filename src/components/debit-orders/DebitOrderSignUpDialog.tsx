@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import SignaturePad from "@/components/ui/signature-pad";
-import { Loader2, FileText, CreditCard, AlertCircle } from "lucide-react";
+import { Loader2, FileText, CreditCard, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface DebitOrderSignUpDialogProps {
@@ -45,7 +46,7 @@ const DebitOrderSignUpDialog = ({
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
-
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("details");
   const [monthlyAmount, setMonthlyAmount] = useState("");
   const debitDay = "1";
@@ -198,7 +199,7 @@ const DebitOrderSignUpDialog = ({
   });
 
   // Pre-fill bank details from entity_bank_details
-  const { data: existingBank } = useQuery({
+  const { data: existingBank, isLoading: bankLoading } = useQuery({
     queryKey: ["entity_bank_debit", entityId],
     queryFn: async () => {
       if (!currentTenant) return null;
@@ -524,7 +525,38 @@ const DebitOrderSignUpDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {step === "details" && (
+        {/* Bank details missing guard */}
+        {!isEditMode && !bankLoading && existingBank === null && !bankAccountNumber && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Banking details required</p>
+                <p className="text-sm text-muted-foreground">
+                  Your banking details must be completed before you can set up a debit order.
+                  Please update your profile with your bank account information first.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate("/dashboard/memberships");
+                }}
+              >
+                Go to My Profile
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Only show the form when bank details exist or user is editing */}
+        {(isEditMode || existingBank !== null || bankAccountNumber) && step === "details" && (
           <div className="space-y-6">
             {/* Amount & Frequency */}
             <div>
