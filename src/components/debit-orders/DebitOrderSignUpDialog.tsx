@@ -526,7 +526,7 @@ const DebitOrderSignUpDialog = ({
         </DialogHeader>
 
         {/* Bank details missing guard */}
-        {!isEditMode && existingBank === null && !bankAccountNumber && (
+        {!isEditMode && !bankLoading && existingBank === null && !bankAccountNumber && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
