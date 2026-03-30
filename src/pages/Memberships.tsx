@@ -528,7 +528,7 @@ const Memberships = () => {
 	    return { sortedGroups, uncategorized };
 	  }, [filteredGroups]);
 
-  const queryClient = useQueryClient();
+  const queryClient2 = useQueryClient();
 
   const generateReferralCode = async () => {
     if (!referrerInfo?.referrerId || !currentTenant) return null;
