@@ -201,8 +201,33 @@ const Users = () => {
         </p>
       </div>
 
-      <div className="max-w-sm">
-        <Input placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="max-w-sm w-full">
+          <Input placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        {isAdmin && (
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-2 shrink-0"
+            disabled={sendInviteMutation.isPending}
+            onClick={() => {
+              const uninvited = filtered.filter(
+                (u) => u.registration_status !== "registered" && u.email
+              );
+              if (uninvited.length === 0) {
+                toast({ title: "No pending users", description: "All users are already registered." });
+                return;
+              }
+              uninvited.forEach((u) =>
+                sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })
+              );
+            }}
+          >
+            <Mail className="h-4 w-4" />
+            Send Invite Emails
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
