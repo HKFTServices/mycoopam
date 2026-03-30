@@ -35,6 +35,7 @@ const Auth = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { session, isPasswordRecovery } = useAuth();
+  const refCode = searchParams.get("ref") || "";
 
   // Handle token_hash verification from activation links
   // When the registration email link goes directly to the tenant domain
