@@ -248,21 +248,27 @@ const Reports = () => {
       const isLegacy = !!r.legacy_transaction_id;
       const isStraightPosting = Boolean(r.is_bank) || isLoanEntry || isLegacy;
 
+      // For legacy entries, amount_excl_vat is often 0 — fall back to debit/credit
+      const exclVat = Number(r.amount_excl_vat || 0);
+      const dr = Number(r.debit || 0);
+      const cr = Number(r.credit || 0);
+      const effectiveExclVat = exclVat > 0 ? exclVat : (dr > 0 ? dr : cr);
+
       if (isStraightPosting) {
-        map[r.gl_account_id].netDebit += Number(r.debit || 0);
-        map[r.gl_account_id].netCredit += Number(r.credit || 0);
-        if (Number(r.debit || 0) > 0) {
-          map[r.gl_account_id].exclVatDebit += Number(r.amount_excl_vat || 0);
+        map[r.gl_account_id].netDebit += dr;
+        map[r.gl_account_id].netCredit += cr;
+        if (dr > 0) {
+          map[r.gl_account_id].exclVatDebit += exclVat > 0 ? exclVat : dr;
         } else {
-          map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
+          map[r.gl_account_id].exclVatCredit += exclVat > 0 ? exclVat : cr;
         }
       } else {
-        map[r.gl_account_id].netCredit += Number(r.debit || 0);
-        map[r.gl_account_id].netDebit += Number(r.credit || 0);
-        if (Number(r.debit || 0) > 0) {
-          map[r.gl_account_id].exclVatCredit += Number(r.amount_excl_vat || 0);
+        map[r.gl_account_id].netCredit += dr;
+        map[r.gl_account_id].netDebit += cr;
+        if (dr > 0) {
+          map[r.gl_account_id].exclVatCredit += exclVat > 0 ? exclVat : dr;
         } else {
-          map[r.gl_account_id].exclVatDebit += Number(r.amount_excl_vat || 0);
+          map[r.gl_account_id].exclVatDebit += exclVat > 0 ? exclVat : cr;
         }
       }
     }
