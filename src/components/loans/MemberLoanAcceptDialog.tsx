@@ -16,6 +16,7 @@ import { generateAodHtml } from "@/lib/generateAod";
 import SignaturePad from "@/components/ui/signature-pad";
 import LoanAodContent from "@/components/loans/LoanAodContent";
 import LoanRepaymentSchedule from "@/components/loans/LoanRepaymentSchedule";
+import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 
 interface Props {
   open: boolean;
@@ -28,6 +29,7 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   const queryClient = useQueryClient();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [memberSignature, setMemberSignature] = useState<string | null>(null);
+  const [showDebitOrder, setShowDebitOrder] = useState(false);
 
   const entityName = app?.entities
     ? [app?.entities?.name, app?.entities?.last_name].filter(Boolean).join(" ")
@@ -61,6 +63,8 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
       toast.success("Loan terms accepted — awaiting admin release of funds");
       queryClient.invalidateQueries({ queryKey: ["loan_applications"] });
       onOpenChange(false);
+      // Auto-prompt debit order setup
+      setShowDebitOrder(true);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -133,6 +137,7 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   if (!app) return null;
 
   return (
+  <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
         <DialogHeader>
@@ -287,6 +292,19 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Auto-prompt debit order after loan acceptance */}
+    {app?.entity_accounts?.id && app?.entities?.id && (
+      <DebitOrderSignUpDialog
+        open={showDebitOrder}
+        onOpenChange={setShowDebitOrder}
+        entityId={app.entities.id ?? app.entity_id}
+        entityName={entityName}
+        entityAccountId={app.entity_account_id}
+        accountNumber={app.entity_accounts?.account_number}
+      />
+    )}
+  </>
   );
 };
 

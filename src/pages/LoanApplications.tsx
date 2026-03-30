@@ -121,7 +121,7 @@ const LoanApplications = () => {
     queryFn: async () => {
       let query = (supabase as any)
         .from("loan_applications")
-        .select("*, entities(name, last_name), entity_accounts(account_number)")
+        .select("*, entities(id, name, last_name), entity_accounts(id, account_number)")
         .eq("tenant_id", currentTenant!.id)
         .order("created_at", { ascending: false });
 
