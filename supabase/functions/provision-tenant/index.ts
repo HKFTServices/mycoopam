@@ -214,29 +214,8 @@ Deno.serve(async (req) => {
       results.gl_accounts = glRows.length;
     }
 
-    // ─── 2. Tax Types ───
-    const { data: srcTax } = await admin
-      .from("tax_types")
-      .select("*")
-      .eq("tenant_id", SOURCE_TENANT_ID);
-
-    if (srcTax && srcTax.length > 0) {
-      const taxRows = srcTax.map((t: any) => {
-        const newId = uuid();
-        idMap.set(t.id, newId);
-        return {
-          id: newId,
-          tenant_id: tenant_id,
-          name: t.name,
-          percentage: t.percentage,
-          description: t.description,
-          is_active: t.is_active,
-        };
-      });
-      const { error } = await admin.from("tax_types").insert(taxRows);
-      if (error) console.error("Tax types error:", error);
-      results.tax_types = taxRows.length;
-    }
+    // ─── 2. Tax Types (global — no longer cloned per tenant) ───
+    results.tax_types = 0;
 
     // ─── 3. Pools (only selected ones) ───
     const { data: srcPools } = await admin
