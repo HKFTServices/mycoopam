@@ -1093,6 +1093,25 @@ const LegacyGlAllocation = () => {
       }
     }
 
+    // ── Loan Payout — Bank CR for total ──
+    if (isLoanPayout) {
+      const loanTotal = allEntries
+        .filter(e => e.entry_type_id === "1962")
+        .reduce((sum, e) => sum + (e.credit > 0 ? e.credit : e.debit), 0);
+      if (loanTotal > 0) {
+        proposed.push({
+          description: "Bank Payment — Loan Payout",
+          debit: 0, credit: loanTotal,
+          gl_account_id: tenantGlConfig?.bankGlId ?? null,
+          gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "bank_payment",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+    }
+
     const glEntries = proposed.filter(e => e.gl_account_id);
     const totalDebit = glEntries.reduce((s, e) => s + e.debit, 0);
     const totalCredit = glEntries.reduce((s, e) => s + e.credit, 0);
