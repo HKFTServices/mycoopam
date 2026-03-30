@@ -62,8 +62,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // If there is no user behind the session (logout in progress), redirect
+  // to landing page (not /auth) — logout handlers use window.location.replace
+  // to reach the correct tenant page; this fallback prevents flash of /auth.
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname === "/membership-application";
