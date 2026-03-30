@@ -994,7 +994,9 @@ const NewTransactionDialog = ({
   // For deposits, fees are calculated on the amount AFTER loan repayment and membership deductions
   const membershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
   const loanRepaymentNum = parseFloat(loanRepaymentAmount) || 0;
-  const effectiveLoanRepayment = (outstandingLoanInfo && isDeposit) ? loanRepaymentNum : 0;
+  const effectiveLoanRepayment = (outstandingLoanInfo && isDeposit)
+    ? (loanRepaymentOnly ? Math.min(amountNum, outstandingLoanInfo.outstanding) : loanRepaymentNum)
+    : 0;
   const amountAfterMembership = Math.max(0, amountNum - effectiveLoanRepayment - membershipDeductions);
 
   const depositFees = useMemo(
