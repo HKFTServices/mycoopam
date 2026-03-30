@@ -907,12 +907,15 @@ const LegacyGlAllocation = () => {
         }
       }
       // ── Stock Purchase (1948) / Stock Sale (1949) — Stock control entries ──
+      // Purchase: Stock Control DR (stock in). Sale: Stock Control CR (stock out).
       else if ((isStockPurchase && entry.entry_type_id === "1948") || (isStockSale && entry.entry_type_id === "1949")) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        const amount = entry.debit > 0 ? entry.debit : entry.credit;
         proposed.push({
           description: `${isStockPurchase ? "Stock Purchase" : "Stock Sale"} — ${poolName}`,
-          debit: entry.debit, credit: entry.credit,
+          debit: isStockPurchase ? amount : 0,
+          credit: isStockSale ? amount : 0,
           gl_account_id: "ea027bb8-2079-4020-a382-2ad00e8ae296", gl_account_label: "1030 Stock control",
           control_account_id: null, control_account_label: "",
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
