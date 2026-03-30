@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { getTenantUrl } from "@/lib/getSiteUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-	import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard, Check, X } from "lucide-react";
+	import { Loader2, Search, Briefcase, UserPlus, ChevronDown, User, Building, MoreHorizontal, Home, ShoppingCart, Truck, AlertCircle, UserCheck, Pencil, Banknote, ArrowLeftRight, CreditCard, Check, X, Copy, Share2, Link } from "lucide-react";
 	import { useState, useMemo, Fragment } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
@@ -193,12 +194,13 @@ const Memberships = () => {
 
       const { data: refs } = await (supabase as any)
         .from("referrers")
-        .select("referrer_number")
+        .select("id, referrer_number, referral_code")
         .eq("user_id", user.id)
         .eq("tenant_id", currentTenant.id)
         .eq("is_active", true)
         .limit(1);
-      return { hasRole: true, referrerNumber: refs?.[0]?.referrer_number ?? null };
+      const ref = refs?.[0];
+      return { hasRole: true, referrerNumber: ref?.referrer_number ?? null, referrerId: ref?.id ?? null, referralCode: ref?.referral_code ?? null };
     },
     enabled: !!user && !!currentTenant,
   });
@@ -526,6 +528,54 @@ const Memberships = () => {
 	    return { sortedGroups, uncategorized };
 	  }, [filteredGroups]);
 
+  
+
+  const generateReferralCode = async () => {
+    if (!referrerInfo?.referrerId || !currentTenant) return null;
+    // If code already exists, just return the link
+    if (referrerInfo.referralCode) {
+      return buildReferralLink(referrerInfo.referralCode);
+    }
+    // Generate a short unique code
+    const code = `${referrerInfo.referrerNumber}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
+    const { error } = await (supabase as any)
+      .from("referrers")
+      .update({ referral_code: code })
+      .eq("id", referrerInfo.referrerId);
+    if (error) { toast.error("Failed to generate referral code"); return null; }
+    queryClient.invalidateQueries({ queryKey: ["referrer_info"] });
+    return buildReferralLink(code);
+  };
+
+  const buildReferralLink = (code: string) => {
+    if (!currentTenant) return "";
+    const base = getTenantUrl(currentTenant.slug);
+    return `${base}/auth?ref=${encodeURIComponent(code)}`;
+  };
+
+  const handleCopyReferralLink = async () => {
+    const link = await generateReferralCode();
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Referral link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleShareReferralLink = async () => {
+    const link = await generateReferralCode();
+    if (!link) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${currentTenant?.name}`, text: "Sign up using my referral link!", url: link });
+      } catch { /* user cancelled */ }
+    } else {
+      handleCopyReferralLink();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -668,6 +718,16 @@ const Memberships = () => {
               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" /> : <X className="h-3 w-3 text-destructive shrink-0" />}
               <span className={`text-xs ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
               {a.accountNumber && <code className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</code>}
+              {a.id === "referrer-virtual" && isActive && (
+                <span className="flex gap-0.5 ml-1">
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                    <Share2 className="h-3 w-3" />
+                  </Button>
+                </span>
+              )}
               {!isActive && !isPending && a.status && (
                 <Badge variant="destructive" className="text-[9px] px-1 py-0">{isDeactivated ? "Inactive" : statusLabel(a.status)}</Badge>
               )}
@@ -862,6 +922,16 @@ const Memberships = () => {
                               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" /> : <X className="h-3 w-3 text-destructive" />}
                               <code className="font-mono text-xs">{a.accountNumber}</code>
                               <span className="text-muted-foreground">)</span>
+                              {a.id === "referrer-virtual" && isActive && (
+                                <span className="flex gap-0.5 ml-1">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                                    <Share2 className="h-3 w-3" />
+                                  </Button>
+                                </span>
+                              )}
                               {!isActive && !isPending && a.status && (
                                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-1">{isDeactivated ? "Inactive" : statusLabel(a.status)}</Badge>
                               )}

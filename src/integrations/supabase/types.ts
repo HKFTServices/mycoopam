@@ -3553,6 +3553,56 @@ export type Database = {
           },
         ]
       }
+      referral_plans: {
+        Row: {
+          commission_basis: string
+          commission_duration: string
+          commission_percentage: number
+          created_at: string
+          description: string | null
+          duration_months: number | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_basis?: string
+          commission_duration?: string
+          commission_percentage?: number
+          created_at?: string
+          description?: string | null
+          duration_months?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          commission_basis?: string
+          commission_duration?: string
+          commission_percentage?: number
+          created_at?: string
+          description?: string | null
+          duration_months?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referrers: {
         Row: {
           approved_at: string | null
@@ -3561,8 +3611,10 @@ export type Database = {
           entity_id: string | null
           id: string
           is_active: boolean
+          referral_code: string | null
           referral_house_account_id: string
           referral_house_entity_id: string
+          referral_plan_id: string | null
           referrer_number: string
           rejected_at: string | null
           rejected_by: string | null
@@ -3579,8 +3631,10 @@ export type Database = {
           entity_id?: string | null
           id?: string
           is_active?: boolean
+          referral_code?: string | null
           referral_house_account_id: string
           referral_house_entity_id: string
+          referral_plan_id?: string | null
           referrer_number: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -3597,8 +3651,10 @@ export type Database = {
           entity_id?: string | null
           id?: string
           is_active?: boolean
+          referral_code?: string | null
           referral_house_account_id?: string
           referral_house_entity_id?: string
+          referral_plan_id?: string | null
           referrer_number?: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -3628,6 +3684,13 @@ export type Database = {
             columns: ["referral_house_entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrers_referral_plan_id_fkey"
+            columns: ["referral_plan_id"]
+            isOneToOne: false
+            referencedRelation: "referral_plans"
             referencedColumns: ["id"]
           },
           {

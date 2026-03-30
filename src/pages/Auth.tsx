@@ -35,6 +35,7 @@ const Auth = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { session, isPasswordRecovery } = useAuth();
+  const refCode = searchParams.get("ref") || "";
 
   // Handle token_hash verification from activation links
   // When the registration email link goes directly to the tenant domain
@@ -80,6 +81,12 @@ const Auth = () => {
     verifyTokenFromHash();
   }, []);
 
+  // Persist referral code from URL so it survives email verification redirect
+  useEffect(() => {
+    if (refCode) {
+      localStorage.setItem("referralCode", refCode);
+    }
+  }, [refCode]);
   useEffect(() => {
     // Don't redirect to dashboard during password recovery
     if (isPasswordRecovery) return;
@@ -148,12 +155,13 @@ const Auth = () => {
         if (error) throw error;
         navigate("/dashboard");
       } else {
+        const refCodeToStore = refCode || localStorage.getItem("referralCode") || "";
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: getSiteUrl(),
-            data: { first_name: firstName, last_name: lastName },
+            data: { first_name: firstName, last_name: lastName, ...(refCodeToStore ? { referral_code: refCodeToStore } : {}) },
             captchaToken: token,
           },
         });
