@@ -178,11 +178,13 @@ const PoolSelectionStep = ({
 
         {!loanRepaymentOnly && (
         <>
-        <div className="flex items-center justify-center my-2">
-          <div className="flex-1 border-t border-border" />
-          <span className="px-4 text-lg font-bold text-muted-foreground uppercase">OR</span>
-          <div className="flex-1 border-t border-border" />
-        </div>
+        {outstandingLoanInfo && outstandingLoanInfo.outstanding > 0 && (
+          <div className="flex items-center justify-center my-2">
+            <div className="flex-1 border-t border-border" />
+            <span className="px-4 text-lg font-bold text-muted-foreground uppercase">OR</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
