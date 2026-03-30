@@ -87,8 +87,7 @@ const Auth = () => {
       localStorage.setItem("referralCode", refCode);
     }
   }, [refCode]);
-
-
+  useEffect(() => {
     // Don't redirect to dashboard during password recovery
     if (isPasswordRecovery) return;
     if (session) {
