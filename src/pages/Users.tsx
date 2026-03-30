@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Loader2, LogIn, ShieldCheck, MoreHorizontal } from "lucide-react";
+import { Loader2, LogIn, ShieldCheck, MoreHorizontal, Mail } from "lucide-react";
 import ManageRolesDialog from "@/components/users/ManageRolesDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
