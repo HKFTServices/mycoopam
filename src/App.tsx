@@ -183,7 +183,7 @@ const App = () => (
               {/* Tenant setup: tenant_admin + super_admin */}
               <Route path="/dashboard/setup/document-requirements" element={<AdminRoute><DocumentRequirements /></AdminRoute>} />
               <Route path="/dashboard/setup/terms-conditions" element={<AdminRoute><TermsConditions /></AdminRoute>} />
-              <Route path="/dashboard/setup/communications" element={<AdminRoute><Communications /></AdminRoute>} />
+              <Route path="/dashboard/setup/communications" element={<StaffRoute><Communications /></StaffRoute>} />
               <Route path="/dashboard/setup/tenant-configuration" element={<AdminRoute><TenantConfiguration /></AdminRoute>} />
               <Route path="/dashboard/setup/data-import" element={<AdminRoute><DataImport /></AdminRoute>} />
               <Route path="/dashboard/setup/loan-settings" element={<AdminRoute><LoanSettings /></AdminRoute>} />
