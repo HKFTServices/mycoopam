@@ -30,6 +30,9 @@ const Auth = () => {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [activateOpen, setActivateOpen] = useState(false);
+  const [activateEmail, setActivateEmail] = useState("");
+  const [activateLoading, setActivateLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
