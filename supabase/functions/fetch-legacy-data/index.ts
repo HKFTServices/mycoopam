@@ -138,6 +138,7 @@ const TABLE_QUERIES: Record<string, string> = {
       CAST(DeleterUserId AS VARCHAR(36)) AS deleter_user_id,
       DeletionTime AS deletion_time
     FROM dbo.ShareTransactions
+    WHERE IsDeleted = 0
   `,
   gen_type_values: `
     SELECT tv.ID AS id, tv.TypeID AS type_id,
