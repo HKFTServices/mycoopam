@@ -425,7 +425,7 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="sm:flex sm:flex-col sm:flex-1 sm:min-h-0">
-                <div className="sm:px-6 sm:pt-4">
+                <div className="sm:px-6 sm:pt-3 sm:shrink-0">
                   <TabsList className="w-full grid grid-cols-5 sm:flex sm:w-fit sm:gap-1 sm:rounded-xl sm:bg-muted/40 sm:p-1">
                     <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
                       {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
@@ -450,7 +450,7 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                   </TabsList>
                 </div>
 
-                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-6 sm:pt-4 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
+                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-4 sm:pt-3">
                   <TabsContent value="details" className="mt-4 sm:mt-0">
                     {isNaturalPerson ? (
                       <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
