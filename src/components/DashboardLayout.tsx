@@ -657,7 +657,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </SidebarGroupContent>
               </SidebarGroup>
 
-              {isAdmin && (
+              {(isAdmin || isClerkOrManager) && (
                 <>
                   <SidebarSeparator />
                   <SidebarGroup>
@@ -781,7 +781,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             items: filteredMam,
                           })}
 
-                        {renderGroup({
+                        {isAdmin && renderGroup({
                           label: "Tenant Setup",
                           icon: Wrench,
                           open: tenantSetupOpen,
