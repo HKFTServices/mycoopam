@@ -444,6 +444,78 @@ const Auth = () => {
                 </form>
               </DialogContent>
             </Dialog>
+            <Dialog open={activateOpen} onOpenChange={setActivateOpen}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Activate Your Account</DialogTitle>
+                  <DialogDescription>
+                    Enter your email address and we'll send you a link to set your password and activate your account.
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!activateEmail) {
+                      toast({ title: "Please enter your email", variant: "destructive" });
+                      return;
+                    }
+                    setActivateLoading(true);
+                    try {
+                      const storedTenantSlug = localStorage.getItem("tenantSlug");
+                      const tenantSlug = isOnProductionDomain() && window.location.hostname !== "www.myco-op.co.za"
+                        ? window.location.hostname.replace(".myco-op.co.za", "")
+                        : storedTenantSlug;
+                      const resetRedirectUrl = `${getSiteUrl(tenantSlug)}/reset-password${tenantSlug ? `?tenant=${tenantSlug}` : ""}`;
+                      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+                        body: {
+                          email: activateEmail,
+                          tenant_slug: tenantSlug,
+                          redirect_url: resetRedirectUrl,
+                        },
+                      });
+                      if (error) throw error;
+                      if (data?.fallback) {
+                        toast({
+                          title: "Email sender not configured",
+                          description: "Please contact your administrator for account activation.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      toast({
+                        title: "Activation email sent",
+                        description: "Check your inbox for a link to set your password.",
+                      });
+                      setActivateOpen(false);
+                    } catch (error: any) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    } finally {
+                      setActivateLoading(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="activate-email">Email address</Label>
+                    <Input
+                      id="activate-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={activateEmail}
+                      onChange={(e) => setActivateEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setActivateOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={activateLoading}>
+                      {activateLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Send Activation Link
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
             <Dialog
               open={captchaOpen}
               onOpenChange={(open) => {
