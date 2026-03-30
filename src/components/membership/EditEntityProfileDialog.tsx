@@ -424,33 +424,33 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
             </div>
           ) : (
             <>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="sm:flex sm:flex-col sm:flex-1 sm:min-h-0">
-                <div className="sm:px-6 sm:pt-3 sm:shrink-0">
-                  <TabsList className="w-full grid grid-cols-5 sm:flex sm:w-fit sm:gap-1 sm:rounded-xl sm:bg-muted/40 sm:p-1">
-                    <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex flex-col flex-1 min-h-0">
+                <div className="px-4 pt-3 shrink-0 sm:px-6 overflow-x-auto">
+                  <TabsList className="w-fit flex gap-1 rounded-xl bg-muted/40 p-1">
+                    <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
                       Details
                     </TabsTrigger>
-                    <TabsTrigger value="address" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="address" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <MapPin className="h-3.5 w-3.5" />
                       Address
                     </TabsTrigger>
-                    <TabsTrigger value="bank" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="bank" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <Landmark className="h-3.5 w-3.5" />
                       Bank
                     </TabsTrigger>
-                    <TabsTrigger value="referrer" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="referrer" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <Users className="h-3.5 w-3.5" />
                       Referrer
                     </TabsTrigger>
-                    <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm">
+                    <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                       <FileText className="h-3.5 w-3.5" />
                       Documents
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
-                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-4 sm:pt-3">
+                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-3 sm:px-6">
                   <TabsContent value="details" className="mt-4 sm:mt-0">
                     {isNaturalPerson ? (
                       <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
