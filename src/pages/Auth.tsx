@@ -81,7 +81,14 @@ const Auth = () => {
     verifyTokenFromHash();
   }, []);
 
+  // Persist referral code from URL so it survives email verification redirect
   useEffect(() => {
+    if (refCode) {
+      localStorage.setItem("referralCode", refCode);
+    }
+  }, [refCode]);
+
+
     // Don't redirect to dashboard during password recovery
     if (isPasswordRecovery) return;
     if (session) {
