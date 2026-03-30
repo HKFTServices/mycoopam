@@ -95,6 +95,7 @@ const DepositDetailsStep = ({
   loanRepaymentAmount = 0, onLoanRepaymentAmountChange, hasOutstandingLoan = false,
   outstandingLoanBalance = 0, loanInstalment = 0, loanRepaymentOnly = false,
 }: DepositDetailsStepProps) => {
+  const { currentTenant } = useTenant();
   const [displayAmount, setDisplayAmount] = useState(amount || "");
   const [isFocused, setIsFocused] = useState(false);
 
