@@ -460,8 +460,15 @@ const LegacyGlAllocation = () => {
   };
 
   // Group entries by parent (orphans already re-parented during loading)
+  // Deduplicate by cft_id to prevent duplicate groups
   const grouped = useMemo(() => {
-    const roots = cftEntries.filter(e => e.parent_id === "0");
+    const seenRoots = new Set<string>();
+    const roots = cftEntries.filter(e => {
+      if (e.parent_id !== "0") return false;
+      if (seenRoots.has(e.cft_id)) return false;
+      seenRoots.add(e.cft_id);
+      return true;
+    });
     const children = cftEntries.filter(e => e.parent_id !== "0");
 
     const groups: { root: LegacyCftEntry; children: LegacyCftEntry[] }[] = [];
