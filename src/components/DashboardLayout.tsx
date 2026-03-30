@@ -657,7 +657,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </SidebarGroupContent>
               </SidebarGroup>
 
-              {isAdmin && (
+              {(isAdmin || isClerkOrManager) && (
                 <>
                   <SidebarSeparator />
                   <SidebarGroup>
@@ -698,7 +698,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           items: filteredMessages,
                         })}
 
-                        {filteredAdminOnly.map((i) => renderLink(i))}
+                        {filteredAdminOnly
+                          .filter((i) => {
+                            if (i.path === "/dashboard/users") return isAdmin;
+                            return true;
+                          })
+                          .map((i) => renderLink(i))}
 
                         {isSuperAdmin && (() => {
                           const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
@@ -781,7 +786,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             items: filteredMam,
                           })}
 
-                        {renderGroup({
+                        {isAdmin && renderGroup({
                           label: "Tenant Setup",
                           icon: Wrench,
                           open: tenantSetupOpen,
