@@ -582,9 +582,17 @@ const DebitOrderSignUpDialog = ({
                       )}
                     </div>
                     {suggestedInstalment > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Suggested instalment from active loan(s): {formatCurrency(suggestedInstalment, sym)}
-                      </p>
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        <p>
+                          Suggested instalment: {formatCurrency(suggestedInstalment, sym)}
+                          {" "}(outstanding {formatCurrency(outstandingLoanInfo?.outstanding ?? 0, sym)} ÷ {repaymentTermMonths} months)
+                        </p>
+                        {(outstandingLoanInfo?.legacyOutstanding ?? 0) > 0 && (
+                          <p className="italic">
+                            Includes legacy loan balance: {formatCurrency(outstandingLoanInfo!.legacyOutstanding, sym)}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                   {loanInstalment > 0 && (
