@@ -29,6 +29,7 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   const queryClient = useQueryClient();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [memberSignature, setMemberSignature] = useState<string | null>(null);
+  const [showDebitOrder, setShowDebitOrder] = useState(false);
 
   const entityName = app?.entities
     ? [app?.entities?.name, app?.entities?.last_name].filter(Boolean).join(" ")
