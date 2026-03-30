@@ -126,6 +126,41 @@ const DepositDetailsStep = ({
   const totalMembershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
   const minimumDeposit = totalMembershipDeductions + 1;
 
+  // Check if credit card payment gateway is active for this tenant
+  const { data: gatewayConfig } = useQuery({
+    queryKey: ["tenant_payment_gateway_active", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return null;
+      const { data, error } = await (supabase as any)
+        .from("tenant_payment_gateways")
+        .select("*")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentTenant,
+  });
+
+  const availableMethods = gatewayConfig
+    ? [...PAYMENT_METHODS, { value: "credit_card", label: "Credit Card", icon: CreditCard }]
+    : PAYMENT_METHODS;
+
+  // Calculate gateway fee for display
+  const gatewayFeeAmount = paymentMethod === "credit_card" && gatewayConfig
+    ? (() => {
+        const pct = gatewayConfig.gateway_fee_percentage ?? 0;
+        const fixed = gatewayConfig.gateway_fee_fixed ?? 0;
+        const type = gatewayConfig.gateway_fee_type ?? "percentage";
+        let fee = 0;
+        if (type === "percentage" || type === "both") fee += amountNum * (pct / 100);
+        if (type === "fixed" || type === "both") fee += fixed;
+        return fee;
+      })()
+    : 0;
+
   return (
     <div className="space-y-3">
       {/* Join Share Notice */}
