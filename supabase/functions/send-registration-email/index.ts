@@ -247,30 +247,33 @@ Deno.serve(async (req) => {
         <p style="font-size:13px;color:#666;">Best regards,<br/><strong>The MyCo-Op Team</strong></p>
       </div>`;
     } else {
-      subject = `Welcome to ${tenantName} – Activate Your Account`;
+      subject = `Exciting News – ${tenantName} Has a New Online Platform!`;
       body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#ffffff;">
         <div style="background:#1a1a2e;padding:24px 32px;text-align:center;">
-          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">Welcome to ${tenantName}</h1>
+          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">${tenantName} – New Member Platform</h1>
         </div>
         <div style="padding:32px;">
           <p style="font-size:15px;color:#333;margin:0 0 16px;">Dear ${firstName},</p>
           <p style="font-size:15px;color:#333;margin:0 0 16px;">
-            Your membership account at <strong>${tenantName}</strong> has been set up and is ready for you.
+            We are pleased to announce that <strong>${tenantName}</strong> has launched a brand-new web application designed to make your membership experience smoother and more convenient than ever before.
+          </p>
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">
+            With this new platform, you will be able to initiate all your transactions online – deposits, withdrawals, switches, and more – saving you time and streamlining administration for everyone.
           </p>
           <p style="font-size:15px;color:#333;margin:0 0 24px;">
-            To get started, please activate your account by clicking the button below. This will verify your email address and give you full access to the platform.
+            Your account has already been set up using your existing email address. To get started, simply click the button below to <strong>set your password</strong> and log in.
           </p>
 
           <div style="margin:28px 0;text-align:center;">
-            <a href="{{activation_link}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Activate My Account</a>
+            <a href="{{activation_link}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Set My Password &amp; Log In</a>
           </div>
 
-          <h3 style="color:#1a1a2e;margin:28px 0 12px;font-size:15px;">What happens next?</h3>
+          <h3 style="color:#1a1a2e;margin:28px 0 12px;font-size:15px;">How to get started:</h3>
           <ol style="color:#333;font-size:14px;line-height:1.8;padding-left:20px;margin:0 0 24px;">
-            <li><strong>Click the button above</strong> to verify your email and set your password.</li>
-            <li><strong>Log in</strong> to your personal dashboard.</li>
-            <li><strong>Complete your profile</strong> – review and update your personal details, upload any outstanding documents, and add your banking information.</li>
-            <li><strong>Start transacting</strong> – make deposits, view your portfolio, and manage your membership.</li>
+            <li><strong>Click the button above</strong> to set your new password.</li>
+            <li><strong>Log in</strong> with your email address and new password.</li>
+            <li><strong>Review your profile</strong> – check your personal details, upload any outstanding documents, and confirm your banking information.</li>
+            <li><strong>Start transacting</strong> – make deposits, view your portfolio, and manage your membership online.</li>
           </ol>
 
           <p style="font-size:13px;color:#888;margin:0 0 8px;">If the button does not work, copy and paste this link into your browser:</p>
