@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
@@ -460,8 +460,15 @@ const LegacyGlAllocation = () => {
   };
 
   // Group entries by parent (orphans already re-parented during loading)
+  // Deduplicate by cft_id to prevent duplicate groups
   const grouped = useMemo(() => {
-    const roots = cftEntries.filter(e => e.parent_id === "0");
+    const seenRoots = new Set<string>();
+    const roots = cftEntries.filter(e => {
+      if (e.parent_id !== "0") return false;
+      if (seenRoots.has(e.cft_id)) return false;
+      seenRoots.add(e.cft_id);
+      return true;
+    });
     const children = cftEntries.filter(e => e.parent_id !== "0");
 
     const groups: { root: LegacyCftEntry; children: LegacyCftEntry[] }[] = [];
@@ -1313,7 +1320,7 @@ const LegacyGlAllocation = () => {
                     const rootMapping = getGlMapping(pg.root.entry_type_id);
 
                     return (
-                      <>
+                      <React.Fragment key={`group-${pg.root.cft_id}`}>
                         {/* Summary row */}
                         <TableRow
                           key={`root-${pg.root.cft_id}`}
@@ -1379,7 +1386,7 @@ const LegacyGlAllocation = () => {
                             <TableCell></TableCell>
                           </TableRow>
                         ))}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </TableBody>
