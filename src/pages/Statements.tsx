@@ -812,13 +812,13 @@ export default function Statements() {
               ) : (
                 <div className="border rounded-md max-w-sm max-h-48 overflow-y-auto">
                   <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 cursor-pointer hover:bg-muted/50" onClick={toggleAllEntities}>
-                    <Checkbox checked={allSelected ? true : someSelected ? "indeterminate" : false} onCheckedChange={toggleAllEntities} />
+                    <Checkbox checked={allSelected ? true : someSelected ? "indeterminate" : false} />
                     <span className="text-sm font-medium">Select All</span>
                     <span className="text-xs text-muted-foreground ml-auto">{selectedEntityIds.length}/{linkedEntities.length}</span>
                   </div>
                   {linkedEntities.map((e: any) => (
                     <div key={e.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/30" onClick={() => toggleEntity(e.id)}>
-                      <Checkbox checked={selectedEntityIds.includes(e.id)} onCheckedChange={() => toggleEntity(e.id)} />
+                      <Checkbox checked={selectedEntityIds.includes(e.id)} />
                       <span className="text-sm">{e.name}</span>
                     </div>
                   ))}
