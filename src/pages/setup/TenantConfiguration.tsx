@@ -402,7 +402,7 @@ const EmailSignatureSection = ({
               {showHtmlSource ? (
                 <Textarea
                   value={form.email_signature_en}
-                  onChange={(e) => setForm({ ...form, email_signature_en: e.target.value })}
+                  onChange={(e) => setForm((f: any) => ({ ...f, email_signature_en: e.target.value }))}
                   rows={10}
                   className="font-mono text-xs"
                   placeholder="Enter HTML email signature..."
