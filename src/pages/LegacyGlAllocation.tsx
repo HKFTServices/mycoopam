@@ -975,6 +975,19 @@ const LegacyGlAllocation = () => {
           });
         }
       }
+      // ── Loan Payout (1962) — Member Loans DR ──
+      else if (isLoanPayout && entry.entry_type_id === "1962") {
+        const amount = entry.credit > 0 ? entry.credit : entry.debit;
+        proposed.push({
+          description: "Loan Payout — Member Loans",
+          debit: amount, credit: 0,
+          gl_account_id: "a5d5b2af-7ee3-4fe3-a8c0-a3aacde7709f", gl_account_label: "1025 Member Loans",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_payout_gl",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
       // ── Fallback for non-deposit or unmapped entries ──
       else {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
