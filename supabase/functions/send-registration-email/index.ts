@@ -129,37 +129,42 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
-    // Fetch communication template
+    // Fetch communication template (skip for invite emails - they use hardcoded content)
     const userLang = profile.language_code || "en";
 
-    // For tenant creators, use a dedicated template event; fallback to the standard one
-    const templateEvent = is_tenant_creator
-      ? "tenant_registration_completed"
-      : "user_registration_completed";
+    let finalTemplate: { subject: string; body_html: string } | null = null;
 
-    const { data: template } = await adminClient
-      .from("communication_templates")
-      .select("subject, body_html")
-      .eq("tenant_id", tenant_id)
-      .eq("application_event", templateEvent)
-      .eq("is_active", true)
-      .eq("is_email_active", true)
-      .eq("language_code", userLang)
-      .maybeSingle();
+    if (!is_invite) {
+      // For tenant creators, use a dedicated template event; fallback to the standard one
+      const templateEvent = is_tenant_creator
+        ? "tenant_registration_completed"
+        : "user_registration_completed";
 
-    // If tenant creator template not found, fall back to standard
-    let finalTemplate = template;
-    if (!finalTemplate && is_tenant_creator) {
-      const { data: fallback } = await adminClient
+      const { data: template } = await adminClient
         .from("communication_templates")
         .select("subject, body_html")
         .eq("tenant_id", tenant_id)
-        .eq("application_event", "user_registration_completed")
+        .eq("application_event", templateEvent)
         .eq("is_active", true)
         .eq("is_email_active", true)
         .eq("language_code", userLang)
         .maybeSingle();
-      finalTemplate = fallback;
+
+      finalTemplate = template;
+
+      // If tenant creator template not found, fall back to standard
+      if (!finalTemplate && is_tenant_creator) {
+        const { data: fallback } = await adminClient
+          .from("communication_templates")
+          .select("subject, body_html")
+          .eq("tenant_id", tenant_id)
+          .eq("application_event", "user_registration_completed")
+          .eq("is_active", true)
+          .eq("is_email_active", true)
+          .eq("language_code", userLang)
+          .maybeSingle();
+        finalTemplate = fallback;
+      }
     }
 
     const firstName = profile.first_name || "Member";
@@ -212,11 +217,57 @@ Deno.serve(async (req) => {
       console.warn("[send-registration-email] Could not rewrite activation link URL:", e);
     }
 
-    // Build email content – use tenant-creator specific fallback when applicable
+    // Build email content
     let subject: string;
     let body: string;
 
-    if (finalTemplate?.subject && finalTemplate?.body_html) {
+    if (is_invite) {
+      // ── Hardcoded onboarding invite email – independent of any DB templates ──
+      console.log("[send-registration-email] Using hardcoded onboarding invite email");
+      subject = `Exciting News – ${tenantName} Has a New Online Platform!`;
+      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#ffffff;">
+        <div style="background:#1a1a2e;padding:24px 32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">${tenantName} – New Member Platform</h1>
+        </div>
+        <div style="padding:32px;">
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">Dear ${firstName},</p>
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">
+            We are pleased to announce that <strong>${tenantName}</strong> has launched a brand-new web application designed to make your membership experience smoother and more convenient than ever before.
+          </p>
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">
+            With this new platform, you will be able to initiate all your transactions online – deposits, withdrawals, switches, and more – saving you time and streamlining administration for everyone.
+          </p>
+          <p style="font-size:15px;color:#333;margin:0 0 24px;">
+            Your account has already been set up using your existing email address. To get started, simply click the button below to <strong>set your password</strong> and log in.
+          </p>
+
+          <div style="margin:28px 0;text-align:center;">
+            <a href="${activationLink}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Set My Password &amp; Log In</a>
+          </div>
+
+          <h3 style="color:#1a1a2e;margin:28px 0 12px;font-size:15px;">How to get started:</h3>
+          <ol style="color:#333;font-size:14px;line-height:1.8;padding-left:20px;margin:0 0 24px;">
+            <li><strong>Click the button above</strong> to set your new password.</li>
+            <li><strong>Log in</strong> with your email address and new password.</li>
+            <li><strong>Review your profile</strong> – check your personal details, upload any outstanding documents, and confirm your banking information.</li>
+            <li><strong>Start transacting</strong> – make deposits, view your portfolio, and manage your membership online.</li>
+          </ol>
+
+          <p style="font-size:13px;color:#888;margin:0 0 8px;">If the button does not work, copy and paste this link into your browser:</p>
+          <p style="font-size:13px;word-break:break-all;color:#1a1a2e;margin:0 0 24px;">${activationLink}</p>
+
+          <div style="background:#f8f9fa;border-left:4px solid #1a1a2e;padding:16px 20px;margin:24px 0;border-radius:4px;">
+            <p style="font-size:14px;color:#333;margin:0 0 8px;font-weight:600;">A note from your admin team:</p>
+            <p style="font-size:13px;color:#555;margin:0;line-height:1.6;">
+              As with any new system, there may be occasional bugs or issues as we settle in. Your patience and understanding are greatly appreciated during this period. If you experience any problems or have suggestions on how we can improve the platform, please do not hesitate to contact your administrator immediately. Your feedback is invaluable in helping us make this system the best it can be.
+            </p>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+          <p style="font-size:14px;color:#333;margin:0;">Best regards,<br/><strong>${tenantName}</strong></p>
+        </div>
+      </div>`;
+    } else if (finalTemplate?.subject && finalTemplate?.body_html) {
       subject = finalTemplate.subject;
       body = finalTemplate.body_html;
     } else if (is_tenant_creator) {
@@ -238,57 +289,24 @@ Deno.serve(async (req) => {
           <li><strong>Once setup is complete</strong>, your members will be able to register and transact on your platform.</li>
         </ol>
         <div style="margin:32px 0;text-align:center;">
-          <a href="{{activation_link}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Activate Your Account</a>
+          <a href="${activationLink}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Activate Your Account</a>
         </div>
         <p style="font-size:13px;color:#666;">If the button does not work, copy and paste this link into your browser:</p>
-        <p style="font-size:13px;word-break:break-all;color:#1a1a2e;">{{activation_link}}</p>
+        <p style="font-size:13px;word-break:break-all;color:#1a1a2e;">${activationLink}</p>
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
         <p style="font-size:13px;color:#666;">For more information, please visit <a href="https://www.myco-op.co.za" style="color:#1a1a2e;">www.myco-op.co.za</a> or contact our support team.</p>
         <p style="font-size:13px;color:#666;">Best regards,<br/><strong>The MyCo-Op Team</strong></p>
       </div>`;
     } else {
-      subject = `Exciting News – ${tenantName} Has a New Online Platform!`;
-      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#ffffff;">
-        <div style="background:#1a1a2e;padding:24px 32px;text-align:center;">
-          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">${tenantName} – New Member Platform</h1>
+      subject = `Welcome to ${tenantName}`;
+      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#ffffff;">
+        <p>Dear ${firstName},</p>
+        <p>Your account at <strong>${tenantName}</strong> has been set up.</p>
+        <p>Click the link below to set your password and log in:</p>
+        <div style="margin:24px 0;text-align:center;">
+          <a href="${activationLink}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Set My Password</a>
         </div>
-        <div style="padding:32px;">
-          <p style="font-size:15px;color:#333;margin:0 0 16px;">Dear ${firstName},</p>
-          <p style="font-size:15px;color:#333;margin:0 0 16px;">
-            We are pleased to announce that <strong>${tenantName}</strong> has launched a brand-new web application designed to make your membership experience smoother and more convenient than ever before.
-          </p>
-          <p style="font-size:15px;color:#333;margin:0 0 16px;">
-            With this new platform, you will be able to initiate all your transactions online – deposits, withdrawals, switches, and more – saving you time and streamlining administration for everyone.
-          </p>
-          <p style="font-size:15px;color:#333;margin:0 0 24px;">
-            Your account has already been set up using your existing email address. To get started, simply click the button below to <strong>set your password</strong> and log in.
-          </p>
-
-          <div style="margin:28px 0;text-align:center;">
-            <a href="{{activation_link}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Set My Password &amp; Log In</a>
-          </div>
-
-          <h3 style="color:#1a1a2e;margin:28px 0 12px;font-size:15px;">How to get started:</h3>
-          <ol style="color:#333;font-size:14px;line-height:1.8;padding-left:20px;margin:0 0 24px;">
-            <li><strong>Click the button above</strong> to set your new password.</li>
-            <li><strong>Log in</strong> with your email address and new password.</li>
-            <li><strong>Review your profile</strong> – check your personal details, upload any outstanding documents, and confirm your banking information.</li>
-            <li><strong>Start transacting</strong> – make deposits, view your portfolio, and manage your membership online.</li>
-          </ol>
-
-          <p style="font-size:13px;color:#888;margin:0 0 8px;">If the button does not work, copy and paste this link into your browser:</p>
-          <p style="font-size:13px;word-break:break-all;color:#1a1a2e;margin:0 0 24px;">{{activation_link}}</p>
-
-          <div style="background:#f8f9fa;border-left:4px solid #1a1a2e;padding:16px 20px;margin:24px 0;border-radius:4px;">
-            <p style="font-size:14px;color:#333;margin:0 0 8px;font-weight:600;">A note from your admin team:</p>
-            <p style="font-size:13px;color:#555;margin:0;line-height:1.6;">
-              As with any new system, there may be occasional bugs or issues as we settle in. Your patience and understanding are greatly appreciated during this period. If you experience any problems or have suggestions on how we can improve the platform, please do not hesitate to contact your administrator immediately. Your feedback is invaluable in helping us make this system the best it can be.
-            </p>
-          </div>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-          <p style="font-size:14px;color:#333;margin:0;">Best regards,<br/><strong>${tenantName}</strong></p>
-        </div>
+        <p style="font-size:13px;color:#888;">If the button does not work, copy and paste this link: ${activationLink}</p>
       </div>`;
     }
 
