@@ -98,6 +98,17 @@ const DepositDetailsStep = ({
   const { currentTenant } = useTenant();
   const [displayAmount, setDisplayAmount] = useState(amount || "");
   const [isFocused, setIsFocused] = useState(false);
+  const [loanDisplayAmount, setLoanDisplayAmount] = useState(
+    loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : ""
+  );
+  const [loanFieldFocused, setLoanFieldFocused] = useState(false);
+
+  // Sync loan display when the parent resets or sets the initial value
+  const prevLoanRef = useState({ val: loanRepaymentAmount })[0];
+  if (!loanFieldFocused && loanRepaymentAmount !== prevLoanRef.val) {
+    prevLoanRef.val = loanRepaymentAmount;
+    setLoanDisplayAmount(loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : "");
+  }
 
   const formatDisplay = (raw: string) => {
     if (!raw) return "";
@@ -270,8 +281,17 @@ const DepositDetailsStep = ({
             type="text"
             inputMode="decimal"
             placeholder={formatCurrency(loanInstalment)}
-            value={loanRepaymentAmount > 0 ? formatCurrency(loanRepaymentAmount) : ""}
-            onChange={(e) => onLoanRepaymentAmountChange?.(e.target.value.replace(/[^\d.]/g, ""))}
+            value={loanFieldFocused ? loanDisplayAmount : (loanRepaymentAmount > 0 ? formatCurrency(loanRepaymentAmount) : "")}
+            onFocus={() => {
+              setLoanFieldFocused(true);
+              setLoanDisplayAmount(loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : "");
+            }}
+            onBlur={() => setLoanFieldFocused(false)}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^\d.]/g, "");
+              setLoanDisplayAmount(raw);
+              onLoanRepaymentAmountChange?.(raw);
+            }}
             className="text-lg font-bold h-10"
           />
           {loanRepaymentAmount > outstandingLoanBalance && outstandingLoanBalance > 0 && (
