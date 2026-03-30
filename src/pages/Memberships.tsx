@@ -528,6 +528,54 @@ const Memberships = () => {
 	    return { sortedGroups, uncategorized };
 	  }, [filteredGroups]);
 
+  const queryClient = useQueryClient();
+
+  const generateReferralCode = async () => {
+    if (!referrerInfo?.referrerId || !currentTenant) return null;
+    // If code already exists, just return the link
+    if (referrerInfo.referralCode) {
+      return buildReferralLink(referrerInfo.referralCode);
+    }
+    // Generate a short unique code
+    const code = `${referrerInfo.referrerNumber}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
+    const { error } = await (supabase as any)
+      .from("referrers")
+      .update({ referral_code: code })
+      .eq("id", referrerInfo.referrerId);
+    if (error) { toast.error("Failed to generate referral code"); return null; }
+    queryClient.invalidateQueries({ queryKey: ["referrer_info"] });
+    return buildReferralLink(code);
+  };
+
+  const buildReferralLink = (code: string) => {
+    if (!currentTenant) return "";
+    const base = getTenantUrl(currentTenant.slug);
+    return `${base}/auth?ref=${encodeURIComponent(code)}`;
+  };
+
+  const handleCopyReferralLink = async () => {
+    const link = await generateReferralCode();
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Referral link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleShareReferralLink = async () => {
+    const link = await generateReferralCode();
+    if (!link) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${currentTenant?.name}`, text: "Sign up using my referral link!", url: link });
+      } catch { /* user cancelled */ }
+    } else {
+      handleCopyReferralLink();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
