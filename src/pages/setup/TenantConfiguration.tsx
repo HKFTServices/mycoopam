@@ -15,12 +15,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette, Database, Share2 } from "lucide-react";
+import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette, Database, Share2, CreditCard } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import ClearTestDataCard from "@/components/setup/ClearTestDataCard";
 import ReferralProgramCard from "@/components/setup/ReferralProgramCard";
+import PaymentGatewayCard from "@/components/setup/PaymentGatewayCard";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -752,6 +753,7 @@ const TenantConfiguration = () => {
             <TabsTrigger value="theme" className="gap-1.5 text-xs sm:text-sm"><Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Theme</TabsTrigger>
             <TabsTrigger value="data" className="gap-1.5 text-xs sm:text-sm"><Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Data</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5 text-xs sm:text-sm"><Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Referral Program</span><span className="sm:hidden">Referral</span></TabsTrigger>
+            <TabsTrigger value="payments" className="gap-1.5 text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Payment Gateway</span><span className="sm:hidden">Payments</span></TabsTrigger>
           </TabsList>
         </div>
 
@@ -1150,6 +1152,11 @@ const TenantConfiguration = () => {
         {/* ── Referral Program ── */}
         <TabsContent value="referral" className="space-y-4">
           <ReferralProgramCard />
+        </TabsContent>
+
+        {/* ── Payment Gateway ── */}
+        <TabsContent value="payments" className="space-y-4">
+          <PaymentGatewayCard />
         </TabsContent>
       </Tabs>
 

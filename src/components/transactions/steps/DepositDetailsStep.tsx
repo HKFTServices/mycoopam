@@ -10,6 +10,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/contexts/TenantContext";
 
 const PAYMENT_METHODS = [
   { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
@@ -92,6 +95,7 @@ const DepositDetailsStep = ({
   loanRepaymentAmount = 0, onLoanRepaymentAmountChange, hasOutstandingLoan = false,
   outstandingLoanBalance = 0, loanInstalment = 0, loanRepaymentOnly = false,
 }: DepositDetailsStepProps) => {
+  const { currentTenant } = useTenant();
   const [displayAmount, setDisplayAmount] = useState(amount || "");
   const [isFocused, setIsFocused] = useState(false);
 
@@ -121,6 +125,41 @@ const DepositDetailsStep = ({
   };
   const totalMembershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
   const minimumDeposit = totalMembershipDeductions + 1;
+
+  // Check if credit card payment gateway is active for this tenant
+  const { data: gatewayConfig } = useQuery({
+    queryKey: ["tenant_payment_gateway_active", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return null;
+      const { data, error } = await (supabase as any)
+        .from("tenant_payment_gateways")
+        .select("*")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentTenant,
+  });
+
+  const availableMethods = gatewayConfig
+    ? [...PAYMENT_METHODS, { value: "credit_card", label: "Credit Card", icon: CreditCard }]
+    : PAYMENT_METHODS;
+
+  // Calculate gateway fee for display
+  const gatewayFeeAmount = paymentMethod === "credit_card" && gatewayConfig
+    ? (() => {
+        const pct = gatewayConfig.gateway_fee_percentage ?? 0;
+        const fixed = gatewayConfig.gateway_fee_fixed ?? 0;
+        const type = gatewayConfig.gateway_fee_type ?? "percentage";
+        let fee = 0;
+        if (type === "percentage" || type === "both") fee += amountNum * (pct / 100);
+        if (type === "fixed" || type === "both") fee += fixed;
+        return fee;
+      })()
+    : 0;
 
   return (
     <div className="space-y-3">
@@ -245,8 +284,8 @@ const DepositDetailsStep = ({
       )}
       <div className="space-y-2">
         <Label>Payment Method</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {PAYMENT_METHODS.map((m) => {
+        <div className={`grid gap-2 ${availableMethods.length > 3 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+          {availableMethods.map((m) => {
             const isSelected = paymentMethod === m.value;
             const Icon = m.icon;
             return (
@@ -269,6 +308,15 @@ const DepositDetailsStep = ({
           <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             Cash Deposit Fee will be applied
+          </div>
+        )}
+        {paymentMethod === "credit_card" && gatewayConfig && gatewayFeeAmount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 rounded-lg px-3 py-2">
+            <CreditCard className="h-3.5 w-3.5 shrink-0" />
+            Gateway Fee: {formatCurrency(gatewayFeeAmount)}
+            {gatewayConfig.gateway_fee_passed_to === "member"
+              ? " (added to your total)"
+              : " (deducted from deposit)"}
           </div>
         )}
       </div>

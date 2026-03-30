@@ -5634,6 +5634,68 @@ export type Database = {
           },
         ]
       }
+      tenant_payment_gateways: {
+        Row: {
+          api_key_public: string | null
+          api_key_secret_name: string | null
+          created_at: string
+          gateway_fee_fixed: number
+          gateway_fee_passed_to: string
+          gateway_fee_percentage: number
+          gateway_fee_type: string
+          gateway_mode: string
+          gateway_name: string
+          id: string
+          is_active: boolean
+          merchant_id: string | null
+          notes: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_public?: string | null
+          api_key_secret_name?: string | null
+          created_at?: string
+          gateway_fee_fixed?: number
+          gateway_fee_passed_to?: string
+          gateway_fee_percentage?: number
+          gateway_fee_type?: string
+          gateway_mode?: string
+          gateway_name?: string
+          id?: string
+          is_active?: boolean
+          merchant_id?: string | null
+          notes?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_public?: string | null
+          api_key_secret_name?: string | null
+          created_at?: string
+          gateway_fee_fixed?: number
+          gateway_fee_passed_to?: string
+          gateway_fee_percentage?: number
+          gateway_fee_type?: string
+          gateway_mode?: string
+          gateway_name?: string
+          id?: string
+          is_active?: boolean
+          merchant_id?: string | null
+          notes?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_payment_gateways_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_sla: {
         Row: {
           created_at: string
