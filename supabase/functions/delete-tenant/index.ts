@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       // Config & reference
       "document_entity_requirements",
       "document_types",
-      "tax_types",
+      // tax_types are global, not tenant-scoped
       "budget_categories",
       "loan_settings",
       "communication_template_parameters",
