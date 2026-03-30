@@ -10,6 +10,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/contexts/TenantContext";
 
 const PAYMENT_METHODS = [
   { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
