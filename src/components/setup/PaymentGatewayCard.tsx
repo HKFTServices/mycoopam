@@ -70,28 +70,10 @@ const PaymentGatewayCard = () => {
     enabled: !!currentTenant,
   });
 
-  // Sync form when data loads
-  useState(() => {
-    if (gateway) {
-      setForm({
-        id: gateway.id,
-        gateway_name: gateway.gateway_name ?? "stripe",
-        is_active: gateway.is_active ?? false,
-        api_key_public: gateway.api_key_public ?? "",
-        merchant_id: gateway.merchant_id ?? "",
-        gateway_mode: gateway.gateway_mode ?? "test",
-        gateway_fee_type: gateway.gateway_fee_type ?? "percentage",
-        gateway_fee_percentage: gateway.gateway_fee_percentage ?? 0,
-        gateway_fee_fixed: gateway.gateway_fee_fixed ?? 0,
-        gateway_fee_passed_to: gateway.gateway_fee_passed_to ?? "member",
-        notes: gateway.notes ?? "",
-      });
-    }
-  });
-
-  // Also update on data change
-  const prevGatewayId = form.id;
-  if (gateway && gateway.id !== prevGatewayId) {
+  // Sync form when gateway data loads/changes
+  const gatewayId = gateway?.id;
+  useState(() => {});
+  if (gateway && gatewayId !== form.id) {
     setForm({
       id: gateway.id,
       gateway_name: gateway.gateway_name ?? "stripe",

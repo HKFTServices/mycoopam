@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import ClearTestDataCard from "@/components/setup/ClearTestDataCard";
 import ReferralProgramCard from "@/components/setup/ReferralProgramCard";
+import PaymentGatewayCard from "@/components/setup/PaymentGatewayCard";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
