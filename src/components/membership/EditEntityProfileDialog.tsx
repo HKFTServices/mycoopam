@@ -412,10 +412,10 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Desktop-only polish: remove visible scrollbar + use a cleaner header/body/footer layout.
           Mobile stays as-is (bottom sheet behavior comes from `DialogContent` base styles). */}
-      <DialogContent className="sm:w-[min(96vw,56rem)] sm:max-w-none sm:h-[85vh] sm:p-0 sm:overflow-hidden">
+      <DialogContent className="sm:w-[min(94vw,48rem)] sm:max-w-none sm:h-[min(85vh,720px)] sm:p-0 sm:overflow-hidden">
         <div className="sm:flex sm:flex-col sm:h-full">
-          <DialogHeader className="sm:px-6 sm:py-5 sm:border-b sm:bg-muted/20">
-            <DialogTitle className="sm:text-xl">Edit Profile</DialogTitle>
+          <DialogHeader className="sm:px-6 sm:py-4 sm:border-b sm:bg-muted/20 sm:shrink-0">
+            <DialogTitle className="sm:text-lg">Edit Profile</DialogTitle>
           </DialogHeader>
 
           {loadingEntity ? (
@@ -425,7 +425,7 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="sm:flex sm:flex-col sm:flex-1 sm:min-h-0">
-                <div className="sm:px-6 sm:pt-4">
+                <div className="sm:px-6 sm:pt-3 sm:shrink-0">
                   <TabsList className="w-full grid grid-cols-5 sm:flex sm:w-fit sm:gap-1 sm:rounded-xl sm:bg-muted/40 sm:p-1">
                     <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
                       {isNaturalPerson ? <User className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
@@ -450,7 +450,7 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                   </TabsList>
                 </div>
 
-                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-6 sm:pt-4 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
+                <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto sm:px-6 sm:pb-4 sm:pt-3">
                   <TabsContent value="details" className="mt-4 sm:mt-0">
                     {isNaturalPerson ? (
                       <PersonDetailsStep data={data} update={update} tenantId={currentTenant.id} isEditing />
@@ -477,9 +477,9 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
                 </div>
               </Tabs>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border sm:px-6 sm:py-4 sm:bg-background">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button onClick={handleSave} disabled={saving}>
+              <div className="flex justify-end gap-3 pt-3 border-t border-border sm:px-6 sm:py-3 sm:bg-background sm:shrink-0">
+                <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button size="sm" onClick={handleSave} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
                   Save Changes
                 </Button>
