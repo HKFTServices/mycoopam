@@ -63,6 +63,8 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
       toast.success("Loan terms accepted — awaiting admin release of funds");
       queryClient.invalidateQueries({ queryKey: ["loan_applications"] });
       onOpenChange(false);
+      // Auto-prompt debit order setup
+      setShowDebitOrder(true);
     },
     onError: (e: any) => toast.error(e.message),
   });
