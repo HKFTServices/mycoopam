@@ -568,6 +568,7 @@ const LegacyGlAllocation = () => {
     const isIncomeExpense = rootEntry.tx_type_id === "1952";
     const isStockPurchase = rootEntry.tx_type_id === "1953";
     const isStockSale = rootEntry.tx_type_id === "1954";
+    const isGrant = rootEntry.tx_type_id === "1960";
     // Check if this transaction includes a Share entry (1922) — determines fee treatment
     const hasShareEntry = allEntries.some(e => e.entry_type_id === "1922");
 
