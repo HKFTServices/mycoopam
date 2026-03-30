@@ -1320,7 +1320,7 @@ const LegacyGlAllocation = () => {
                     const rootMapping = getGlMapping(pg.root.entry_type_id);
 
                     return (
-                      <>
+                      <React.Fragment key={`group-${pg.root.cft_id}`}>
                         {/* Summary row */}
                         <TableRow
                           key={`root-${pg.root.cft_id}`}
