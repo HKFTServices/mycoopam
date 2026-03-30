@@ -168,7 +168,7 @@ const Users = () => {
   const sendInviteMutation = useMutation({
     mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
       const { data, error } = await supabase.functions.invoke("send-registration-email", {
-        body: { tenant_id: currentTenant!.id, user_id: userId },
+        body: { tenant_id: currentTenant!.id, user_id: userId, is_invite: true },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
