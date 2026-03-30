@@ -42,8 +42,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         .eq("user_id", user.id)
         .eq("tenant_id", currentTenant.id)
         .eq("is_primary", true)
-        .maybeSingle();
-      return !!data?.entity_id;
+        .limit(1);
+      return Array.isArray(data) && data.length > 0 && !!data[0]?.entity_id;
     },
     enabled: !!user && !!currentTenant && !isAdmin,
   });
