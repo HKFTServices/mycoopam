@@ -573,7 +573,9 @@ const Memberships = () => {
 
   const buildReferralLink = (code: string) => {
     if (!currentTenant) return "";
-    const base = getTenantUrl(currentTenant.slug);
+    // Always use production URL for referral links (they are shared externally)
+    const prodDomain = import.meta.env.VITE_PROD_DOMAIN || "myco-op.co.za";
+    const base = `https://${currentTenant.slug}.${prodDomain}`;
     return `${base}/auth?ref=${encodeURIComponent(code)}`;
   };
 
