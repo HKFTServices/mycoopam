@@ -59,6 +59,7 @@ const DebitOrderSignUpDialog = ({
   const [startDate, setStartDate] = useState(getFirstOfNextMonth());
   const [allocations, setAllocations] = useState<PoolAllocation[]>([]);
   const [manualLoanInstalment, setManualLoanInstalment] = useState("");
+  const [manualLoanTerm, setManualLoanTerm] = useState("");
   const [notes, setNotes] = useState("");
 
   // Bank details
