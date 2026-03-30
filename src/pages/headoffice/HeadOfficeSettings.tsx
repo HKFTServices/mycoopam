@@ -193,6 +193,8 @@ const HeadOfficeSettings = () => {
     onSuccess: (steps) => {
       toast.success(`Test data cleared — ${steps.length} tables processed`);
       setClearDialogOpen(false);
+      setConfirmStep2(false);
+      setConfirmInput("");
       setClearProgress([]);
     },
     onError: (err: any) => {
