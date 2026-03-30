@@ -15,10 +15,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette } from "lucide-react";
+import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette, Database } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+import ClearTestDataCard from "@/components/setup/ClearTestDataCard";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -748,6 +749,7 @@ const TenantConfiguration = () => {
             <TabsTrigger value="vault" className="gap-1.5 text-xs sm:text-sm"><Vault className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Vault &amp; Invoice</span><span className="sm:hidden">Vault</span></TabsTrigger>
             {!isMobile && <TabsTrigger value="signature" className="gap-1.5 text-xs sm:text-sm"><FileSignature className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email Signature</span><span className="sm:hidden">Sig.</span></TabsTrigger>}
             <TabsTrigger value="theme" className="gap-1.5 text-xs sm:text-sm"><Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Theme</TabsTrigger>
+            <TabsTrigger value="data" className="gap-1.5 text-xs sm:text-sm"><Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Data</TabsTrigger>
           </TabsList>
         </div>
 
@@ -1136,6 +1138,11 @@ const TenantConfiguration = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Data Maintenance ── */}
+        <TabsContent value="data" className="space-y-4">
+          <ClearTestDataCard />
         </TabsContent>
       </Tabs>
 
