@@ -410,7 +410,7 @@ const EmailSignatureSection = ({
               ) : (
                 <RichTextEditor
                   value={form.email_signature_en}
-                  onChange={(val) => setForm({ ...form, email_signature_en: val })}
+                  onChange={(val) => setForm((f: any) => ({ ...f, email_signature_en: val }))}
                   placeholder="Enter email signature..."
                 />
               )}
