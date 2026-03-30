@@ -525,7 +525,38 @@ const DebitOrderSignUpDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {step === "details" && (
+        {/* Bank details missing guard */}
+        {!isEditMode && existingBank === null && !bankAccountNumber && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Banking details required</p>
+                <p className="text-sm text-muted-foreground">
+                  Your banking details must be completed before you can set up a debit order.
+                  Please update your profile with your bank account information first.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate("/dashboard/memberships");
+                }}
+              >
+                Go to My Profile
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Only show the form when bank details exist or user is editing */}
+        {(isEditMode || existingBank !== null || bankAccountNumber) && step === "details" && (
           <div className="space-y-6">
             {/* Amount & Frequency */}
             <div>
