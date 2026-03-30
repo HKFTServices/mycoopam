@@ -130,7 +130,7 @@ const TABLE_QUERIES: Record<string, string> = {
   `,
   member_shares: `
     SELECT CAST(Id AS VARCHAR(36)) AS legacy_id,
-      CAST(EntityAccountId AS VARCHAR(36)) AS legacy_entity_account_id,
+      CAST(EntityID AS VARCHAR(36)) AS legacy_entity_id,
       TransactionDate AS transaction_date, Quantity AS quantity, Value AS value,
       CAST(CreatorUserId AS VARCHAR(36)) AS creator_user_id,
       CAST(LastModifierUserId AS VARCHAR(36)) AS last_modifier_user_id,
