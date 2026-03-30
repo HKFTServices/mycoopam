@@ -199,7 +199,7 @@ const DebitOrderSignUpDialog = ({
   });
 
   // Pre-fill bank details from entity_bank_details
-  const { data: existingBank } = useQuery({
+  const { data: existingBank, isLoading: bankLoading } = useQuery({
     queryKey: ["entity_bank_debit", entityId],
     queryFn: async () => {
       if (!currentTenant) return null;
