@@ -88,6 +88,7 @@ const DebitOrderSignUpDialog = ({
     const savedNotes = (() => { try { return JSON.parse(existingOrder.notes); } catch { return null; } })();
     setNotes(savedNotes?.user_notes ?? "");
     setManualLoanInstalment(savedNotes?.loan_instalment != null ? String(savedNotes.loan_instalment) : "");
+    setManualLoanTerm(savedNotes?.loan_term_months != null ? String(savedNotes.loan_term_months) : "");
     const savedPools = Array.isArray(existingOrder.pool_allocations) ? existingOrder.pool_allocations : [];
     if (savedPools.length > 0) {
       setAllocations(savedPools.map((p: any) => ({
