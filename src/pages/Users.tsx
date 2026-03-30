@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Loader2, LogIn, ShieldCheck, MoreHorizontal } from "lucide-react";
+import { Loader2, LogIn, ShieldCheck, MoreHorizontal, Mail } from "lucide-react";
 import ManageRolesDialog from "@/components/users/ManageRolesDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -144,12 +144,9 @@ const Users = () => {
       return data as { token_hash: string; email: string };
     },
     onSuccess: async (data) => {
-      // Store admin info for the impersonation banner
       const adminEmail = currentUser?.email ?? "admin";
       localStorage.setItem("impersonating_from", adminEmail);
-      // Sign out current user
       await supabase.auth.signOut();
-      // Use the OTP verify with the token hash
       const { error } = await supabase.auth.verifyOtp({
         token_hash: data.token_hash,
         type: "magiclink",
@@ -164,6 +161,28 @@ const Users = () => {
     },
     onError: (err: any) => {
       toast({ title: "Impersonation failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Send invite email mutation
+  const sendInviteMutation = useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      const { data, error } = await supabase.functions.invoke("send-registration-email", {
+        body: { tenant_id: currentTenant!.id, user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return { ...data, email };
+    },
+    onSuccess: (data) => {
+      if (data.email_sent) {
+        toast({ title: "Invite sent", description: `Activation email sent to ${data.email}` });
+      } else {
+        toast({ title: "Email failed", description: data.smtp_error || "Could not send email. Check SMTP settings.", variant: "destructive" });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
@@ -228,6 +247,12 @@ const Users = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setRoleDialogUser({ userId: u.user_id, name })}>
                               <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Manage Roles
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={sendInviteMutation.isPending}
+                              onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
+                            >
+                              <Mail className="h-3.5 w-3.5 mr-2" /> Send Invite Email
                             </DropdownMenuItem>
                             {u.user_id !== currentUser?.id && (
                               <DropdownMenuItem onClick={() => impersonateMutation.mutate(u.user_id)}>
@@ -327,6 +352,16 @@ const Users = () => {
                           >
                             <ShieldCheck className="h-3.5 w-3.5" />
                             Roles
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={sendInviteMutation.isPending}
+                            onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
+                          >
+                            {sendInviteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                            Invite
                           </Button>
                           {u.user_id !== currentUser?.id && (
                             <AlertDialog>
