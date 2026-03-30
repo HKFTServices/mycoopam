@@ -440,6 +440,8 @@ const DebitOrderSignUpDialog = ({
         signed_at: new Date().toISOString(),
         notes: JSON.stringify({
           loan_instalment: loanInstalment,
+          loan_term_months: effectiveTerm,
+          loan_outstanding: outstandingLoanInfo?.outstanding ?? 0,
           admin_fees: feeCalc.totalFee,
           fee_breakdown: feeCalc.breakdown,
           net_to_pools: afterFees,
