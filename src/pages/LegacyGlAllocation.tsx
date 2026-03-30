@@ -975,21 +975,10 @@ const LegacyGlAllocation = () => {
           });
         }
       }
-      // ── Loan Payout (1962) — Member Loans GL DR + Loan Control DR + Cash Control CR ──
+      // ── Loan Payout (1962) — Loan Control DR + Cash Control CR (control accounts only) ──
       else if (isLoanPayout && entry.entry_type_id === "1962") {
         const amount = entry.credit > 0 ? entry.credit : entry.debit;
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        // 1) Member Loans GL DR (balances the Bank CR on GL side)
-        proposed.push({
-          description: "Loan Payout — Member Loans",
-          debit: amount, credit: 0,
-          gl_account_id: "a5d5b2af-7ee3-4fe3-a8c0-a3aacde7709f", gl_account_label: "1025 Member Loans",
-          control_account_id: null, control_account_label: "",
-          pool_id: null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "loan_payout_gl",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-        // 2) Control account entries (no GL)
         if (ca) {
           const poolId = (ca as any).pool_id;
           const poolName = ca.pool_name ?? ca.name ?? "";
