@@ -88,7 +88,7 @@ export const GlobalPriceScheduleCard = () => {
           <Badge variant="secondary" className="ml-1 text-xs">{schedules.length} slots</Badge>
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Daily times when stock and pool prices are updated automatically for all pools.
+          Daily times (South African time) when stock and pool prices are updated automatically for all pools.
         </p>
       </CardHeader>
       <CardContent>
