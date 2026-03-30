@@ -423,7 +423,7 @@ const EmailSignatureSection = ({
               {showHtmlSource ? (
                 <Textarea
                   value={form.email_signature_af}
-                  onChange={(e) => setForm({ ...form, email_signature_af: e.target.value })}
+                  onChange={(e) => setForm((f: any) => ({ ...f, email_signature_af: e.target.value }))}
                   rows={10}
                   className="font-mono text-xs"
                   placeholder="Voer HTML e-poshandtekening in..."
