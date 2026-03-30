@@ -1386,7 +1386,7 @@ const LegacyGlAllocation = () => {
                             <TableCell></TableCell>
                           </TableRow>
                         ))}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </TableBody>
