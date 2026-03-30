@@ -349,9 +349,10 @@ const LegacyGlAllocation = () => {
       while (hasMore) {
         const { data: page, error } = await supabase
           .from("legacy_id_mappings")
-          .select("legacy_id, notes")
+          .select("legacy_id, notes, is_posted")
           .eq("table_name", "cashflow_transactions")
           .eq("tenant_id", currentTenant.id)
+          .eq("is_posted", false)
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) throw error;
