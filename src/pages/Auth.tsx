@@ -149,12 +149,13 @@ const Auth = () => {
         if (error) throw error;
         navigate("/dashboard");
       } else {
+        const refCodeToStore = refCode || localStorage.getItem("referralCode") || "";
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: getSiteUrl(),
-            data: { first_name: firstName, last_name: lastName },
+            data: { first_name: firstName, last_name: lastName, ...(refCodeToStore ? { referral_code: refCodeToStore } : {}) },
             captchaToken: token,
           },
         });
