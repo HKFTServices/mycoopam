@@ -169,17 +169,19 @@ Deno.serve(async (req) => {
     // Build redirect URL using tenant slug → correct subdomain
     const redirectTo = buildTenantUrl(tenant?.slug, "/auth");
 
-    // Generate activation link
+    // Generate a password-reset link so imported members can set their own password
     let activationLink: string;
+    const resetRedirectTo = buildTenantUrl(tenant?.slug, "/reset-password");
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: "signup",
+      type: "recovery",
       email: profile.email,
-      options: { redirectTo },
+      options: { redirectTo: resetRedirectTo },
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      console.log("[send-registration-email] Signup link failed, trying magiclink:", linkError?.message);
+      // Fallback to magiclink if recovery link fails
+      console.log("[send-registration-email] Recovery link failed, trying magiclink:", linkError?.message);
       const { data: magicData, error: magicError } = await adminClient.auth.admin.generateLink({
         type: "magiclink",
         email: profile.email,
@@ -193,16 +195,16 @@ Deno.serve(async (req) => {
       activationLink = linkData.properties.action_link;
     }
 
-    // Rewrite the activation link to go through the tenant domain directly.
+    // Rewrite the link to go through the tenant domain directly.
     try {
       const linkUrl = new URL(activationLink);
       const tokenHash = linkUrl.searchParams.get("token_hash") || linkUrl.searchParams.get("token");
-      const linkType = linkUrl.searchParams.get("type") || "signup";
+      const linkType = linkUrl.searchParams.get("type") || "recovery";
       if (tokenHash) {
-        activationLink = `${redirectTo}#token_hash=${encodeURIComponent(tokenHash)}&type=${linkType}`;
-        console.log("[send-registration-email] Rewrote activation link to tenant domain:", redirectTo);
+        activationLink = `${resetRedirectTo}#token_hash=${encodeURIComponent(tokenHash)}&type=${linkType}`;
+        console.log("[send-registration-email] Rewrote link to tenant reset-password page:", resetRedirectTo);
       } else {
-        linkUrl.searchParams.set("redirect_to", redirectTo);
+        linkUrl.searchParams.set("redirect_to", resetRedirectTo);
         activationLink = linkUrl.toString();
         console.log("[send-registration-email] Updated redirect_to on activation link");
       }
