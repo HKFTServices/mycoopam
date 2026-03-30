@@ -28,20 +28,24 @@ type TaxType = {
 
 const TaxTypes = () => {
   const queryClient = useQueryClient();
+  const { currentTenant } = useTenant();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TaxType | null>(null);
   const [form, setForm] = useState({ name: "", description: "", percentage: 0, is_active: true });
 
   const { data: types = [], isLoading } = useQuery({
-    queryKey: ["tax_types"],
+    queryKey: ["tax_types", currentTenant?.id],
     queryFn: async () => {
+      if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("tax_types")
         .select("*")
+        .eq("tenant_id", currentTenant.id)
         .order("name");
       if (error) throw error;
       return data as TaxType[];
     },
+    enabled: !!currentTenant,
   });
 
   const upsert = useMutation({
