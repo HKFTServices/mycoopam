@@ -1146,6 +1146,11 @@ const TenantConfiguration = () => {
         <TabsContent value="data" className="space-y-4">
           <ClearTestDataCard />
         </TabsContent>
+
+        {/* ── Referral Program ── */}
+        <TabsContent value="referral" className="space-y-4">
+          <ReferralProgramCard />
+        </TabsContent>
       </Tabs>
 
       <div className="flex justify-end">
