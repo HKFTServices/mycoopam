@@ -786,15 +786,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             items: filteredMam,
                           })}
 
-                        {isAdmin && renderGroup({
-                          label: "Tenant Setup",
-                          icon: Wrench,
-                          open: tenantSetupOpen,
-                          setOpen: setTenantSetupOpen,
-                          viewAll: { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" },
-                          items: filteredTenantSetup,
-                          dataTour: "tenant-setup-group",
-                        })}
+                        {(isAdmin || isClerkOrManager) && (() => {
+                          const setupItems = isAdmin
+                            ? filteredTenantSetup
+                            : filteredTenantSetup.filter((i) =>
+                                i.path === "/dashboard/setup/communications"
+                              );
+                          if (setupItems.length === 0) return null;
+                          return renderGroup({
+                            label: "Tenant Setup",
+                            icon: Wrench,
+                            open: tenantSetupOpen,
+                            setOpen: setTenantSetupOpen,
+                            viewAll: isAdmin
+                              ? { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" }
+                              : { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" },
+                            items: isAdmin ? setupItems : [],
+                            dataTour: "tenant-setup-group",
+                          });
+                        })()}
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </SidebarGroup>
