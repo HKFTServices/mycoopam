@@ -31,6 +31,7 @@ const PERMISSION_RESOURCES = [
     { resource: "portfolio", action: "view", label: "View Portfolio" },
     { resource: "statements", action: "view", label: "View Statements" },
     { resource: "statements", action: "download", label: "Download Statements" },
+    { resource: "statements", action: "email", label: "Email Statements (Any Member)" },
   ]},
   { category: "Transactions", items: [
     { resource: "transactions", action: "view", label: "View Transactions" },
