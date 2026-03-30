@@ -569,6 +569,21 @@ const DebitOrderSignUpDialog = ({
                   {/* Loan Instalment */}
                   <div className="space-y-1.5">
                     <div className="flex items-end gap-2">
+                      <div className="w-28">
+                        <Label className="text-xs">Term (months)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="120"
+                          placeholder={String(repaymentTermMonths)}
+                          value={manualLoanTerm}
+                          onChange={(e) => {
+                            setManualLoanTerm(e.target.value);
+                            setManualLoanInstalment(""); // recalculate instalment from new term
+                          }}
+                          className="h-8 text-sm"
+                        />
+                      </div>
                       <div className="flex-1">
                         <Label className="text-xs">Loan Instalment ({sym})</Label>
                         <Input
@@ -581,21 +596,21 @@ const DebitOrderSignUpDialog = ({
                           className="h-8 text-sm"
                         />
                       </div>
-                      {suggestedInstalment > 0 && manualLoanInstalment !== "" && (
-                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setManualLoanInstalment("")}>
+                      {(manualLoanInstalment !== "" || manualLoanTerm !== "") && (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setManualLoanInstalment(""); setManualLoanTerm(""); }}>
                           Reset
                         </Button>
                       )}
                     </div>
-                    {suggestedInstalment > 0 && (
+                    {outstandingLoanInfo && (
                       <div className="text-xs text-muted-foreground space-y-0.5">
                         <p>
-                          Suggested instalment: {formatCurrency(suggestedInstalment, sym)}
-                          {" "}(outstanding {formatCurrency(outstandingLoanInfo?.outstanding ?? 0, sym)} ÷ {repaymentTermMonths} months)
+                          Outstanding: {formatCurrency(outstandingLoanInfo.outstanding, sym)}
+                          {" "}÷ {effectiveTerm} months = {formatCurrency(suggestedInstalment, sym)}/mo
                         </p>
-                        {(outstandingLoanInfo?.legacyOutstanding ?? 0) > 0 && (
+                        {(outstandingLoanInfo.legacyOutstanding ?? 0) > 0 && (
                           <p className="italic">
-                            Includes legacy loan balance: {formatCurrency(outstandingLoanInfo!.legacyOutstanding, sym)}
+                            Includes legacy loan balance: {formatCurrency(outstandingLoanInfo.legacyOutstanding, sym)}
                           </p>
                         )}
                       </div>
