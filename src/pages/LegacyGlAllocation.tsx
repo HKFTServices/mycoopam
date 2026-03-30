@@ -1140,7 +1140,7 @@ const LegacyGlAllocation = () => {
       }
     }
 
-    const glEntries = proposed.filter(e => e.gl_account_id);
+    const glEntries = proposed.filter(e => e.gl_account_id || e.control_account_id);
     const totalDebit = glEntries.reduce((s, e) => s + e.debit, 0);
     const totalCredit = glEntries.reduce((s, e) => s + e.credit, 0);
     const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
