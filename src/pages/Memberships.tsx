@@ -367,16 +367,16 @@ const Memberships = () => {
     enabled: !!currentTenant,
   });
 
-  // Calculate combined unit value per entity_account (excluding do_not_display pools)
+  // Calculate combined unit value per entity_account (only display_in_summary pools, matching portfolio detail)
   const accountValueMap: Record<string, number> = useMemo(() => {
-    const excludedPoolIds = new Set(
+    const summaryPoolIds = new Set(
       poolDisplayTypes
-        .filter((p: any) => p.pool_statement_display_type === "do_not_display")
+        .filter((p: any) => p.pool_statement_display_type === "display_in_summary")
         .map((p: any) => p.id)
     );
     const priceByPool: Record<string, number> = {};
     for (const pp of latestPoolPrices) {
-      if (!excludedPoolIds.has(pp.pool_id)) {
+      if (summaryPoolIds.has(pp.pool_id)) {
         priceByPool[pp.pool_id] = Number(pp.unit_price_sell);
       }
     }
