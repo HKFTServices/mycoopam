@@ -41,8 +41,9 @@ const LoanDetailsStep = ({
   const capital = form.amount_requested || 0;
 
   const totalInterest = capital * termMonths * (interestRate / 100) / 12;
-  const totalLoan = capital + totalInterest + loanFee;
-  const monthlyInstalment = termMonths > 0 ? totalLoan / termMonths : 0;
+  const newLoanTotal = capital + totalInterest + loanFee;
+  const combinedOutstanding = existingOutstanding + newLoanTotal;
+  const monthlyInstalment = termMonths > 0 ? combinedOutstanding / termMonths : 0;
 
   // Pool value limit
   const selectedPoolValue = form.pool_id && getPoolValue ? getPoolValue(form.pool_id) : 0;
