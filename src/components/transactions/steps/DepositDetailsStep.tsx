@@ -98,6 +98,17 @@ const DepositDetailsStep = ({
   const { currentTenant } = useTenant();
   const [displayAmount, setDisplayAmount] = useState(amount || "");
   const [isFocused, setIsFocused] = useState(false);
+  const [loanDisplayAmount, setLoanDisplayAmount] = useState(
+    loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : ""
+  );
+  const [loanFieldFocused, setLoanFieldFocused] = useState(false);
+
+  // Sync loan display when the parent resets or sets the initial value
+  const prevLoanRef = useState({ val: loanRepaymentAmount })[0];
+  if (!loanFieldFocused && loanRepaymentAmount !== prevLoanRef.val) {
+    prevLoanRef.val = loanRepaymentAmount;
+    setLoanDisplayAmount(loanRepaymentAmount > 0 ? String(loanRepaymentAmount) : "");
+  }
 
   const formatDisplay = (raw: string) => {
     if (!raw) return "";
