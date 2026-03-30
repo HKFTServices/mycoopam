@@ -15,10 +15,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette } from "lucide-react";
+import { Loader2, Save, Upload, Shield, Mail, Settings, SendHorizonal, Users, Plus, Trash2, Pencil, Info, Building2, BookOpen, Vault, FileSignature, Sparkles, Eye, Code, Palette, Database } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+import ClearTestDataCard from "@/components/setup/ClearTestDataCard";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
