@@ -248,6 +248,12 @@ const Users = () => {
                             <DropdownMenuItem onClick={() => setRoleDialogUser({ userId: u.user_id, name })}>
                               <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Manage Roles
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={sendInviteMutation.isPending}
+                              onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
+                            >
+                              <Mail className="h-3.5 w-3.5 mr-2" /> Send Invite Email
+                            </DropdownMenuItem>
                             {u.user_id !== currentUser?.id && (
                               <DropdownMenuItem onClick={() => impersonateMutation.mutate(u.user_id)}>
                                 <LogIn className="h-3.5 w-3.5 mr-2" /> Login as
