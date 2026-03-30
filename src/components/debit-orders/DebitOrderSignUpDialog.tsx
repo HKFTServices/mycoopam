@@ -214,11 +214,30 @@ const DebitOrderSignUpDialog = ({
     enabled: !!entityId && !!currentTenant && open,
   });
 
-  // Outstanding loan info for the selected account
+  // Fetch loan settings for max_term_months (used as divisor for instalment calc)
+  const { data: loanSettings } = useQuery({
+    queryKey: ["loan_settings_debit", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return null;
+      const { data } = await (supabase as any)
+        .from("loan_settings")
+        .select("max_term_months")
+        .eq("tenant_id", currentTenant.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!currentTenant && open,
+  });
+
+  const repaymentTermMonths = loanSettings?.max_term_months ?? 12;
+
+  // Outstanding loan info — combines modern loans AND legacy balances
   const { data: outstandingLoanInfo } = useQuery({
-    queryKey: ["outstanding_loan_debit_order", entityAccountId, currentTenant?.id],
+    queryKey: ["outstanding_loan_debit_order", entityAccountId, entityId, currentTenant?.id],
     queryFn: async () => {
       if (!entityAccountId || !currentTenant) return null;
+
+      // 1) Modern loans: disbursed loan_applications + cashflow entries
       const { data: loans } = await (supabase as any)
         .from("loan_applications")
         .select("id, monthly_instalment, total_loan, amount_approved, pool_id")
@@ -226,25 +245,58 @@ const DebitOrderSignUpDialog = ({
         .eq("tenant_id", currentTenant.id)
         .eq("status", "disbursed")
         .order("created_at", { ascending: false });
-      if (!loans?.length) return null;
 
-      const { data: cftRows } = await (supabase as any)
-        .from("cashflow_transactions")
-        .select("debit, credit")
-        .eq("entity_account_id", entityAccountId)
-        .eq("tenant_id", currentTenant.id)
-        .eq("is_active", true)
-        .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
+      let modernOutstanding = 0;
+      let modernInstalment = 0;
 
-      const outstanding = (cftRows || []).reduce((sum: number, r: any) =>
-        sum + Number(r.debit) - Number(r.credit), 0);
+      if (loans?.length) {
+        const { data: cftRows } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("debit, credit")
+          .eq("entity_account_id", entityAccountId)
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true)
+          .in("entry_type", ["loan_capital", "loan_fee", "loan_loading", "loan_repayment"]);
 
-      if (outstanding <= 0) return null;
+        modernOutstanding = (cftRows || []).reduce((sum: number, r: any) =>
+          sum + Number(r.debit) - Number(r.credit), 0);
 
-      const totalInstalment = loans.reduce((sum: number, l: any) =>
-        sum + (Number(l.monthly_instalment) || 0), 0);
+        modernInstalment = loans.reduce((sum: number, l: any) =>
+          sum + (Number(l.monthly_instalment) || 0), 0);
+      }
 
-      return { outstanding, instalment: totalInstalment };
+      // 2) Legacy loans via RPC
+      let legacyOutstanding = 0;
+      try {
+        const { data: legacyRows } = await (supabase as any).rpc("get_loan_outstanding", {
+          p_tenant_id: currentTenant.id,
+        });
+        if (legacyRows?.length) {
+          // Match legacy rows to this entity
+          const entityRow = legacyRows.find((r: any) => r.entity_id === entityId);
+          if (entityRow) {
+            legacyOutstanding = Math.max(0, Number(entityRow.outstanding) || 0);
+          }
+        }
+      } catch {
+        // Legacy RPC may not exist for all tenants — ignore
+      }
+
+      const totalOutstanding = modernOutstanding + legacyOutstanding;
+      if (totalOutstanding <= 0) return null;
+
+      // Suggested instalment: use loan app monthly_instalment if set,
+      // otherwise divide total outstanding by configured term
+      const suggestedInstalment = modernInstalment > 0
+        ? modernInstalment
+        : totalOutstanding / repaymentTermMonths;
+
+      return {
+        outstanding: totalOutstanding,
+        instalment: suggestedInstalment,
+        modernOutstanding,
+        legacyOutstanding,
+      };
     },
     enabled: !!entityAccountId && !!currentTenant && open,
   });
