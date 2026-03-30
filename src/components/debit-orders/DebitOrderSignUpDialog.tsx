@@ -46,7 +46,7 @@ const DebitOrderSignUpDialog = ({
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
-
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("details");
   const [monthlyAmount, setMonthlyAmount] = useState("");
   const debitDay = "1";
