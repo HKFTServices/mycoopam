@@ -1018,11 +1018,11 @@ const LegacyGlAllocation = () => {
           });
         }
 
-        // 3. Loan Control DR (control only) — loan amount
+        // 3. Loan Control DR (control only) — bank payout amount
         if (memberAcctLoanControl) {
           proposed.push({
             description: `Member Loan Control — ${poolName}`,
-            debit: loanAmount, credit: 0,
+            debit: payoutAmount, credit: 0,
             gl_account_id: null, gl_account_label: "",
             control_account_id: memberAcctLoanControl.id,
             control_account_label: memberAcctLoanControl.name ?? "Member Account Loans",
