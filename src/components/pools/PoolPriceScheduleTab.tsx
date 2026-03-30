@@ -80,7 +80,7 @@ export const PoolPriceScheduleTab = ({ poolId }: { poolId: string }) => {
   return (
     <div className="space-y-4 py-2">
       <p className="text-sm text-muted-foreground">
-        Configure daily times when stock and pool prices should be updated automatically.
+        Configure daily times (South African time) when stock and pool prices should be updated automatically.
       </p>
 
       <div className="flex items-center gap-2">
