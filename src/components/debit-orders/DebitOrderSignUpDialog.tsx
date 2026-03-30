@@ -18,7 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import SignaturePad from "@/components/ui/signature-pad";
-import { Loader2, FileText, CreditCard, AlertCircle } from "lucide-react";
+import { Loader2, FileText, CreditCard, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface DebitOrderSignUpDialogProps {
