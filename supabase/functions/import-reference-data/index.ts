@@ -1380,25 +1380,29 @@ Deno.serve(async (req) => {
 
         // Resolve entity_account_id for member_shares via legacy mappings
         if (table_name === "member_shares") {
-          // EntityID in legacy ShareTransactions is the legacy ClientAccountId (member number)
-          const legacyClientId = String(record.EntityID || record.legacy_entity_id || record.entityId || "");
-          if (legacyClientId) {
-            // Primary: match by client_account_id (the legacy member number)
-            const { data: clientMatch } = await adminClient
-              .from("entity_accounts")
-              .select("id")
-              .eq("tenant_id", tenant_id)
-              .eq("client_account_id", Number(legacyClientId))
-              .maybeSingle();
-            if (clientMatch) {
-              row.entity_account_id = clientMatch.id;
+          // EntityID in legacy ShareTransactions is actually the legacy entity account GUID
+          const legacyEaId = String(record.EntityID || record.legacy_entity_id || record.entityId || "");
+          if (legacyEaId) {
+            // Primary: resolve via legacy_id_mappings for entity_accounts
+            const eaNewId = await resolveLegacy("entity_accounts", legacyEaId);
+            if (eaNewId) {
+              row.entity_account_id = eaNewId;
             } else {
-              // Fallback: try legacy_id_mappings
-              const eaNewId = await resolveLegacy("entity_accounts", legacyClientId);
-              if (eaNewId) {
-                row.entity_account_id = eaNewId;
-              } else {
-                console.log(`Shares ${legacyId}: FAILED to resolve entity_account for legacy client ID ${legacyClientId}`);
+              // Fallback: try matching by client_account_id
+              const numericId = Number(legacyEaId);
+              if (!isNaN(numericId)) {
+                const { data: clientMatch } = await adminClient
+                  .from("entity_accounts")
+                  .select("id")
+                  .eq("tenant_id", tenant_id)
+                  .eq("client_account_id", numericId)
+                  .maybeSingle();
+                if (clientMatch) {
+                  row.entity_account_id = clientMatch.id;
+                }
+              }
+              if (!row.entity_account_id) {
+                console.log(`Shares ${legacyId}: FAILED to resolve entity_account for legacy EA ID ${legacyEaId}`);
               }
             }
           }
