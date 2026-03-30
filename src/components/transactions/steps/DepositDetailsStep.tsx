@@ -284,8 +284,8 @@ const DepositDetailsStep = ({
       )}
       <div className="space-y-2">
         <Label>Payment Method</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {PAYMENT_METHODS.map((m) => {
+        <div className={`grid gap-2 ${availableMethods.length > 3 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+          {availableMethods.map((m) => {
             const isSelected = paymentMethod === m.value;
             const Icon = m.icon;
             return (
@@ -308,6 +308,15 @@ const DepositDetailsStep = ({
           <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             Cash Deposit Fee will be applied
+          </div>
+        )}
+        {paymentMethod === "credit_card" && gatewayConfig && gatewayFeeAmount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 rounded-lg px-3 py-2">
+            <CreditCard className="h-3.5 w-3.5 shrink-0" />
+            Gateway Fee: {formatCurrency(gatewayFeeAmount)}
+            {gatewayConfig.gateway_fee_passed_to === "member"
+              ? " (added to your total)"
+              : " (deducted from deposit)"}
           </div>
         )}
       </div>
