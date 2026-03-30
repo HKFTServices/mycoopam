@@ -138,19 +138,21 @@ const LoanDetailsStep = ({
               <span className="text-right font-mono">{formatCurrency(totalInterest)}</span>
               <span className="text-muted-foreground">Loan Issue Fee:</span>
               <span className="text-right font-mono">{formatCurrency(loanFee)}</span>
-              <span className="font-semibold border-t pt-1 mt-1">Total Loan:</span>
-              <span className="text-right font-mono font-bold border-t pt-1 mt-1">{formatCurrency(totalLoan)}</span>
-              <span className="text-muted-foreground">Monthly Instalment:</span>
-              <span className="text-right font-mono font-semibold text-primary">{formatCurrency(monthlyInstalment)}</span>
+              <span className="font-semibold border-t pt-1 mt-1">New Loan Total:</span>
+              <span className="text-right font-mono font-bold border-t pt-1 mt-1">{formatCurrency(newLoanTotal)}</span>
               {existingOutstanding > 0 && (
                 <>
-                  <span className="text-muted-foreground">Existing Outstanding:</span>
-                  <span className="text-right font-mono text-orange-600">{formatCurrency(existingOutstanding)}</span>
+                  <span className="text-muted-foreground">Existing Outstanding Loans:</span>
+                  <span className="text-right font-mono text-destructive">{formatCurrency(existingOutstanding)}</span>
+                  <span className="font-semibold border-t pt-1 mt-1">Combined Outstanding:</span>
+                  <span className="text-right font-mono font-bold border-t pt-1 mt-1 text-destructive">{formatCurrency(combinedOutstanding)}</span>
                 </>
               )}
+              <span className="text-muted-foreground border-t pt-1 mt-1">Monthly Instalment ({termMonths} months):</span>
+              <span className="text-right font-mono font-semibold text-primary border-t pt-1 mt-1">{formatCurrency(monthlyInstalment)}</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-3">
-              * Final rates determined by manager after risk assessment. Formula: Total = Capital × (1 + term × rate/12) + Fee
+              * Monthly instalment = {existingOutstanding > 0 ? "(Existing outstanding + New loan total)" : "Total loan"} ÷ {termMonths} months. Final rates determined by manager after risk assessment.
             </p>
           </CardContent>
         </Card>
