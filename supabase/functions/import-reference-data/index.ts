@@ -1350,7 +1350,6 @@ Deno.serve(async (req) => {
                 const { data: taxMatch } = await adminClient
                   .from("tax_types")
                   .select("id")
-                  .eq("tenant_id", tenant_id)
                   .ilike("name", String(taxName))
                   .maybeSingle();
                 if (taxMatch) row.tax_type_id = taxMatch.id;

@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
           margin_percentage: item.margin_percentage,
           sell_margin_percentage: item.sell_margin_percentage,
           show_item_price_on_statement: item.show_item_price_on_statement,
-          tax_type_id: mapId(item.tax_type_id),
+          tax_type_id: item.tax_type_id, // global — use source ID directly
           api_provider_id: item.api_provider_id,
           api_code: item.api_code,
           api_key: item.api_key,
