@@ -569,6 +569,7 @@ const LegacyGlAllocation = () => {
     const isStockPurchase = rootEntry.tx_type_id === "1953";
     const isStockSale = rootEntry.tx_type_id === "1954";
     const isGrant = rootEntry.tx_type_id === "1960";
+    const isLoanPayout = rootEntry.tx_type_id === "1959";
     // Check if this transaction includes a Share entry (1922) — determines fee treatment
     const hasShareEntry = allEntries.some(e => e.entry_type_id === "1922");
 
@@ -974,6 +975,19 @@ const LegacyGlAllocation = () => {
           });
         }
       }
+      // ── Loan Payout (1962) — Member Loans DR ──
+      else if (isLoanPayout && entry.entry_type_id === "1962") {
+        const amount = entry.credit > 0 ? entry.credit : entry.debit;
+        proposed.push({
+          description: "Loan Payout — Member Loans",
+          debit: amount, credit: 0,
+          gl_account_id: "a5d5b2af-7ee3-4fe3-a8c0-a3aacde7709f", gl_account_label: "1025 Member Loans",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_payout_gl",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
       // ── Fallback for non-deposit or unmapped entries ──
       else {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
@@ -1069,6 +1083,25 @@ const LegacyGlAllocation = () => {
         proposed.push({
           description: "Bank Payment — Grant",
           debit: 0, credit: grantTotal,
+          gl_account_id: tenantGlConfig?.bankGlId ?? null,
+          gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "bank_payment",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+    }
+
+    // ── Loan Payout — Bank CR for total ──
+    if (isLoanPayout) {
+      const loanTotal = allEntries
+        .filter(e => e.entry_type_id === "1962")
+        .reduce((sum, e) => sum + (e.credit > 0 ? e.credit : e.debit), 0);
+      if (loanTotal > 0) {
+        proposed.push({
+          description: "Bank Payment — Loan Payout",
+          debit: 0, credit: loanTotal,
           gl_account_id: tenantGlConfig?.bankGlId ?? null,
           gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
           control_account_id: null, control_account_label: "",
