@@ -975,45 +975,75 @@ const LegacyGlAllocation = () => {
           });
         }
       }
-      // ── Loan Payout (1962) — Loan Control DR + Cash Control CR (control accounts only) ──
+      // ── Loan Payout (1962) — root entry, payout amount (bank) ──
+      // GL entries (Member Loans DR + Loadings Receivable CR) and control entries
+      // are handled via the 1980 child entry below. Nothing to map here — the bank
+      // entry is added in the aggregate section at the bottom.
       else if (isLoanPayout && entry.entry_type_id === "1962") {
-        const amount = entry.credit > 0 ? entry.credit : entry.debit;
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        if (ca) {
-          const poolId = (ca as any).pool_id;
-          const poolName = ca.pool_name ?? ca.name ?? "";
-          const loanCa = controlAccounts?.find(c =>
-            c.pool_id === poolId &&
-            c.account_type?.toLowerCase().includes("loan")
-          );
-          const cashCa = controlAccounts?.find(c =>
-            c.pool_id === poolId &&
-            c.account_type?.toLowerCase().includes("cash")
-          );
-          // Loan Control DR
-          if (loanCa) {
-            proposed.push({
-              description: `Loan Control — ${poolName}`,
-              debit: amount, credit: 0,
-              gl_account_id: null, gl_account_label: "",
-              control_account_id: loanCa.new_id, control_account_label: `${loanCa.name} (${loanCa.pool_name})`,
-              pool_id: poolId ?? null, entity_account_id: eaInfo?.id ?? null,
-              transaction_date: txDate, entry_type: "loan_payout_control_dr",
-              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-            });
-          }
-          // Cash Control CR
-          if (cashCa) {
-            proposed.push({
-              description: `Cash Control — ${poolName}`,
-              debit: 0, credit: amount,
-              gl_account_id: null, gl_account_label: "",
-              control_account_id: cashCa.new_id, control_account_label: `${cashCa.name} (${cashCa.pool_name})`,
-              pool_id: poolId ?? null, entity_account_id: eaInfo?.id ?? null,
-              transaction_date: txDate, entry_type: "loan_payout_control_cr",
-              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-            });
-          }
+        // Skip — bank GL CR is handled in the aggregate loan payout section below
+      }
+      // ── Loan Payout (1980) — loan amount entry (includes loadings) ──
+      else if (isLoanPayout && entry.entry_type_id === "1980") {
+        const loanAmount = entry.credit > 0 ? entry.credit : entry.debit;
+        // Find the matching 1962 root to get the bank payout amount
+        const payoutEntry = allEntries.find(e => e.entry_type_id === "1962");
+        const payoutAmount = payoutEntry ? (payoutEntry.credit > 0 ? payoutEntry.credit : payoutEntry.debit) : loanAmount;
+        const loadingsDiff = Math.max(0, Math.round((loanAmount - payoutAmount) * 100) / 100);
+        const poolId = memberAcctCashControl?.pool_id ?? null;
+        const poolName = "Member Account";
+
+        // 1. Member Loans GL DR (1025) — full loan amount
+        proposed.push({
+          description: `Member Loans — Loan Payout`,
+          debit: loanAmount, credit: 0,
+          gl_account_id: "a5d5b2af-7ee3-4fe3-a8c0-a3aacde7709f",
+          gl_account_label: "1025 Member Loans",
+          control_account_id: null, control_account_label: "",
+          pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_capital",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+
+        // 2. Loadings Receivable GL CR (2005) — difference between loan amount and payout
+        if (loadingsDiff > 0.01) {
+          proposed.push({
+            description: `Loadings Receivable — Loan Payout`,
+            debit: 0, credit: loadingsDiff,
+            gl_account_id: "e1437590-9934-4787-ab1a-7fae8c870f92",
+            gl_account_label: "2005 Loadings Receivable",
+            control_account_id: null, control_account_label: "",
+            pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "loan_loading",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // 3. Loan Control DR (control only) — loan amount
+        if (memberAcctLoanControl) {
+          proposed.push({
+            description: `Member Loan Control — ${poolName}`,
+            debit: loanAmount, credit: 0,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: memberAcctLoanControl.id,
+            control_account_label: memberAcctLoanControl.name ?? "Member Account Loans",
+            pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "loan_payout_control_dr",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+
+        // 4. Cash Control CR (control only) — bank payout amount
+        if (memberAcctCashControl) {
+          proposed.push({
+            description: `Member Cash Control — ${poolName}`,
+            debit: 0, credit: payoutAmount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: memberAcctCashControl.id,
+            control_account_label: memberAcctCashControl.name ?? "Member Account Cash",
+            pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "loan_payout_control_cr",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
         }
       }
       // ── Fallback for non-deposit or unmapped entries ──
