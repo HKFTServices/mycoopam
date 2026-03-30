@@ -1153,6 +1153,11 @@ const TenantConfiguration = () => {
         <TabsContent value="referral" className="space-y-4">
           <ReferralProgramCard />
         </TabsContent>
+
+        {/* ── Payment Gateway ── */}
+        <TabsContent value="payments" className="space-y-4">
+          <PaymentGatewayCard />
+        </TabsContent>
       </Tabs>
 
       <div className="flex justify-end">
