@@ -274,6 +274,15 @@ const TABLE_QUERIES: Record<string, string> = {
     FROM dbo.EntityDocuments ed
     WHERE ed.IsDeleted = 0
   `,
+  agent_house_agents: `
+    SELECT CAST(Id AS VARCHAR(36)) AS legacy_id,
+      CAST(AgentHouseId AS VARCHAR(36)) AS legacy_agent_house_id,
+      CAST(AgentId AS VARCHAR(36)) AS legacy_agent_id,
+      IsActive AS is_active,
+      IsDeleted AS is_deleted
+    FROM dbo.AgentHouseAgents
+    WHERE IsDeleted = 0
+  `,
 };
 function queryMssql(config: Record<string, unknown>, sql: string): Promise<Record<string, unknown>[]> {
   return new Promise((resolve, reject) => {
