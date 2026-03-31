@@ -593,8 +593,10 @@ const LegacyGlAllocation = () => {
       "1986", // Member Account
       "1989", // Funeral Fund
       "1994", // Crypto
+      "2005", // Pool Deposit (Bullion)
       "2006", // Gold
       "2008", // Silver
+      "2010", // Pool Deposit (Bullion alt)
     ]);
 
     // Pool withdrawal entry type IDs
@@ -609,6 +611,7 @@ const LegacyGlAllocation = () => {
       "1995", // Crypto
       "2007", // Gold
       "2009", // Silver
+      "2011", // Pool Withdrawal (Bullion)
     ]);
 
     // Withdrawal fee entry types
