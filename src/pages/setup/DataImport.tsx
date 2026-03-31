@@ -325,6 +325,10 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
     { csvColumn: "agent_number / AgentNumber", targetColumn: "agent_number (reference)", required: false },
     { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
   ],
+  referrers: [
+    { csvColumn: "(auto)", targetColumn: "Reads from imported agent_house_agents data", required: false },
+    { csvColumn: "(auto)", targetColumn: "Creates referrer records & links member entities", required: false },
+  ],
 };
 
 type SimulationEntry = {
