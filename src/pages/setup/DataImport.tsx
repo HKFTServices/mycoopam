@@ -44,6 +44,7 @@ const SUPPORTED_TABLES = [
   { value: "daily_stock_prices", label: "Daily Stock Prices (requires Items)", order: 15 },
   { value: "daily_pool_prices", label: "Daily Pool Prices (requires Pools)", order: 16 },
   { value: "entity_documents", label: "Entity Documents (requires Entities & Document Types — use Entity Documents tab)", order: 17 },
+  { value: "agent_house_agents", label: "Agent House Agents (links referrers to referral houses)", order: 18 },
 ];
 
 const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string; required: boolean }[]> = {
