@@ -1388,6 +1388,7 @@ Deno.serve(async (req) => {
               results.inserted++;
             }
             continue; // Skip the normal legacy_id_mapping insert
+          }
 
           // Store legacy_id_mappings for all tables including entity_accounts (needed for shares resolution)
           if (!isDryRun && newId) {
