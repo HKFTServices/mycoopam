@@ -534,6 +534,17 @@ Deno.serve(async (req) => {
             const titleId = await resolveLegacy("titles", record.legacy_title_id || record.TitleId);
             const catId = await resolveLegacy("entity_categories", record.legacy_entity_category_id || record.EntityCategoryId);
 
+            // Resolve agent_house_agent_id: legacy AgentHouseAgentId → junction table → agent entity
+            const rawAgentHouseAgentId = record.legacy_agent_house_agent_id || record.AgentHouseAgentId;
+            let agentHouseAgentId: string | null = null;
+            if (rawAgentHouseAgentId && !isNullish(rawAgentHouseAgentId)) {
+              // Look up the junction table record to get the agent entity
+              const junctionNewId = await resolveLegacy("agent_house_agents", rawAgentHouseAgentId);
+              if (junctionNewId) {
+                agentHouseAgentId = junctionNewId; // new_id stores the agent entity ID
+              }
+            }
+
             const row: Record<string, unknown> = {
               tenant_id,
               name: record.name || record.Name,
@@ -559,6 +570,7 @@ Deno.serve(async (req) => {
               date_of_birth: val(record.date_of_birth || record.DateOfBirth),
               legacy_user_id: val(record.legacy_user_id || record.LegacyUserId),
               website: val(record.website || record.Website),
+              agent_house_agent_id: agentHouseAgentId,
             };
 
             if (!row.name) { results.errors.push(`Entity ${legacyId}: missing name`); continue; }
