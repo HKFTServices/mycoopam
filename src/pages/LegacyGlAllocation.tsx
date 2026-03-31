@@ -80,6 +80,15 @@ interface ProposedCftEntry {
   legacy_transaction_id: string;
 }
 
+interface ControlDirectionWarning {
+  legacyCftId: string;
+  legacyCashAccountId: string;
+  controlAccountName: string;
+  legacySide: "DR" | "CR";
+  proposedSide: "DR" | "CR";
+  amount: number;
+}
+
 interface ProposedGroup {
   root: LegacyCftEntry;
   children: LegacyCftEntry[];
@@ -88,6 +97,7 @@ interface ProposedGroup {
   totalCredit: number;
   isBalanced: boolean;
   entityName: string;
+  controlWarnings: ControlDirectionWarning[];
 }
 
 const TRANSACTION_TYPES = [
@@ -1175,6 +1185,36 @@ const LegacyGlAllocation = () => {
     const totalCredit = glEntries.reduce((s, e) => s + e.credit, 0);
     const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
+    // ── Control account direction validation ──
+    // For each legacy entry with a cash_account_id, check that the proposed
+    // control account entry has the same debit/credit direction.
+    const controlWarnings: ControlDirectionWarning[] = [];
+    for (const entry of allEntries) {
+      if (entry.cash_account_id === "0") continue;
+      const legacySide: "DR" | "CR" = entry.debit > 0 ? "DR" : "CR";
+      const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+      if (!ca) continue;
+      // Find the matching proposed control account entry for this legacy entry
+      const matchingCtrl = proposed.find(
+        p => p.control_account_id === ca.new_id && p.control_account_id !== null
+          && ((p.debit > 0 && Math.abs(p.debit - (entry.debit || entry.credit)) < 0.01)
+            || (p.credit > 0 && Math.abs(p.credit - (entry.debit || entry.credit)) < 0.01))
+      );
+      if (matchingCtrl) {
+        const proposedSide: "DR" | "CR" = matchingCtrl.debit > 0 ? "DR" : "CR";
+        if (proposedSide !== legacySide) {
+          controlWarnings.push({
+            legacyCftId: entry.cft_id,
+            legacyCashAccountId: entry.cash_account_id,
+            controlAccountName: ca.name,
+            legacySide,
+            proposedSide,
+            amount: entry.debit > 0 ? entry.debit : entry.credit,
+          });
+        }
+      }
+    }
+
     return {
       root: group.root,
       children: group.children,
@@ -1183,6 +1223,7 @@ const LegacyGlAllocation = () => {
       totalCredit,
       isBalanced,
       entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
+      controlWarnings,
     };
   };
 
@@ -1428,6 +1469,14 @@ const LegacyGlAllocation = () => {
                           <AlertTriangle className="h-3 w-3" /> {unbal} unbalanced
                         </Badge>
                       )}
+                      {(() => {
+                        const warnCount = allProposed.reduce((s, g) => s + g.controlWarnings.length, 0);
+                        return warnCount > 0 ? (
+                          <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-600 bg-amber-500/10">
+                            <AlertTriangle className="h-3 w-3" /> {warnCount} direction mismatches
+                          </Badge>
+                        ) : null;
+                      })()}
                       <Badge variant="outline">
                         {allProposed.reduce((s, g) => s + g.entries.length, 0)} proposed entries
                       </Badge>
@@ -1463,7 +1512,7 @@ const LegacyGlAllocation = () => {
                         {/* Summary row */}
                         <TableRow
                           key={`root-${pg.root.cft_id}`}
-                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!pg.isBalanced ? 'bg-destructive/5' : ''}`}
+                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!pg.isBalanced ? 'bg-destructive/5' : pg.controlWarnings.length > 0 ? 'bg-amber-500/5' : ''}`}
                           onClick={() => toggleParent(pg.root.cft_id)}
                         >
                           <TableCell className="px-2">
@@ -1525,6 +1574,25 @@ const LegacyGlAllocation = () => {
                             <TableCell></TableCell>
                           </TableRow>
                         ))}
+
+                        {/* Control direction warnings */}
+                        {isExpanded && pg.controlWarnings.length > 0 && (
+                          <TableRow className="bg-amber-500/5">
+                            <TableCell colSpan={9} className="py-2">
+                              <div className="flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                                <div className="text-xs space-y-1">
+                                  <span className="font-semibold text-amber-700">Control account direction mismatch:</span>
+                                  {pg.controlWarnings.map((w, wi) => (
+                                    <div key={wi} className="text-muted-foreground">
+                                      CFT #{w.legacyCftId}: <strong>{w.controlAccountName}</strong> — Legacy={w.legacySide}, Proposed={w.proposedSide} ({formatCurrency(w.amount)})
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </React.Fragment>
                     );
                   })}
