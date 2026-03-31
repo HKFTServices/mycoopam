@@ -267,6 +267,8 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
                     </TableCell>
                     <TableCell className="align-top text-right">
                       <span className="font-mono text-sm font-semibold">{formatCurrency(g.unitValue, sym)}</span>
+                    </TableCell>
+                    <TableCell className="align-top text-sm text-muted-foreground">{g.commissionPct}%</TableCell>
                     <TableCell className="align-top">
                       {g.accounts.length > 0 ? (
                         <div className="space-y-1.5">
