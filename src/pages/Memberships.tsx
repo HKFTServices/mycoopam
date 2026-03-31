@@ -210,6 +210,11 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
                     <Eye className="h-4 w-4" />
                   </Button>
                 </div>
+                {/* Unit Value */}
+                <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Unit Value</span>
+                  <span className="font-mono text-sm font-semibold">{formatCurrency(g.unitValue, sym)}</span>
+                </div>
                 {g.accounts.length > 0 && (
                   <div className="border-t border-border pt-2 space-y-1.5 px-1">
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Accounts</p>
