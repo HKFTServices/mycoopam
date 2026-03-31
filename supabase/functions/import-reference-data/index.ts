@@ -704,8 +704,17 @@ Deno.serve(async (req) => {
 
               if (authErr) {
                 if (authErr.message?.includes("already been registered") || authErr.message?.includes("already exists")) {
-                  const { data: listData } = await adminClient.auth.admin.listUsers();
-                  const found = listData?.users?.find((u: any) => u.email?.toLowerCase() === email);
+                  // Paginate through all users to find the existing one
+                  let found: any = null;
+                  let page = 1;
+                  const perPage = 1000;
+                  while (!found) {
+                    const { data: listData } = await adminClient.auth.admin.listUsers({ page, perPage });
+                    if (!listData?.users?.length) break;
+                    found = listData.users.find((u: any) => u.email?.toLowerCase() === email);
+                    if (listData.users.length < perPage) break;
+                    page++;
+                  }
                   if (found) {
                     newId = found.id;
                     results.simulation[results.simulation.length - 1].action = "existing_user";
