@@ -1171,6 +1171,38 @@ Deno.serve(async (req) => {
                 newId = ins.id;
               }
             }
+          } else if (table_name === "agent_house_agents") {
+            // Link agent (referrer) to agent house (referral house) via agent_house_agent_id on entities
+            const agentHouseEntityId = await resolveLegacy("entities", record.legacy_agent_house_id || record.AgentHouseId);
+            const agentEntityId = await resolveLegacy("entities", record.legacy_agent_id || record.AgentId);
+
+            if (!agentHouseEntityId) {
+              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${record.legacy_agent_house_id || record.AgentHouseId}`);
+              continue;
+            }
+            if (!agentEntityId) {
+              results.errors.push(`AgentHouseAgent ${legacyId}: agent entity not found for legacy_id ${record.legacy_agent_id || record.AgentId}`);
+              continue;
+            }
+
+            results.simulation.push({
+              legacy_id: legacyId,
+              action: isDryRun ? "will_update" : "update",
+              name: `Link agent ${agentEntityId} → house ${agentHouseEntityId}`,
+              mapped_fields: { agent_entity_id: agentEntityId, agent_house_entity_id: agentHouseEntityId },
+            });
+
+            if (!isDryRun) {
+              const { error: updateErr } = await adminClient.from("entities")
+                .update({ agent_house_agent_id: agentHouseEntityId })
+                .eq("id", agentEntityId)
+                .eq("tenant_id", tenant_id);
+              if (updateErr) {
+                results.errors.push(`AgentHouseAgent ${legacyId}: ${updateErr.message}`);
+                continue;
+              }
+            }
+            newId = agentEntityId;
           }
 
           // Store legacy_id_mappings for all tables including entity_accounts (needed for shares resolution)

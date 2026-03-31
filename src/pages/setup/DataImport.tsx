@@ -317,6 +317,12 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
     { csvColumn: "Bytes / bytes", targetColumn: "binary file data (hex or base64)", required: true },
     { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
   ],
+  agent_house_agents: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "legacy_agent_house_id / AgentHouseId", targetColumn: "agent_house entity (resolved via entities mapping)", required: true },
+    { csvColumn: "legacy_agent_id / AgentId", targetColumn: "agent entity (resolved via entities mapping)", required: true },
+    { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
+  ],
 };
 
 type SimulationEntry = {
