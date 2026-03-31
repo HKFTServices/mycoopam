@@ -1173,15 +1173,20 @@ Deno.serve(async (req) => {
             }
           } else if (table_name === "agent_house_agents") {
             // Link agent (referrer) to agent house (referral house) via agent_house_agent_id on entities
-            const agentHouseEntityId = await resolveLegacy("entities", record.legacy_agent_house_id || record.AgentHouseEntityId);
-            const agentEntityId = await resolveLegacy("entities", record.legacy_agent_id || record.AgentEntityId);
+            const rawHouseId = record.legacy_agent_house_id || record.AgentHouseEntityId || record.agent_house_entity_id;
+            const rawAgentId = record.legacy_agent_id || record.AgentEntityId || record.agent_entity_id;
+            console.log(`AgentHouseAgent ${legacyId}: raw house=${rawHouseId}, raw agent=${rawAgentId}, keys=${Object.keys(record).join(",")}`);
+
+            const agentHouseEntityId = await resolveLegacy("entities", rawHouseId);
+            const agentEntityId = await resolveLegacy("entities", rawAgentId);
+            console.log(`AgentHouseAgent ${legacyId}: resolved house=${agentHouseEntityId}, agent=${agentEntityId}`);
 
             if (!agentHouseEntityId) {
-              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${record.legacy_agent_house_id || record.AgentHouseEntityId}`);
+              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${rawHouseId}`);
               continue;
             }
             if (!agentEntityId) {
-              results.errors.push(`AgentHouseAgent ${legacyId}: agent entity not found for legacy_id ${record.legacy_agent_id || record.AgentId}`);
+              results.errors.push(`AgentHouseAgent ${legacyId}: agent entity not found for legacy_id ${rawAgentId}`);
               continue;
             }
 
@@ -1201,6 +1206,7 @@ Deno.serve(async (req) => {
                 results.errors.push(`AgentHouseAgent ${legacyId}: ${updateErr.message}`);
                 continue;
               }
+              console.log(`AgentHouseAgent ${legacyId}: updated entity ${agentEntityId} → house ${agentHouseEntityId}`);
             }
             newId = agentEntityId;
           }
