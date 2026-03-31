@@ -209,8 +209,22 @@ Deno.serve(async (req) => {
 
       console.log(`API prices for tenant ${tenantId}:`, rawApiPrices);
 
+      // Fetch previous day's stock prices as fallback
+      const { data: prevStockPrices } = await supabase
+        .from("daily_stock_prices")
+        .select("item_id, cost_excl_vat, cost_incl_vat, buy_price_excl_vat, buy_price_incl_vat")
+        .eq("tenant_id", tenantId)
+        .lt("price_date", today)
+        .order("price_date", { ascending: false })
+        .limit(items.length * 2); // enough to cover all items from the most recent date
+      const prevPriceMap: Record<string, any> = {};
+      (prevStockPrices || []).forEach((p: any) => {
+        if (!prevPriceMap[p.item_id]) prevPriceMap[p.item_id] = p; // first = most recent
+      });
+
       // ── 2) Calculate and save stock prices ──
       const stockRecords: any[] = [];
+      let fallbackCount = 0;
       for (const item of items) {
         let costExclVat = 0;
         const code = item.api_code?.toUpperCase();
@@ -224,6 +238,23 @@ Deno.serve(async (req) => {
           costExclVat = providerPrices[code] * factor;
         } else if (item.use_fixed_price != null) {
           costExclVat = item.use_fixed_price;
+        }
+
+        // Fallback to previous day's price if API returned nothing
+        if (costExclVat <= 0 && prevPriceMap[item.id]) {
+          const prev = prevPriceMap[item.id];
+          console.log(`Falling back to previous price for item ${item.item_code}: cost=${prev.cost_excl_vat}`);
+          stockRecords.push({
+            tenant_id: tenantId,
+            item_id: item.id,
+            price_date: today,
+            cost_excl_vat: Number(prev.cost_excl_vat),
+            cost_incl_vat: Number(prev.cost_incl_vat),
+            buy_price_excl_vat: Number(prev.buy_price_excl_vat),
+            buy_price_incl_vat: Number(prev.buy_price_incl_vat),
+          });
+          fallbackCount++;
+          continue;
         }
 
         if (costExclVat <= 0) continue;
@@ -242,6 +273,10 @@ Deno.serve(async (req) => {
           buy_price_excl_vat: Math.round(buyPriceExclVat * 100) / 100,
           buy_price_incl_vat: Math.round(buyPriceInclVat * 100) / 100,
         });
+      }
+
+      if (fallbackCount > 0) {
+        console.log(`Used ${fallbackCount} fallback prices from previous day for tenant ${tenantId}`);
       }
 
       if (stockRecords.length > 0) {
