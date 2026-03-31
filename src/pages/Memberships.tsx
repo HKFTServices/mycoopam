@@ -79,7 +79,7 @@ type MyReferralsSectionProps = {
   poolDisplayTypes: any[];
 };
 
-const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linkedEntityIds, sym, isMobile, navigate }: MyReferralsSectionProps) => {
+const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linkedEntityIds, sym, isMobile, navigate, accountPoolUnits, latestPoolPrices, poolDisplayTypes }: MyReferralsSectionProps) => {
   const referrerRecordIds = useMemo(() => {
     return Object.values(entityReferrerRecords).map((r) => r.referrerId);
   }, [entityReferrerRecords]);
