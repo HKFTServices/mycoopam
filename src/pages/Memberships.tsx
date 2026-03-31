@@ -117,10 +117,9 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
     enabled: !!currentTenant && referredEntityIds.length > 0,
   });
 
-  if (referrerRecordIds.length === 0) return null;
-
   // Compute unit values for referred entities' accounts
   const referralValueMap: Record<string, number> = useMemo(() => {
+    if (referrerRecordIds.length === 0) return {};
     const summaryPoolIds = new Set(
       poolDisplayTypes
         .filter((p: any) => p.pool_statement_display_type === "display_in_summary")
@@ -132,7 +131,6 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
         priceByPool[pp.pool_id] = Number(pp.unit_price_sell);
       }
     }
-    // Get account IDs for referred entities
     const referredAcctIds = new Set(referredAccounts.map((a: any) => a.id));
     const acctValues: Record<string, number> = {};
     for (const row of accountPoolUnits) {
@@ -141,14 +139,15 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
       const price = priceByPool[row.pool_id] || 0;
       acctValues[row.entity_account_id] = (acctValues[row.entity_account_id] || 0) + units * price;
     }
-    // Aggregate per entity
     const entityValues: Record<string, number> = {};
     for (const acct of referredAccounts) {
       const val = acctValues[(acct as any).id] || 0;
       entityValues[(acct as any).entity_id] = (entityValues[(acct as any).entity_id] || 0) + val;
     }
     return entityValues;
-  }, [referredAccounts, accountPoolUnits, latestPoolPrices, poolDisplayTypes]);
+  }, [referredAccounts, accountPoolUnits, latestPoolPrices, poolDisplayTypes, referrerRecordIds]);
+
+  if (referrerRecordIds.length === 0) return null;
 
   const referredGroups = referredEntities.map((e: any) => {
     const fullName = [e.name, e.last_name].filter(Boolean).join(" ");
