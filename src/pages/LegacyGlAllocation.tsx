@@ -80,6 +80,15 @@ interface ProposedCftEntry {
   legacy_transaction_id: string;
 }
 
+interface ControlDirectionWarning {
+  legacyCftId: string;
+  legacyCashAccountId: string;
+  controlAccountName: string;
+  legacySide: "DR" | "CR";
+  proposedSide: "DR" | "CR";
+  amount: number;
+}
+
 interface ProposedGroup {
   root: LegacyCftEntry;
   children: LegacyCftEntry[];
@@ -88,6 +97,7 @@ interface ProposedGroup {
   totalCredit: number;
   isBalanced: boolean;
   entityName: string;
+  controlWarnings: ControlDirectionWarning[];
 }
 
 const TRANSACTION_TYPES = [
