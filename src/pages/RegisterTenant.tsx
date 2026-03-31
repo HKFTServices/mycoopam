@@ -258,7 +258,7 @@ const RegisterTenant = () => {
 
   const handleNameChange = (value: string) => {
     setName(value);
-    setSlug(value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 30));
+    setSlug(value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30));
   };
 
   const resizeImage = (file: File, maxSize: number): Promise<File> => {
