@@ -44,6 +44,7 @@ const SUPPORTED_TABLES = [
   { value: "daily_stock_prices", label: "Daily Stock Prices (requires Items)", order: 15 },
   { value: "daily_pool_prices", label: "Daily Pool Prices (requires Pools)", order: 16 },
   { value: "entity_documents", label: "Entity Documents (requires Entities & Document Types — use Entity Documents tab)", order: 17 },
+  { value: "agent_house_agents", label: "Agent House Agents (links referrers to referral houses)", order: 18 },
 ];
 
 const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string; required: boolean }[]> = {
@@ -314,6 +315,12 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
     { csvColumn: "document_date / DocumentDate", targetColumn: "document_date", required: false },
     { csvColumn: "document_id / DocumentId", targetColumn: "document_id (links to binary object)", required: false },
     { csvColumn: "Bytes / bytes", targetColumn: "binary file data (hex or base64)", required: true },
+    { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
+  ],
+  agent_house_agents: [
+    { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
+    { csvColumn: "legacy_agent_house_id / AgentHouseId", targetColumn: "agent_house entity (resolved via entities mapping)", required: true },
+    { csvColumn: "legacy_agent_id / AgentId", targetColumn: "agent entity (resolved via entities mapping)", required: true },
     { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
   ],
 };
