@@ -1184,9 +1184,10 @@ Deno.serve(async (req) => {
               }
             }
           } else if (table_name === "agent_house_agents") {
-            // Link agent (referrer) to agent house (referral house) via agent_house_agent_id on entities
+            // Link agent (referrer) to agent house (referral house)
             const rawHouseId = record.legacy_agent_house_id || record.AgentHouseEntityId || record.agent_house_entity_id;
             const rawAgentId = record.legacy_agent_id || record.AgentEntityId || record.agent_entity_id;
+            const agentNumber = record.agent_number || record.AgentNumber || null;
             console.log(`AgentHouseAgent ${legacyId}: raw house=${rawHouseId}, raw agent=${rawAgentId}, keys=${Object.keys(record).join(",")}`);
 
             const agentHouseEntityId = await resolveLegacy("entities", rawHouseId);
@@ -1206,21 +1207,31 @@ Deno.serve(async (req) => {
               legacy_id: legacyId,
               action: isDryRun ? "will_update" : "update",
               name: `Link agent ${agentEntityId} → house ${agentHouseEntityId}`,
-              mapped_fields: { agent_entity_id: agentEntityId, agent_house_entity_id: agentHouseEntityId },
+              mapped_fields: { agent_entity_id: agentEntityId, agent_house_entity_id: agentHouseEntityId, agent_number: agentNumber },
             });
 
             if (!isDryRun) {
-              const { error: updateErr } = await adminClient.from("entities")
-                .update({ agent_house_agent_id: agentHouseEntityId })
-                .eq("id", agentEntityId)
-                .eq("tenant_id", tenant_id);
-              if (updateErr) {
-                results.errors.push(`AgentHouseAgent ${legacyId}: ${updateErr.message}`);
-                continue;
+              // Store the mapping with house info in notes (upsert to handle re-imports)
+              const notesJson = JSON.stringify({ agent_entity_id: agentEntityId, house_entity_id: agentHouseEntityId, agent_number: agentNumber });
+              const { data: existingMapping } = await adminClient.from("legacy_id_mappings")
+                .select("id")
+                .eq("tenant_id", tenant_id)
+                .eq("table_name", "agent_house_agents")
+                .eq("legacy_id", String(legacyId))
+                .maybeSingle();
+              if (existingMapping) {
+                await adminClient.from("legacy_id_mappings")
+                  .update({ new_id: agentEntityId, notes: notesJson, import_batch: batchId })
+                  .eq("id", existingMapping.id);
+              } else {
+                await adminClient.from("legacy_id_mappings").insert({
+                  tenant_id, table_name: "agent_house_agents", legacy_id: String(legacyId),
+                  new_id: agentEntityId, import_batch: batchId, notes: notesJson,
+                });
               }
-              console.log(`AgentHouseAgent ${legacyId}: updated entity ${agentEntityId} → house ${agentHouseEntityId}`);
+              results.inserted++;
             }
-            newId = agentEntityId;
+            continue; // Skip the default legacy_id_mapping insert at the bottom
           } else if (table_name === "referrers") {
             // Create referrer records from agent_house_agents legacy data
             // This table doesn't use individual records from the request — it processes all agent_house_agents mappings
