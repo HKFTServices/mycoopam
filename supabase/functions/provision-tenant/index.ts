@@ -128,8 +128,18 @@ Deno.serve(async (req) => {
         // If user already exists, look them up and reuse
         if (createError.message?.includes("already been registered") || createError.message?.includes("already exists")) {
           console.log("[provision-tenant] User already exists, looking up:", admin_details.email);
-          const { data: listData } = await admin.auth.admin.listUsers();
-          const existingUser = listData?.users?.find((u: any) => u.email === admin_details.email);
+          // Use paginated search to find the user reliably
+          let existingUser: any = null;
+          let page = 1;
+          const perPage = 100;
+          while (!existingUser) {
+            const { data: listData, error: listErr } = await admin.auth.admin.listUsers({ page, perPage });
+            if (listErr) { console.error("[provision-tenant] listUsers error:", listErr); break; }
+            const users = listData?.users ?? [];
+            existingUser = users.find((u: any) => u.email === admin_details.email);
+            if (existingUser || users.length < perPage) break;
+            page++;
+          }
           if (existingUser) {
             createdUserId = existingUser.id;
             admin_details.user_id = createdUserId;
