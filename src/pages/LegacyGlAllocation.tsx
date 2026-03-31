@@ -1185,6 +1185,36 @@ const LegacyGlAllocation = () => {
     const totalCredit = glEntries.reduce((s, e) => s + e.credit, 0);
     const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
+    // ── Control account direction validation ──
+    // For each legacy entry with a cash_account_id, check that the proposed
+    // control account entry has the same debit/credit direction.
+    const controlWarnings: ControlDirectionWarning[] = [];
+    for (const entry of allEntries) {
+      if (entry.cash_account_id === "0") continue;
+      const legacySide: "DR" | "CR" = entry.debit > 0 ? "DR" : "CR";
+      const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+      if (!ca) continue;
+      // Find the matching proposed control account entry for this legacy entry
+      const matchingCtrl = proposed.find(
+        p => p.control_account_id === ca.new_id && p.control_account_id !== null
+          && ((p.debit > 0 && Math.abs(p.debit - (entry.debit || entry.credit)) < 0.01)
+            || (p.credit > 0 && Math.abs(p.credit - (entry.debit || entry.credit)) < 0.01))
+      );
+      if (matchingCtrl) {
+        const proposedSide: "DR" | "CR" = matchingCtrl.debit > 0 ? "DR" : "CR";
+        if (proposedSide !== legacySide) {
+          controlWarnings.push({
+            legacyCftId: entry.cft_id,
+            legacyCashAccountId: entry.cash_account_id,
+            controlAccountName: ca.name,
+            legacySide,
+            proposedSide,
+            amount: entry.debit > 0 ? entry.debit : entry.credit,
+          });
+        }
+      }
+    }
+
     return {
       root: group.root,
       children: group.children,
@@ -1193,6 +1223,7 @@ const LegacyGlAllocation = () => {
       totalCredit,
       isBalanced,
       entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
+      controlWarnings,
     };
   };
 
