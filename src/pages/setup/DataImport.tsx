@@ -319,8 +319,9 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
   ],
   agent_house_agents: [
     { csvColumn: "legacy_id / Id", targetColumn: "legacy_id", required: true },
-    { csvColumn: "legacy_agent_house_id / AgentHouseId", targetColumn: "agent_house entity (resolved via entities mapping)", required: true },
-    { csvColumn: "legacy_agent_id / AgentId", targetColumn: "agent entity (resolved via entities mapping)", required: true },
+    { csvColumn: "legacy_agent_house_id / AgentHouseEntityId", targetColumn: "agent_house entity (resolved via entities mapping)", required: true },
+    { csvColumn: "legacy_agent_id / AgentEntityId", targetColumn: "agent entity (resolved via entities mapping)", required: true },
+    { csvColumn: "agent_number / AgentNumber", targetColumn: "agent_number (reference)", required: false },
     { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
   ],
 };
