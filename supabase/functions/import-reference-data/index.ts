@@ -1173,11 +1173,11 @@ Deno.serve(async (req) => {
             }
           } else if (table_name === "agent_house_agents") {
             // Link agent (referrer) to agent house (referral house) via agent_house_agent_id on entities
-            const agentHouseEntityId = await resolveLegacy("entities", record.legacy_agent_house_id || record.AgentHouseId);
-            const agentEntityId = await resolveLegacy("entities", record.legacy_agent_id || record.AgentId);
+            const agentHouseEntityId = await resolveLegacy("entities", record.legacy_agent_house_id || record.AgentHouseEntityId);
+            const agentEntityId = await resolveLegacy("entities", record.legacy_agent_id || record.AgentEntityId);
 
             if (!agentHouseEntityId) {
-              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${record.legacy_agent_house_id || record.AgentHouseId}`);
+              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${record.legacy_agent_house_id || record.AgentHouseEntityId}`);
               continue;
             }
             if (!agentEntityId) {
