@@ -1249,22 +1249,55 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Process each agent mapping
+            // Find account type 5 (Referral House) once
+            const { data: rhType } = await adminClient.from("entity_account_types")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .eq("account_type", 5)
+              .limit(1);
+            const rhTypeId = rhType?.[0]?.id;
 
-            // For each agent mapping, we need to find: agent entity, house entity, house account
+            // Process each agent mapping
             for (const mapping of agentMappings) {
               const agentEntityId = mapping.new_id; // new_id = agent entity ID
               if (!agentEntityId) continue;
 
-              // Check if referrer already exists for this entity
+              // Parse house entity ID from notes (stored as JSON by updated agent_house_agents import)
+              let houseEntityId: string | null = null;
+              let agentNumber: string | null = null;
+              try {
+                const notesData = JSON.parse(mapping.notes || "{}");
+                houseEntityId = notesData.house_entity_id || null;
+                agentNumber = notesData.agent_number || null;
+              } catch {
+                // Old format notes — try to get house from entity field
+                console.log(`Mapping ${mapping.legacy_id}: notes not JSON, falling back to entity lookup`);
+              }
+
+              // Fallback: check agent entity's agent_house_agent_id
+              if (!houseEntityId) {
+                const { data: agentEnt } = await adminClient.from("entities")
+                  .select("agent_house_agent_id")
+                  .eq("id", agentEntityId)
+                  .single();
+                houseEntityId = agentEnt?.agent_house_agent_id || null;
+              }
+
+              if (!houseEntityId) {
+                results.errors.push(`Agent ${agentEntityId}: no house entity found in mapping notes or entity field. Re-import Agent House Agents first.`);
+                continue;
+              }
+
+              // Check if referrer already exists for this entity + house combination
               const { data: existingRef } = await adminClient.from("referrers")
                 .select("id")
                 .eq("entity_id", agentEntityId)
+                .eq("referral_house_entity_id", houseEntityId)
                 .eq("tenant_id", tenant_id)
                 .limit(1);
               if (existingRef && existingRef.length > 0) {
                 results.skipped++;
-                console.log(`Referrer already exists for entity ${agentEntityId}`);
+                console.log(`Referrer already exists for entity ${agentEntityId} → house ${houseEntityId}`);
                 // Still update member entities to point to this referrer
                 const refId = existingRef[0].id;
                 await adminClient.from("entities")
@@ -1274,9 +1307,9 @@ Deno.serve(async (req) => {
                 continue;
               }
 
-              // Get the agent entity to find its agent_house_agent_id (which points to house entity)
+              // Get the agent entity name
               const { data: agentEntity } = await adminClient.from("entities")
-                .select("id, name, last_name, agent_house_agent_id")
+                .select("id, name, last_name")
                 .eq("id", agentEntityId)
                 .single();
               if (!agentEntity) {
@@ -1284,38 +1317,12 @@ Deno.serve(async (req) => {
                 continue;
               }
 
-              // Find the referral house entity - look up the original legacy record
-              // The agent_house_agents legacy data linked agent to house
-              // We need to find which house this agent belongs to
-              // Get the original fetch data from legacy_id_mappings notes or re-resolve
-              const legacyAgentId = mapping.legacy_id;
-              // Fetch the original legacy record from fetch-legacy-data 
-              // The house entity was set on the agent entity's agent_house_agent_id during agent_house_agents import
-              // But that field was overwritten. Let's look at what the import stored.
-              
-              // Actually, let's look at the entity itself - agent_house_agent_id might point to the house entity
-              // The agent_house_agents import set agent_entity.agent_house_agent_id = houseEntityId
-              const houseEntityId = agentEntity.agent_house_agent_id;
-              
-              if (!houseEntityId) {
-                results.errors.push(`Agent ${agentEntity.name}: no house entity linked`);
-                continue;
-              }
-
-              // Find the Referral House account for the house entity (account_type = 5)
+              // Find the Referral House account for the house entity
               const { data: houseAccounts } = await adminClient.from("entity_accounts")
-                .select("id, entity_account_type_id")
+                .select("id, entity_account_type_id, account_number")
                 .eq("entity_id", houseEntityId)
                 .eq("tenant_id", tenant_id);
 
-              // Find account type 5 (Referral House)
-              const { data: rhType } = await adminClient.from("entity_account_types")
-                .select("id")
-                .eq("tenant_id", tenant_id)
-                .eq("account_type", 5)
-                .limit(1);
-
-              const rhTypeId = rhType?.[0]?.id;
               const houseAccount = houseAccounts?.find((a: any) => a.entity_account_type_id === rhTypeId);
               
               if (!houseAccount) {
@@ -1332,31 +1339,24 @@ Deno.serve(async (req) => {
                 .limit(1);
               const userId = userRels?.[0]?.user_id ?? null;
 
-              // Generate referrer number from agent entity's membership account or fallback
-              const { data: agentAccounts } = await adminClient.from("entity_accounts")
-                .select("account_number")
-                .eq("entity_id", agentEntityId)
-                .eq("tenant_id", tenant_id)
-                .not("account_number", "is", null)
-                .limit(1);
-              
-              // Find house account number for referrer numbering
-              const houseAcctNumber = houseAccount ? 
-                (await adminClient.from("entity_accounts").select("account_number").eq("id", houseAccount.id).single()).data?.account_number : null;
-              
-              // Count existing referrers for this house to generate sequential number
-              const { count: existingCount } = await adminClient.from("referrers")
-                .select("id", { count: "exact", head: true })
-                .eq("referral_house_entity_id", houseEntityId)
-                .eq("tenant_id", tenant_id);
-              
-              const seqNum = String((existingCount ?? 0) + 1).padStart(2, "0");
-              const referrerNumber = houseAcctNumber ? `${houseAcctNumber}/${seqNum}` : `REF-${seqNum}`;
+              // Use agent_number from legacy data or generate sequential number
+              const houseAcctNumber = houseAccount.account_number;
+              let referrerNumber: string;
+              if (agentNumber) {
+                referrerNumber = houseAcctNumber ? `${houseAcctNumber}/${agentNumber}` : `REF-${agentNumber}`;
+              } else {
+                const { count: existingCount } = await adminClient.from("referrers")
+                  .select("id", { count: "exact", head: true })
+                  .eq("referral_house_entity_id", houseEntityId)
+                  .eq("tenant_id", tenant_id);
+                const seqNum = String((existingCount ?? 0) + 1).padStart(2, "0");
+                referrerNumber = houseAcctNumber ? `${houseAcctNumber}/${seqNum}` : `REF-${seqNum}`;
+              }
 
               const agentName = [agentEntity.name, agentEntity.last_name].filter(Boolean).join(" ");
               
               results.simulation.push({
-                legacy_id: legacyAgentId,
+                legacy_id: mapping.legacy_id,
                 action: isDryRun ? "will_create" : "create",
                 name: `Referrer: ${agentName} → ${referrerNumber}`,
                 mapped_fields: { entity_id: agentEntityId, house_entity_id: houseEntityId, referrer_number: referrerNumber },
@@ -1395,7 +1395,6 @@ Deno.serve(async (req) => {
               results.inserted++;
             }
             continue; // Skip the normal legacy_id_mapping insert
-          }
 
           // Store legacy_id_mappings for all tables including entity_accounts (needed for shares resolution)
           if (!isDryRun && newId) {
