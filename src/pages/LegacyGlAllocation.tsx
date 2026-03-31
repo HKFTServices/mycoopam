@@ -644,6 +644,7 @@ const LegacyGlAllocation = () => {
       else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
         for (const split of (mapping.split_rule as any).splits) {
           const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
+          // CR the GL account for the split amount
           proposed.push({
             description: split.description,
             debit: 0,
@@ -655,6 +656,22 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "membership_fee",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
+          // If split has a control_account_id, also DR the control account (e.g. Admin Cash for membership fee income)
+          if (split.control_account_id) {
+            const ctrlName = controlAccounts.find((ca: any) => ca.new_id === split.control_account_id)?.name ?? "Admin Cash";
+            const ctrlPoolId = controlAccounts.find((ca: any) => ca.new_id === split.control_account_id)?.pool_id ?? null;
+            proposed.push({
+              description: `${split.description} — Admin Cash DR`,
+              debit: split.amount,
+              credit: 0,
+              gl_account_id: null, gl_account_label: "",
+              control_account_id: split.control_account_id,
+              control_account_label: ctrlName,
+              pool_id: ctrlPoolId, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "admin_cash_dr",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+          }
         }
       }
       // ── Loan Instalment (1978) — Triple entry ──
