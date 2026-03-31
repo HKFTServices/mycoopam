@@ -1072,7 +1072,7 @@ const DataImport = () => {
                   </Button>
                   <Button
                     onClick={handleImport}
-                    disabled={!parsedRecords || importMutation.isPending}
+                    disabled={(!parsedRecords && selectedTable !== "referrers") || importMutation.isPending}
                   >
                     {importMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
