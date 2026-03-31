@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,25 +9,26 @@ import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+interface ReconciliationDetail {
+  id: string;
+  legacy_id: string;
+  date: string;
+  amount: string;
+  description: string;
+  cft_parent_id: string | null;
+  status: "linked" | "unlinked" | "self_root";
+}
+
 interface ReconciliationResult {
   table: string;
   total: number;
   linked: number;
   unlinked: number;
-  details: {
-    id: string;
-    legacy_id: string;
-    date: string;
-    amount: string;
-    description: string;
-    cft_parent_id: string | null;
-    status: "linked" | "unlinked" | "self_root";
-  }[];
+  details: ReconciliationDetail[];
 }
 
 const CftReconciliation = () => {
   const { currentTenant } = useTenant();
-  const queryClient = useQueryClient();
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<ReconciliationResult[]>([]);
 
@@ -35,35 +36,87 @@ const CftReconciliation = () => {
     if (!currentTenant) return;
     setRunning(true);
     try {
-      // 1. Operating Journals (BK)
-      const { data: ojData } = await supabase
-        .from("operating_journals")
-        .select("id, legacy_id, legacy_transaction_id, transaction_date, amount, description")
+      // ── 1. Bookkeeping (BK) — lives in legacy_id_mappings ──
+      const { data: bkMappings } = await supabase
+        .from("legacy_id_mappings")
+        .select("legacy_id, notes")
         .eq("tenant_id", currentTenant.id)
-        .not("legacy_id", "is", null)
-        .order("transaction_date", { ascending: true });
+        .eq("table_name", "bookkeeping");
 
-      const ojRecords = ojData ?? [];
-      const ojLinked = ojRecords.filter(r => r.legacy_transaction_id && r.legacy_transaction_id !== "0");
-      const ojSelfRoot = ojRecords.filter(r => !r.legacy_transaction_id || r.legacy_transaction_id === "0");
+      const bkRecords = bkMappings ?? [];
 
-      const ojResult: ReconciliationResult = {
-        table: "Operating Journals (BK)",
-        total: ojRecords.length,
-        linked: ojLinked.length,
-        unlinked: ojSelfRoot.length,
-        details: ojRecords.map(r => ({
-          id: r.id,
-          legacy_id: r.legacy_id ?? "",
-          date: r.transaction_date,
-          amount: String(r.amount),
-          description: r.description ?? "",
-          cft_parent_id: r.legacy_transaction_id && r.legacy_transaction_id !== "0" ? r.legacy_transaction_id : null,
-          status: r.legacy_transaction_id && r.legacy_transaction_id !== "0" ? "linked" as const : "self_root" as const,
-        })),
+      // Get all CFT legacy_ids for matching
+      const { data: cftMappings } = await supabase
+        .from("legacy_id_mappings")
+        .select("legacy_id")
+        .eq("tenant_id", currentTenant.id)
+        .eq("table_name", "cashflow_transactions");
+
+      const cftLegacyIds = new Set((cftMappings ?? []).map(c => c.legacy_id));
+
+      const bkDetails: ReconciliationDetail[] = bkRecords.map(bk => {
+        let notes: any = {};
+        try { notes = JSON.parse(bk.notes ?? "{}"); } catch {}
+        const txId = notes.TransactionID ?? null;
+        const hasMatch = txId && cftLegacyIds.has(String(txId));
+        const debit = parseFloat(notes.Debit ?? "0");
+        const credit = parseFloat(notes.Credit ?? "0");
+        const amount = debit > 0 ? debit : credit;
+        return {
+          id: bk.legacy_id,
+          legacy_id: bk.legacy_id,
+          date: (notes.TransactionDate ?? "").split(" ")[0],
+          amount: amount.toFixed(2),
+          description: `${notes.TransactionType ?? ""} (CFT ${txId ?? "?"})`,
+          cft_parent_id: hasMatch ? String(txId) : null,
+          status: hasMatch ? "linked" as const : "unlinked" as const,
+        };
+      });
+
+      const bkLinked = bkDetails.filter(d => d.status === "linked");
+      const bkResult: ReconciliationResult = {
+        table: "Bookkeeping (BK)",
+        total: bkDetails.length,
+        linked: bkLinked.length,
+        unlinked: bkDetails.length - bkLinked.length,
+        details: bkDetails,
       };
 
-      // 2. Member Shares
+      // ── 2. Unit Transactions (UT) — lives in legacy_id_mappings ──
+      const { data: utMappings } = await supabase
+        .from("legacy_id_mappings")
+        .select("legacy_id, new_id, notes")
+        .eq("tenant_id", currentTenant.id)
+        .eq("table_name", "unit_transactions");
+
+      const utRecords = utMappings ?? [];
+
+      // UT entries should link to a CFT parent via the transactions table or share
+      // Check if the UT new_id exists in transactions or if there's a CFT entry
+      const utDetails: ReconciliationDetail[] = utRecords.map(ut => {
+        // UT legacy_id should have a corresponding CFT entry
+        const hasMatch = cftLegacyIds.has(ut.legacy_id);
+        return {
+          id: ut.legacy_id,
+          legacy_id: ut.legacy_id,
+          date: "",
+          amount: "",
+          description: ut.notes ?? "",
+          cft_parent_id: hasMatch ? ut.legacy_id : null,
+          status: hasMatch ? "linked" as const : "unlinked" as const,
+        };
+      });
+
+      const utLinked = utDetails.filter(d => d.status === "linked");
+      const utResult: ReconciliationResult = {
+        table: "Unit Transactions (UT)",
+        total: utDetails.length,
+        linked: utLinked.length,
+        unlinked: utDetails.length - utLinked.length,
+        details: utDetails,
+      };
+
+      // ── 3. Member Shares ──
       const { data: msData } = await (supabase as any)
         .from("member_shares")
         .select("id, transaction_date, value, quantity, legacy_transaction_id, entity_account_id")
@@ -71,6 +124,7 @@ const CftReconciliation = () => {
         .order("transaction_date", { ascending: true });
 
       const msRecords = msData ?? [];
+
       // Get legacy IDs for shares
       const shareIds = msRecords.map((r: any) => r.id);
       const { data: shareMappings } = await supabase
@@ -80,50 +134,35 @@ const CftReconciliation = () => {
         .in("new_id", shareIds);
       const shareMap = Object.fromEntries((shareMappings ?? []).map(m => [m.new_id, m.legacy_id]));
 
-      const msLinked = msRecords.filter((r: any) => r.legacy_transaction_id);
-      const msResult: ReconciliationResult = {
-        table: "Member Shares",
-        total: msRecords.length,
-        linked: msLinked.length,
-        unlinked: msRecords.length - msLinked.length,
-        details: msRecords.map((r: any) => ({
+      // Linked = has a non-zero legacy_transaction_id (which is the CFT ParentID)
+      const msLinked = msRecords.filter((r: any) => r.legacy_transaction_id && String(r.legacy_transaction_id) !== "0");
+      const msSelfRoot = msRecords.filter((r: any) => String(r.legacy_transaction_id) === "0");
+      const msUnlinked = msRecords.filter((r: any) => !r.legacy_transaction_id);
+
+      const msDetails: ReconciliationDetail[] = msRecords.map((r: any) => {
+        const ltxId = r.legacy_transaction_id ? String(r.legacy_transaction_id) : null;
+        const isLinked = ltxId && ltxId !== "0";
+        const isSelfRoot = ltxId === "0";
+        return {
           id: r.id,
           legacy_id: shareMap[r.id] ?? "—",
           date: r.transaction_date,
           amount: String(r.value),
           description: `Qty: ${r.quantity}, Value: ${r.value}`,
-          cft_parent_id: r.legacy_transaction_id ?? null,
-          status: r.legacy_transaction_id ? "linked" as const : "unlinked" as const,
-        })),
+          cft_parent_id: isLinked ? ltxId : null,
+          status: isLinked ? "linked" as const : isSelfRoot ? "self_root" as const : "unlinked" as const,
+        };
+      });
+
+      const msResult: ReconciliationResult = {
+        table: "Member Shares",
+        total: msRecords.length,
+        linked: msLinked.length,
+        unlinked: msUnlinked.length + msSelfRoot.length,
+        details: msDetails,
       };
 
-      // 3. Transactions (UT)
-      const { data: txData } = await (supabase as any)
-        .from("transactions")
-        .select("id, transaction_date, amount, legacy_transaction_id, status, notes")
-        .eq("tenant_id", currentTenant.id)
-        .not("legacy_transaction_id", "is", null)
-        .order("transaction_date", { ascending: true });
-
-      const txRecords = txData ?? [];
-      const txLinked = txRecords.filter((r: any) => r.legacy_transaction_id && r.legacy_transaction_id !== "0");
-      const txResult: ReconciliationResult = {
-        table: "Transactions (UT)",
-        total: txRecords.length,
-        linked: txLinked.length,
-        unlinked: txRecords.length - txLinked.length,
-        details: txRecords.map((r: any) => ({
-          id: r.id,
-          legacy_id: r.legacy_transaction_id ?? "—",
-          date: r.transaction_date ?? "",
-          amount: String(r.amount),
-          description: r.notes ?? r.status ?? "",
-          cft_parent_id: r.legacy_transaction_id && r.legacy_transaction_id !== "0" ? r.legacy_transaction_id : null,
-          status: r.legacy_transaction_id && r.legacy_transaction_id !== "0" ? "linked" as const : "unlinked" as const,
-        })),
-      };
-
-      setResults([ojResult, msResult, txResult]);
+      setResults([bkResult, utResult, msResult]);
       toast.success("Reconciliation complete");
     } catch (err: any) {
       toast.error("Reconciliation failed: " + err.message);
@@ -136,7 +175,6 @@ const CftReconciliation = () => {
   const autoLinkMutation = useMutation({
     mutationFn: async () => {
       if (!currentTenant) throw new Error("No tenant");
-      // Fetch unlinked shares and try to match via legacy_id_mappings
       const { data: unlinked } = await (supabase as any)
         .from("member_shares")
         .select("id")
@@ -157,7 +195,6 @@ const CftReconciliation = () => {
 
       let linked = 0;
       for (const sm of shareMaps ?? []) {
-        // Find matching CFT entry
         const { data: cftMatch } = await supabase
           .from("legacy_id_mappings")
           .select("notes")
@@ -204,8 +241,8 @@ const CftReconciliation = () => {
             <RefreshCw className="h-5 w-5" /> CFT Transaction Reconciliation
           </CardTitle>
           <CardDescription>
-            Verify that BK (Operating Journals), UT (Transactions), and Shares are correctly linked to their parent CFT (Cashflow Transaction) records.
-            Records with <code className="text-xs bg-muted px-1 rounded">ParentID = 0</code> are root transactions (self-root).
+            Verify that BK (Bookkeeping), UT (Unit Transactions), and Shares are correctly linked to their parent CFT (Cashflow Transaction) records.
+            BK and UT data is sourced from the legacy import mappings.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -229,7 +266,6 @@ const CftReconciliation = () => {
         </CardContent>
       </Card>
 
-      {/* Summary */}
       {results.length > 0 && (
         <Card>
           <CardHeader>
@@ -262,7 +298,6 @@ const CftReconciliation = () => {
         </Card>
       )}
 
-      {/* Detail tables */}
       {results.map(r => (
         <Card key={r.table}>
           <CardHeader>
@@ -272,7 +307,7 @@ const CftReconciliation = () => {
             </CardTitle>
             <CardDescription className="text-xs">
               Showing {r.details.length > 200 ? "first 200 of " : ""}{r.details.length} records.
-              {r.table === "Operating Journals (BK)" && " Self-root records (ParentID=0) are the root CFT entry — these are expected."}
+              {r.table === "Member Shares" && " Records with ParentID=0 are root transactions (self-root)."}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -289,8 +324,8 @@ const CftReconciliation = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {r.details.slice(0, 200).map(d => (
-                    <TableRow key={d.id} className={d.status === "unlinked" ? "bg-destructive/5" : ""}>
+                  {r.details.slice(0, 200).map((d, idx) => (
+                    <TableRow key={`${d.id}-${idx}`} className={d.status === "unlinked" ? "bg-destructive/5" : ""}>
                       <TableCell className="text-xs font-mono">{d.legacy_id}</TableCell>
                       <TableCell className="text-xs">{d.date}</TableCell>
                       <TableCell className="text-xs font-mono">{d.amount}</TableCell>
