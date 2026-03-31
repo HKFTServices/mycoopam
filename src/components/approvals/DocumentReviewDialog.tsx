@@ -113,10 +113,10 @@ const DocumentReviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Review Application — {entityName}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">Review Application — {entityName}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Review submitted documents and bank details before approving
           </DialogDescription>
         </DialogHeader>
@@ -132,15 +132,15 @@ const DocumentReviewDialog = ({
               <div>
                 <h3 className="text-sm font-semibold mb-2">Bank Details</h3>
                 {bankDetails.map((b: any) => (
-                  <div key={b.id} className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
-                    <div className="flex justify-between">
+                  <div key={b.id} className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                    <div className="flex justify-between mb-1.5">
                       <span className="font-medium">{b.banks?.name}</span>
                       <span className="text-muted-foreground">{b.bank_account_types?.name}</span>
                     </div>
-                    <div className="flex gap-4 text-muted-foreground">
-                      <span>Holder: {b.account_holder}</span>
-                      <span>No: {b.account_number}</span>
-                      {b.banks?.branch_code && <span>Branch: {b.banks.branch_code}</span>}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-muted-foreground text-xs">
+                      <span><span className="font-medium text-foreground/70">Holder:</span> {b.account_holder}</span>
+                      <span><span className="font-medium text-foreground/70">No:</span> {b.account_number}</span>
+                      {b.banks?.branch_code && <span><span className="font-medium text-foreground/70">Branch:</span> {b.banks.branch_code}</span>}
                     </div>
                   </div>
                 ))}
@@ -178,23 +178,23 @@ const DocumentReviewDialog = ({
                     return (
                       <div
                         key={doc.id}
-                        className="flex items-center justify-between rounded-lg border border-border p-3"
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {doc.document_types?.name ?? doc.description ?? "Document"}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium break-words">
+                              {doc.document_types?.name ? `${doc.document_types.name}: ${doc.file_name}` : doc.description ?? "Document"}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-xs text-muted-foreground break-words">
                               {doc.file_name}
                               {doc.file_size && ` · ${(doc.file_size / 1024).toFixed(0)} KB`}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           {isRequired && (
-                            <Badge variant="outline" className="text-[10px]">Required</Badge>
+                            <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">Required</Badge>
                           )}
                           <Button
                             size="sm"
