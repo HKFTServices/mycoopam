@@ -1267,6 +1267,9 @@ const Memberships = () => {
         sym={sym}
         isMobile={isMobile}
         navigate={navigate}
+        accountPoolUnits={accountPoolUnits}
+        latestPoolPrices={latestPoolPrices}
+        poolDisplayTypes={poolDisplayTypes}
       />
 
       <EditEntityProfileDialog
