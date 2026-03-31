@@ -45,6 +45,7 @@ const SUPPORTED_TABLES = [
   { value: "daily_pool_prices", label: "Daily Pool Prices (requires Pools)", order: 16 },
   { value: "entity_documents", label: "Entity Documents (requires Entities & Document Types — use Entity Documents tab)", order: 17 },
   { value: "agent_house_agents", label: "Agent House Agents (links referrers to referral houses)", order: 18 },
+  { value: "referrers", label: "Referrers (creates referrer records from Agent House Agents — run after Agents & Entities)", order: 19 },
 ];
 
 const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string; required: boolean }[]> = {
@@ -323,6 +324,10 @@ const TABLE_COLUMN_MAP: Record<string, { csvColumn: string; targetColumn: string
     { csvColumn: "legacy_agent_id / AgentEntityId", targetColumn: "agent entity (resolved via entities mapping)", required: true },
     { csvColumn: "agent_number / AgentNumber", targetColumn: "agent_number (reference)", required: false },
     { csvColumn: "is_active / IsActive", targetColumn: "is_active", required: false },
+  ],
+  referrers: [
+    { csvColumn: "(auto)", targetColumn: "Reads from imported agent_house_agents data", required: false },
+    { csvColumn: "(auto)", targetColumn: "Creates referrer records & links member entities", required: false },
   ],
 };
 
@@ -879,13 +884,13 @@ const DataImport = () => {
   };
 
   const handleSimulate = () => {
-    const records = parsedRecords || fetchedRecords;
+    const records = selectedTable === "referrers" ? [{ _batch_process: true }] : (parsedRecords || fetchedRecords);
     if (!records) return;
     simulateMutation.mutate(applyLimit(records));
   };
 
   const handleImport = () => {
-    const records = parsedRecords || fetchedRecords;
+    const records = selectedTable === "referrers" ? [{ _batch_process: true }] : (parsedRecords || fetchedRecords);
     if (!records) return;
     importMutation.mutate(applyLimit(records));
   };
@@ -1056,7 +1061,7 @@ const DataImport = () => {
                   <Button
                     variant="outline"
                     onClick={handleSimulate}
-                    disabled={!parsedRecords || simulateMutation.isPending}
+                    disabled={(!parsedRecords && selectedTable !== "referrers") || simulateMutation.isPending}
                   >
                     {simulateMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
@@ -1067,7 +1072,7 @@ const DataImport = () => {
                   </Button>
                   <Button
                     onClick={handleImport}
-                    disabled={!parsedRecords || importMutation.isPending}
+                    disabled={(!parsedRecords && selectedTable !== "referrers") || importMutation.isPending}
                   >
                     {importMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
@@ -1105,6 +1110,26 @@ const DataImport = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-3 flex-wrap">
+                  {selectedTable === "referrers" ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">This import processes existing Agent House Agents data — no fetch needed.</p>
+                      <Button
+                        variant="outline"
+                        onClick={handleSimulate}
+                        disabled={simulateMutation.isPending}
+                      >
+                        {simulateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Eye className="h-4 w-4 mr-1.5" />}
+                        Simulate
+                      </Button>
+                      <Button
+                        onClick={handleImport}
+                        disabled={importMutation.isPending}
+                      >
+                        {importMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Play className="h-4 w-4 mr-1.5" />}
+                        Create Referrer Records
+                      </Button>
+                    </>
+                  ) : (
                   <Button
                     onClick={() => fetchMutation.mutate(selectedTable)}
                     disabled={fetchMutation.isPending}
@@ -1117,7 +1142,8 @@ const DataImport = () => {
                     )}
                     Fetch Records
                   </Button>
-                  {fetchedRecords && (
+                  )}
+                  {!!(selectedTable !== "referrers" && fetchedRecords) && (
                     <>
                       <Button
                         variant="outline"
