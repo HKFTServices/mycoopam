@@ -74,6 +74,9 @@ type MyReferralsSectionProps = {
   sym: string;
   isMobile: boolean;
   navigate: NavigateFunction;
+  accountPoolUnits: any[];
+  latestPoolPrices: any[];
+  poolDisplayTypes: any[];
 };
 
 const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linkedEntityIds, sym, isMobile, navigate }: MyReferralsSectionProps) => {
