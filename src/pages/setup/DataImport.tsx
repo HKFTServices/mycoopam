@@ -884,13 +884,13 @@ const DataImport = () => {
   };
 
   const handleSimulate = () => {
-    const records = parsedRecords || fetchedRecords;
+    const records = selectedTable === "referrers" ? [{ _batch_process: true }] : (parsedRecords || fetchedRecords);
     if (!records) return;
     simulateMutation.mutate(applyLimit(records));
   };
 
   const handleImport = () => {
-    const records = parsedRecords || fetchedRecords;
+    const records = selectedTable === "referrers" ? [{ _batch_process: true }] : (parsedRecords || fetchedRecords);
     if (!records) return;
     importMutation.mutate(applyLimit(records));
   };
