@@ -154,6 +154,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
     const category = e.entity_categories;
     const accts = referredAccounts.filter((a: any) => a.entity_id === e.id);
     const commPct = Number(e.agent_commission_percentage || 0).toFixed(2);
+    const unitValue = referralValueMap[e.id] || 0;
     return {
       entityId: e.id,
       entityName: fullName,
@@ -161,6 +162,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
       registrationNumber: e.registration_number,
       categoryName: category?.name,
       commissionPct: commPct,
+      unitValue,
       accounts: accts.map((a: any) => ({
         id: a.id,
         accountTypeName: a.entity_account_types?.name,
