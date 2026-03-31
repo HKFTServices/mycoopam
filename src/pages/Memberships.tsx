@@ -263,7 +263,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
   );
 };
 
-
+const Memberships = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
