@@ -1061,7 +1061,7 @@ const DataImport = () => {
                   <Button
                     variant="outline"
                     onClick={handleSimulate}
-                    disabled={!parsedRecords || simulateMutation.isPending}
+                    disabled={(!parsedRecords && selectedTable !== "referrers") || simulateMutation.isPending}
                   >
                     {simulateMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
