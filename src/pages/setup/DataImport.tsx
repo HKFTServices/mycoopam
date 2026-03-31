@@ -1142,8 +1142,8 @@ const DataImport = () => {
                     )}
                     Fetch Records
                   </Button>
-                  )
-                  {fetchedRecords && (
+                  )}
+                  {!!(selectedTable !== "referrers" && fetchedRecords) && (
                     <>
                       <Button
                         variant="outline"
