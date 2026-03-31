@@ -243,6 +243,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="w-[30%]">Name</TableHead>
+                  <TableHead className="text-right w-[18%]">Combined Unit Value</TableHead>
                   <TableHead className="w-[12%]">Commission</TableHead>
                   <TableHead>Accounts</TableHead>
                 </TableRow>
