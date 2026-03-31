@@ -253,6 +253,27 @@ const Memberships = () => {
     enabled: !!currentTenant && linkedEntityIds.length > 0,
   });
 
+  // Fetch referrer records for all linked entities (to show Referrer badge per entity)
+  const { data: entityReferrerRecords = {} } = useQuery<Record<string, { referrerNumber: string; referralCode: string | null; referrerId: string }>>({
+    queryKey: ["entity_referrer_records", currentTenant?.id, linkedEntityIds],
+    queryFn: async () => {
+      if (!currentTenant || linkedEntityIds.length === 0) return {};
+      const { data: refs } = await (supabase as any)
+        .from("referrers")
+        .select("id, entity_id, referrer_number, referral_code, is_active")
+        .in("entity_id", linkedEntityIds)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true);
+      if (!refs || refs.length === 0) return {};
+      const map: Record<string, { referrerNumber: string; referralCode: string | null; referrerId: string }> = {};
+      for (const r of refs) {
+        map[r.entity_id] = { referrerNumber: r.referrer_number, referralCode: r.referral_code, referrerId: r.id };
+      }
+      return map;
+    },
+    enabled: !!currentTenant && linkedEntityIds.length > 0,
+  });
+
   // Resolve referrer info per entity from entities.agent_house_agent_id → referrers → entities
   const { data: entityReferrerMap = {} } = useQuery({
     queryKey: ["entity_referrer_map", currentTenant?.id, linkedEntityIds],
@@ -489,12 +510,13 @@ const Memberships = () => {
       isActive: a.is_active,
     }));
 
-    // Inject referrer as a virtual account row on the "Myself" entity
-    if (hasReferrerRole && referrerInfo?.referrerNumber && e.relationshipName === "Myself") {
+    // Inject referrer as a virtual account row if this entity is a registered referrer
+    const entityRefRecord = entityReferrerRecords[e.id];
+    if (entityRefRecord) {
       rows.push({
         id: "referrer-virtual",
         accountTypeName: "Referrer",
-        accountNumber: referrerInfo.referrerNumber,
+        accountNumber: entityRefRecord.referrerNumber,
         status: "active",
       });
     }
