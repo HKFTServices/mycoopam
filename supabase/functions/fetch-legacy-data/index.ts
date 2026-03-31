@@ -276,8 +276,9 @@ const TABLE_QUERIES: Record<string, string> = {
   `,
   agent_house_agents: `
     SELECT CAST(Id AS VARCHAR(36)) AS legacy_id,
-      CAST(AgentHouseId AS VARCHAR(36)) AS legacy_agent_house_id,
-      CAST(AgentId AS VARCHAR(36)) AS legacy_agent_id,
+      CAST(AgentEntityId AS VARCHAR(36)) AS legacy_agent_id,
+      CAST(AgentHouseEntityId AS VARCHAR(36)) AS legacy_agent_house_id,
+      AgentNumber AS agent_number,
       IsActive AS is_active,
       IsDeleted AS is_deleted
     FROM dbo.AgentHouseAgents
