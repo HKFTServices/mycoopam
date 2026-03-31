@@ -1056,6 +1056,17 @@ const Memberships = () => {
         );
       })()}
 
+      {/* ──── My Referrals Section ──── */}
+      <MyReferralsSection
+        currentTenant={currentTenant}
+        user={user}
+        entityReferrerRecords={entityReferrerRecords}
+        linkedEntityIds={linkedEntityIds}
+        sym={sym}
+        isMobile={isMobile}
+        navigate={navigate}
+      />
+
       <EditEntityProfileDialog
         open={!!editEntity}
         onOpenChange={(open) => { if (!open) setEditEntity(null); }}
