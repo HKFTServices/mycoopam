@@ -74,9 +74,12 @@ type MyReferralsSectionProps = {
   sym: string;
   isMobile: boolean;
   navigate: NavigateFunction;
+  accountPoolUnits: any[];
+  latestPoolPrices: any[];
+  poolDisplayTypes: any[];
 };
 
-const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linkedEntityIds, sym, isMobile, navigate }: MyReferralsSectionProps) => {
+const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linkedEntityIds, sym, isMobile, navigate, accountPoolUnits, latestPoolPrices, poolDisplayTypes }: MyReferralsSectionProps) => {
   const referrerRecordIds = useMemo(() => {
     return Object.values(entityReferrerRecords).map((r) => r.referrerId);
   }, [entityReferrerRecords]);
@@ -114,6 +117,36 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
     enabled: !!currentTenant && referredEntityIds.length > 0,
   });
 
+  // Compute unit values for referred entities' accounts
+  const referralValueMap: Record<string, number> = useMemo(() => {
+    if (referrerRecordIds.length === 0) return {};
+    const summaryPoolIds = new Set(
+      poolDisplayTypes
+        .filter((p: any) => p.pool_statement_display_type === "display_in_summary")
+        .map((p: any) => p.id)
+    );
+    const priceByPool: Record<string, number> = {};
+    for (const pp of latestPoolPrices) {
+      if (summaryPoolIds.has(pp.pool_id)) {
+        priceByPool[pp.pool_id] = Number(pp.unit_price_sell);
+      }
+    }
+    const referredAcctIds = new Set(referredAccounts.map((a: any) => a.id));
+    const acctValues: Record<string, number> = {};
+    for (const row of accountPoolUnits) {
+      if (!referredAcctIds.has(row.entity_account_id)) continue;
+      const units = Number(row.total_units);
+      const price = priceByPool[row.pool_id] || 0;
+      acctValues[row.entity_account_id] = (acctValues[row.entity_account_id] || 0) + units * price;
+    }
+    const entityValues: Record<string, number> = {};
+    for (const acct of referredAccounts) {
+      const val = acctValues[(acct as any).id] || 0;
+      entityValues[(acct as any).entity_id] = (entityValues[(acct as any).entity_id] || 0) + val;
+    }
+    return entityValues;
+  }, [referredAccounts, accountPoolUnits, latestPoolPrices, poolDisplayTypes, referrerRecordIds]);
+
   if (referrerRecordIds.length === 0) return null;
 
   const referredGroups = referredEntities.map((e: any) => {
@@ -121,6 +154,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
     const category = e.entity_categories;
     const accts = referredAccounts.filter((a: any) => a.entity_id === e.id);
     const commPct = Number(e.agent_commission_percentage || 0).toFixed(2);
+    const unitValue = referralValueMap[e.id] || 0;
     return {
       entityId: e.id,
       entityName: fullName,
@@ -128,6 +162,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
       registrationNumber: e.registration_number,
       categoryName: category?.name,
       commissionPct: commPct,
+      unitValue,
       accounts: accts.map((a: any) => ({
         id: a.id,
         accountTypeName: a.entity_account_types?.name,
@@ -175,6 +210,11 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
                     <Eye className="h-4 w-4" />
                   </Button>
                 </div>
+                {/* Unit Value */}
+                <div className="flex items-center justify-between gap-2 bg-muted/40 rounded-lg px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Unit Value</span>
+                  <span className="font-mono text-sm font-semibold">{formatCurrency(g.unitValue, sym)}</span>
+                </div>
                 {g.accounts.length > 0 && (
                   <div className="border-t border-border pt-2 space-y-1.5 px-1">
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Accounts</p>
@@ -203,6 +243,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="w-[30%]">Name</TableHead>
+                  <TableHead className="text-right w-[18%]">Combined Unit Value</TableHead>
                   <TableHead className="w-[12%]">Commission</TableHead>
                   <TableHead>Accounts</TableHead>
                 </TableRow>
@@ -223,6 +264,9 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
                         )}
                         {g.categoryName && <p className="text-xs text-muted-foreground">({g.categoryName})</p>}
                       </div>
+                    </TableCell>
+                    <TableCell className="align-top text-right">
+                      <span className="font-mono text-sm font-semibold">{formatCurrency(g.unitValue, sym)}</span>
                     </TableCell>
                     <TableCell className="align-top text-sm text-muted-foreground">{g.commissionPct}%</TableCell>
                     <TableCell className="align-top">
@@ -1264,6 +1308,9 @@ const Memberships = () => {
         sym={sym}
         isMobile={isMobile}
         navigate={navigate}
+        accountPoolUnits={accountPoolUnits}
+        latestPoolPrices={latestPoolPrices}
+        poolDisplayTypes={poolDisplayTypes}
       />
 
       <EditEntityProfileDialog
