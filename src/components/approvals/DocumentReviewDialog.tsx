@@ -113,10 +113,10 @@ const DocumentReviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Review Application — {entityName}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">Review Application — {entityName}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Review submitted documents and bank details before approving
           </DialogDescription>
         </DialogHeader>
@@ -132,15 +132,15 @@ const DocumentReviewDialog = ({
               <div>
                 <h3 className="text-sm font-semibold mb-2">Bank Details</h3>
                 {bankDetails.map((b: any) => (
-                  <div key={b.id} className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
-                    <div className="flex justify-between">
+                  <div key={b.id} className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                    <div className="flex justify-between mb-1.5">
                       <span className="font-medium">{b.banks?.name}</span>
                       <span className="text-muted-foreground">{b.bank_account_types?.name}</span>
                     </div>
-                    <div className="flex gap-4 text-muted-foreground">
-                      <span>Holder: {b.account_holder}</span>
-                      <span>No: {b.account_number}</span>
-                      {b.banks?.branch_code && <span>Branch: {b.banks.branch_code}</span>}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-muted-foreground text-xs">
+                      <span><span className="font-medium text-foreground/70">Holder:</span> {b.account_holder}</span>
+                      <span><span className="font-medium text-foreground/70">No:</span> {b.account_number}</span>
+                      {b.banks?.branch_code && <span><span className="font-medium text-foreground/70">Branch:</span> {b.banks.branch_code}</span>}
                     </div>
                   </div>
                 ))}
