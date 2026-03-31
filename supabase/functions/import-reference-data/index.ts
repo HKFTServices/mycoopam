@@ -1238,11 +1238,7 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Fetch the original agent_house_agents records to get house IDs and agent numbers
-            const { data: agentHouseRecords } = await adminClient.from("legacy_id_mappings")
-              .select("legacy_id, new_id, notes")
-              .eq("tenant_id", tenant_id)
-              .eq("table_name", "agent_house_agents");
+            // Process each agent mapping
 
             // For each agent mapping, we need to find: agent entity, house entity, house account
             for (const mapping of agentMappings) {
