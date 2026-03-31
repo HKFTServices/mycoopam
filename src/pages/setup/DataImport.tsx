@@ -1110,6 +1110,26 @@ const DataImport = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-3 flex-wrap">
+                  {selectedTable === "referrers" ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">This import processes existing Agent House Agents data — no fetch needed.</p>
+                      <Button
+                        variant="outline"
+                        onClick={handleSimulate}
+                        disabled={simulateMutation.isPending}
+                      >
+                        {simulateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Eye className="h-4 w-4 mr-1.5" />}
+                        Simulate
+                      </Button>
+                      <Button
+                        onClick={handleImport}
+                        disabled={importMutation.isPending}
+                      >
+                        {importMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Play className="h-4 w-4 mr-1.5" />}
+                        Create Referrer Records
+                      </Button>
+                    </>
+                  ) : (
                   <Button
                     onClick={() => fetchMutation.mutate(selectedTable)}
                     disabled={fetchMutation.isPending}
@@ -1122,6 +1142,7 @@ const DataImport = () => {
                     )}
                     Fetch Records
                   </Button>
+                  )
                   {fetchedRecords && (
                     <>
                       <Button
