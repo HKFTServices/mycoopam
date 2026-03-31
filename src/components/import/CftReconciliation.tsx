@@ -27,6 +27,24 @@ interface ReconciliationResult {
   details: ReconciliationDetail[];
 }
 
+/** Fetch all rows from a table, paginating past the 1000-row default limit */
+async function fetchAllRows<T>(
+  query: () => ReturnType<ReturnType<typeof supabase.from>["select"]>,
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await (query() as any).range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 const CftReconciliation = () => {
   const { currentTenant } = useTenant();
   const [running, setRunning] = useState(false);
@@ -36,23 +54,24 @@ const CftReconciliation = () => {
     if (!currentTenant) return;
     setRunning(true);
     try {
-      // ── 1. Bookkeeping (BK) — lives in legacy_id_mappings ──
-      const { data: bkMappings } = await supabase
-        .from("legacy_id_mappings")
-        .select("legacy_id, notes")
-        .eq("tenant_id", currentTenant.id)
-        .eq("table_name", "bookkeeping");
+      // ── Fetch ALL CFT legacy_ids (may exceed 1000) ──
+      const cftMappings = await fetchAllRows<{ legacy_id: string }>(() =>
+        supabase
+          .from("legacy_id_mappings")
+          .select("legacy_id")
+          .eq("tenant_id", currentTenant.id)
+          .eq("table_name", "cashflow_transactions")
+      );
+      const cftLegacyIds = new Set(cftMappings.map(c => c.legacy_id));
 
-      const bkRecords = bkMappings ?? [];
-
-      // Get all CFT legacy_ids for matching
-      const { data: cftMappings } = await supabase
-        .from("legacy_id_mappings")
-        .select("legacy_id")
-        .eq("tenant_id", currentTenant.id)
-        .eq("table_name", "cashflow_transactions");
-
-      const cftLegacyIds = new Set((cftMappings ?? []).map(c => c.legacy_id));
+      // ── 1. Bookkeeping (BK) ──
+      const bkRecords = await fetchAllRows<{ legacy_id: string; notes: string | null }>(() =>
+        supabase
+          .from("legacy_id_mappings")
+          .select("legacy_id, notes")
+          .eq("tenant_id", currentTenant.id)
+          .eq("table_name", "bookkeeping")
+      );
 
       const bkDetails: ReconciliationDetail[] = bkRecords.map(bk => {
         let notes: any = {};
@@ -82,27 +101,43 @@ const CftReconciliation = () => {
         details: bkDetails,
       };
 
-      // ── 2. Unit Transactions (UT) — lives in legacy_id_mappings ──
-      const { data: utMappings } = await supabase
-        .from("legacy_id_mappings")
-        .select("legacy_id, new_id, notes")
-        .eq("tenant_id", currentTenant.id)
-        .eq("table_name", "unit_transactions");
+      // ── 2. Unit Transactions (UT) — use live table's legacy_transaction_id ──
+      const utMappings = await fetchAllRows<{ legacy_id: string; new_id: string; notes: string | null }>(() =>
+        supabase
+          .from("legacy_id_mappings")
+          .select("legacy_id, new_id, notes")
+          .eq("tenant_id", currentTenant.id)
+          .eq("table_name", "unit_transactions")
+      );
 
-      const utRecords = utMappings ?? [];
+      // Fetch live unit_transactions to get their legacy_transaction_id
+      const utNewIds = utMappings.map(m => m.new_id);
+      const liveUtRecords: Record<string, { legacy_transaction_id: string | null; transaction_date: string; debit: number; credit: number }> = {};
+      
+      // Batch fetch in chunks of 100
+      for (let i = 0; i < utNewIds.length; i += 100) {
+        const chunk = utNewIds.slice(i, i + 100);
+        const { data } = await (supabase as any)
+          .from("unit_transactions")
+          .select("id, legacy_transaction_id, transaction_date, debit, credit")
+          .in("id", chunk);
+        for (const r of (data ?? [])) {
+          liveUtRecords[r.id] = r;
+        }
+      }
 
-      // UT entries should link to a CFT parent via the transactions table or share
-      // Check if the UT new_id exists in transactions or if there's a CFT entry
-      const utDetails: ReconciliationDetail[] = utRecords.map(ut => {
-        // UT legacy_id should have a corresponding CFT entry
-        const hasMatch = cftLegacyIds.has(ut.legacy_id);
+      const utDetails: ReconciliationDetail[] = utMappings.map(ut => {
+        const live = liveUtRecords[ut.new_id];
+        const legacyTxId = live?.legacy_transaction_id ? String(live.legacy_transaction_id) : null;
+        const hasMatch = legacyTxId && cftLegacyIds.has(legacyTxId);
+        const amount = live ? Math.abs(live.debit - live.credit) : 0;
         return {
           id: ut.legacy_id,
           legacy_id: ut.legacy_id,
-          date: "",
-          amount: "",
-          description: ut.notes ?? "",
-          cft_parent_id: hasMatch ? ut.legacy_id : null,
+          date: live?.transaction_date ?? "",
+          amount: amount.toFixed(2),
+          description: `CFT Parent: ${legacyTxId ?? "none"}`,
+          cft_parent_id: hasMatch ? legacyTxId : null,
           status: hasMatch ? "linked" as const : "unlinked" as const,
         };
       });
@@ -117,24 +152,30 @@ const CftReconciliation = () => {
       };
 
       // ── 3. Member Shares ──
-      const { data: msData } = await (supabase as any)
-        .from("member_shares")
-        .select("id, transaction_date, value, quantity, legacy_transaction_id, entity_account_id")
-        .eq("tenant_id", currentTenant.id)
-        .order("transaction_date", { ascending: true });
+      const msRecords = await fetchAllRows<any>(() =>
+        (supabase as any)
+          .from("member_shares")
+          .select("id, transaction_date, value, quantity, legacy_transaction_id, entity_account_id")
+          .eq("tenant_id", currentTenant.id)
+          .order("transaction_date", { ascending: true })
+      );
 
-      const msRecords = msData ?? [];
-
-      // Get legacy IDs for shares
       const shareIds = msRecords.map((r: any) => r.id);
-      const { data: shareMappings } = await supabase
-        .from("legacy_id_mappings")
-        .select("new_id, legacy_id")
-        .eq("table_name", "member_shares")
-        .in("new_id", shareIds);
-      const shareMap = Object.fromEntries((shareMappings ?? []).map(m => [m.new_id, m.legacy_id]));
+      let shareMap: Record<string, string> = {};
+      if (shareIds.length > 0) {
+        const shareMappingsAll: any[] = [];
+        for (let i = 0; i < shareIds.length; i += 100) {
+          const chunk = shareIds.slice(i, i + 100);
+          const { data } = await supabase
+            .from("legacy_id_mappings")
+            .select("new_id, legacy_id")
+            .eq("table_name", "member_shares")
+            .in("new_id", chunk);
+          shareMappingsAll.push(...(data ?? []));
+        }
+        shareMap = Object.fromEntries(shareMappingsAll.map(m => [m.new_id, m.legacy_id]));
+      }
 
-      // Linked = has a non-zero legacy_transaction_id (which is the CFT ParentID)
       const msLinked = msRecords.filter((r: any) => r.legacy_transaction_id && String(r.legacy_transaction_id) !== "0");
       const msSelfRoot = msRecords.filter((r: any) => String(r.legacy_transaction_id) === "0");
       const msUnlinked = msRecords.filter((r: any) => !r.legacy_transaction_id);
@@ -242,7 +283,7 @@ const CftReconciliation = () => {
           </CardTitle>
           <CardDescription>
             Verify that BK (Bookkeeping), UT (Unit Transactions), and Shares are correctly linked to their parent CFT (Cashflow Transaction) records.
-            BK and UT data is sourced from the legacy import mappings.
+            BK links via TransactionID → CFT legacy_id. UT links via live unit_transactions.legacy_transaction_id → CFT legacy_id.
           </CardDescription>
         </CardHeader>
         <CardContent>
