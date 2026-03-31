@@ -510,12 +510,13 @@ const Memberships = () => {
       isActive: a.is_active,
     }));
 
-    // Inject referrer as a virtual account row on the "Myself" entity
-    if (hasReferrerRole && referrerInfo?.referrerNumber && e.relationshipName === "Myself") {
+    // Inject referrer as a virtual account row if this entity is a registered referrer
+    const entityRefRecord = entityReferrerRecords[e.id];
+    if (entityRefRecord) {
       rows.push({
         id: "referrer-virtual",
         accountTypeName: "Referrer",
-        accountNumber: referrerInfo.referrerNumber,
+        accountNumber: entityRefRecord.referrerNumber,
         status: "active",
       });
     }
