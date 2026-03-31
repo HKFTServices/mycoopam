@@ -65,7 +65,205 @@ type EntityGroup = {
   accounts: AccountRow[];
 };
 
-const Memberships = () => {
+/* ─── My Referrals Sub-Section ─── */
+type MyReferralsSectionProps = {
+  currentTenant: any;
+  user: any;
+  entityReferrerRecords: Record<string, { referrerNumber: string; referralCode: string | null; referrerId: string }>;
+  linkedEntityIds: string[];
+  sym: string;
+  isMobile: boolean;
+  navigate: NavigateFunction;
+};
+
+const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linkedEntityIds, sym, isMobile, navigate }: MyReferralsSectionProps) => {
+  const referrerRecordIds = useMemo(() => {
+    return Object.values(entityReferrerRecords).map((r) => r.referrerId);
+  }, [entityReferrerRecords]);
+
+  const { data: referredEntities = [], isLoading } = useQuery({
+    queryKey: ["my_referrals", currentTenant?.id, referrerRecordIds],
+    queryFn: async () => {
+      if (!currentTenant || referrerRecordIds.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("entities")
+        .select(`id, name, last_name, identity_number, registration_number, agent_commission_percentage, entity_categories (name, entity_type)`)
+        .in("agent_house_agent_id", referrerRecordIds)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_deleted", false)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).filter((e: any) => !linkedEntityIds.includes(e.id));
+    },
+    enabled: !!currentTenant && referrerRecordIds.length > 0,
+  });
+
+  const referredEntityIds = referredEntities.map((e: any) => e.id);
+  const { data: referredAccounts = [] } = useQuery({
+    queryKey: ["my_referral_accounts", currentTenant?.id, referredEntityIds],
+    queryFn: async () => {
+      if (!currentTenant || referredEntityIds.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("entity_accounts")
+        .select(`id, account_number, status, is_active, entity_id, entity_account_types (name, account_type)`)
+        .in("entity_id", referredEntityIds)
+        .eq("tenant_id", currentTenant.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant && referredEntityIds.length > 0,
+  });
+
+  if (referrerRecordIds.length === 0) return null;
+
+  const referredGroups = referredEntities.map((e: any) => {
+    const fullName = [e.name, e.last_name].filter(Boolean).join(" ");
+    const category = e.entity_categories;
+    const accts = referredAccounts.filter((a: any) => a.entity_id === e.id);
+    const commPct = Number(e.agent_commission_percentage || 0).toFixed(2);
+    return {
+      entityId: e.id,
+      entityName: fullName,
+      identityNumber: e.identity_number,
+      registrationNumber: e.registration_number,
+      categoryName: category?.name,
+      commissionPct: commPct,
+      accounts: accts.map((a: any) => ({
+        id: a.id,
+        accountTypeName: a.entity_account_types?.name,
+        accountNumber: a.account_number,
+        status: a.status,
+        isActive: a.is_active,
+      })),
+    };
+  });
+
+  return (
+    <div className="space-y-3 mt-8">
+      <div className="flex items-center gap-2">
+        <Users className="h-5 w-5 text-muted-foreground" />
+        <h2 className="text-lg font-semibold">My Referrals</h2>
+        <Badge variant="secondary" className="text-xs px-2 py-0.5">{referredGroups.length}</Badge>
+      </div>
+
+      {isLoading ? (
+        <Card><CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardContent></Card>
+      ) : referredGroups.length === 0 ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <Users className="h-6 w-6 mb-2 opacity-40" />
+          No referrals yet.
+        </CardContent></Card>
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {referredGroups.map((g) => (
+            <Card key={g.entityId} className="overflow-hidden opacity-90">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm truncate">{g.entityName}</p>
+                    {(g.identityNumber || g.registrationNumber) && (
+                      <p className="text-[11px] text-muted-foreground font-mono">{g.identityNumber || g.registrationNumber}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {g.categoryName && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{g.categoryName}</Badge>}
+                      <span className="text-[11px] text-muted-foreground">Commission: {g.commissionPct}%</span>
+                    </div>
+                  </div>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 opacity-40 cursor-not-allowed" disabled>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+                {g.accounts.length > 0 && (
+                  <div className="border-t border-border pt-2 space-y-1.5 px-1">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Accounts</p>
+                    {g.accounts.map((a: any) => {
+                      const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
+                      const isPending = a.status === "pending_activation" || a.status === "pending";
+                      return (
+                        <div key={a.id} className="flex items-center gap-1.5 text-sm">
+                          {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" /> : <X className="h-3 w-3 text-destructive shrink-0" />}
+                          <span className="text-xs">{a.accountTypeName}</span>
+                          {a.accountNumber && <code className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</code>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-[30%]">Name</TableHead>
+                  <TableHead className="w-[12%]">Commission</TableHead>
+                  <TableHead>Accounts</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {referredGroups.map((g, idx) => (
+                  <TableRow key={g.entityId} className={`${idx % 2 !== 0 ? "bg-muted/30" : ""} hover:bg-muted/50`}>
+                    <TableCell className="align-top">
+                      <Button size="icon" variant="ghost" className="h-8 w-8 opacity-40 cursor-not-allowed" disabled title="View only">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div>
+                        <span className="font-medium">{g.entityName}</span>
+                        {(g.identityNumber || g.registrationNumber) && (
+                          <p className="text-xs text-muted-foreground font-mono">{g.identityNumber || g.registrationNumber}</p>
+                        )}
+                        {g.categoryName && <p className="text-xs text-muted-foreground">({g.categoryName})</p>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-sm text-muted-foreground">{g.commissionPct}%</TableCell>
+                    <TableCell className="align-top">
+                      {g.accounts.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {g.accounts.map((a: any) => {
+                            const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
+                            const isPending = a.status === "pending_activation" || a.status === "pending";
+                            return (
+                              <div key={a.id} className="flex items-center gap-1.5 text-sm">
+                                <span className="font-medium">{a.accountTypeName}</span>
+                                {a.accountNumber ? (
+                                  <>
+                                    <span className="text-muted-foreground">(</span>
+                                    {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : <X className="h-3 w-3 text-destructive" />}
+                                    <code className="font-mono text-xs">{a.accountNumber}</code>
+                                    <span className="text-muted-foreground">)</span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">({statusLabel(a.status ?? "No account")})</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">No accounts</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+
   const { user } = useAuth();
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
