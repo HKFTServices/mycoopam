@@ -1469,6 +1469,14 @@ const LegacyGlAllocation = () => {
                           <AlertTriangle className="h-3 w-3" /> {unbal} unbalanced
                         </Badge>
                       )}
+                      {(() => {
+                        const warnCount = allProposed.reduce((s, g) => s + g.controlWarnings.length, 0);
+                        return warnCount > 0 ? (
+                          <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-600 bg-amber-500/10">
+                            <AlertTriangle className="h-3 w-3" /> {warnCount} direction mismatches
+                          </Badge>
+                        ) : null;
+                      })()}
                       <Badge variant="outline">
                         {allProposed.reduce((s, g) => s + g.entries.length, 0)} proposed entries
                       </Badge>
