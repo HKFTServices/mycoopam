@@ -1512,7 +1512,7 @@ const LegacyGlAllocation = () => {
                         {/* Summary row */}
                         <TableRow
                           key={`root-${pg.root.cft_id}`}
-                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!pg.isBalanced ? 'bg-destructive/5' : ''}`}
+                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!pg.isBalanced ? 'bg-destructive/5' : pg.controlWarnings.length > 0 ? 'bg-amber-500/5' : ''}`}
                           onClick={() => toggleParent(pg.root.cft_id)}
                         >
                           <TableCell className="px-2">
