@@ -1177,7 +1177,7 @@ Deno.serve(async (req) => {
             const agentEntityId = await resolveLegacy("entities", record.legacy_agent_id || record.AgentEntityId);
 
             if (!agentHouseEntityId) {
-              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${record.legacy_agent_house_id || record.AgentHouseId}`);
+              results.errors.push(`AgentHouseAgent ${legacyId}: agent house entity not found for legacy_id ${record.legacy_agent_house_id || record.AgentHouseEntityId}`);
               continue;
             }
             if (!agentEntityId) {
