@@ -1574,6 +1574,25 @@ const LegacyGlAllocation = () => {
                             <TableCell></TableCell>
                           </TableRow>
                         ))}
+
+                        {/* Control direction warnings */}
+                        {isExpanded && pg.controlWarnings.length > 0 && (
+                          <TableRow className="bg-amber-500/5">
+                            <TableCell colSpan={9} className="py-2">
+                              <div className="flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                                <div className="text-xs space-y-1">
+                                  <span className="font-semibold text-amber-700">Control account direction mismatch:</span>
+                                  {pg.controlWarnings.map((w, wi) => (
+                                    <div key={wi} className="text-muted-foreground">
+                                      CFT #{w.legacyCftId}: <strong>{w.controlAccountName}</strong> — Legacy={w.legacySide}, Proposed={w.proposedSide} ({formatCurrency(w.amount)})
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </React.Fragment>
                     );
                   })}
