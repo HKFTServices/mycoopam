@@ -1147,6 +1147,34 @@ const LegacyGlAllocation = () => {
       }
     }
 
+    // ── CONTROL ACCOUNT ENTRIES: Mirror legacy verbatim ──
+    // For deposits, instead of deriving control account entries from GL logic,
+    // replicate exactly what the legacy cashflow_transactions table has.
+    // Every legacy entry with CashAccountID != 0 gets a control account entry
+    // with the exact same debit/credit direction and amount.
+    if (isDepFunds) {
+      for (const entry of allEntries) {
+        if (entry.cash_account_id === "0") continue;
+        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        if (!ca) continue;
+        const mapping = getGlMapping(entry.entry_type_id);
+        const entryDesc = mapping?.entry_type_name ?? `Entry ${entry.entry_type_id}`;
+        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
+        proposed.push({
+          description: `${entryDesc} — ${poolName}`,
+          debit: entry.debit,
+          credit: entry.credit,
+          gl_account_id: null, gl_account_label: "",
+          control_account_id: ca.new_id,
+          control_account_label: `${ca.name}${ca.pool_name ? ` (${ca.pool_name})` : ""}`,
+          pool_id: (ca as any)?.pool_id ?? null,
+          entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "legacy_control_mirror",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+    }
+
     // GL balance check: only GL entries (not control-account-only entries)
     const glOnlyEntries = proposed.filter(e => e.gl_account_id);
     const totalDebit = glOnlyEntries.reduce((s, e) => s + e.debit, 0);
