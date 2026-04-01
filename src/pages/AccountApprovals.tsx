@@ -746,6 +746,67 @@ const AccountApprovals = () => {
   });
   const approvalSym = tenantConfigApproval?.currency_symbol ?? "R";
 
+  // ─── Ledger Entry Approvals ───
+  const { data: pendingLedgerEntries = [], isLoading: pendingLedgerLoading } = useQuery({
+    queryKey: ["cft_pending_entries", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type), profiles:posted_by(first_name, last_name, email)")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .eq("status", "pending_approval")
+        .is("parent_id", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const getLedgerSubmitterName = (entry: any) => {
+    const p = entry.profiles;
+    if (!p) return "Unknown";
+    return `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email || "Unknown";
+  };
+
+  const approveLedgerMutation = useMutation({
+    mutationFn: async (entryId: string) => {
+      if (!currentUser || !currentTenant) throw new Error("Missing context");
+      await (supabase as any).from("cashflow_transactions")
+        .update({ status: "posted", approved_by: currentUser.id, approved_at: new Date().toISOString() })
+        .eq("id", entryId).eq("tenant_id", currentTenant.id);
+      await (supabase as any).from("cashflow_transactions")
+        .update({ status: "posted", approved_by: currentUser.id, approved_at: new Date().toISOString() })
+        .eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_bank_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_journal_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
+      toast.success("Entry approved and posted to ledger");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const declineLedgerMutation = useMutation({
+    mutationFn: async ({ entryId, reason }: { entryId: string; reason: string }) => {
+      if (!currentUser || !currentTenant) throw new Error("Missing context");
+      const update = { status: "declined", declined_by: currentUser.id, declined_at: new Date().toISOString(), declined_reason: reason };
+      await (supabase as any).from("cashflow_transactions").update(update).eq("id", entryId).eq("tenant_id", currentTenant.id);
+      await (supabase as any).from("cashflow_transactions").update(update).eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
+      setReviewLedgerEntry(null);
+      setLedgerDeclineReason("");
+      toast.success("Entry declined");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
