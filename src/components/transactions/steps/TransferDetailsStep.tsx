@@ -38,6 +38,10 @@ interface TransferDetailsStepProps {
   onRecipientChange: (accountNumber: string, accountId: string, entityName: string) => void;
   onRecipientIdNumberChange: (idNumber: string) => void;
   formatCurrency: (v: number) => string;
+  // Admin fee override
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 type AccountValidation = "idle" | "valid" | "invalid" | "self";
