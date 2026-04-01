@@ -648,9 +648,22 @@ const LegacyGlAllocation = () => {
       // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
       else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
          for (const split of (mapping.split_rule as any).splits) {
-          // Skip the Share portion (gl_code 3000) — not mapped
-          if (split.gl_code === "3000") continue;
           const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
+          // For the Share portion (gl_code 3000), output as R1 CR only — no control mirror
+          if (split.gl_code === "3000") {
+            proposed.push({
+              description: split.description,
+              debit: 0,
+              credit: split.amount,
+              gl_account_id: split.gl_account_id,
+              gl_account_label: glLabel,
+              control_account_id: null, control_account_label: "",
+              pool_id: null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "membership_fee",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+            continue;
+          }
           // CR the GL account for the split amount
           proposed.push({
             description: split.description,
