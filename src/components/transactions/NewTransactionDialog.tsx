@@ -1074,7 +1074,7 @@ const NewTransactionDialog = ({
       if (entry.useAllUnits) {
         // Redeem all units at the sell price
         const grossFromUnits = entry.holdingUnits * entry.unitPrice;
-        const feeCalc = calculateFees(selectedTxnTypeId, grossFromUnits, paymentMethod, feeRules, isVatRegistered, vatRate);
+        const feeCalc = calculateFees(selectedTxnTypeId, grossFromUnits, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct);
         netPayout = Math.max(0, grossFromUnits - feeCalc.totalFee);
         grossUnits = entry.holdingUnits;
         const grossAmt = grossFromUnits;
