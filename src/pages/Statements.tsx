@@ -358,7 +358,7 @@ export default function Statements() {
   const { data: tenantConfig } = useQuery({
     queryKey: ["tenant_config_currency", tenantId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("tenant_configuration").select("currency_symbol").eq("tenant_id", tenantId!).maybeSingle();
+      const { data } = await (supabase as any).from("tenant_configuration").select("currency_symbol, approval_cc_email").eq("tenant_id", tenantId!).maybeSingle();
       return data;
     },
     enabled: !!tenantId,
@@ -590,7 +590,7 @@ export default function Statements() {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setEmailing(true);
     try {
-      const adminEmail = isAdmin && ccAdmin ? user?.email : undefined;
+      const adminEmail = isAdmin && ccAdmin && tenantConfig?.approval_cc_email?.trim() ? tenantConfig.approval_cc_email.trim() : undefined;
       const overrideEmail = isAdmin && emailDelivery === "single" && singleEmailAddress ? singleEmailAddress : undefined;
       for (const entityId of effectiveEntityIds) {
         const { error } = await supabase.functions.invoke("send-cgt-certificate", {
@@ -652,7 +652,7 @@ export default function Statements() {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setEmailing(true);
     try {
-      const adminEmail = isAdmin && ccAdmin ? user?.email : undefined;
+      const adminEmail = isAdmin && ccAdmin && tenantConfig?.approval_cc_email?.trim() ? tenantConfig.approval_cc_email.trim() : undefined;
       const overrideEmail = isAdmin && emailDelivery === "single" && singleEmailAddress ? singleEmailAddress : undefined;
       for (const entityId of effectiveEntityIds) {
         const { error } = await supabase.functions.invoke("send-member-statement", {
@@ -885,10 +885,14 @@ export default function Statements() {
           {isAdmin && docType === "statement" && (
             <div className="space-y-3 border rounded-md p-3 bg-muted/20 max-w-lg">
               <p className="text-sm font-medium">Email Options</p>
-              <div className="flex items-center gap-2">
-                <Checkbox id="cc-admin" checked={ccAdmin} onCheckedChange={(v) => setCcAdmin(!!v)} />
-                <label htmlFor="cc-admin" className="text-sm cursor-pointer">CC Admin ({user?.email})</label>
-              </div>
+              {tenantConfig?.approval_cc_email?.trim() ? (
+                <div className="flex items-center gap-2">
+                  <Checkbox id="cc-admin" checked={ccAdmin} onCheckedChange={(v) => setCcAdmin(!!v)} />
+                  <label htmlFor="cc-admin" className="text-sm cursor-pointer">CC Admin ({tenantConfig.approval_cc_email.trim()})</label>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No admin CC email configured. Set one in Tenant Configuration → Email SMTP.</p>
+              )}
               <div className="space-y-2">
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
