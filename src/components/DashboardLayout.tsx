@@ -579,12 +579,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 onValueChange={(val) => {
                   const t = tenants.find((x) => x.id === val);
                   if (t && t.id !== currentTenant.id) {
-                    // Persist switch: save to localStorage and navigate to the tenant's domain/path
+                    // Persist switch: save to localStorage then redirect to new tenant's domain
                     localStorage.setItem("currentTenantId", t.id);
-                    if (t.slug) {
-                      navigateToTenant(t.slug, navigate, { replace: true });
+                    if (t.slug && isOnProductionDomain()) {
+                      // Production: redirect to tenant subdomain dashboard
+                      window.location.replace(`https://${t.slug}.${window.location.hostname.split('.').slice(-2).join('.')}/dashboard`);
                     } else {
+                      // Dev/preview: just update context (localStorage already saved)
                       setCurrentTenant(t);
+                      navigate("/dashboard", { replace: true });
                     }
                   }
                 }}
