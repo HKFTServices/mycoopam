@@ -623,7 +623,7 @@ const LegacyGlAllocation = () => {
     const switchingPoolEntryTypes = new Set(["1955", "0"]);
 
     // Stock entry types (resolve via CashAccountID)
-    const stockPoolEntryTypes = new Set(["0", "1932", "1964", "1995", "2007", "2009"]);
+    const stockPoolEntryTypes = new Set(["0", "1931", "1932", "1954", "1964", "1995", "2006", "2007", "2009", "2011"]);
 
     for (const entry of allEntries) {
       const mapping = getGlMapping(entry.entry_type_id);
@@ -1008,21 +1008,6 @@ const LegacyGlAllocation = () => {
           control_account_id: null, control_account_label: "",
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: "stock_purchase",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-      }
-      // ── Stock Sale (1949) — Control account entries only (no GL) ──
-      else if (isStockSale && entry.entry_type_id === "1949") {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
-        proposed.push({
-          description: `Stock Sale — ${poolName}`,
-          debit: entry.debit, credit: entry.credit,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "stock_sale",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
