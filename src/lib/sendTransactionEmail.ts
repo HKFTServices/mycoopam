@@ -8,6 +8,7 @@ export async function sendTransactionEmail(params: {
   tenantId: string;
   userId: string;
   applicationEvent: string;
+  entityAccountId?: string;
   transactionData: {
     transaction_date?: string;
     account_number?: string;
