@@ -1199,9 +1199,41 @@ const LegacyGlAllocation = () => {
 
     // GL balance check: only GL entries (not control-account-only entries)
     const glOnlyEntries = proposed.filter(e => e.gl_account_id);
-    const totalDebit = glOnlyEntries.reduce((s, e) => s + e.debit, 0);
-    const totalCredit = glOnlyEntries.reduce((s, e) => s + e.credit, 0);
-    const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+    let totalDebit = glOnlyEntries.reduce((s, e) => s + e.debit, 0);
+    let totalCredit = glOnlyEntries.reduce((s, e) => s + e.credit, 0);
+    let isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+
+    // Auto-adjust small imbalances (< R1.00) via GL 4000 Administration Income
+    if (!isBalanced && Math.abs(totalDebit - totalCredit) < 1.0) {
+      const diff = Math.round((totalDebit - totalCredit) * 100) / 100;
+      const adminGlId = "6cf12752-95ba-499c-a86c-3c17fe2407f5"; // 4000 Administration Income
+      if (diff > 0) {
+        // DR > CR — need more credit on 4000
+        proposed.push({
+          description: "Rounding Adjustment — Admin Income",
+          debit: 0, credit: diff,
+          gl_account_id: adminGlId, gl_account_label: "4000 Administration Income",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "rounding_adj",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      } else {
+        // CR > DR — need more debit on 4000
+        proposed.push({
+          description: "Rounding Adjustment — Admin Income",
+          debit: Math.abs(diff), credit: 0,
+          gl_account_id: adminGlId, gl_account_label: "4000 Administration Income",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "rounding_adj",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      totalDebit = proposed.filter(e => e.gl_account_id).reduce((s, e) => s + e.debit, 0);
+      totalCredit = proposed.filter(e => e.gl_account_id).reduce((s, e) => s + e.credit, 0);
+      isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+    }
 
     // ── Control account direction validation ──
     // For each legacy entry with a cash_account_id, check that the proposed
