@@ -202,7 +202,7 @@ const WithdrawalReviewDialog = ({
                   </div>
                   <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                     <p className="text-muted-foreground">Units Redeemed</p>
-                    <p className="font-mono font-bold">{Number(txn.units).toFixed(4)}</p>
+                    <p className="font-mono font-bold">{Number(txn.units).toFixed(5)}</p>
                   </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground">

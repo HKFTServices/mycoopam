@@ -115,7 +115,7 @@ const PoolSelectionStep = ({
                       </Badge>
                     </div>
                     {poolUnits > 0
-                      ? <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(4)} units ≈ {formatCurrency(availableValue)}</p>
+                      ? <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(5)} units ≈ {formatCurrency(availableValue)}</p>
                       : <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertCircle className="h-3 w-3" />No holdings</p>
                     }
                     <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
@@ -399,7 +399,7 @@ const PoolSelectionStep = ({
                 </div>
                 {(isTransfer || isSwitch) && accountHoldings.length > 0 ? (
                   hasUnits ? (
-                    <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(4)} units held</p>
+                    <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(5)} units held</p>
                   ) : (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" /> No holdings

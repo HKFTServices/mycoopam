@@ -133,7 +133,7 @@ const WithdrawalDetailsStep = ({
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-sm">{entry.poolName}</span>
                 <Badge variant="outline" className="text-[10px] font-mono">
-                  {entry.holdingUnits.toFixed(4)} units ≈ {formatCurrency(entry.holdingValue)}
+                  {entry.holdingUnits.toFixed(5)} units ≈ {formatCurrency(entry.holdingValue)}
                 </Badge>
               </div>
 
@@ -149,7 +149,7 @@ const WithdrawalDetailsStep = ({
                     onPoolEntryChange(entry.poolId, {
                       useAllUnits: checked,
                       amountInput: checked ? entry.holdingValue.toFixed(2) : "",
-                      unitsInput: checked ? entry.holdingUnits.toFixed(4) : "",
+                      unitsInput: checked ? entry.holdingUnits.toFixed(5) : "",
                     })
                   }
                 />
@@ -236,7 +236,7 @@ const WithdrawalDetailsStep = ({
                     <span>Available</span>
                     <span className="text-right">{formatCurrency(summary.holdingValue)}</span>
                     <span>Units @ {formatCurrency(summary.unitPrice)}</span>
-                    <span className="font-mono text-right">{summary.units.toFixed(4)}</span>
+                    <span className="font-mono text-right">{summary.units.toFixed(5)}</span>
                   </div>
                   {isOver && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive mt-1">

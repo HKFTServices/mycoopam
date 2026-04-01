@@ -337,7 +337,7 @@ const SwitchReviewDialog = ({
               <div className="rounded-lg bg-orange-500/10 px-3 py-2 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground">Units Redeemed</p>
                 <p className={cn("font-mono font-bold text-sm text-orange-600 dark:text-orange-400", dateChanged && !fromPriceMissing && "text-primary")}>
-                  {fromPriceMissing ? "—" : (fromUnitsRedeemed > 0 ? fromUnitsRedeemed.toFixed(4) : "—")}
+                  {fromPriceMissing ? "—" : (fromUnitsRedeemed > 0 ? fromUnitsRedeemed.toFixed(5) : "—")}
                 </p>
               </div>
             </div>
@@ -376,7 +376,7 @@ const SwitchReviewDialog = ({
               <div className="rounded-lg bg-emerald-500/10 px-3 py-2 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground">Units Acquired</p>
                 <p className={cn("font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400", dateChanged && !toPriceMissing && "text-primary")}>
-                  {toPriceMissing ? "—" : (toUnitsAcquired > 0 ? toUnitsAcquired.toFixed(4) : "—")}
+                  {toPriceMissing ? "—" : (toUnitsAcquired > 0 ? toUnitsAcquired.toFixed(5) : "—")}
                 </p>
               </div>
             </div>

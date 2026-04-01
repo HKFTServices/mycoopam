@@ -176,7 +176,7 @@ const StockWithdrawalDetailsStep = ({
         {currentHolding > 0 && currentUnitPriceSell > 0 && (
           <div className="ml-auto text-right">
             <p className="text-[10px] text-muted-foreground">Available</p>
-            <p className="text-xs font-bold">{currentHolding.toFixed(4)} units ≈ {formatCurrency(maxPoolValue)}</p>
+            <p className="text-xs font-bold">{currentHolding.toFixed(5)} units ≈ {formatCurrency(maxPoolValue)}</p>
           </div>
         )}
       </div>
@@ -451,7 +451,7 @@ const StockWithdrawalDetailsStep = ({
           {currentUnitPriceSell > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Units @ {formatCurrency(currentUnitPriceSell)} (Sell)</span>
-              <span className="font-mono font-bold">{grossUnitsRedeemed.toFixed(4)}</span>
+              <span className="font-mono font-bold">{grossUnitsRedeemed.toFixed(5)}</span>
             </div>
           )}
 

@@ -516,7 +516,7 @@ const TransactionReviewDialog = ({
               return (
                 <div key={txn.id} className="flex justify-between text-xs text-muted-foreground pl-2">
                   <span>{txn.pools?.name || "Pool"} @ {fmt(unitPrice)}/unit</span>
-                  <span className="font-mono font-semibold">{units.toFixed(4)} units</span>
+                  <span className="font-mono font-semibold">{units.toFixed(5)} units</span>
                 </div>
               );
             })}
@@ -735,7 +735,7 @@ const TransactionReviewDialog = ({
                       </div>
                       <div>
                         <p className="text-muted-foreground">Units</p>
-                        <p className={cn("font-mono font-bold", dateChanged || feeChanged ? "text-primary" : "")}>{effectiveUnits.toFixed(4)}</p>
+                        <p className={cn("font-mono font-bold", dateChanged || feeChanged ? "text-primary" : "")}>{effectiveUnits.toFixed(5)}</p>
                       </div>
                     </div>
                   </div>
@@ -897,7 +897,7 @@ const TransactionReviewDialog = ({
               <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                 <p className="text-muted-foreground">Units</p>
                 <p className={cn("font-mono font-bold", dateChanged && !hasMissingPrice ? "text-primary" : "")}>
-                  {hasMissingPrice ? "—" : effectiveUnits.toFixed(4)}
+                  {hasMissingPrice ? "—" : effectiveUnits.toFixed(5)}
                 </p>
               </div>
             </div>

@@ -123,7 +123,7 @@ const SwitchDetailsStep = ({
           <p className="text-sm font-bold truncate">{fromPoolName}</p>
           {currentHolding > 0 && (
             <p className="text-[11px] text-muted-foreground">
-              {currentHolding.toFixed(4)} units ≈ {formatCurrency(maxSwitchValue)}
+              {currentHolding.toFixed(5)} units ≈ {formatCurrency(maxSwitchValue)}
             </p>
           )}
         </div>
@@ -246,7 +246,7 @@ const SwitchDetailsStep = ({
           {currentUnitPrice > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Units redeemed @ {formatCurrency(currentUnitPrice)} <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400">(UP Sell)</span></span>
-              <span className="font-mono font-bold">{fromUnitsRedeemed.toFixed(4)}</span>
+              <span className="font-mono font-bold">{fromUnitsRedeemed.toFixed(5)}</span>
             </div>
           )}
 
@@ -259,7 +259,7 @@ const SwitchDetailsStep = ({
           {toPoolUnitPrice > 0 && toPoolId && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Units acquired @ {formatCurrency(toPoolUnitPrice)} <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">(UP Buy)</span></span>
-              <span className="font-mono font-bold">{toUnitsAcquired.toFixed(4)}</span>
+              <span className="font-mono font-bold">{toUnitsAcquired.toFixed(5)}</span>
             </div>
           )}
 

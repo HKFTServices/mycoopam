@@ -118,7 +118,7 @@ const TransferReviewDialog = ({
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Units Redeemed</span>
-              <span className="font-mono">{unitsRedeemed.toFixed(4)}</span>
+              <span className="font-mono">{unitsRedeemed.toFixed(5)}</span>
             </div>
           </div>
 
@@ -148,7 +148,7 @@ const TransferReviewDialog = ({
             <Separator />
             <div className="flex justify-between text-sm font-bold text-emerald-600 dark:text-emerald-400">
               <span>Net Units Credited</span>
-              <span className="font-mono">{unitsReceived.toFixed(4)}</span>
+              <span className="font-mono">{unitsReceived.toFixed(5)}</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Net Value (at UP Sell)</span>
