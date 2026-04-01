@@ -411,8 +411,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 <DropdownMenuItem
                   disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
                   onSelect={() => {
-                    if (!memberPrimaryAccount || memberPrimaryAccountLoading) return;
-                    setDebitOrderOpen(true);
+                    navigate("/debit-orders?new=1");
                   }}
                 >
                   <Landmark className="mr-2 h-4 w-4" />
