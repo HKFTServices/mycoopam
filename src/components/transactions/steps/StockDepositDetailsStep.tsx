@@ -488,7 +488,7 @@ const StockDepositDetailsStep = ({
 
           {currentUnitPriceBuy > 0 && netForPool > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Units @ {formatCurrency(currentUnitPriceBuy)}</span>
+              <span>Units @ {formatCurrency(currentUnitPriceBuy, "R", 5)}</span>
               <span className="font-mono font-bold text-primary">{unitsAcquired.toFixed(5)}</span>
             </div>
           )}

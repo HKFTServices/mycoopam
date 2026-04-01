@@ -211,7 +211,7 @@ const WithdrawalDetailsStep = ({
                       {entry.unitPrice > 0 && parseFloat(entry.unitsInput) > 0 && (
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Info className="h-3 w-3" />
-                          ≈ {formatCurrency(parseFloat(entry.unitsInput) * entry.unitPrice)} gross at {formatCurrency(entry.unitPrice)}/unit
+                          ≈ {formatCurrency(parseFloat(entry.unitsInput) * entry.unitPrice)} gross at {formatCurrency(entry.unitPrice, "R", 5)}/unit
                         </p>
                       )}
                     </div>
@@ -235,7 +235,7 @@ const WithdrawalDetailsStep = ({
                     <span className="font-bold text-primary text-right">{formatCurrency(summary.grossAmount)}</span>
                     <span>Available</span>
                     <span className="text-right">{formatCurrency(summary.holdingValue)}</span>
-                    <span>Units @ {formatCurrency(summary.unitPrice)}</span>
+                    <span>Units @ {formatCurrency(summary.unitPrice, "R", 5)}</span>
                     <span className="font-mono text-right">{summary.units.toFixed(5)}</span>
                   </div>
                   {isOver && (

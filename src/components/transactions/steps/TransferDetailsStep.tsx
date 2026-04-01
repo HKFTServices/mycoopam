@@ -343,7 +343,7 @@ const TransferDetailsStep = ({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Unit Price (UP Sell)</span>
-          <span className="font-semibold font-mono">{formatCurrency(unitPriceSell)}</span>
+          <span className="font-semibold font-mono">{formatCurrency(unitPriceSell, "R", 5)}</span>
         </div>
         <div className="flex justify-between text-sm font-bold text-orange-600 dark:text-orange-400">
           <span>Available Value</span>
@@ -405,7 +405,7 @@ const TransferDetailsStep = ({
                 <span className="font-mono">{formatCurrency(grossRedemption)}</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Gross Units Redeemed (UP Sell {formatCurrency(unitPriceSell)})</span>
+                <span>Gross Units Redeemed (UP Sell {formatCurrency(unitPriceSell, "R", 5)})</span>
                 <span className="font-mono">{grossUnitsRedeemed.toFixed(5)} units</span>
               </div>
               <Separator />
@@ -414,7 +414,7 @@ const TransferDetailsStep = ({
                 <span className="font-mono">{netUnitsReceived.toFixed(5)} units</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Net Value @ UP Buy {formatCurrency(unitPriceBuy)}</span>
+                <span>Net Value @ UP Buy {formatCurrency(unitPriceBuy, "R", 5)}</span>
                 <span className="font-mono">{formatCurrency(netTransferAmount)}</span>
               </div>
             </div>

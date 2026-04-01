@@ -450,7 +450,7 @@ const StockWithdrawalDetailsStep = ({
 
           {currentUnitPriceSell > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Units @ {formatCurrency(currentUnitPriceSell)} (Sell)</span>
+              <span>Units @ {formatCurrency(currentUnitPriceSell, "R", 5)} (Sell)</span>
               <span className="font-mono font-bold">{grossUnitsRedeemed.toFixed(5)}</span>
             </div>
           )}

@@ -299,7 +299,7 @@ const DepositDetailsStep = ({
         )}
         {isWithdrawal && currentHolding > 0 && (
           <p className="text-xs text-muted-foreground">
-            Available: {currentHolding.toFixed(5)} units ({formatCurrency(currentHolding * currentUnitPrice)})
+            Available: {currentHolding.toFixed(5)} units ({formatCurrency(currentHolding * currentUnitPrice, "R", 5)})
           </p>
         )}
       </div>
@@ -589,7 +589,7 @@ const DepositDetailsStep = ({
               </div>
               {currentUnitPrice > 0 && (
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Units @ {formatCurrency(currentUnitPrice)}</span>
+                  <span>Units @ {formatCurrency(currentUnitPrice, "R", 5)}</span>
                   <span className="font-mono font-bold">{Math.abs(unitsToTransact).toFixed(5)}</span>
                 </div>
               )}
