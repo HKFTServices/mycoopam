@@ -628,6 +628,7 @@ const TenantConfiguration = () => {
         theme_primary_hsl: (config as any).theme_primary_hsl ?? "",
         theme_accent_hsl: (config as any).theme_accent_hsl ?? "",
         theme_sidebar_hsl: (config as any).theme_sidebar_hsl ?? "",
+        approval_cc_email: (config as any).approval_cc_email ?? "",
       });
     }
   }, [config]);
