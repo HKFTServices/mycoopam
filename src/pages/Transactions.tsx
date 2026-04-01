@@ -334,8 +334,8 @@ const Transactions = () => {
         <div className="flex items-center gap-3">
           <ArrowLeftRight className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Transactions</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage your investment transactions</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Member Transactions</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage member investment transactions</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
