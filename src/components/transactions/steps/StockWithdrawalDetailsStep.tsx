@@ -86,6 +86,9 @@ const StockWithdrawalDetailsStep = ({
   currentUnitPriceSell,
   poolName,
   currentHolding,
+  isStaff = false,
+  adminFeeOverridePct,
+  onAdminFeeOverridePctChange,
 }: StockWithdrawalDetailsStepProps) => {
 
   const handleQuantityChange = (itemId: string, qty: number) => {

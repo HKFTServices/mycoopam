@@ -56,6 +56,7 @@ const TransferDetailsStep = ({
   onAmountChange, onUseAllUnitsChange, onNotesChange, onRecipientChange,
   onRecipientIdNumberChange,
   formatCurrency,
+  isStaff = false, adminFeeOverridePct, onAdminFeeOverridePctChange,
 }: TransferDetailsStepProps) => {
   const [accountInput, setAccountInput] = useState(recipientAccountNumber);
   const [idInput, setIdInput] = useState(recipientIdNumber);

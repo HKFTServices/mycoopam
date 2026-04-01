@@ -85,6 +85,7 @@ const SwitchDetailsStep = ({
   feeBreakdown, totalVat, isVatRegistered, totalFee,
   grossRedemptionAmount, netSwitchAmount, fromUnitsRedeemed, toUnitsAcquired,
   notes, onNotesChange, formatCurrency, transactionDate, onTransactionDateChange,
+  isStaff = false, adminFeeOverridePct, onAdminFeeOverridePctChange,
 }: SwitchDetailsStepProps) => {
   const [displayAmount, setDisplayAmount] = useState(amount || "");
 
