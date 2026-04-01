@@ -1384,11 +1384,12 @@ const LegacyGlAllocation = () => {
 
     setPosting(true);
     try {
-      // Check which legacy_transaction_ids are already posted
+      // Check which legacy_transaction_ids are already actively posted
       const legacyIds = [...new Set(balanced.flatMap(g => g.entries.map(e => e.legacy_transaction_id)))];
       const { data: existing } = await supabase
         .from("cashflow_transactions")
         .select("legacy_transaction_id")
+        .eq("is_active", true)
         .in("legacy_transaction_id", legacyIds);
 
       const alreadyPosted = new Set((existing ?? []).map(e => e.legacy_transaction_id));
