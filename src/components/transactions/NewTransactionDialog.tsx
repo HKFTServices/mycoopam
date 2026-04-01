@@ -1665,7 +1665,8 @@ const NewTransactionDialog = ({
   });
 
   // Validation — note step order is now: type → account → pool → details → review
-  const minimumDeposit = joinShareInfo.needed ? membershipDeductions + 1 : 1;
+  // Allow deposit of exactly the membership amount (no minimum "extra" required)
+  const minimumDeposit = joinShareInfo.needed ? membershipDeductions : 1;
   const selectedPoolHolding = allHoldings.find((h: any) => h.pool_id === selectedPoolId);
   const selectedPoolHasUnits = selectedPoolHolding ? Number(selectedPoolHolding.units) > 0 : false;
   const canProceedFromType = !!selectedTxnTypeId;
