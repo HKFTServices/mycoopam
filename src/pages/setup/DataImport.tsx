@@ -381,7 +381,9 @@ const EntityDocumentsImport = ({ tenantId }: { tenantId?: string }) => {
   };
 
   const parseCsv = (text: string): any[] => {
-    const lines = text.split('\n').filter(l => l.trim());
+    // Strip BOM if present (common in SSMS CSV exports)
+    const clean = text.replace(/^\uFEFF/, '');
+    const lines = clean.split('\n').filter(l => l.trim());
     if (lines.length < 2) return [];
     const parseRow = (line: string): string[] => {
       const result: string[] = [];
@@ -402,7 +404,8 @@ const EntityDocumentsImport = ({ tenantId }: { tenantId?: string }) => {
       result.push(current.trim());
       return result;
     };
-    const headers = parseRow(lines[0]);
+    const headers = parseRow(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim());
+    console.log("CSV headers parsed:", headers);
     return lines.slice(1).map(line => {
       const vals = parseRow(line);
       const obj: any = {};
