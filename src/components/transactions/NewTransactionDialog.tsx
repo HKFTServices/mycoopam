@@ -1305,8 +1305,8 @@ const NewTransactionDialog = ({
         user_notes: notes || "",
       });
 
-      if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly)) {
-        if (loanRepaymentOnly) {
+      if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation)) {
+        if (loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation) {
           // Loan repayment only — single transaction row, no pool
           const { error } = await (supabase as any).from("transactions").insert({
             tenant_id: currentTenant.id,
