@@ -1958,6 +1958,9 @@ const NewTransactionDialog = ({
               formatCurrency={formatCurrency}
               transactionDate={transactionDate}
               onTransactionDateChange={setTransactionDate}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
@@ -1977,6 +1980,9 @@ const NewTransactionDialog = ({
               formatCurrency={formatCurrency}
               transactionDate={transactionDate}
               onTransactionDateChange={setTransactionDate}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
@@ -2008,6 +2014,9 @@ const NewTransactionDialog = ({
               }}
               onRecipientIdNumberChange={setTransferRecipientIdNumber}
               formatCurrency={formatCurrency}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
@@ -2034,6 +2043,9 @@ const NewTransactionDialog = ({
               formatCurrency={formatCurrency}
               currentUnitPriceBuy={currentUnitPriceBuy}
               poolName={selectedPool?.name || ""}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
@@ -2060,6 +2072,9 @@ const NewTransactionDialog = ({
               currentUnitPriceSell={currentUnitPriceSell}
               poolName={selectedPool?.name || ""}
               currentHolding={currentHolding}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
