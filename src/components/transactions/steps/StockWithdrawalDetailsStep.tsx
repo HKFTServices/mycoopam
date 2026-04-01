@@ -58,6 +58,10 @@ interface StockWithdrawalDetailsStepProps {
   currentUnitPriceSell: number;
   poolName: string;
   currentHolding: number;
+  // Admin fee override
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 const StockWithdrawalDetailsStep = ({
