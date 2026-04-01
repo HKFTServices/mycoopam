@@ -511,24 +511,18 @@ const OperatingJournals = () => {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>GL Account *</Label>
-              <Select value={bankForm.gl_account_id} onValueChange={(v) => {
-                const gl = glAccounts.find((g) => g.id === v);
-                setBankForm({
-                  ...bankForm,
-                  gl_account_id: v,
-                  control_account_id: gl?.control_account_id || bankForm.control_account_id,
-                  entry_type: (gl?.default_entry_type as "debit" | "credit") || bankForm.entry_type,
-                });
-              }}>
-                <SelectTrigger><SelectValue placeholder="Select GL account" /></SelectTrigger>
-                <SelectContent>
-                  {glAccounts.map((gl) => (
-                    <SelectItem key={gl.id} value={gl.id}>
-                      {gl.name} <span className="ml-2 text-xs text-muted-foreground">({gl.gl_type})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <GlAccountSelector
+                glAccounts={glAccounts}
+                value={bankForm.gl_account_id}
+                onChange={(v, gl) => {
+                  setBankForm({
+                    ...bankForm,
+                    gl_account_id: v,
+                    control_account_id: gl?.control_account_id || bankForm.control_account_id,
+                    entry_type: (gl?.default_entry_type as "debit" | "credit") || bankForm.entry_type,
+                  });
+                }}
+              />
             </div>
             {bankForm.gl_account_id && (<>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
