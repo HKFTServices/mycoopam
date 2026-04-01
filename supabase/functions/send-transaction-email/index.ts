@@ -673,6 +673,7 @@ Deno.serve(async (req) => {
     // Resolve entity email + name
     const txn = transaction_data || {};
     let entityEmail: string | null = null;
+    let entityAdditionalEmail: string | null = null;
     let entityAccountName = "";
     let entityId: string | null = null;
     let entityAccountIds: string[] = [];
@@ -688,10 +689,11 @@ Deno.serve(async (req) => {
         entityId = entityAcct.entity_id;
         const { data: entity } = await adminClient
           .from("entities")
-          .select("email_address, name, last_name")
+          .select("email_address, additional_email_address, name, last_name")
           .eq("id", entityAcct.entity_id)
           .single();
         entityEmail = entity?.email_address || null;
+        entityAdditionalEmail = entity?.additional_email_address || null;
         entityAccountName = [entity?.name, entity?.last_name].filter(Boolean).join(" ");
 
         // Fetch all account IDs for this entity (needed for statement)
@@ -949,6 +951,15 @@ Deno.serve(async (req) => {
       recipientSet.add(entityEmail.toLowerCase());
     }
 
+    // Build CC list from member's additional email
+    const ccAddresses: string[] = [];
+    if (entityAdditionalEmail) {
+      const ccNorm = entityAdditionalEmail.trim().toLowerCase();
+      if (ccNorm && !recipientSet.has(ccNorm)) {
+        ccAddresses.push(entityAdditionalEmail.trim());
+      }
+    }
+
     // Send to member + entity email
     let memberSent = false;
     let memberMessageId = "";
@@ -957,6 +968,7 @@ Deno.serve(async (req) => {
         const info = await transporter.sendMail({
           from: fromHeader,
           to: recipientAddr,
+          ...(ccAddresses.length > 0 ? { cc: ccAddresses.join(", ") } : {}),
           subject,
           html: body,
           attachments,
