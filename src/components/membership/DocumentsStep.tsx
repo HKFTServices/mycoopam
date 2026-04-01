@@ -507,10 +507,39 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
             <FileText className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate flex-1">{doc.file_name}</span>
             {doc.file_size && <span className="shrink-0">{(doc.file_size / 1024).toFixed(0)} KB</span>}
-            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleViewDocument(doc.file_path)}>
-              <Eye className="h-3 w-3" />
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleViewDocument(doc.file_path)}
+              disabled={actionLoading === doc.file_path + "_view"}>
+              {actionLoading === doc.file_path + "_view" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleDownloadDocument(doc.file_path, doc.file_name)}
+              disabled={actionLoading === doc.file_path + "_download"}>
+              {actionLoading === doc.file_path + "_download" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-destructive hover:text-destructive"
+              onClick={() => setDeletingDocId(doc.id)}
+            >
+              <Trash2 className="h-3 w-3" />
             </Button>
           </div>
+        ))}
+        {/* Delete confirmation for this doc type's existing docs */}
+        {existing.filter((doc: any) => deletingDocId === doc.id).map((doc: any) => (
+          <AlertDialog key={`del-${doc.id}`} open={true} onOpenChange={() => setDeletingDocId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{doc.file_name}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => handleDeleteDocument(doc.id, doc.file_path)}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         ))}
       </div>
     );
