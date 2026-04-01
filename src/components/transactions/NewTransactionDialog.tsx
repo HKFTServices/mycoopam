@@ -1174,8 +1174,8 @@ const NewTransactionDialog = ({
   const transferAllUnitsValue = currentHolding * currentUnitPriceSell;
   const transferFeeBaseAmount = transferUseAllUnits ? transferAllUnitsValue : amountNum;
   const transferFeeCalc = useMemo(
-    () => isTransfer ? calculateFees(selectedTxnTypeId, transferFeeBaseAmount, "transfer", feeRules, isVatRegistered, vatRate) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isTransfer, selectedTxnTypeId, transferFeeBaseAmount, feeRules, isVatRegistered, vatRate]
+    () => isTransfer ? calculateFees(selectedTxnTypeId, transferFeeBaseAmount, "transfer", feeRules, isVatRegistered, vatRate, adminFeeOverridePct) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
+    [isTransfer, selectedTxnTypeId, transferFeeBaseAmount, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   // Transfer model (same as Switch):
   // - Sender redeems GROSS units = net amount to transfer + fees (all at UP Sell)
