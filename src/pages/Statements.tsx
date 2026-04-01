@@ -590,7 +590,7 @@ export default function Statements() {
     if (effectiveEntityIds.length === 0 || !tenantId) return;
     setEmailing(true);
     try {
-      const adminEmail = isAdmin && ccAdmin ? user?.email : undefined;
+      const adminEmail = isAdmin && ccAdmin && tenantConfig?.approval_cc_email?.trim() ? tenantConfig.approval_cc_email.trim() : undefined;
       const overrideEmail = isAdmin && emailDelivery === "single" && singleEmailAddress ? singleEmailAddress : undefined;
       for (const entityId of effectiveEntityIds) {
         const { error } = await supabase.functions.invoke("send-cgt-certificate", {
