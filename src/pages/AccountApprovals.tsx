@@ -646,10 +646,13 @@ const AccountApprovals = () => {
       if (!currentUser) throw new Error("No user");
       await postAdminStockApproval(txnId, currentTenant!.id, currentUser.id);
     },
-    onSuccess: () => {
+    onSuccess: (_, txnId) => {
       toast.success("Stock transaction approved — ledger entries posted");
+      if (currentTenant) clearGroupNotifications(currentTenant.id, [txnId]);
       queryClient.invalidateQueries({ queryKey: ["admin_stock_transactions"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewAdminStock(null);
     },
     onError: (err: any) => toast.error(err.message || "Approval failed"),
