@@ -409,16 +409,20 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   <Plus className="mr-2 h-4 w-4" />
                   New Loan Application
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                  onSelect={() => {
-                    navigate("/debit-orders?new=1");
-                  }}
-                >
-                  <Landmark className="mr-2 h-4 w-4" />
-                  Debit Order
-                </DropdownMenuItem>
+                {isDebitOrderEnabled && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                      onSelect={() => {
+                        navigate("/debit-orders?new=1");
+                      }}
+                    >
+                      <Landmark className="mr-2 h-4 w-4" />
+                      Debit Order
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
