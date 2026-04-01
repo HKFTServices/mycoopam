@@ -338,18 +338,10 @@ const Transactions = () => {
             <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage member investment transactions</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {canAccessStock && (
-            <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setStockDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              {isMobile ? "Stock" : "New Stock Transaction"}
-            </Button>
-          )}
-          <Button size={isMobile ? "sm" : "default"} onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            {isMobile ? "New Txn" : "New Member Transaction"}
-          </Button>
-        </div>
+        <Button size={isMobile ? "sm" : "default"} onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" />
+          {isMobile ? "New Txn" : "New Member Transaction"}
+        </Button>
       </div>
 
       <MobileTableHint />
