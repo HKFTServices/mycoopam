@@ -566,8 +566,10 @@ const LegacyGlAllocation = () => {
   const memberAcctCashControl = allControlAccounts?.find(ca => ca.name === "Member Account Cash");
 
   const buildProposedForGroup = (group: { root: LegacyCftEntry; children: LegacyCftEntry[] }): ProposedGroup => {
-    const allEntries = [group.root, ...group.children];
     const rootEntry = group.root;
+    const rootDateStr = rootEntry.transaction_date.split(" ")[0];
+    // Filter out children whose date differs from the root — they're mis-linked legacy records
+    const allEntries = [group.root, ...group.children.filter(c => c.transaction_date.split(" ")[0] === rootDateStr)];
     const entityId = rootEntry.entity_id;
     const eaInfo = entityAccountMap?.[entityId];
     const txDate = rootEntry.transaction_date;
