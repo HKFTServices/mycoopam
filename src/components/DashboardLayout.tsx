@@ -578,7 +578,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 value={currentTenant.id}
                 onValueChange={(val) => {
                   const t = tenants.find((x) => x.id === val);
-                  if (t) setCurrentTenant(t);
+                  if (t && t.id !== currentTenant.id) {
+                    // Persist switch: save to localStorage and navigate to the tenant's domain/path
+                    localStorage.setItem("currentTenantId", t.id);
+                    if (t.slug) {
+                      navigateToTenant(t.slug, navigate, { replace: true });
+                    } else {
+                      setCurrentTenant(t);
+                    }
+                  }
                 }}
               >
                 <SelectTrigger className="w-full h-9 text-sm bg-sidebar">
