@@ -239,6 +239,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       location.pathname.includes("/dashboard/loan-applications") ||
       location.pathname.includes("/dashboard/debit-orders"),
   );
+  const [otherTransactionsOpen, setOtherTransactionsOpen] = useState(
+    location.pathname.includes("/dashboard/ledger-entries") ||
+      location.pathname.includes("/dashboard/operating-journals"),
+  );
   const [entitiesOpen, setEntitiesOpen] = useState(location.pathname.includes("/dashboard/entit"));
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));
   const [messagesOpen, setMessagesOpen] = useState(
