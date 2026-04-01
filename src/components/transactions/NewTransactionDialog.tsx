@@ -176,12 +176,20 @@ const NewTransactionDialog = ({
   const { data: isStaff = false } = useQuery({
     queryKey: ["is_staff_for_txn", user?.id, currentTenant?.id],
     queryFn: async () => {
-      if (!user) return false;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-      if (!roles) return false;
-      return roles.some((r) => ["super_admin", "tenant_admin", "manager", "clerk"].includes(r.role));
+      if (!user || !currentTenant) return false;
+      const { data: roles, error } = await supabase
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id);
+      if (error || !roles) return false;
+      // Check for staff role in current tenant OR a global (null tenant_id) role
+      const staffRoles = ["super_admin", "tenant_admin", "manager", "clerk"];
+      return roles.some((r) =>
+        staffRoles.includes(r.role) &&
+        (r.tenant_id === currentTenant.id || r.tenant_id === null)
+      );
     },
-    enabled: !!user && open,
+    enabled: !!user && !!currentTenant && open,
   });
 
   // Accounts
