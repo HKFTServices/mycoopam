@@ -1607,7 +1607,161 @@ const AccountApprovals = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ─── Ledger Entry Approvals Tab ─── */}
+        <TabsContent value="ledger">
+          <Card>
+            <CardContent className="p-0">
+              {pendingLedgerLoading ? (
+                <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+              ) : pendingLedgerEntries.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <CheckCircle className="h-8 w-8 mx-auto mb-2 text-primary/40" />
+                  No entries pending approval
+                </div>
+              ) : (
+                <>
+                  {/* Mobile */}
+                  <div className="sm:hidden p-3">
+                    <Accordion type="single" collapsible className="space-y-2">
+                      {pendingLedgerEntries.map((entry: any) => {
+                        const amount = Number(entry.debit || entry.credit || 0);
+                        return (
+                          <AccordionItem key={entry.id} value={entry.id} className="border-b-0 rounded-2xl border border-border bg-card/60 px-3">
+                            <AccordionTrigger className="py-3 hover:no-underline items-start">
+                              <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                    <Badge variant="outline" className="text-[10px] h-5">{entry.is_bank ? "Bank" : "Journal"}</Badge>
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">{entry.transaction_date}</span>
+                                    {entry.reference && <span className="text-xs text-muted-foreground truncate max-w-[55vw]">• {entry.reference}</span>}
+                                  </div>
+                                  <p className="mt-1 text-sm font-medium break-words">
+                                    <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
+                                    {entry.gl_accounts?.name || entry.description || "—"}
+                                  </p>
+                                </div>
+                                <div className="text-right max-w-[45%] break-words">
+                                  <p className="text-[10px] text-muted-foreground">Amount</p>
+                                  <p className="font-mono font-semibold break-all">{amount > 0 ? formatCurrency(amount, approvalSym) : "—"}</p>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-3">
+                              <div className="space-y-3">
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                  <p className="break-words">Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span></p>
+                                  <p className="break-words">Submitted by: <span className="text-foreground/90">{getLedgerSubmitterName(entry)}</span></p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" className="flex-1 h-9" onClick={() => approveLedgerMutation.mutate(entry.id)} disabled={approveLedgerMutation.isPending}>
+                                    <Check className="h-4 w-4 mr-1" /> Approve
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="h-9" onClick={() => { setReviewLedgerEntry(entry); setLedgerDeclineReason(""); }}>
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </div>
+                  {/* Desktop */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>GL Account</TableHead>
+                          <TableHead>Control Account</TableHead>
+                          <TableHead>Submitted By</TableHead>
+                          <TableHead className="text-right">Debit (+)</TableHead>
+                          <TableHead className="text-right">Credit (−)</TableHead>
+                          <TableHead>Reference</TableHead>
+                          <TableHead className="w-28" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingLedgerEntries.map((entry: any) => (
+                          <TableRow key={entry.id}>
+                            <TableCell className="text-sm">{entry.transaction_date}</TableCell>
+                            <TableCell><Badge variant="outline" className="text-[10px]">{entry.is_bank ? "Bank" : "Journal"}</Badge></TableCell>
+                            <TableCell className="text-sm">
+                              <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
+                              {entry.gl_accounts?.name || entry.description || "—"}
+                            </TableCell>
+                            <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getLedgerSubmitterName(entry)}</TableCell>
+                            <TableCell className="text-right text-sm font-medium">{entry.debit > 0 ? formatCurrency(entry.debit, approvalSym) : ""}</TableCell>
+                            <TableCell className="text-right text-sm font-medium">{entry.credit > 0 ? formatCurrency(entry.credit, approvalSym) : ""}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="default" className="h-7 px-2 text-xs"
+                                  onClick={() => approveLedgerMutation.mutate(entry.id)} disabled={approveLedgerMutation.isPending}>
+                                  <Check className="h-3 w-3 mr-1" /> Approve
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                  onClick={() => { setReviewLedgerEntry(entry); setLedgerDeclineReason(""); }}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* ── Ledger Decline Dialog ── */}
+      <Dialog open={!!reviewLedgerEntry} onOpenChange={(o) => { if (!o) { setReviewLedgerEntry(null); setLedgerDeclineReason(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><X className="h-5 w-5" /> Decline Entry</DialogTitle>
+            <DialogDescription>
+              Provide a reason for declining this {reviewLedgerEntry?.is_bank ? "bank" : "journal"} entry.
+            </DialogDescription>
+          </DialogHeader>
+          {reviewLedgerEntry && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Date</span>
+                  <span>{reviewLedgerEntry.transaction_date}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">GL Account</span>
+                  <span className="font-mono text-xs">{reviewLedgerEntry.gl_accounts?.code} — {reviewLedgerEntry.gl_accounts?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span className="font-semibold">{formatCurrency(reviewLedgerEntry.debit || reviewLedgerEntry.credit, approvalSym)}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Reason for declining *</label>
+                <Textarea value={ledgerDeclineReason} onChange={(e) => setLedgerDeclineReason(e.target.value)} placeholder="Explain why this entry is being declined..." rows={3} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setReviewLedgerEntry(null); setLedgerDeclineReason(""); }}>Cancel</Button>
+            <Button variant="destructive" disabled={!ledgerDeclineReason.trim() || declineLedgerMutation.isPending}
+              onClick={() => reviewLedgerEntry && declineLedgerMutation.mutate({ entryId: reviewLedgerEntry.id, reason: ledgerDeclineReason })}>
+              {declineLedgerMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Declining…</> : "Decline Entry"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Loan Review Dialog */}
       <LoanReviewDialog
