@@ -12,6 +12,8 @@ const corsHeaders = {
  * schedules whose update_time falls within the current 5-minute window.
  * If a match is found, fetches stock prices from API providers,
  * saves daily_stock_prices, then recalculates and saves daily_pool_prices.
+ *
+ * Includes anomaly detection and admin notifications for price issues.
  */
 
 interface ApiProvider {
@@ -23,6 +25,11 @@ interface ApiProvider {
   secret_name: string;
   base_currency: string;
   response_path: string;
+}
+
+interface PriceAlert {
+  level: "warning" | "error";
+  message: string;
 }
 
 function evaluateExpression(expr: string): number {
@@ -104,6 +111,85 @@ async function fetchProviderPrices(provider: ApiProvider, symbols: string[]): Pr
   return prices;
 }
 
+/** Round to 4 decimal places for better precision on unit prices */
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
+}
+
+/** Round to 2 decimal places for monetary amounts */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/** Send notifications to all tenant admins about price issues */
+async function notifyAdmins(
+  supabase: any,
+  tenantId: string,
+  alerts: PriceAlert[],
+  summary: { stockSaved: number; poolSaved: number; fallbacks: number; apiFailures: string[] },
+) {
+  if (alerts.length === 0 && summary.apiFailures.length === 0) return;
+
+  // Find all tenant_admin and super_admin users for this tenant
+  const { data: adminRoles } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .in("role", ["tenant_admin", "super_admin"])
+    .or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
+
+  if (!adminRoles || adminRoles.length === 0) return;
+
+  const adminUserIds = [...new Set(adminRoles.map((r: any) => r.user_id))];
+
+  // Build notification body
+  const errorAlerts = alerts.filter((a) => a.level === "error");
+  const warningAlerts = alerts.filter((a) => a.level === "warning");
+
+  let title = "";
+  let body = "";
+
+  if (errorAlerts.length > 0) {
+    title = `⚠️ Price Update Issues Detected (${errorAlerts.length} error${errorAlerts.length > 1 ? "s" : ""})`;
+  } else if (warningAlerts.length > 0) {
+    title = `⚡ Price Update Warnings (${warningAlerts.length})`;
+  } else if (summary.apiFailures.length > 0) {
+    title = `⚠️ API Price Fetch Failed`;
+  }
+
+  const parts: string[] = [];
+
+  if (summary.apiFailures.length > 0) {
+    parts.push(`API failures: ${summary.apiFailures.join(", ")}`);
+  }
+
+  if (summary.fallbacks > 0) {
+    parts.push(`${summary.fallbacks} item(s) used fallback prices from previous day`);
+  }
+
+  for (const alert of [...errorAlerts, ...warningAlerts]) {
+    parts.push(`${alert.level === "error" ? "❌" : "⚡"} ${alert.message}`);
+  }
+
+  parts.push(`Summary: ${summary.stockSaved} stock prices, ${summary.poolSaved} pool prices saved`);
+  body = parts.join("\n");
+
+  // Create a notification for each admin
+  const notifications = adminUserIds.map((userId: string) => ({
+    tenant_id: tenantId,
+    recipient_user_id: userId,
+    category: "system",
+    event: "price_update_alert",
+    title,
+    body,
+    status: "unread",
+    meta: { alerts, summary, date: new Date().toISOString() },
+  }));
+
+  const { error } = await supabase.from("notifications").insert(notifications);
+  if (error) console.error("Failed to create price alert notifications:", error);
+  else console.log(`Created ${notifications.length} price alert notification(s) for tenant ${tenantId}`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -159,6 +245,8 @@ Deno.serve(async (req) => {
 
     for (const tenantId of tenantIds) {
       console.log(`Processing tenant ${tenantId}`);
+      const alerts: PriceAlert[] = [];
+      const apiFailures: string[] = [];
 
       // ── 1) Fetch stock items ──
       const { data: items } = await supabase
@@ -203,6 +291,13 @@ Deno.serve(async (req) => {
         const provider = providerMap[providerId];
         if (!provider) continue;
         const prices = await fetchProviderPrices(provider, [...symbolSet]);
+        if (Object.keys(prices).length === 0) {
+          apiFailures.push(provider.name);
+          alerts.push({
+            level: "error",
+            message: `API provider "${provider.name}" returned no prices for symbols: ${[...symbolSet].join(", ")}`,
+          });
+        }
         allApiPrices[providerId] = prices;
         Object.assign(rawApiPrices, prices);
       }
@@ -216,15 +311,32 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId)
         .lt("price_date", today)
         .order("price_date", { ascending: false })
-        .limit(items.length * 2); // enough to cover all items from the most recent date
+        .limit(items.length * 2);
       const prevPriceMap: Record<string, any> = {};
       (prevStockPrices || []).forEach((p: any) => {
-        if (!prevPriceMap[p.item_id]) prevPriceMap[p.item_id] = p; // first = most recent
+        if (!prevPriceMap[p.item_id]) prevPriceMap[p.item_id] = p;
+      });
+
+      // Fetch previous pool prices for anomaly detection
+      const { data: prevPoolPrices } = await supabase
+        .from("daily_pool_prices")
+        .select("pool_id, unit_price_buy, unit_price_sell, totals_date")
+        .eq("tenant_id", tenantId)
+        .lt("totals_date", today)
+        .order("totals_date", { ascending: false })
+        .limit(20);
+      const prevPoolPriceMap: Record<string, { buy: number; sell: number; date: string }> = {};
+      (prevPoolPrices || []).forEach((p: any) => {
+        if (!prevPoolPriceMap[p.pool_id]) {
+          prevPoolPriceMap[p.pool_id] = { buy: Number(p.unit_price_buy), sell: Number(p.unit_price_sell), date: p.totals_date };
+        }
       });
 
       // ── 2) Calculate and save stock prices ──
       const stockRecords: any[] = [];
       let fallbackCount = 0;
+      const itemsMissingPrices: string[] = [];
+
       for (const item of items) {
         let costExclVat = 0;
         const code = item.api_code?.toUpperCase();
@@ -254,10 +366,17 @@ Deno.serve(async (req) => {
             buy_price_incl_vat: Number(prev.buy_price_incl_vat),
           });
           fallbackCount++;
+          alerts.push({
+            level: "warning",
+            message: `Item "${item.item_code}" used fallback price from previous day (API returned no data)`,
+          });
           continue;
         }
 
-        if (costExclVat <= 0) continue;
+        if (costExclVat <= 0) {
+          itemsMissingPrices.push(item.item_code);
+          continue;
+        }
 
         const vatRate = item.tax_type_id ? (taxMap[item.tax_type_id] ?? 0) : 0;
         const costInclVat = costExclVat * (1 + vatRate);
@@ -268,10 +387,17 @@ Deno.serve(async (req) => {
           tenant_id: tenantId,
           item_id: item.id,
           price_date: today,
-          cost_excl_vat: Math.round(costExclVat * 100) / 100,
-          cost_incl_vat: Math.round(costInclVat * 100) / 100,
-          buy_price_excl_vat: Math.round(buyPriceExclVat * 100) / 100,
-          buy_price_incl_vat: Math.round(buyPriceInclVat * 100) / 100,
+          cost_excl_vat: round2(costExclVat),
+          cost_incl_vat: round2(costInclVat),
+          buy_price_excl_vat: round2(buyPriceExclVat),
+          buy_price_incl_vat: round2(buyPriceInclVat),
+        });
+      }
+
+      if (itemsMissingPrices.length > 0) {
+        alerts.push({
+          level: "error",
+          message: `Items with no price data and no fallback: ${itemsMissingPrices.join(", ")}`,
         });
       }
 
@@ -283,7 +409,11 @@ Deno.serve(async (req) => {
         // Delete existing stock prices for today
         await supabase.from("daily_stock_prices").delete().eq("tenant_id", tenantId).eq("price_date", today);
         const { error: stockErr } = await supabase.from("daily_stock_prices").insert(stockRecords);
-        if (stockErr) { console.error(`Stock price save error for ${tenantId}:`, stockErr); continue; }
+        if (stockErr) {
+          console.error(`Stock price save error for ${tenantId}:`, stockErr);
+          alerts.push({ level: "error", message: `Failed to save stock prices: ${stockErr.message}` });
+          continue;
+        }
         console.log(`Saved ${stockRecords.length} stock prices for tenant ${tenantId}`);
       }
 
@@ -360,33 +490,64 @@ Deno.serve(async (req) => {
         const unitPriceSell = isFixedPrice ? Number(pool.fixed_unit_price) : (totalUnits > 0 ? memberInterestSell / totalUnits : openPrice);
         const unitPriceBuy = isFixedPrice ? Number(pool.fixed_unit_price) : (totalUnits > 0 ? memberInterestBuy / totalUnits : openPrice);
 
+        // ── Anomaly detection ──
+        const prev = prevPoolPriceMap[pool.id];
+        if (prev && prev.buy > 0 && !isFixedPrice) {
+          const changePct = Math.abs((unitPriceBuy - prev.buy) / prev.buy) * 100;
+          if (changePct > 25) {
+            alerts.push({
+              level: "warning",
+              message: `Pool "${pool.name}" unit price changed ${changePct.toFixed(1)}% (${round4(prev.buy)} → ${round4(unitPriceBuy)}) — verify if this is correct`,
+            });
+          }
+          if (unitPriceBuy < 0.05 && prev.buy >= 0.05) {
+            alerts.push({
+              level: "error",
+              message: `Pool "${pool.name}" unit price dropped to ${round4(unitPriceBuy)} from ${round4(prev.buy)} — possible data issue`,
+            });
+          }
+        }
+
         poolRecords.push({
           tenant_id: tenantId,
           pool_id: pool.id,
           totals_date: today,
-          total_stock: Math.round(totalStock * 100) / 100,
-          total_units: Math.round(totalUnits * 100) / 100,
-          cash_control: Math.round(cashControl * 100) / 100,
-          vat_control: Math.round(vatControl * 100) / 100,
-          loan_control: Math.round(loanControl * 100) / 100,
-          member_interest_sell: Math.round(memberInterestSell * 100) / 100,
-          member_interest_buy: Math.round(memberInterestBuy * 100) / 100,
-          unit_price_sell: Math.round(unitPriceSell * 100) / 100,
-          unit_price_buy: Math.round(unitPriceBuy * 100) / 100,
+          total_stock: round2(totalStock),
+          total_units: totalUnits, // Keep full precision for units
+          cash_control: round2(cashControl),
+          vat_control: round2(vatControl),
+          loan_control: round2(loanControl),
+          member_interest_sell: round2(memberInterestSell),
+          member_interest_buy: round2(memberInterestBuy),
+          unit_price_sell: round4(unitPriceSell),
+          unit_price_buy: round4(unitPriceBuy),
         });
       }
 
       if (poolRecords.length > 0) {
         await supabase.from("daily_pool_prices").delete().eq("tenant_id", tenantId).eq("totals_date", today);
         const { error: poolErr } = await supabase.from("daily_pool_prices").insert(poolRecords);
-        if (poolErr) { console.error(`Pool price save error for ${tenantId}:`, poolErr); }
-        else { console.log(`Saved ${poolRecords.length} pool prices for tenant ${tenantId}`); }
+        if (poolErr) {
+          console.error(`Pool price save error for ${tenantId}:`, poolErr);
+          alerts.push({ level: "error", message: `Failed to save pool prices: ${poolErr.message}` });
+        } else {
+          console.log(`Saved ${poolRecords.length} pool prices for tenant ${tenantId}`);
+        }
       }
+
+      // ── 4) Notify admins if there were any issues ──
+      await notifyAdmins(supabase, tenantId, alerts, {
+        stockSaved: stockRecords.length,
+        poolSaved: poolRecords.length,
+        fallbacks: fallbackCount,
+        apiFailures,
+      });
 
       results[tenantId] = {
         stockPricesSaved: stockRecords.length,
         poolPricesSaved: poolRecords.length,
         apiPrices: rawApiPrices,
+        alerts: alerts.length > 0 ? alerts : undefined,
       };
     }
 
