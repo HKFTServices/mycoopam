@@ -375,12 +375,16 @@ const AccountApprovals = () => {
 
       await postWithdrawalApproval(group, currentTenant.id, currentUser.id, true, popFilePath, popFileName);
     },
-    onSuccess: () => {
+    onSuccess: (_, { group }) => {
       toast.success("Payout confirmed — all ledger entries posted");
+      const allIds = [group.primary.id, ...group.siblings.map((s: any) => s.id)];
+      if (currentTenant) clearGroupNotifications(currentTenant.id, allIds);
       queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       queryClient.invalidateQueries({ queryKey: ["member_pool_holdings"] });
       queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewWithdrawalGroup(null);
     },
     onError: (err: any) => toast.error(err.message || "Failed to confirm payout"),
