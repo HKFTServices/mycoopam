@@ -762,6 +762,22 @@ const AccountApprovals = () => {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
+      // Fetch child entries to find contra GL accounts
+      const parentIds = (data || []).map((e: any) => e.id);
+      let childrenMap: Record<string, any[]> = {};
+      if (parentIds.length > 0) {
+        const { data: children } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("parent_id, gl_account_id, gl_accounts(name, code, gl_type)")
+          .in("parent_id", parentIds)
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true);
+        for (const c of (children || [])) {
+          if (!childrenMap[c.parent_id]) childrenMap[c.parent_id] = [];
+          childrenMap[c.parent_id].push(c);
+        }
+      }
+
       // Fetch submitter profiles separately (no FK from posted_by to profiles)
       const posterIds = [...new Set((data || []).map((e: any) => e.posted_by).filter(Boolean))];
       let profilesMap: Record<string, any> = {};
@@ -774,8 +790,21 @@ const AccountApprovals = () => {
           profilesMap[p.user_id] = p;
         }
       }
-      return (data || []).map((e: any) => ({ ...e, profiles: profilesMap[e.posted_by] || null }));
-      return data ?? [];
+      return (data || []).map((e: any) => {
+        // Find contra GL accounts from children (GL accounts different from parent)
+        const children = childrenMap[e.id] || [];
+        const contraGls = children
+          .filter((c: any) => c.gl_account_id && c.gl_account_id !== e.gl_account_id && c.gl_accounts)
+          .map((c: any) => c.gl_accounts);
+        // Deduplicate
+        const seen = new Set<string>();
+        const uniqueContraGls = contraGls.filter((g: any) => {
+          if (seen.has(g.code)) return false;
+          seen.add(g.code);
+          return true;
+        });
+        return { ...e, profiles: profilesMap[e.posted_by] || null, contraGls: uniqueContraGls };
+      });
     },
     enabled: !!currentTenant,
   });
