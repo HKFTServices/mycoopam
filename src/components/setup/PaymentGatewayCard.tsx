@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, CreditCard, Shield, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import PaymentMethodsSection from "./PaymentMethodsSection";
 
 const GATEWAYS = [
   { value: "stripe", label: "Stripe" },
@@ -139,6 +140,9 @@ const PaymentGatewayCard = () => {
 
   return (
     <div className="space-y-4">
+      {/* Payment Methods Configuration */}
+      <PaymentMethodsSection />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
