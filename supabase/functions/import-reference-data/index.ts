@@ -536,8 +536,8 @@ Deno.serve(async (req) => {
           const { data: existing } = await adminClient.from("legacy_id_mappings").select("new_id")
             .eq("tenant_id", tenant_id).eq("table_name", table_name).eq("legacy_id", String(legacyId)).maybeSingle();
 
-          // For users, allow re-import to update status; for entities, update existing; for others, skip
-          if (existing && table_name !== "users" && table_name !== "entity_accounts" && table_name !== "entities") { results.skipped++; continue; }
+          // For users, allow re-import to update status; for entities, update existing; for entity_user_relationships, update relationship_type; for others, skip
+          if (existing && table_name !== "users" && table_name !== "entity_accounts" && table_name !== "entities" && table_name !== "entity_user_relationships") { results.skipped++; continue; }
 
           let newId: string | null = null;
 
