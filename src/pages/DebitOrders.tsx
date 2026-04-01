@@ -51,11 +51,13 @@ const DebitOrders = () => {
   const [adminSelectedEntity, setAdminSelectedEntity] = useState<any>(null);
 
   const { data: userRoles = [], isLoading: userRolesLoading } = useQuery({
-    queryKey: ["user_roles_do", user?.id],
+    queryKey: ["user_roles_do", user?.id, currentTenant?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-      return (data ?? []).map((r: any) => r.role as string);
+      const { data } = await supabase.from("user_roles").select("role, tenant_id").eq("user_id", user.id);
+      return (data ?? [])
+        .filter((r: any) => r.tenant_id === currentTenant?.id || r.tenant_id === null)
+        .map((r: any) => r.role as string);
     },
     enabled: !!user,
   });

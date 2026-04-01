@@ -123,22 +123,31 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
     let cancelled = false;
     const fetchTenants = async () => {
-      const { data } = await supabase.from("tenants").select("*");
-      let list = data ?? [];
+      // Only fetch tenants where the user has an active membership
+      const { data: memberships } = await (supabase as any)
+        .from("tenant_memberships")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+      
+      const memberTenantIds = (memberships ?? []).map((m: any) => m.tenant_id);
 
-      // Fallback for new users who have no tenant membership yet
-      if (list.length === 0) {
-        const { data: brandingData } = await supabase.rpc("get_tenant_branding" as any);
-        if (brandingData && (brandingData as any[]).length > 0) {
-          const fallbackTenants = (brandingData as any[]).map((b: any) => ({
-            id: b.tenant_id,
-            name: b.tenant_name,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })) as Tenant[];
-          list = fallbackTenants;
-        }
+      // Also check for super_admin — they can see all tenants
+      const { data: superCheck } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("role", "super_admin" as any)
+        .limit(1);
+      const isSuperAdmin = (superCheck ?? []).length > 0;
+
+      let list: Tenant[] = [];
+      if (isSuperAdmin) {
+        const { data } = await supabase.from("tenants").select("*").eq("is_active", true);
+        list = data ?? [];
+      } else if (memberTenantIds.length > 0) {
+        const { data } = await supabase.from("tenants").select("*").in("id", memberTenantIds);
+        list = data ?? [];
       }
 
       setTenants(list);

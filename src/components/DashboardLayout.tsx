@@ -330,21 +330,33 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Check current user roles
-  const { data: userRoles = [], isLoading: userRolesLoading } = useQuery({
+  // Fetch roles WITH tenant_id so we can scope permissions to the current tenant
+  const { data: userRolesRaw = [], isLoading: userRolesLoading } = useQuery({
     queryKey: ["user_roles_nav", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-      return (roles ?? []).map((r: any) => r.role as string);
+      const { data: roles } = await supabase.from("user_roles").select("role, tenant_id").eq("user_id", user.id);
+      return (roles ?? []) as { role: string; tenant_id: string | null }[];
     },
     enabled: !!user,
   });
 
-  const isSuperAdmin = userRoles.includes("super_admin");
-  const isTenantAdmin = userRoles.includes("tenant_admin");
+  // Derive tenant-scoped role flags
+  const isSuperAdmin = userRolesRaw.some((r) => r.role === "super_admin" && r.tenant_id === null);
+  const isTenantAdmin = userRolesRaw.some(
+    (r) => r.role === "tenant_admin" && (r.tenant_id === currentTenant?.id || r.tenant_id === null),
+  );
   const isAdmin = isSuperAdmin || isTenantAdmin;
-  const isClerkOrManager = userRoles.some((r: string) => ["clerk", "manager"].includes(r));
-  const isReferrerOrHouse = userRoles.some((r: string) => ["referrer", "referral_house"].includes(r));
+  const isClerkOrManager = userRolesRaw.some(
+    (r) => ["clerk", "manager"].includes(r.role) && (r.tenant_id === currentTenant?.id || r.tenant_id === null),
+  );
+  const isReferrerOrHouse = userRolesRaw.some(
+    (r) => ["referrer", "referral_house"].includes(r.role) && (r.tenant_id === currentTenant?.id || r.tenant_id === null),
+  );
+  // Flat list of roles for this tenant (for backward compat with has_permission checks)
+  const userRoles = userRolesRaw
+    .filter((r) => r.tenant_id === currentTenant?.id || r.tenant_id === null)
+    .map((r) => r.role);
 
   // Check if user has any approved entity account (i.e. successful membership)
   const { data: hasApprovedAccount = false, isLoading: hasApprovedAccountLoading } = useQuery({
