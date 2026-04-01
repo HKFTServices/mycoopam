@@ -146,8 +146,11 @@ export default function Statements() {
     queryFn: async () => {
       if (!user) return false;
       const { data: roles } = await (supabase as any)
-        .from("user_roles").select("role").eq("user_id", user.id);
-      return (roles ?? []).some((r: any) => r.role === "super_admin" || r.role === "tenant_admin");
+        .from("user_roles").select("role, tenant_id").eq("user_id", user.id);
+      return (roles ?? []).some((r: any) =>
+        (r.role === "super_admin" && r.tenant_id === null) ||
+        (r.role === "tenant_admin" && (r.tenant_id === tenantId || r.tenant_id === null))
+      );
     },
     enabled: !!user,
   });
