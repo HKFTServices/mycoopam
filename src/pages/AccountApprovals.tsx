@@ -753,13 +753,27 @@ const AccountApprovals = () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("cashflow_transactions")
-        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type), profiles:posted_by(first_name, last_name, email)")
+        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type)")
         .eq("tenant_id", currentTenant.id)
         .eq("is_active", true)
         .eq("status", "pending_approval")
         .is("parent_id", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
+
+      // Fetch submitter profiles separately (no FK from posted_by to profiles)
+      const posterIds = [...new Set((data || []).map((e: any) => e.posted_by).filter(Boolean))];
+      let profilesMap: Record<string, any> = {};
+      if (posterIds.length > 0) {
+        const { data: profiles } = await (supabase as any)
+          .from("profiles")
+          .select("user_id, first_name, last_name, email")
+          .in("user_id", posterIds);
+        for (const p of (profiles || [])) {
+          profilesMap[p.user_id] = p;
+        }
+      }
+      return (data || []).map((e: any) => ({ ...e, profiles: profilesMap[e.posted_by] || null }));
       return data ?? [];
     },
     enabled: !!currentTenant,
