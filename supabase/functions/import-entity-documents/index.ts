@@ -100,8 +100,9 @@ Deno.serve(async (req) => {
       }
       const entityId = entityMapping.new_id;
 
-      // Resolve document type (optional)
+      // Resolve document type (optional) - try legacy mapping first, then name-based match
       const legacyDocTypeId = document.legacy_document_type_id || document.DocumentTypeId;
+      const legacyDocTypeName = document.document_type_name || document.DocumentTypeName || "";
       let documentTypeId = null;
       if (legacyDocTypeId) {
         const { data: docTypeMapping } = await adminClient
@@ -112,6 +113,46 @@ Deno.serve(async (req) => {
           .eq("legacy_id", String(legacyDocTypeId))
           .maybeSingle();
         documentTypeId = docTypeMapping?.new_id || null;
+      }
+      // Fallback: match by document type name
+      if (!documentTypeId && legacyDocTypeName) {
+        const { data: docTypeByName } = await adminClient
+          .from("document_types")
+          .select("id")
+          .eq("tenant_id", tenant_id)
+          .ilike("name", legacyDocTypeName.trim())
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle();
+        documentTypeId = docTypeByName?.id || null;
+      }
+      // Fallback: try to infer from filename
+      if (!documentTypeId) {
+        const fn = (document.file_name || document.FileName || "").toLowerCase();
+        const namePatterns: [RegExp, string][] = [
+          [/\bid[\s_-]?(card|document|book|copy)?\b|identity/i, "ID Passport"],
+          [/passport/i, "ID Passport"],
+          [/proof[\s_-]?of[\s_-]?address|poa\b|utility[\s_-]?bill|municipal/i, "Proof of Address"],
+          [/proof[\s_-]?of[\s_-]?bank|bank[\s_-]?confirm|account[\s_-]?confirm/i, "Proof of Bank"],
+          [/power[\s_-]?of[\s_-]?attorney|poa[\s_-]?/i, "Power of Attorney"],
+          [/trust[\s_-]?deed/i, "Trust deed"],
+          [/resolution[\s_-]?trust/i, "Resolution Trusts"],
+          [/resolution/i, "Resolution"],
+          [/affidavit/i, "Affidavit"],
+        ];
+        for (const [pattern, typeName] of namePatterns) {
+          if (pattern.test(fn)) {
+            const { data: matched } = await adminClient
+              .from("document_types")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .ilike("name", typeName)
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+            if (matched) { documentTypeId = matched.id; break; }
+          }
+        }
       }
 
       // Decode binary data
