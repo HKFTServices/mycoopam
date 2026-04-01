@@ -1740,6 +1740,7 @@ const AccountApprovals = () => {
                           <TableHead>Date</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>GL Account</TableHead>
+                          <TableHead>Contra GL</TableHead>
                           <TableHead>Control Account</TableHead>
                           <TableHead>Submitted By</TableHead>
                           <TableHead className="text-right">Debit (+)</TableHead>
