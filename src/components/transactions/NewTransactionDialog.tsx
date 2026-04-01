@@ -1220,9 +1220,9 @@ const NewTransactionDialog = ({
   const effectiveCourierFeeDeposit = activeCourierFee;
   const stockDepositFees = useMemo(
     () => isStockDeposit
-      ? calculateFees(selectedTxnTypeId, stockDepositTotalValue, "stock_deposit", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate)
+      ? calculateFees(selectedTxnTypeId, stockDepositTotalValue, "stock_deposit", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isStockDeposit, selectedTxnTypeId, stockDepositTotalValue, feeRules, isVatRegistered, vatRate]
+    [isStockDeposit, selectedTxnTypeId, stockDepositTotalValue, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   const stockDepositMembershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
   const stockDepositNetForPool = Math.max(0, stockDepositTotalValue - stockDepositMembershipDeductions - stockDepositFees.totalFee - effectiveCourierFeeDeposit);
