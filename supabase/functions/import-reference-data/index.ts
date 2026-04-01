@@ -809,11 +809,25 @@ Deno.serve(async (req) => {
               user_id: userId,
             };
 
-            results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_insert" : "insert", legacy_user_id: legacyUserId, mapped_fields: row });
-            if (!isDryRun) {
-              const { data: ins, error: insErr } = await adminClient.from("user_entity_relationships").insert(row).select("id").single();
-              if (insErr) { results.errors.push(`Relationship ${legacyId}: ${insErr.message}`); continue; }
-              newId = ins.id;
+            if (existing) {
+              // Re-import: update the relationship_type_id on the existing record
+              results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_update" : "update", legacy_user_id: legacyUserId, mapped_fields: { relationship_type_id: relTypeId } });
+              if (!isDryRun) {
+                const { error: updErr } = await adminClient.from("user_entity_relationships")
+                  .update({ relationship_type_id: relTypeId })
+                  .eq("id", existing.new_id);
+                if (updErr) { results.errors.push(`Relationship ${legacyId}: ${updErr.message}`); continue; }
+                newId = existing.new_id;
+              } else {
+                newId = existing.new_id;
+              }
+            } else {
+              results.simulation.push({ legacy_id: legacyId, action: isDryRun ? "will_insert" : "insert", legacy_user_id: legacyUserId, mapped_fields: row });
+              if (!isDryRun) {
+                const { data: ins, error: insErr } = await adminClient.from("user_entity_relationships").insert(row).select("id").single();
+                if (insErr) { results.errors.push(`Relationship ${legacyId}: ${insErr.message}`); continue; }
+                newId = ins.id;
+              }
             }
 
           } else if (table_name === "entity_addresses") {
