@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown, ChevronDown } from "lucide-react";
+import { Upload, CheckCircle2, FileText, Eye, X, AlertTriangle, Download, FileDown, ChevronDown, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Collapsible,
   CollapsibleContent,
@@ -116,7 +117,10 @@ function categorizeDocType(name: string): DocCategory {
 
 const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps) => {
   const [pendingFile, setPendingFile] = useState<{ docTypeId: string; file: File } | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
 
   // Build entity context for document generation
   const { user, profile } = useAuth();
@@ -274,11 +278,63 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
   };
 
   const handleViewDocument = async (filePath: string) => {
-    const { data: signedUrl } = await supabase.storage
-      .from("member-documents")
-      .createSignedUrl(filePath, 300);
-    if (signedUrl?.signedUrl) {
+    setActionLoading(filePath + "_view");
+    try {
+      const { data: signedUrl, error } = await supabase.storage
+        .from("member-documents")
+        .createSignedUrl(filePath, 300);
+      if (error || !signedUrl?.signedUrl) {
+        toast.error("Could not open document — the file may not be available in storage.");
+        return;
+      }
       window.open(signedUrl.signedUrl, "_blank");
+    } catch {
+      toast.error("Failed to open document");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDownloadDocument = async (filePath: string, fileName: string) => {
+    setActionLoading(filePath + "_download");
+    try {
+      const { data: blob, error } = await supabase.storage
+        .from("member-documents")
+        .download(filePath);
+      if (error || !blob) {
+        toast.error("Could not download — the file may not be available in storage.");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download document");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string, filePath: string) => {
+    try {
+      // Soft delete in DB
+      await (supabase as any)
+        .from("entity_documents")
+        .update({ is_deleted: true, is_active: false })
+        .eq("id", docId);
+      // Try to delete from storage (ignore errors for legacy files)
+      await supabase.storage.from("member-documents").remove([filePath]);
+      toast.success("Document deleted");
+      queryClient.invalidateQueries({ queryKey: ["entity_documents", tenantId, entityId] });
+    } catch {
+      toast.error("Failed to delete document");
+    } finally {
+      setDeletingDocId(null);
     }
   };
 
@@ -451,10 +507,39 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
             <FileText className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate flex-1">{doc.file_name}</span>
             {doc.file_size && <span className="shrink-0">{(doc.file_size / 1024).toFixed(0)} KB</span>}
-            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleViewDocument(doc.file_path)}>
-              <Eye className="h-3 w-3" />
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleViewDocument(doc.file_path)}
+              disabled={actionLoading === doc.file_path + "_view"}>
+              {actionLoading === doc.file_path + "_view" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleDownloadDocument(doc.file_path, doc.file_name)}
+              disabled={actionLoading === doc.file_path + "_download"}>
+              {actionLoading === doc.file_path + "_download" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-destructive hover:text-destructive"
+              onClick={() => setDeletingDocId(doc.id)}
+            >
+              <Trash2 className="h-3 w-3" />
             </Button>
           </div>
+        ))}
+        {/* Delete confirmation for this doc type's existing docs */}
+        {existing.filter((doc: any) => deletingDocId === doc.id).map((doc: any) => (
+          <AlertDialog key={`del-${doc.id}`} open={true} onOpenChange={() => setDeletingDocId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{doc.file_name}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => handleDeleteDocument(doc.id, doc.file_path)}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         ))}
       </div>
     );
@@ -514,10 +599,38 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
                     {doc.file_size ? ` · ${(doc.file_size / 1024).toFixed(0)} KB` : ""}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleViewDocument(doc.file_path)}>
-                  <Eye className="h-3.5 w-3.5 mr-1" /> View
+                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleViewDocument(doc.file_path)}
+                  disabled={actionLoading === doc.file_path + "_view"}>
+                  {actionLoading === doc.file_path + "_view" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleDownloadDocument(doc.file_path, doc.file_name)}
+                  disabled={actionLoading === doc.file_path + "_download"}>
+                  {actionLoading === doc.file_path + "_download" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                  onClick={() => setDeletingDocId(doc.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
+            ))}
+            {/* Delete confirmation for untyped docs */}
+            {untypedDocs.filter((doc: any) => deletingDocId === doc.id).map((doc: any) => (
+              <AlertDialog key={`del-${doc.id}`} open={true} onOpenChange={() => setDeletingDocId(null)}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete document?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{doc.file_name}"? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => handleDeleteDocument(doc.id, doc.file_path)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ))}
           </CardContent>
         </Card>
