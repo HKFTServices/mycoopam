@@ -39,6 +39,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const { currentTenant, branding } = useTenant();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
