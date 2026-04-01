@@ -497,11 +497,22 @@ Deno.serve(async (req) => {
       const batchId = import_batch || `import_${Date.now()}`;
 
       // Helper to resolve legacy FK
+      // Global reference tables that may have mappings under a different tenant
+      const GLOBAL_TABLES = new Set(["relationship_types", "entity_categories", "titles", "banks", "bank_account_types", "countries"]);
+
       async function resolveLegacy(tbl: string, legId: string | undefined | null): Promise<string | null> {
         if (!legId || String(legId).toUpperCase() === "NULL" || String(legId).trim() === "") return null;
         const { data } = await adminClient.from("legacy_id_mappings").select("new_id")
           .eq("tenant_id", tenant_id).eq("table_name", tbl).eq("legacy_id", String(legId)).maybeSingle();
-        return data?.new_id || null;
+        if (data?.new_id) return data.new_id;
+
+        // Fallback: for global tables, check across all tenants
+        if (GLOBAL_TABLES.has(tbl)) {
+          const { data: globalData } = await adminClient.from("legacy_id_mappings").select("new_id")
+            .eq("table_name", tbl).eq("legacy_id", String(legId)).limit(1).maybeSingle();
+          return globalData?.new_id || null;
+        }
+        return null;
       }
 
       const isNullish = (v: unknown) => v === undefined || v === null || String(v).toUpperCase() === "NULL" || String(v).trim() === "";

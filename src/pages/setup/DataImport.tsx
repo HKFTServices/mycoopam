@@ -637,6 +637,92 @@ ORDER BY ed.EntityId;`}
   );
 };
 
+const FixRelationshipTypesButton = ({ tenantId }: { tenantId?: string }) => {
+  const [fixing, setFixing] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const handleFix = async (dryRun: boolean) => {
+    if (!tenantId) return;
+    setFixing(true);
+    setResult(null);
+    try {
+      // Step 1: Fetch legacy entity_user_relationships
+      const { data: legacyResult, error: fetchErr } = await supabase.functions.invoke("fetch-legacy-data", {
+        body: { table_name: "entity_user_relationships" },
+      });
+      if (fetchErr) throw new Error(fetchErr.message);
+      if (!legacyResult?.records) throw new Error("No legacy data returned");
+
+      // Step 2: Call fix function with legacy data
+      const { data: fixResult, error: fixErr } = await supabase.functions.invoke("fix-relationship-types", {
+        body: {
+          tenant_id: tenantId,
+          dry_run: dryRun,
+          legacy_data: legacyResult.records,
+        },
+      });
+      if (fixErr) throw new Error(fixErr.message);
+      setResult(fixResult);
+      if (!dryRun && fixResult?.applied > 0) {
+        toast.success(`Updated ${fixResult.applied} relationship types`);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setFixing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => handleFix(true)} disabled={fixing || !tenantId}>
+          {fixing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Eye className="h-4 w-4 mr-1.5" />}
+          Preview Changes
+        </Button>
+        <Button size="sm" onClick={() => handleFix(false)} disabled={fixing || !tenantId}>
+          {fixing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Play className="h-4 w-4 mr-1.5" />}
+          Apply Fix
+        </Button>
+      </div>
+      {result && (
+        <div className="text-sm space-y-2">
+          <p className="text-muted-foreground">
+            Legacy records: {result.legacy_records_received} | Mapped to tenant: {result.mapped_to_tenant} | Updates needed: {result.updates_needed}
+            {!result.dry_run && <> | Applied: {result.applied}</>}
+          </p>
+          {result.updates_detail?.length > 0 && (
+            <div className="max-h-60 overflow-auto border rounded">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Legacy ID</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.updates_detail.map((u: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-mono text-xs">{u.legacy_id}</TableCell>
+                      <TableCell>{u.from}</TableCell>
+                      <TableCell className="font-medium">{u.to}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          {result.updates_needed === 0 && <p className="text-muted-foreground">All relationship types are already correct.</p>}
+          {result.errors?.length > 0 && (
+            <div className="text-destructive text-xs">{result.errors.join(", ")}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DataImport = () => {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -1388,6 +1474,18 @@ const DataImport = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Fix Relationship Types */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fix Relationship Types</CardTitle>
+          <CardDescription>Re-map entity-user relationship types from legacy source data. This fixes records that were imported as "Myself" but should be "Family member", "Director of Company", etc.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FixRelationshipTypesButton tenantId={currentTenant?.id} />
+        </CardContent>
+      </Card>
+
         </TabsContent>
       </Tabs>
     </div>
