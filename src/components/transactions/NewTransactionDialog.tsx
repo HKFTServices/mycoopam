@@ -108,6 +108,7 @@ const NewTransactionDialog = ({
   // Loan repayment state
   const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
   const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
+  const [noPoolAllocation, setNoPoolAllocation] = useState(false);
   // Debit order state
   const [doBankName, setDoBankName] = useState("");
   const [doBranchCode, setDoBranchCode] = useState("");
