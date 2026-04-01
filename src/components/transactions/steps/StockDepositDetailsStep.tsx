@@ -406,6 +406,44 @@ const StockDepositDetailsStep = ({
             </>
           )}
 
+          {/* Admin Fee Override — inline in breakdown */}
+          {isStaff && onAdminFeeOverridePctChange && (
+            <div className="flex items-center gap-2 py-1">
+              <Label className="text-xs font-bold flex items-center gap-1 whitespace-nowrap">
+                <AlertTriangle className="h-3 w-3 text-primary" />
+                Admin Fee %
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Default"
+                value={adminFeeOverridePct != null ? String(adminFeeOverridePct) : ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || v === null) {
+                    onAdminFeeOverridePctChange(null);
+                  } else {
+                    const n = parseFloat(v);
+                    if (!isNaN(n) && n >= 0 && n <= 100) onAdminFeeOverridePctChange(n);
+                  }
+                }}
+                className="w-20 h-7 text-xs font-bold"
+              />
+              <span className="text-[10px] text-muted-foreground">%</span>
+              {adminFeeOverridePct != null && (
+                <button
+                  type="button"
+                  onClick={() => onAdminFeeOverridePctChange(null)}
+                  className="text-[10px] text-primary underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          )}
+
           {feeBreakdown.map((b, i) => (
             <div key={i} className="flex justify-between text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
