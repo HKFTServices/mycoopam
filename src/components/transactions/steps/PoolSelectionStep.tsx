@@ -42,6 +42,10 @@ interface PoolSelectionStepProps {
   outstandingLoanInfo?: OutstandingLoanInfo | null;
   loanRepaymentOnly?: boolean;
   onLoanRepaymentOnlyChange?: (val: boolean) => void;
+  // No pool allocation
+  noPoolAllocation?: boolean;
+  isMembershipOnlyDeposit?: boolean;
+  onNoPoolAllocationChange?: (val: boolean) => void;
 }
 
 const POOL_COLORS = [
