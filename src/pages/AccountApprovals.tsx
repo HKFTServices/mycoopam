@@ -398,10 +398,13 @@ const AccountApprovals = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, { ids }) => {
       toast.success("Transaction declined");
+      if (currentTenant) clearGroupNotifications(currentTenant.id, ids);
       queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewTxnGroup(null);
       setReviewSwitchGroup(null);
       setReviewWithdrawalGroup(null);
