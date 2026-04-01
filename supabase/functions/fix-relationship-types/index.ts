@@ -29,6 +29,7 @@ function queryMssql(config: Record<string, unknown>, sql: string): Promise<Recor
         requestTimeout: 60000,
         connectTimeout: 30000,
         port,
+        instanceName: "",
       },
     };
 
