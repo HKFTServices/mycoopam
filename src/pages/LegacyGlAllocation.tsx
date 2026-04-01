@@ -1200,25 +1200,20 @@ const LegacyGlAllocation = () => {
       }
     }
 
-    // ── Stock Purchase / Stock Sale — Bank entry for total amount ──
-    // Sum all 1948 (purchase) or 1949 (sale) entries to get the total stock value,
-    // then add a balancing Bank GL entry.
-    if (isStockPurchase || isStockSale) {
-      const stockEntries = allEntries.filter(e =>
-        (isStockPurchase && e.entry_type_id === "1948") ||
-        (isStockSale && e.entry_type_id === "1949")
-      );
+    // ── Stock Purchase — Bank entry for total amount ──
+    // Stock Sale has NO GL entries (control accounts only), so no Bank GL line needed.
+    if (isStockPurchase) {
+      const stockEntries = allEntries.filter(e => e.entry_type_id === "1948");
       const stockTotal = stockEntries.reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
       if (stockTotal > 0) {
         proposed.push({
-          description: isStockPurchase ? "Bank Payment — Stock Purchase" : "Bank Receipt — Stock Sale",
-          debit: isStockPurchase ? 0 : stockTotal,
-          credit: isStockPurchase ? stockTotal : 0,
+          description: "Bank Payment — Stock Purchase",
+          debit: 0, credit: stockTotal,
           gl_account_id: tenantGlConfig?.bankGlId ?? null,
           gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
           control_account_id: null, control_account_label: "",
           pool_id: null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: isStockPurchase ? "bank_payment" : "bank_receipt",
+          transaction_date: txDate, entry_type: "bank_payment",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
