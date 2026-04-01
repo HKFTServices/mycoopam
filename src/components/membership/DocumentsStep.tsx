@@ -117,7 +117,10 @@ function categorizeDocType(name: string): DocCategory {
 
 const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps) => {
   const [pendingFile, setPendingFile] = useState<{ docTypeId: string; file: File } | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
 
   // Build entity context for document generation
   const { user, profile } = useAuth();
