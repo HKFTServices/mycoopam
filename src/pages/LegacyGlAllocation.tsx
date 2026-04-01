@@ -664,11 +664,13 @@ const LegacyGlAllocation = () => {
             });
             continue;
           }
+          // Transaction 310: reduce membership fee + admin cash by R50
+          const adj = String(rootCftId) === "310" ? 50 : 0;
           // CR the GL account for the split amount
           proposed.push({
             description: split.description,
             debit: 0,
-            credit: split.amount,
+            credit: Math.max(split.amount - adj, 0),
             gl_account_id: split.gl_account_id,
             gl_account_label: glLabel,
             control_account_id: null, control_account_label: "",
@@ -677,12 +679,12 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
           // DR Admin Cash Control for the admin fee portion
-          if (split.gl_code !== "3000" && split.amount > 0) {
+          if (split.gl_code !== "3000" && (split.amount - adj) > 0) {
             const adminCa = controlAccounts?.find(c => c.account_type === "cash" && c.name?.toLowerCase().includes("admin"));
             if (adminCa) {
               proposed.push({
                 description: `Admin Fee — Membership Fee`,
-                debit: split.amount,
+                debit: Math.max(split.amount - adj, 0),
                 credit: 0,
                 gl_account_id: null, gl_account_label: "",
                 control_account_id: adminCa.new_id, control_account_label: adminCa.name ?? "Admin Cash",
