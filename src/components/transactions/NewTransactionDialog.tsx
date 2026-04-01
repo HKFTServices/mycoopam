@@ -108,6 +108,7 @@ const NewTransactionDialog = ({
   // Loan repayment state
   const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
   const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
+  const [noPoolAllocation, setNoPoolAllocation] = useState(false);
   // Debit order state
   const [doBankName, setDoBankName] = useState("");
   const [doBranchCode, setDoBranchCode] = useState("");
@@ -149,6 +150,7 @@ const NewTransactionDialog = ({
       setWithdrawalPoolInputs({});
       setLoanRepaymentOnly(false);
       setLoanRepaymentAmount("__reset__");
+      setNoPoolAllocation(false);
       // Reset debit order state
       setDoBankName("");
       setDoBranchCode("");
@@ -999,11 +1001,15 @@ const NewTransactionDialog = ({
     : 0;
   const amountAfterMembership = Math.max(0, amountNum - effectiveLoanRepayment - membershipDeductions);
 
+  // Detect "membership only" deposit: entire amount consumed by join share + membership fee
+  const isMembershipOnlyDeposit = isDeposit && joinShareInfo.needed && amountNum > 0 && amountAfterMembership <= 0;
+
+  // Suppress admin fees when deposit is fully consumed by membership deductions or no pool allocation chosen
   const depositFees = useMemo(
-    () => isDeposit
+    () => (isDeposit && !isMembershipOnlyDeposit && !noPoolAllocation)
       ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isDeposit, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate]
+    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate]
   );
 
   const feeCalculation = useMemo(
@@ -1011,7 +1017,7 @@ const NewTransactionDialog = ({
     [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate]
   );
 
-  const commissionBase = isDeposit && commissionPct > 0 ? amountAfterMembership * (commissionPct / 100) : 0;
+  const commissionBase = isDeposit && commissionPct > 0 && !isMembershipOnlyDeposit && !noPoolAllocation ? amountAfterMembership * (commissionPct / 100) : 0;
   const commissionVat = isVatRegistered && commissionBase > 0 ? commissionBase * (vatRate / 100) : 0;
   const commissionAmount = commissionBase + commissionVat;
   const depositTotalDeductions = effectiveLoanRepayment + membershipDeductions + depositFees.totalFee + commissionAmount;
@@ -1299,8 +1305,8 @@ const NewTransactionDialog = ({
         user_notes: notes || "",
       });
 
-      if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly)) {
-        if (loanRepaymentOnly) {
+      if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation)) {
+        if (loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation) {
           // Loan repayment only — single transaction row, no pool
           const { error } = await (supabase as any).from("transactions").insert({
             tenant_id: currentTenant.id,
@@ -1659,7 +1665,8 @@ const NewTransactionDialog = ({
   });
 
   // Validation — note step order is now: type → account → pool → details → review
-  const minimumDeposit = joinShareInfo.needed ? membershipDeductions + 1 : 1;
+  // Allow deposit of exactly the membership amount (no minimum "extra" required)
+  const minimumDeposit = joinShareInfo.needed ? membershipDeductions : 1;
   const selectedPoolHolding = allHoldings.find((h: any) => h.pool_id === selectedPoolId);
   const selectedPoolHasUnits = selectedPoolHolding ? Number(selectedPoolHolding.units) > 0 : false;
   const canProceedFromType = !!selectedTxnTypeId;
@@ -1668,7 +1675,7 @@ const NewTransactionDialog = ({
   const canProceedToDetails = isWithdrawal
     ? withdrawalPoolIds.length > 0
     : isDeposit
-    ? (loanRepaymentOnly && !!outstandingLoanInfo) || (poolSplits.length > 0 && totalSplitPct === 100)
+    ? (loanRepaymentOnly && !!outstandingLoanInfo) || isMembershipOnlyDeposit || noPoolAllocation || (poolSplits.length > 0 && totalSplitPct === 100)
     : isTransfer
       ? !!selectedPoolId && selectedPoolHasUnits
       : !!selectedPoolId;
@@ -1776,7 +1783,13 @@ const NewTransactionDialog = ({
     }
 
     if (isDeposit) {
-      if (!loanRepaymentOnly && poolSplits.length === 0) {
+      // If membership-only deposit, auto-advance (no pool needed)
+      if (isMembershipOnlyDeposit) {
+        setNoPoolAllocation(true);
+        setStep("details");
+        return;
+      }
+      if (!loanRepaymentOnly && !noPoolAllocation && poolSplits.length === 0) {
         setPoolSplits([{ poolId: onlyPoolId, percentage: 100 }]);
       }
       setSelectedPoolId(onlyPoolId);
@@ -1793,6 +1806,8 @@ const NewTransactionDialog = ({
     pools,
     isWithdrawal,
     isDeposit,
+    isMembershipOnlyDeposit,
+    noPoolAllocation,
     loanRepaymentOnly,
     poolSplits,
     selectedPoolId,
@@ -1884,15 +1899,23 @@ const NewTransactionDialog = ({
               loanRepaymentOnly={loanRepaymentOnly}
               onLoanRepaymentOnlyChange={(val) => {
                 setLoanRepaymentOnly(val);
+                setNoPoolAllocation(false);
                 if (val) {
                   setPoolSplits([]);
-                  // Auto-fill gross deposit with loan repayment amount
                   const repayment = parseFloat(loanRepaymentAmount) || 0;
                   if (repayment > 0) {
                     setAmount(String(repayment));
                   }
-                  // If user chooses loan-only, move forward immediately
                   if (outstandingLoanInfo) setStep("details");
+                }
+              }}
+              noPoolAllocation={noPoolAllocation}
+              isMembershipOnlyDeposit={isMembershipOnlyDeposit}
+              onNoPoolAllocationChange={(val) => {
+                setNoPoolAllocation(val);
+                if (val) {
+                  setPoolSplits([]);
+                  setLoanRepaymentOnly(false);
                 }
               }}
             />

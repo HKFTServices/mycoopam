@@ -42,6 +42,10 @@ interface PoolSelectionStepProps {
   outstandingLoanInfo?: OutstandingLoanInfo | null;
   loanRepaymentOnly?: boolean;
   onLoanRepaymentOnlyChange?: (val: boolean) => void;
+  // No pool allocation
+  noPoolAllocation?: boolean;
+  isMembershipOnlyDeposit?: boolean;
+  onNoPoolAllocationChange?: (val: boolean) => void;
 }
 
 const POOL_COLORS = [
@@ -57,6 +61,7 @@ const PoolSelectionStep = ({
   onTogglePool, onUpdateSplitPct, onSelectPool, formatCurrency, getUnitPrice, accountHoldings = [],
   selectedWithdrawalPoolIds = [], onToggleWithdrawalPool,
   outstandingLoanInfo, loanRepaymentOnly = false, onLoanRepaymentOnlyChange,
+  noPoolAllocation = false, isMembershipOnlyDeposit = false, onNoPoolAllocationChange,
 }: PoolSelectionStepProps) => {
 
   // ── Withdrawal: simple multi-select (no percentages) ─────────────────────
@@ -134,6 +139,27 @@ const PoolSelectionStep = ({
 
   // ── Deposit: multi-select with percentage allocation ──────────────────────
   if (isDeposit) {
+    // If membership-only deposit, show info and skip pool selection entirely
+    if (isMembershipOnlyDeposit) {
+      return (
+        <div className="space-y-4">
+          <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/15">
+                <CheckCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">Membership Activation Deposit</p>
+                <p className="text-xs text-muted-foreground">
+                  Your deposit will be fully applied to the join share and membership fee. No pool allocation is needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         {/* Outstanding Loan Info */}
@@ -176,7 +202,36 @@ const PoolSelectionStep = ({
           </>
         )}
 
+        {/* No Pool Allocation option */}
         {!loanRepaymentOnly && (
+          <div
+            className={`rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer ${
+              noPoolAllocation
+                ? "border-muted-foreground/60 bg-muted/30 shadow-sm ring-2 ring-muted-foreground/20"
+                : "border-border hover:border-muted-foreground/40 hover:bg-muted/10"
+            }`}
+            onClick={() => onNoPoolAllocationChange?.(!noPoolAllocation)}
+          >
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={noPoolAllocation}
+                onCheckedChange={(checked) => onNoPoolAllocationChange?.(!!checked)}
+                className="h-5 w-5"
+              />
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-muted">
+                <AlertCircle className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">No Pool Allocation</p>
+                <p className="text-xs text-muted-foreground">
+                  Skip pool allocation — deposit covers membership fees only.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loanRepaymentOnly && !noPoolAllocation && (
         <>
         {outstandingLoanInfo && outstandingLoanInfo.outstanding > 0 && (
           <div className="flex items-center justify-center my-2">
@@ -283,6 +338,13 @@ const PoolSelectionStep = ({
           <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border-2 bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400">
             <CheckCircle className="h-4 w-4" />
             Full deposit will be applied to loan repayment
+          </div>
+        )}
+
+        {noPoolAllocation && !loanRepaymentOnly && (
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border-2 bg-muted/30 border-muted-foreground/30 text-muted-foreground">
+            <CheckCircle className="h-4 w-4" />
+            No pool allocation — deposit covers membership fees only
           </div>
         )}
       </div>
