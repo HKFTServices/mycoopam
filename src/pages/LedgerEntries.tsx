@@ -152,8 +152,6 @@ const LedgerEntries = () => {
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
   const [monthEndOpen, setMonthEndOpen] = useState(false);
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
-  const [reviewEntry, setReviewEntry] = useState<any | null>(null);
-  const [declineReason, setDeclineReason] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
 
@@ -204,24 +202,8 @@ const LedgerEntries = () => {
     enabled: !!currentTenant,
   });
 
-  // Pending approval entries
-  const { data: pendingEntries = [], isLoading: pendingLoading } = useQuery({
-    queryKey: ["cft_pending_entries", currentTenant?.id],
-    queryFn: async () => {
-      if (!currentTenant) return [];
-      const { data, error } = await (supabase as any)
-        .from("cashflow_transactions")
-        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type), profiles:posted_by(first_name, last_name, email)")
-        .eq("tenant_id", currentTenant.id)
-        .eq("is_active", true)
-        .eq("status", "pending_approval")
-        .is("parent_id", null)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!currentTenant,
-  });
+
+
 
   const { data: pendingCommissions = [], isLoading: commLoading } = useQuery({
     queryKey: ["pending_commissions", currentTenant?.id],
@@ -327,35 +309,9 @@ const LedgerEntries = () => {
     enabled: !!user && !!currentTenant,
   });
 
-  const { data: canPostLedger = false, isLoading: ledgerPermissionLoading } = useQuery({
-    queryKey: ["ledger_post_permission", user?.id, currentTenant?.id],
-    queryFn: async () => {
-      if (!user || !currentTenant) return false;
-
-      const roleNames = (userRoles ?? []).map((r: any) => r.role);
-      if (roleNames.includes("super_admin")) return true;
-
-      const { data: allowedPerms } = await (supabase as any)
-        .from("permissions")
-        .select("role")
-        .eq("tenant_id", currentTenant.id)
-        .eq("resource", "ledger")
-        .eq("action", "post")
-        .eq("is_allowed", true);
-
-      return (allowedPerms ?? []).some((perm: any) => roleNames.includes(perm.role));
-    },
-    enabled: !!user && !!currentTenant && !rolesLoading,
-  });
-
   const isAdmin = userRoles.some((r: any) =>
     r.role === "super_admin" || (r.role === "tenant_admin" && (!r.tenant_id || r.tenant_id === currentTenant?.id))
   );
-  const isApprover = userRoles.some((r: any) =>
-    ["super_admin", "tenant_admin", "manager"].includes(r.role) &&
-    (!r.tenant_id || r.tenant_id === currentTenant?.id || r.role === "super_admin")
-  );
-  const canReviewApprovals = !rolesLoading && !ledgerPermissionLoading && (isApprover || canPostLedger);
 
   // ── Build ledger preview lines ──
   const buildBankPreview = (form: typeof bankForm) => {
@@ -672,45 +628,8 @@ const LedgerEntries = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Approve mutation
-  const approveMutation = useMutation({
-    mutationFn: async (entryId: string) => {
-      if (!user || !currentTenant) throw new Error("Missing context");
-      // Update parent and all children to posted
-      await (supabase as any).from("cashflow_transactions")
-        .update({ status: "posted", approved_by: user.id, approved_at: new Date().toISOString() })
-        .eq("id", entryId).eq("tenant_id", currentTenant.id);
-      await (supabase as any).from("cashflow_transactions")
-        .update({ status: "posted", approved_by: user.id, approved_at: new Date().toISOString() })
-        .eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
-      queryClient.invalidateQueries({ queryKey: ["cft_bank_entries"] });
-      queryClient.invalidateQueries({ queryKey: ["cft_journal_entries"] });
-      queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
-      setReviewEntry(null);
-      toast.success("Entry approved and posted to ledger");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  // Decline mutation
-  const declineMutation = useMutation({
-    mutationFn: async ({ entryId, reason }: { entryId: string; reason: string }) => {
-      if (!user || !currentTenant) throw new Error("Missing context");
-      const update = { status: "declined", declined_by: user.id, declined_at: new Date().toISOString(), declined_reason: reason };
-      await (supabase as any).from("cashflow_transactions").update(update).eq("id", entryId).eq("tenant_id", currentTenant.id);
-      await (supabase as any).from("cashflow_transactions").update(update).eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
-      setReviewEntry(null);
-      setDeclineReason("");
-      toast.success("Entry declined");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const deleteEntryMutation = useMutation({
     mutationFn: async ({ id, type }: { id: string; type: "bank" | "journal" }) => {
@@ -827,11 +746,8 @@ const LedgerEntries = () => {
   const canPostBank = bankForm.gl_account_id && bankForm.control_account_id && bankForm.amount > 0;
   const canPostJournal = journalForm.gl_account_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
 
-  const getSubmitterName = (entry: any) => {
-    const p = entry.profiles;
-    if (!p) return "Unknown";
-    return `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email || "Unknown";
-  };
+
+
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
@@ -850,14 +766,7 @@ const LedgerEntries = () => {
           <TabsList className="min-w-max whitespace-nowrap justify-start">
             <TabsTrigger value="bank">Bank Entries ({bankEntries.length})</TabsTrigger>
             <TabsTrigger value="journal">Journal Entries ({journalEntries.length})</TabsTrigger>
-            {canReviewApprovals && (
-              <TabsTrigger value="approvals">
-                Pending Approval
-                {pendingEntries.length > 0 && (
-                  <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingEntries.length}</Badge>
-                )}
-              </TabsTrigger>
-            )}
+            
             <TabsTrigger value="commissions">
               Pay Commissions
               {pendingCommissions.length > 0 && (
@@ -1181,147 +1090,8 @@ const LedgerEntries = () => {
           </Card>
         </TabsContent>
 
-        {/* ── Pending Approvals ── */}
-        {canReviewApprovals && (
-          <TabsContent value="approvals" className="space-y-3">
-            {pendingLoading ? (
-              <Card><CardContent className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></CardContent></Card>
-            ) : pendingEntries.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground">
-                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-primary/40" />
-                No entries pending approval
-              </CardContent></Card>
-            ) : (
-              <Card className="overflow-hidden">
-                <CardContent className="p-3 sm:p-0">
-                  <div className="sm:hidden">
-                    <Accordion type="single" collapsible className="space-y-2">
-                      {pendingEntries.map((entry: any) => {
-                        const amount = Number(entry.debit || entry.credit || 0);
-                        return (
-                          <AccordionItem
-                            key={entry.id}
-                            value={entry.id}
-                            className="border-b-0 rounded-2xl border border-border bg-card/60 px-3"
-                          >
-                            <AccordionTrigger className="py-3 hover:no-underline items-start">
-                              <div className="flex items-start justify-between gap-3 w-full min-w-0">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                    <Badge variant="outline" className="text-[10px] h-5">
-                                      {entry.is_bank ? "Bank" : "Journal"}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground whitespace-nowrap">{entry.transaction_date}</span>
-                                    {entry.reference ? (
-                                      <span className="text-xs text-muted-foreground truncate max-w-[55vw]">• {entry.reference}</span>
-                                    ) : null}
-                                  </div>
-                                  <p className="mt-1 text-sm font-medium break-words">
-                                    <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
-                                    {entry.gl_accounts?.name || entry.description || "—"}
-                                  </p>
-                                </div>
-                                <div className="text-right max-w-[45%] break-words">
-                                  <p className="text-[10px] text-muted-foreground">Amount</p>
-                                  <p className="font-mono font-semibold break-all">
-                                    {amount > 0 ? formatCurrency(amount) : "—"}
-                                  </p>
-                                </div>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="pb-3">
-                              <div className="space-y-3">
-                                <div className="text-xs text-muted-foreground space-y-1">
-                                  <p className="break-words">
-                                    Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span>
-                                  </p>
-                                  <p className="break-words">
-                                    Submitted by: <span className="text-foreground/90">{getSubmitterName(entry)}</span>
-                                  </p>
-                                </div>
 
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    className="flex-1 h-9"
-                                    onClick={() => approveMutation.mutate(entry.id)}
-                                    disabled={approveMutation.isPending}
-                                  >
-                                    <Check className="h-4 w-4 mr-1" /> Approve
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-9"
-                                    onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      })}
-                    </Accordion>
-                  </div>
 
-                  <div className="hidden sm:block">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>GL Account</TableHead>
-                          <TableHead>Control Account</TableHead>
-                          <TableHead>Submitted By</TableHead>
-                          <TableHead className="text-right">Debit (+)</TableHead>
-                          <TableHead className="text-right">Credit (−)</TableHead>
-                          <TableHead>Reference</TableHead>
-                          <TableHead className="w-28" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingEntries.map((entry: any) => (
-                          <TableRow key={entry.id}>
-                            <TableCell className="text-sm">{entry.transaction_date}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[10px]">
-                                {entry.is_bank ? "Bank" : "Journal"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
-                              {entry.gl_accounts?.name || entry.description || "—"}
-                            </TableCell>
-                            <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{getSubmitterName(entry)}</TableCell>
-                            <TableCell className="text-right text-sm font-medium">{entry.debit > 0 ? formatCurrency(entry.debit) : ""}</TableCell>
-                            <TableCell className="text-right text-sm font-medium">{entry.credit > 0 ? formatCurrency(entry.credit) : ""}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="default" className="h-7 px-2 text-xs"
-                                  onClick={() => approveMutation.mutate(entry.id)}
-                                  disabled={approveMutation.isPending}>
-                                  <Check className="h-3 w-3 mr-1" /> Approve
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                                  onClick={() => { setReviewEntry(entry); setDeclineReason(""); }}>
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        )}
 
         {/* ── Pay Commissions ── */}
         <TabsContent value="commissions" className="space-y-3">
@@ -1724,46 +1494,8 @@ const LedgerEntries = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Decline Dialog ── */}
-      <Dialog open={!!reviewEntry} onOpenChange={(o) => { if (!o) { setReviewEntry(null); setDeclineReason(""); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive"><X className="h-5 w-5" /> Decline Entry</DialogTitle>
-            <DialogDescription>
-              Provide a reason for declining this {reviewEntry?.is_bank ? "bank" : "journal"} entry.
-            </DialogDescription>
-          </DialogHeader>
-          {reviewEntry && (
-            <div className="space-y-4">
-              <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date</span>
-                  <span>{reviewEntry.transaction_date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">GL Account</span>
-                  <span className="font-mono text-xs">{reviewEntry.gl_accounts?.code} — {reviewEntry.gl_accounts?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="font-semibold">{formatCurrency(reviewEntry.debit || reviewEntry.credit)}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Reason for declining *</Label>
-                <Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} placeholder="Explain why this entry is being declined..." rows={3} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setReviewEntry(null); setDeclineReason(""); }}>Cancel</Button>
-            <Button variant="destructive" disabled={!declineReason.trim() || declineMutation.isPending}
-              onClick={() => reviewEntry && declineMutation.mutate({ entryId: reviewEntry.id, reason: declineReason })}>
-              {declineMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Declining…</> : "Decline Entry"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* ── Pay Commission Dialog ── */}
       <AlertDialog open={!!payCommDialog} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
