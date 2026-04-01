@@ -1806,6 +1806,8 @@ const NewTransactionDialog = ({
     pools,
     isWithdrawal,
     isDeposit,
+    isMembershipOnlyDeposit,
+    noPoolAllocation,
     loanRepaymentOnly,
     poolSplits,
     selectedPoolId,
