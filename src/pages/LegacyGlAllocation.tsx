@@ -647,22 +647,15 @@ const LegacyGlAllocation = () => {
       }
       // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
       else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
-        const splits = (mapping.split_rule as any).splits as any[];
-        // Use actual legacy amount instead of hardcoded split amounts
-        const legacyAmount = entry.debit > 0 ? entry.debit : entry.credit;
-        const shareAmount = splits.find((s: any) => s.gl_code === "3000")?.amount ?? 1;
-        const adminFeeAmount = Math.round((legacyAmount - shareAmount) * 100) / 100;
-
-        for (const split of splits) {
+        for (const split of (mapping.split_rule as any).splits) {
           // Skip the Share portion (gl_code 3000) — not mapped
           if (split.gl_code === "3000") continue;
-          const actualAmount = adminFeeAmount > 0 ? adminFeeAmount : split.amount;
           const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
           // CR the GL account for the split amount
           proposed.push({
-            description: `Membership Fee R${actualAmount}`,
+            description: split.description,
             debit: 0,
-            credit: actualAmount,
+            credit: split.amount,
             gl_account_id: split.gl_account_id,
             gl_account_label: glLabel,
             control_account_id: null, control_account_label: "",
@@ -670,13 +663,13 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "membership_fee",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // DR Admin Cash Control for the admin fee portion
-          if (split.gl_code !== "3000" && actualAmount > 0) {
+          // DR Admin Cash Control for the admin fee portion (R349)
+          if (split.gl_code !== "3000" && split.amount > 0) {
             const adminCa = controlAccounts?.find(c => c.account_type === "cash" && c.name?.toLowerCase().includes("admin"));
             if (adminCa) {
               proposed.push({
                 description: `Admin Fee — Membership Fee`,
-                debit: actualAmount,
+                debit: split.amount,
                 credit: 0,
                 gl_account_id: null, gl_account_label: "",
                 control_account_id: adminCa.new_id, control_account_label: adminCa.name ?? "Admin Cash",
