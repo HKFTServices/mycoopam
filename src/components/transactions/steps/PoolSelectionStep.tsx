@@ -394,7 +394,7 @@ const PoolSelectionStep = ({
                 <div className="flex items-start justify-between gap-2 min-w-0">
                   <p className="font-semibold text-sm truncate">{p.name}</p>
                   <Badge variant="outline" className="text-[10px] shrink-0 font-mono hidden sm:inline-flex">
-                    {formatCurrency(getUnitPrice ? getUnitPrice(p.id, "R", 5) : 0)}/u
+                    {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : 0)}/u
                   </Badge>
                 </div>
                 {(isTransfer || isSwitch) && accountHoldings.length > 0 ? (
@@ -409,7 +409,7 @@ const PoolSelectionStep = ({
                   p.description && <p className="text-xs text-muted-foreground break-words sm:truncate">{p.description}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
-                  {formatCurrency(getUnitPrice ? getUnitPrice(p.id, "R", 5) : 0)}/u
+                  {formatCurrency(getUnitPrice ? getUnitPrice(p.id) : 0)}/u
                 </p>
               </div>
             </button>

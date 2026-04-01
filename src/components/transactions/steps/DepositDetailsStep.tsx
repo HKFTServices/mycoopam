@@ -299,7 +299,7 @@ const DepositDetailsStep = ({
         )}
         {isWithdrawal && currentHolding > 0 && (
           <p className="text-xs text-muted-foreground">
-            Available: {currentHolding.toFixed(5)} units ({formatCurrency(currentHolding * currentUnitPrice, "R", 5)})
+            Available: {currentHolding.toFixed(5)} units ({formatCurrency(currentHolding * currentUnitPrice)})
           </p>
         )}
       </div>
