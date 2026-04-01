@@ -623,7 +623,7 @@ const LegacyGlAllocation = () => {
     const switchingPoolEntryTypes = new Set(["1955", "0"]);
 
     // Stock entry types (resolve via CashAccountID)
-    const stockPoolEntryTypes = new Set(["0", "1932", "1964", "1995", "2007", "2009"]);
+    const stockPoolEntryTypes = new Set(["0", "1931", "1932", "1954", "1964", "1995", "2006", "2007", "2009", "2011"]);
 
     for (const entry of allEntries) {
       const mapping = getGlMapping(entry.entry_type_id);
