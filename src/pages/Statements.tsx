@@ -358,7 +358,7 @@ export default function Statements() {
   const { data: tenantConfig } = useQuery({
     queryKey: ["tenant_config_currency", tenantId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("tenant_configuration").select("currency_symbol").eq("tenant_id", tenantId!).maybeSingle();
+      const { data } = await (supabase as any).from("tenant_configuration").select("currency_symbol, approval_cc_email").eq("tenant_id", tenantId!).maybeSingle();
       return data;
     },
     enabled: !!tenantId,
