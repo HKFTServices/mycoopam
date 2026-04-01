@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
+import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -227,6 +228,7 @@ const SidebarAutoCloseOnNavigate = () => {
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, signOut, user } = useAuth();
   const { tenants, currentTenant, setCurrentTenant, branding, loading: tenantLoading } = useTenant();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -467,7 +469,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const email = profile?.email || user?.email || "";
 
   const filteredMain = useMemo(() => filterItems(mainNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredTransactions = useMemo(() => filterItems(transactionsNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredTransactions = useMemo(() => {
+    const items = isDebitOrderEnabled ? transactionsNavItems : transactionsNavItems.filter(i => i.path !== "/dashboard/debit-orders");
+    return filterItems(items, normalizedQuery);
+  }, [normalizedQuery, isDebitOrderEnabled]);
   const filteredEntities = useMemo(() => filterItems(entitiesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredDailyPrices = useMemo(() => filterItems(dailyPricesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);

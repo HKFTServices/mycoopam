@@ -36,6 +36,7 @@ import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 import { getTierKey } from "@/lib/tierColors";
 import { getEntityActorKind, getRoleActorKind } from "@/lib/actorKinds";
+import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
 
 interface AdminDashboardProps {
   tenantId: string;
@@ -47,6 +48,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   const { currentTenant, branding } = useTenant();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
@@ -608,16 +610,20 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                   <Plus className="mr-2 h-4 w-4" />
                   New Loan Application
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={() => {
-                    if (memberPrimaryAccountLoading) return;
-                    openNewDebitOrder();
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Debit Order
-                </DropdownMenuItem>
+                {isDebitOrderEnabled && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        if (memberPrimaryAccountLoading) return;
+                        openNewDebitOrder();
+                      }}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Debit Order
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => adminTour.startTour()}>
                   <Sparkles className="mr-2 h-4 w-4" />

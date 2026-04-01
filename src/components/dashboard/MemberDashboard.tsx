@@ -29,6 +29,7 @@ import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDi
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import { memberDashboardTourSteps } from "@/components/onboarding/tourSteps";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
 
 interface MemberDashboardProps {
   tenantId: string;
@@ -38,6 +39,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const { currentTenant, branding } = useTenant();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
@@ -407,16 +409,20 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   <Plus className="mr-2 h-4 w-4" />
                   New Loan Application
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                  onSelect={() => {
-                    navigate("/debit-orders?new=1");
-                  }}
-                >
-                  <Landmark className="mr-2 h-4 w-4" />
-                  Debit Order
-                </DropdownMenuItem>
+                {isDebitOrderEnabled && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                      onSelect={() => {
+                        navigate("/debit-orders?new=1");
+                      }}
+                    >
+                      <Landmark className="mr-2 h-4 w-4" />
+                      Debit Order
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -446,18 +452,20 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   View Loan Transactions
                 </Link>
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
-                onClick={() => navigate("/debit-orders?new=1")}
-              >
-                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/10 ring-1 ring-violet-500/30 text-violet-700 dark:text-violet-400">
-                  <CreditCard className="h-3.5 w-3.5" />
-                </span>
-                Debit Orders
-              </Button>
+              {isDebitOrderEnabled && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                  className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
+                  onClick={() => navigate("/debit-orders?new=1")}
+                >
+                  <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/10 ring-1 ring-violet-500/30 text-violet-700 dark:text-violet-400">
+                    <CreditCard className="h-3.5 w-3.5" />
+                  </span>
+                  Debit Orders
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
