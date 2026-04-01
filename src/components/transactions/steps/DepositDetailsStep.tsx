@@ -458,7 +458,7 @@ const DepositDetailsStep = ({
             </>
           )}
 
-          {isDeposit && (splitSummaries.length > 0 || loanRepaymentOnly) ? (
+          {isDeposit && (splitSummaries.length > 0 || loanRepaymentOnly || (joinShareInfo.needed && amountNum <= joinShareInfo.shareCost + joinShareInfo.membershipFee)) ? (
             <>
               {feeBreakdown.map((b, i) => (
                 <div key={i} className="flex justify-between text-sm text-muted-foreground">
