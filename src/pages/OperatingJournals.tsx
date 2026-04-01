@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, BookOpen, RotateCcw, Landmark, Archive } from "lucide-react";
 import { toast } from "sonner";
+import { GlAccountSelector } from "@/components/ledger/GlAccountSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
@@ -510,24 +511,18 @@ const OperatingJournals = () => {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>GL Account *</Label>
-              <Select value={bankForm.gl_account_id} onValueChange={(v) => {
-                const gl = glAccounts.find((g) => g.id === v);
-                setBankForm({
-                  ...bankForm,
-                  gl_account_id: v,
-                  control_account_id: gl?.control_account_id || bankForm.control_account_id,
-                  entry_type: (gl?.default_entry_type as "debit" | "credit") || bankForm.entry_type,
-                });
-              }}>
-                <SelectTrigger><SelectValue placeholder="Select GL account" /></SelectTrigger>
-                <SelectContent>
-                  {glAccounts.map((gl) => (
-                    <SelectItem key={gl.id} value={gl.id}>
-                      {gl.name} <span className="ml-2 text-xs text-muted-foreground">({gl.gl_type})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <GlAccountSelector
+                glAccounts={glAccounts}
+                value={bankForm.gl_account_id}
+                onChange={(v, gl) => {
+                  setBankForm({
+                    ...bankForm,
+                    gl_account_id: v,
+                    control_account_id: gl?.control_account_id || bankForm.control_account_id,
+                    entry_type: (gl?.default_entry_type as "debit" | "credit") || bankForm.entry_type,
+                  });
+                }}
+              />
             </div>
             {bankForm.gl_account_id && (<>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -638,26 +633,20 @@ const OperatingJournals = () => {
             {journalForm.use_gl_account ? (
               <div className="space-y-2">
                 <Label>GL Account *</Label>
-                <Select value={journalForm.gl_account_id} onValueChange={(v) => {
-                  const gl = glAccounts.find((g) => g.id === v);
-                  const defaultCA = gl?.control_account_id || "";
-                  const isDebitDefault = gl?.default_entry_type === "debit";
-                  setJournalForm({
-                    ...journalForm,
-                    gl_account_id: v,
-                    debit_control_account_id: isDebitDefault ? defaultCA : journalForm.debit_control_account_id,
-                    credit_control_account_id: !isDebitDefault ? defaultCA : journalForm.credit_control_account_id,
-                  });
-                }}>
-                  <SelectTrigger><SelectValue placeholder="Select GL account" /></SelectTrigger>
-                  <SelectContent>
-                    {glAccounts.map((gl) => (
-                      <SelectItem key={gl.id} value={gl.id}>
-                        {gl.name} <span className="ml-2 text-xs text-muted-foreground">({gl.gl_type})</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GlAccountSelector
+                  glAccounts={glAccounts}
+                  value={journalForm.gl_account_id}
+                  onChange={(v, gl) => {
+                    const defaultCA = gl?.control_account_id || "";
+                    const isDebitDefault = gl?.default_entry_type === "debit";
+                    setJournalForm({
+                      ...journalForm,
+                      gl_account_id: v,
+                      debit_control_account_id: isDebitDefault ? defaultCA : journalForm.debit_control_account_id,
+                      credit_control_account_id: !isDebitDefault ? defaultCA : journalForm.credit_control_account_id,
+                    });
+                  }}
+                />
               </div>
             ) : (
               <div className="space-y-2">
