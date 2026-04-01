@@ -95,6 +95,9 @@ const StockDepositDetailsStep = ({
   formatCurrency,
   currentUnitPriceBuy,
   poolName,
+  isStaff = false,
+  adminFeeOverridePct,
+  onAdminFeeOverridePctChange,
 }: StockDepositDetailsStepProps) => {
 
   const handleQuantityChange = (itemId: string, qty: number) => {
