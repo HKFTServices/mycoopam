@@ -733,7 +733,7 @@ const TransactionReviewDialog = ({
                       </div>
                       <div>
                         <p className="text-muted-foreground">UP</p>
-                        <p className={cn("font-mono font-bold", dateChanged ? "text-primary" : "")}>{fmt(effectiveUnitPrice)}</p>
+                        <p className={cn("font-mono font-bold", dateChanged ? "text-primary" : "")}>{fmtUP(effectiveUnitPrice)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Units</p>
@@ -893,7 +893,7 @@ const TransactionReviewDialog = ({
                       <AlertTriangle className="h-3.5 w-3.5" />
                       No price
                     </span>
-                  ) : fmt(effectiveUnitPrice)}
+                  ) : fmtUP(effectiveUnitPrice)}
                 </p>
               </div>
               <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
