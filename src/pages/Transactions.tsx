@@ -354,7 +354,7 @@ const Transactions = () => {
 
       <MobileTableHint />
 
-      <Tabs defaultValue="member">
+      <Tabs defaultValue={searchParams.get("tab") === "stock" ? "stock" : "member"}>
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="member" className="gap-1.5 text-xs sm:text-sm">
             <ArrowLeftRight className="h-3.5 w-3.5" />
