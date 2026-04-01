@@ -383,33 +383,49 @@ const EntityDocumentsImport = ({ tenantId }: { tenantId?: string }) => {
   const parseCsv = (text: string): any[] => {
     // Strip BOM if present (common in SSMS CSV exports)
     const clean = text.replace(/^\uFEFF/, '');
-    const lines = clean.split('\n').filter(l => l.trim());
-    if (lines.length < 2) return [];
-    const parseRow = (line: string): string[] => {
-      const result: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-          else { inQuotes = !inQuotes; }
-        } else if (ch === ',' && !inQuotes) {
-          result.push(current.trim());
-          current = '';
+    
+    // Proper CSV parser that handles multi-line quoted fields (important for large Bytes column)
+    const records: string[][] = [];
+    let currentRow: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < clean.length; i++) {
+      const ch = clean[i];
+      if (ch === '"') {
+        if (inQuotes && clean[i + 1] === '"') {
+          currentField += '"';
+          i++;
         } else {
-          current += ch;
+          inQuotes = !inQuotes;
         }
+      } else if (ch === ',' && !inQuotes) {
+        currentRow.push(currentField.trim());
+        currentField = '';
+      } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        if (ch === '\r' && clean[i + 1] === '\n') i++; // skip \r\n
+        currentRow.push(currentField.trim());
+        if (currentRow.some(f => f !== '')) records.push(currentRow);
+        currentRow = [];
+        currentField = '';
+      } else {
+        currentField += ch;
       }
-      result.push(current.trim());
-      return result;
-    };
-    const headers = parseRow(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim());
+    }
+    // Last row
+    currentRow.push(currentField.trim());
+    if (currentRow.some(f => f !== '')) records.push(currentRow);
+    
+    if (records.length < 2) return [];
+    const headers = records[0].map(h => h.replace(/^\uFEFF/, '').trim());
     console.log("CSV headers parsed:", headers);
-    return lines.slice(1).map(line => {
-      const vals = parseRow(line);
+    console.log("Total data rows:", records.length - 1);
+    console.log("First record keys sample:", headers.join(', '));
+    
+    return records.slice(1).map((vals, idx) => {
       const obj: any = {};
       headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
+      if (idx === 0) console.log("First record after parse:", Object.keys(obj), "legacy_id:", obj.legacy_id);
       return normalizeDocRecord(obj);
     });
   };
