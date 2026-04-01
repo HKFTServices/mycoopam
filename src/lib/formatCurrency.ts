@@ -17,3 +17,10 @@ export function formatCurrency(
   const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   return `${isNegative ? "-" : ""}${symbol} ${formatted}.${decPart}`;
 }
+
+/**
+ * Format a unit price with 5 decimal places.
+ */
+export function formatUnitPrice(value: number, symbol: string = "R"): string {
+  return formatCurrency(value, symbol, 5);
+}
