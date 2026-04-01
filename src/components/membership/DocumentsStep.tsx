@@ -563,26 +563,6 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
                 ) : (
                   <p className="text-muted-foreground text-sm py-2">All document types are required — no optional types available.</p>
                 )}
-                {untypedDocs.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    <p className="text-xs font-medium text-muted-foreground">Unclassified Documents</p>
-                    {untypedDocs.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center gap-2 text-xs border border-border rounded-lg p-3">
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate font-medium">{doc.file_name}</p>
-                          <p className="text-muted-foreground">
-                            {doc.document_types?.name || "No type"}
-                            {doc.file_size ? ` · ${(doc.file_size / 1024).toFixed(0)} KB` : ""}
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleViewDocument(doc.file_path)}>
-                          <Eye className="h-3.5 w-3.5 mr-1" /> View
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </CollapsibleContent>
           </Card>
