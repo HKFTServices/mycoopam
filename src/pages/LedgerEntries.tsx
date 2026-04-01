@@ -850,14 +850,7 @@ const LedgerEntries = () => {
           <TabsList className="min-w-max whitespace-nowrap justify-start">
             <TabsTrigger value="bank">Bank Entries ({bankEntries.length})</TabsTrigger>
             <TabsTrigger value="journal">Journal Entries ({journalEntries.length})</TabsTrigger>
-            {canReviewApprovals && (
-              <TabsTrigger value="approvals">
-                Pending Approval
-                {pendingEntries.length > 0 && (
-                  <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingEntries.length}</Badge>
-                )}
-              </TabsTrigger>
-            )}
+            
             <TabsTrigger value="commissions">
               Pay Commissions
               {pendingCommissions.length > 0 && (
