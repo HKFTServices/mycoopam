@@ -1185,8 +1185,7 @@ const LegacyGlAllocation = () => {
       }
     }
 
-    // ── Stock Purchase — Bank entry for total amount ──
-    // Stock Sale has NO GL entries (control accounts only), so no Bank GL line needed.
+    // ── Stock Purchase — Bank CR (money going out) ──
     if (isStockPurchase) {
       const stockEntries = allEntries.filter(e => e.entry_type_id === "1948");
       const stockTotal = stockEntries.reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
@@ -1199,6 +1198,24 @@ const LegacyGlAllocation = () => {
           control_account_id: null, control_account_label: "",
           pool_id: null, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: "bank_payment",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+    }
+
+    // ── Stock Sale — Bank DR (money coming in) ──
+    if (isStockSale) {
+      const rootEntries = allEntries.filter(e => e.parent_id === "0");
+      const saleTotal = rootEntries.reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
+      if (saleTotal > 0) {
+        proposed.push({
+          description: "Bank Receipt — Stock Sale",
+          debit: saleTotal, credit: 0,
+          gl_account_id: tenantGlConfig?.bankGlId ?? null,
+          gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank",
+          control_account_id: null, control_account_label: "",
+          pool_id: null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "bank_receipt",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
