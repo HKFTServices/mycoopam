@@ -1388,6 +1388,18 @@ const DataImport = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Fix Relationship Types */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fix Relationship Types</CardTitle>
+          <CardDescription>Re-map entity-user relationship types from legacy source data. This fixes records that were imported as "Myself" but should be "Family member", "Director of Company", etc.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FixRelationshipTypesButton tenantId={currentTenant?.id} />
+        </CardContent>
+      </Card>
+
         </TabsContent>
       </Tabs>
     </div>
