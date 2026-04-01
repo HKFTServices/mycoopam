@@ -311,6 +311,7 @@ const MyReferralsSection = ({ currentTenant, user, entityReferrerRecords, linked
 const Memberships = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
