@@ -27,6 +27,7 @@ import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import NewTransactionDialog from "@/components/transactions/NewTransactionDialog";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
+import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {

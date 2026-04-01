@@ -469,7 +469,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const email = profile?.email || user?.email || "";
 
   const filteredMain = useMemo(() => filterItems(mainNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredTransactions = useMemo(() => filterItems(transactionsNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredTransactions = useMemo(() => {
+    const items = isDebitOrderEnabled ? transactionsNavItems : transactionsNavItems.filter(i => i.path !== "/dashboard/debit-orders");
+    return filterItems(items, normalizedQuery);
+  }, [normalizedQuery, isDebitOrderEnabled]);
   const filteredEntities = useMemo(() => filterItems(entitiesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredDailyPrices = useMemo(() => filterItems(dailyPricesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);

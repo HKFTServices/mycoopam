@@ -36,6 +36,7 @@ import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
 import { getTierKey } from "@/lib/tierColors";
 import { getEntityActorKind, getRoleActorKind } from "@/lib/actorKinds";
+import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
 
 interface AdminDashboardProps {
   tenantId: string;

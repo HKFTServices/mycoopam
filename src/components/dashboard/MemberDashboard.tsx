@@ -29,6 +29,7 @@ import EditEntityProfileDialog from "@/components/membership/EditEntityProfileDi
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import { memberDashboardTourSteps } from "@/components/onboarding/tourSteps";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
 
 interface MemberDashboardProps {
   tenantId: string;
