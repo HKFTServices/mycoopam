@@ -11,11 +11,27 @@ function queryMssql(config: Record<string, unknown>, sql: string): Promise<Recor
   return new Promise((resolve, reject) => {
     const mssqlPort = Deno.env.get("MSSQL_PORT");
     const port = mssqlPort ? parseInt(mssqlPort, 10) : 1433;
-    const connConfig = {
+    console.log("Connecting to MSSQL:", config.server, "port:", port);
+
+    const connConfig: Record<string, unknown> = {
       server: config.server as string,
-      authentication: { type: "default", options: { userName: config.user as string, password: config.password as string } },
-      options: { database: config.database as string, encrypt: true, trustServerCertificate: true, requestTimeout: 60000, connectTimeout: 30000, port, instanceName: undefined },
+      authentication: {
+        type: "default",
+        options: {
+          userName: config.user as string,
+          password: config.password as string,
+        },
+      },
+      options: {
+        database: config.database as string,
+        encrypt: true,
+        trustServerCertificate: true,
+        requestTimeout: 60000,
+        connectTimeout: 30000,
+        port,
+      },
     };
+
     const connection = new Connection(connConfig as any);
     connection.on("connect", (err: Error | undefined) => {
       if (err) { reject(err); return; }
@@ -42,7 +58,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     if (!serviceKey) throw new Error("Service role key not configured");
-
     const adminClient = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json();
@@ -56,6 +71,7 @@ Deno.serve(async (req) => {
     const mssqlPassword = Deno.env.get("MSSQL_PASSWORD");
     if (!mssqlHost || !mssqlDatabase || !mssqlUser || !mssqlPassword) throw new Error("SQL Server credentials not configured");
 
+    console.log("Fetching legacy entity_user_relationships...");
     const legacyRows = await queryMssql(
       { server: mssqlHost, database: mssqlDatabase, user: mssqlUser, password: mssqlPassword },
       `SELECT CAST(Id AS VARCHAR(36)) AS legacy_id,
@@ -63,8 +79,9 @@ Deno.serve(async (req) => {
        FROM dbo.EntityUserRelationships
        WHERE IsDeleted = 0`
     );
+    console.log(`Fetched ${legacyRows.length} legacy rows`);
 
-    // 2. Get global relationship_type mappings (stored under any tenant)
+    // 2. Get global relationship_type mappings
     const { data: relTypeMappings } = await adminClient
       .from("legacy_id_mappings")
       .select("legacy_id, new_id")
@@ -74,6 +91,7 @@ Deno.serve(async (req) => {
     for (const m of (relTypeMappings ?? [])) {
       relTypeMap.set(String(m.legacy_id), m.new_id);
     }
+    console.log(`Loaded ${relTypeMap.size} relationship type mappings`);
 
     // 3. Get existing imported relationship mappings for this tenant
     const { data: existingMappings } = await adminClient
@@ -86,81 +104,63 @@ Deno.serve(async (req) => {
     for (const m of (existingMappings ?? [])) {
       existingMap.set(String(m.legacy_id), m.new_id);
     }
+    console.log(`Loaded ${existingMap.size} existing UER mappings for tenant`);
 
-    // 4. Build updates
-    const updates: Array<{ uer_id: string; legacy_id: string; old_rel_type: string; new_rel_type_id: string; new_rel_type_name: string }> = [];
-    const skipped: string[] = [];
-    const notFound: string[] = [];
-
-    // Build reverse lookup for relationship type names
-    const relTypeNames = new Map<string, string>();
-    for (const m of (relTypeMappings ?? [])) {
-      const notes = ""; // We'll look up from the mapping
-      relTypeNames.set(m.new_id, m.legacy_id);
-    }
-
-    // Get relationship type names
+    // 4. Get relationship type names
     const { data: relTypes } = await adminClient.from("relationship_types").select("id, name");
     const relTypeNameMap = new Map<string, string>();
-    for (const rt of (relTypes ?? [])) {
-      relTypeNameMap.set(rt.id, rt.name);
-    }
+    for (const rt of (relTypes ?? [])) relTypeNameMap.set(rt.id, rt.name);
 
     const myselfId = "ff74a3e5-b204-4719-8031-18c47f557b8b";
+
+    // 5. Build updates - find records that are "Myself" but should be something else
+    const potentialUpdates: Array<{ uer_id: string; legacy_id: string; new_rel_type_id: string; new_rel_type_name: string }> = [];
 
     for (const legacyRow of legacyRows) {
       const legacyId = String(legacyRow.legacy_id);
       const legacyRelTypeId = String(legacyRow.legacy_relationship_type_id);
 
-      // Find corresponding new UER record
       const uerId = existingMap.get(legacyId);
-      if (!uerId) { continue; } // Not imported for this tenant
+      if (!uerId) continue; // Not imported for this tenant
 
-      // Resolve correct relationship type
       const correctRelTypeId = relTypeMap.get(legacyRelTypeId);
-      if (!correctRelTypeId) {
-        notFound.push(`Legacy rel type ${legacyRelTypeId} not mapped`);
-        continue;
-      }
+      if (!correctRelTypeId) continue;
+      if (correctRelTypeId === myselfId) continue; // Already correct
 
-      // Only update if currently "Myself" but should be something else
-      if (correctRelTypeId === myselfId) {
-        skipped.push(legacyId); // Already correct
-        continue;
-      }
-
-      updates.push({
+      potentialUpdates.push({
         uer_id: uerId,
         legacy_id: legacyId,
-        old_rel_type: "Myself",
         new_rel_type_id: correctRelTypeId,
         new_rel_type_name: relTypeNameMap.get(correctRelTypeId) || "Unknown",
       });
     }
+    console.log(`Found ${potentialUpdates.length} potential updates`);
 
-    // 5. Verify which ones actually have "Myself" currently and need updating
-    const finalUpdates: typeof updates = [];
-    if (updates.length > 0) {
-      const uerIds = updates.map(u => u.uer_id);
-      const { data: currentRecords } = await adminClient
-        .from("user_entity_relationships")
-        .select("id, relationship_type_id")
-        .in("id", uerIds);
+    // 6. Filter to only those currently set to "Myself"
+    const finalUpdates: typeof potentialUpdates = [];
+    if (potentialUpdates.length > 0) {
+      // Batch check in groups of 100
+      for (let i = 0; i < potentialUpdates.length; i += 100) {
+        const batch = potentialUpdates.slice(i, i + 100);
+        const uerIds = batch.map(u => u.uer_id);
+        const { data: currentRecords } = await adminClient
+          .from("user_entity_relationships")
+          .select("id, relationship_type_id")
+          .in("id", uerIds);
 
-      const currentMap = new Map<string, string>();
-      for (const r of (currentRecords ?? [])) {
-        currentMap.set(r.id, r.relationship_type_id);
-      }
+        const currentMap = new Map<string, string>();
+        for (const r of (currentRecords ?? [])) currentMap.set(r.id, r.relationship_type_id);
 
-      for (const u of updates) {
-        const currentRelType = currentMap.get(u.uer_id);
-        if (currentRelType === myselfId) {
-          finalUpdates.push(u);
+        for (const u of batch) {
+          if (currentMap.get(u.uer_id) === myselfId) {
+            finalUpdates.push(u);
+          }
         }
       }
     }
+    console.log(`${finalUpdates.length} records need updating (currently Myself, should be different)`);
 
-    // 6. Apply updates if not dry run
+    // 7. Apply updates if not dry run
     const applied: string[] = [];
     const errors: string[] = [];
     if (!dry_run) {
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
         from: "Myself",
         to: u.new_rel_type_name,
       })),
-      applied: applied.length,
+      applied: dry_run ? 0 : applied.length,
       errors,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
