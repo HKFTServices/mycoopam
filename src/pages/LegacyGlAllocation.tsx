@@ -869,8 +869,9 @@ const LegacyGlAllocation = () => {
       //   2. CR 4000 Administration Income — revenue recognition
       //   3. DR Member Interest (2020) — units redeemed to pay the fee
       else if (isSwitching && entry.entry_type_id === "1939") {
-        // Skip the credit-side duplicate — only process the debit entry
-        if (entry.credit > 0 && entry.debit === 0) continue;
+        // Legacy may have paired DR+CR entries for the fee; only process the first one
+        const alreadyHasSwitchFee = proposed.some(p => p.entry_type === "switch_fee_pool_cash");
+        if (alreadyHasSwitchFee) continue;
         // Find the source pool cash control from the switch-out entry
         const switchOutEntry = allEntries.find(e => switchingPoolEntryTypes.has(e.entry_type_id) && e.credit > 0 && e.cash_account_id !== "0");
         const poolCa = switchOutEntry
