@@ -172,6 +172,14 @@ const OperatingJournals = () => {
         posted_by: user.id,
       });
       if (error) throw error;
+
+      // Save GL → control account mapping for future auto-population
+      const selectedGl = glAccounts.find((g: GLAccount) => g.id === values.gl_account_id);
+      if (values.gl_account_id && values.control_account_id && (!selectedGl?.control_account_id)) {
+        await (supabase as any).from("gl_accounts")
+          .update({ control_account_id: values.control_account_id })
+          .eq("id", values.gl_account_id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["operating_journals"] });
