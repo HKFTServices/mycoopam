@@ -58,6 +58,7 @@ const AccountApprovals = () => {
   const [acceptLoanApp, setAcceptLoanApp] = useState<any>(null);
   const [reviewLedgerEntry, setReviewLedgerEntry] = useState<any | null>(null);
   const [ledgerDeclineReason, setLedgerDeclineReason] = useState("");
+  const [viewLedgerEntry, setViewLedgerEntry] = useState<any | null>(null);
 
   // Check user roles for approval workflow
   const { data: userRoles = [] } = useQuery({
@@ -819,6 +820,23 @@ const AccountApprovals = () => {
       toast.success("Entry declined");
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Fetch child rows for the ledger entry being viewed
+  const { data: viewLedgerChildren = [] } = useQuery({
+    queryKey: ["cft_children", viewLedgerEntry?.id],
+    queryFn: async () => {
+      if (!viewLedgerEntry || !currentTenant) return [];
+      const { data } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type)")
+        .eq("parent_id", viewLedgerEntry.id)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      return data ?? [];
+    },
+    enabled: !!viewLedgerEntry && !!currentTenant,
   });
 
   const totalPending = pendingAccounts.length + groupedTxns.length;
@@ -1667,7 +1685,10 @@ const AccountApprovals = () => {
                                   <p className="break-words">Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span></p>
                                   <p className="break-words">Submitted by: <span className="text-foreground/90">{getLedgerSubmitterName(entry)}</span></p>
                                 </div>
-                                <div className="flex gap-2">
+                                 <div className="flex gap-2">
+                                  <Button size="sm" variant="outline" className="h-9" onClick={() => setViewLedgerEntry(entry)}>
+                                    <Eye className="h-4 w-4 mr-1" /> View
+                                  </Button>
                                   <Button size="sm" className="flex-1 h-9" onClick={() => approveLedgerMutation.mutate(entry.id)} disabled={approveLedgerMutation.isPending}>
                                     <Check className="h-4 w-4 mr-1" /> Approve
                                   </Button>
@@ -1714,6 +1735,10 @@ const AccountApprovals = () => {
                             <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
                             <TableCell>
                               <div className="flex gap-1">
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                                  onClick={() => setViewLedgerEntry(entry)}>
+                                  <Eye className="h-3 w-3 mr-1" /> View
+                                </Button>
                                 <Button size="sm" variant="default" className="h-7 px-2 text-xs"
                                   onClick={() => approveLedgerMutation.mutate(entry.id)} disabled={approveLedgerMutation.isPending}>
                                   <Check className="h-3 w-3 mr-1" /> Approve
@@ -1772,6 +1797,74 @@ const AccountApprovals = () => {
             <Button variant="destructive" disabled={!ledgerDeclineReason.trim() || declineLedgerMutation.isPending}
               onClick={() => reviewLedgerEntry && declineLedgerMutation.mutate({ entryId: reviewLedgerEntry.id, reason: ledgerDeclineReason })}>
               {declineLedgerMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Declining…</> : "Decline Entry"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Ledger View Dialog ── */}
+      <Dialog open={!!viewLedgerEntry} onOpenChange={(o) => { if (!o) setViewLedgerEntry(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              {viewLedgerEntry?.is_bank ? "Bank" : "Journal"} Entry Detail
+            </DialogTitle>
+            <DialogDescription>Review all ledger lines before approving or declining.</DialogDescription>
+          </DialogHeader>
+          {viewLedgerEntry && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Parent entry */}
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{viewLedgerEntry.transaction_date}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Type</span><Badge variant="outline" className="text-[10px]">{viewLedgerEntry.is_bank ? "Bank" : "Journal"}</Badge></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">GL Account</span><span className="text-right"><span className="font-mono text-xs text-muted-foreground mr-1">{viewLedgerEntry.gl_accounts?.code}</span>{viewLedgerEntry.gl_accounts?.name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Control Account</span><span>{viewLedgerEntry.control_accounts?.name || "—"}</span></div>
+                {viewLedgerEntry.debit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Debit</span><span className="font-semibold">{formatCurrency(viewLedgerEntry.debit, approvalSym)}</span></div>}
+                {viewLedgerEntry.credit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Credit</span><span className="font-semibold">{formatCurrency(viewLedgerEntry.credit, approvalSym)}</span></div>}
+                {viewLedgerEntry.reference && <div className="flex justify-between"><span className="text-muted-foreground">Reference</span><span>{viewLedgerEntry.reference}</span></div>}
+                <div className="flex justify-between"><span className="text-muted-foreground">Submitted By</span><span>{getLedgerSubmitterName(viewLedgerEntry)}</span></div>
+              </div>
+
+              {/* Child rows */}
+              {viewLedgerChildren.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Contra & VAT Lines</h4>
+                  <div className="space-y-2">
+                    {viewLedgerChildren.map((child: any) => (
+                      <div key={child.id} className="bg-muted/30 rounded-lg p-3 space-y-1 text-sm border border-border/50">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Type</span><Badge variant="secondary" className="text-[10px]">{child.entry_type}</Badge></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">GL Account</span><span className="text-right"><span className="font-mono text-xs text-muted-foreground mr-1">{child.gl_accounts?.code}</span>{child.gl_accounts?.name}</span></div>
+                        {child.control_accounts?.name && <div className="flex justify-between"><span className="text-muted-foreground">Control Account</span><span>{child.control_accounts.name}</span></div>}
+                        {child.debit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Debit</span><span className="font-semibold">{formatCurrency(child.debit, approvalSym)}</span></div>}
+                        {child.credit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Credit</span><span className="font-semibold">{formatCurrency(child.credit, approvalSym)}</span></div>}
+                        {child.description && <div className="flex justify-between"><span className="text-muted-foreground">Description</span><span>{child.description}</span></div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes from parent */}
+              {viewLedgerEntry.notes && (() => {
+                try {
+                  const parsed = JSON.parse(viewLedgerEntry.notes);
+                  return parsed.entry_type ? (
+                    <div className="text-xs text-muted-foreground">
+                      Original entry type: <span className="text-foreground">{parsed.entry_type}</span>
+                    </div>
+                  ) : null;
+                } catch { return null; }
+              })()}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setViewLedgerEntry(null)}>Close</Button>
+            <Button variant="destructive" onClick={() => { setReviewLedgerEntry(viewLedgerEntry); setLedgerDeclineReason(""); setViewLedgerEntry(null); }}>
+              <X className="h-4 w-4 mr-1" /> Decline
+            </Button>
+            <Button onClick={() => { if (viewLedgerEntry) { approveLedgerMutation.mutate(viewLedgerEntry.id); setViewLedgerEntry(null); } }} disabled={approveLedgerMutation.isPending}>
+              <Check className="h-4 w-4 mr-1" /> Approve
             </Button>
           </DialogFooter>
         </DialogContent>
