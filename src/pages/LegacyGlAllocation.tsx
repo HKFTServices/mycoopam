@@ -1011,21 +1011,6 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Stock Sale (1949) — Control account entries only (no GL) ──
-      else if (isStockSale && entry.entry_type_id === "1949") {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
-        proposed.push({
-          description: `Stock Sale — ${poolName}`,
-          debit: entry.debit, credit: entry.credit,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "stock_sale",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-      }
       // ── Stock Purchase/Sale pool allocations — Cash Control only (no Member Interest) ──
       else if ((isStockPurchase || isStockSale) && stockPoolEntryTypes.has(entry.entry_type_id)) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
