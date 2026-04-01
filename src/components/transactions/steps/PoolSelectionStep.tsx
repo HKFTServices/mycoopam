@@ -340,6 +340,13 @@ const PoolSelectionStep = ({
             Full deposit will be applied to loan repayment
           </div>
         )}
+
+        {noPoolAllocation && !loanRepaymentOnly && (
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold border-2 bg-muted/30 border-muted-foreground/30 text-muted-foreground">
+            <CheckCircle className="h-4 w-4" />
+            No pool allocation — deposit covers membership fees only
+          </div>
+        )}
       </div>
     );
   }
