@@ -207,7 +207,8 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const info = await transporter.sendMail({ from: fromHeader, to: profile.email, subject, html: body });
+        const ccEmail = tenantConfig?.approval_cc_email?.trim() || undefined;
+        const info = await transporter.sendMail({ from: fromHeader, to: profile.email, ...(ccEmail ? { cc: ccEmail } : {}), subject, html: body });
         emailsSent++;
         console.log(`[send-approval-notification] Sent to ${profile.email}: ${info.messageId} (SMTP source: ${smtp.source})`);
 

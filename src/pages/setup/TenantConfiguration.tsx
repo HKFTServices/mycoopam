@@ -952,6 +952,21 @@ const TenantConfiguration = () => {
               )}
             </CardContent>
           </Card>
+          <Card className="mt-4">
+            <CardHeader><CardTitle className="text-lg">Approval Notifications</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <div className="space-y-2">
+                <Label>CC Email for Approval Notifications</Label>
+                <Input
+                  value={form.approval_cc_email}
+                  onChange={(e) => setForm({ ...form, approval_cc_email: e.target.value })}
+                  placeholder="admin@example.com"
+                  type="email"
+                />
+                <p className="text-xs text-muted-foreground">When set, all transaction approval notification emails will also be CC'd to this address.</p>
+              </div>
+            </CardContent>
+          </Card>
           <Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>
             <DialogContent>
               <DialogHeader><DialogTitle>Send Test Email</DialogTitle></DialogHeader>
