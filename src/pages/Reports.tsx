@@ -286,7 +286,7 @@ const Reports = () => {
 
 
   // Aggregate Balance Sheet / GL Trial Balance data
-  // All entries are straight-posted: CFT Dr = GL Dr, CFT Cr = GL Cr
+  // Legacy entries → straight posting. Native: bank/vat/stock_control/loan → straight; others → contra.
   const bsAggregated = (() => {
     const map: Record<string, { name: string; code: string; gl_type: string; netDebit: number; netCredit: number }> = {};
     for (const r of bsData) {
@@ -295,8 +295,17 @@ const Reports = () => {
       const type = gl.gl_type as string;
       if (!["asset", "liability", "equity", "income", "expense"].includes(type)) continue;
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
-      map[r.gl_account_id].netDebit  += Number(r.debit || 0);
-      map[r.gl_account_id].netCredit += Number(r.credit || 0);
+      const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
+      const isLegacy = !!r.legacy_transaction_id;
+      if (isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry) {
+        // Straight posting: CFT Dr = GL Dr, CFT Cr = GL Cr
+        map[r.gl_account_id].netDebit  += Number(r.debit || 0);
+        map[r.gl_account_id].netCredit += Number(r.credit || 0);
+      } else {
+        // Contra posting for native non-bank entries: CFT Dr = GL Cr, CFT Cr = GL Dr
+        map[r.gl_account_id].netCredit += Number(r.debit || 0);
+        map[r.gl_account_id].netDebit  += Number(r.credit || 0);
+      }
     }
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
   })();
