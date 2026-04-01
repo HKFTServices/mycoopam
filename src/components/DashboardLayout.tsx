@@ -515,7 +515,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       return (
       <SidebarMenuItem key={params.label} data-tour={params.dataTour}>
-        <SidebarMenuButton asChild isActive={isActive}>
+        <SidebarMenuButton asChild isActive={isActive} size="sm">
           <button
             type="button"
             onClick={() => {
