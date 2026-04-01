@@ -271,8 +271,7 @@ const Reports = () => {
 
 
   // Aggregate Balance Sheet / GL Trial Balance data
-  // CONVENTION: Bank entries (is_bank=true), VAT entries, and Stock Control entries → straight posting (CFT Dr = GL Dr, CFT Cr = GL Cr).
-  //             All other entries → contra posting (CFT Dr = GL Cr, CFT Cr = GL Dr).
+  // All entries are straight-posted: CFT Dr = GL Dr, CFT Cr = GL Cr
   const bsAggregated = (() => {
     const map: Record<string, { name: string; code: string; gl_type: string; netDebit: number; netCredit: number }> = {};
     for (const r of bsData) {
@@ -281,17 +280,8 @@ const Reports = () => {
       const type = gl.gl_type as string;
       if (!["asset", "liability", "equity", "income", "expense"].includes(type)) continue;
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
-      const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      const isLegacy = !!r.legacy_transaction_id;
-      if (r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || isLegacy) {
-        // Bank GL, VAT entries, Stock Control entries, Loan entries, and Legacy entries: straight posting (CFT Dr = GL Dr, CFT Cr = GL Cr)
-        map[r.gl_account_id].netDebit  += Number(r.debit || 0);
-        map[r.gl_account_id].netCredit += Number(r.credit || 0);
-      } else {
-        // All other entries: contra posting (CFT Dr = GL Cr, CFT Cr = GL Dr)
-        map[r.gl_account_id].netCredit += Number(r.debit || 0);
-        map[r.gl_account_id].netDebit  += Number(r.credit || 0);
-      }
+      map[r.gl_account_id].netDebit  += Number(r.debit || 0);
+      map[r.gl_account_id].netCredit += Number(r.credit || 0);
     }
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
   })();
