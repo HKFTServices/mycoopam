@@ -342,10 +342,15 @@ const AccountApprovals = () => {
         ? "Switch approved — units redeemed and reinvested"
         : "Transaction approved successfully";
       toast.success(msg);
+      // Clean up related notifications
+      const allIds = [group.primary.id, ...group.siblings.map((s: any) => s.id)];
+      if (currentTenant) clearGroupNotifications(currentTenant.id, allIds);
       queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
       queryClient.invalidateQueries({ queryKey: ["member_pool_holdings"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewWithdrawalGroup(null);
       setReviewTxnGroup(null);
       setReviewSwitchGroup(null);
