@@ -67,6 +67,10 @@ interface StockDepositDetailsStepProps {
   formatCurrency: (v: number) => string;
   currentUnitPriceBuy: number;
   poolName: string;
+  // Admin fee override
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 const StockDepositDetailsStep = ({
