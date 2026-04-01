@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, CreditCard, Shield, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import PaymentMethodsSection from "./PaymentMethodsSection";
 
 const GATEWAYS = [
   { value: "stripe", label: "Stripe" },
