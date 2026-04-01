@@ -1312,6 +1312,7 @@ const NewTransactionDialog = ({
         is_vat_registered: isVatRegistered,
         total_vat: totalVatAmount,
         user_notes: notes || "",
+        admin_fee_override_pct: adminFeeOverridePct,
       });
 
       if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation)) {
