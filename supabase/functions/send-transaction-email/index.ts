@@ -500,6 +500,7 @@ Deno.serve(async (req) => {
       user_id,
       application_event,
       transaction_data,
+      entity_account_id,
     } = await req.json();
 
     if (!tenant_id || !user_id || !application_event) {
@@ -511,35 +512,83 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch member profile (may not exist for entity-only users)
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("first_name, last_name, email, language_code")
-      .eq("user_id", user_id)
-      .maybeSingle();
+    // ── Resolve the MEMBER (entity account owner) rather than the submitting user ──
+    let recipientEmail: string | null = null;
+    let recipientName = "";
+    let recipientLastName = "";
+    let recipientLang = "en";
 
-    // If no profile email, try to resolve from the user's linked entity
-    let recipientEmail = profile?.email || null;
-    let recipientName = profile?.first_name || "";
-    let recipientLastName = profile?.last_name || "";
-    let recipientLang = profile?.language_code || "en";
-
-    if (!recipientEmail) {
-      // Look up entity email via user_entity_relationships
-      const { data: uer } = await adminClient
-        .from("user_entity_relationships")
+    if (entity_account_id) {
+      // Look up entity from entity_account → entity → user_entity_relationships → profile
+      const { data: eaData } = await adminClient
+        .from("entity_accounts")
         .select("entity_id, entities!inner(name, last_name, email_address, language_code)")
-        .eq("user_id", user_id)
-        .eq("tenant_id", tenant_id)
-        .limit(1)
+        .eq("id", entity_account_id)
         .maybeSingle();
-      const ent = (uer as any)?.entities;
-      if (ent?.email_address) {
-        recipientEmail = ent.email_address;
-        recipientName = recipientName || ent.name || "";
-        recipientLastName = recipientLastName || ent.last_name || "";
-        recipientLang = ent.language_code || recipientLang;
-        console.log(`[send-transaction-email] Using entity email ${recipientEmail} for user ${user_id}`);
+      const entity = (eaData as any)?.entities;
+      if (entity) {
+        recipientName = entity.name || "";
+        recipientLastName = entity.last_name || "";
+        recipientLang = entity.language_code || "en";
+        // Entity email is the primary source
+        if (entity.email_address) {
+          recipientEmail = entity.email_address;
+          console.log(`[send-transaction-email] Using entity email ${recipientEmail} for entity_account ${entity_account_id}`);
+        }
+      }
+      // If entity has no email, try user_entity_relationships → profile
+      if (!recipientEmail && eaData?.entity_id) {
+        const { data: uer } = await adminClient
+          .from("user_entity_relationships")
+          .select("user_id")
+          .eq("entity_id", eaData.entity_id)
+          .eq("tenant_id", tenant_id)
+          .limit(1)
+          .maybeSingle();
+        if (uer?.user_id) {
+          const { data: memberProfile } = await adminClient
+            .from("profiles")
+            .select("first_name, last_name, email, language_code")
+            .eq("user_id", uer.user_id)
+            .maybeSingle();
+          if (memberProfile?.email) {
+            recipientEmail = memberProfile.email;
+            recipientName = recipientName || memberProfile.first_name || "";
+            recipientLastName = recipientLastName || memberProfile.last_name || "";
+            recipientLang = memberProfile.language_code || recipientLang;
+            console.log(`[send-transaction-email] Using member profile email ${recipientEmail} for entity_account ${entity_account_id}`);
+          }
+        }
+      }
+    }
+
+    // Fallback: use the provided user_id (original behaviour)
+    if (!recipientEmail) {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("first_name, last_name, email, language_code")
+        .eq("user_id", user_id)
+        .maybeSingle();
+      recipientEmail = profile?.email || null;
+      recipientName = recipientName || profile?.first_name || "";
+      recipientLastName = recipientLastName || profile?.last_name || "";
+      recipientLang = profile?.language_code || recipientLang;
+
+      if (!recipientEmail) {
+        const { data: uer } = await adminClient
+          .from("user_entity_relationships")
+          .select("entity_id, entities!inner(name, last_name, email_address, language_code)")
+          .eq("user_id", user_id)
+          .eq("tenant_id", tenant_id)
+          .limit(1)
+          .maybeSingle();
+        const ent = (uer as any)?.entities;
+        if (ent?.email_address) {
+          recipientEmail = ent.email_address;
+          recipientName = recipientName || ent.name || "";
+          recipientLastName = recipientLastName || ent.last_name || "";
+          recipientLang = ent.language_code || recipientLang;
+        }
       }
     }
 
