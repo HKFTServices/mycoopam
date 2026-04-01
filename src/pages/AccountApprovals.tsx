@@ -1685,7 +1685,10 @@ const AccountApprovals = () => {
                                   <p className="break-words">Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span></p>
                                   <p className="break-words">Submitted by: <span className="text-foreground/90">{getLedgerSubmitterName(entry)}</span></p>
                                 </div>
-                                <div className="flex gap-2">
+                                 <div className="flex gap-2">
+                                  <Button size="sm" variant="outline" className="h-9" onClick={() => setViewLedgerEntry(entry)}>
+                                    <Eye className="h-4 w-4 mr-1" /> View
+                                  </Button>
                                   <Button size="sm" className="flex-1 h-9" onClick={() => approveLedgerMutation.mutate(entry.id)} disabled={approveLedgerMutation.isPending}>
                                     <Check className="h-4 w-4 mr-1" /> Approve
                                   </Button>
