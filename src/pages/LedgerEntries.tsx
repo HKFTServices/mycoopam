@@ -643,7 +643,10 @@ const LedgerEntries = () => {
         sendApprovalNotification({
           tenantId: currentTenant.id,
           transactionType: "Journal Entry",
-          submitterName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          memberName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          accountNumber: "",
+          amount: journalForm.amount,
+          transactionDate: journalForm.transaction_date,
         });
       }
     },
