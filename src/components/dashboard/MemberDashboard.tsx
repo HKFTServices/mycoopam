@@ -451,7 +451,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 size="sm"
                 disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
                 className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
-                onClick={() => setDebitOrderOpen(true)}
+                onClick={() => navigate("/debit-orders?new=1")}
               >
                 <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/10 ring-1 ring-violet-500/30 text-violet-700 dark:text-violet-400">
                   <CreditCard className="h-3.5 w-3.5" />
