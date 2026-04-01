@@ -621,7 +621,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         <SidebarSeparator />
 
-        <SidebarContent data-tour="sidebar-nav">
+        <SidebarContent data-tour="sidebar-nav" className="overflow-y-auto">
           {showDashboardSkeleton ? (
             <SidebarGroup>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
