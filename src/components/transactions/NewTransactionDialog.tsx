@@ -1240,9 +1240,9 @@ const NewTransactionDialog = ({
   const effectiveCourierFeeWithdrawal = activeCourierFee;
   const stockWithdrawalFees = useMemo(
     () => isStockWithdrawal
-      ? calculateFees(selectedTxnTypeId, stockWithdrawalTotalValue, "stock_withdrawal", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate)
+      ? calculateFees(selectedTxnTypeId, stockWithdrawalTotalValue, "stock_withdrawal", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isStockWithdrawal, selectedTxnTypeId, stockWithdrawalTotalValue, feeRules, isVatRegistered, vatRate]
+    [isStockWithdrawal, selectedTxnTypeId, stockWithdrawalTotalValue, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   const stockWithdrawalGrossRedemption = stockWithdrawalTotalValue + stockWithdrawalFees.totalFee + effectiveCourierFeeWithdrawal;
   const stockWithdrawalGrossUnits = currentUnitPriceSell > 0 ? stockWithdrawalGrossRedemption / currentUnitPriceSell : 0;
