@@ -360,6 +360,7 @@ export async function postSwitchApproval(
   sendTransactionEmail({
     tenantId,
     userId,
+    entityAccountId,
     applicationEvent: "transaction_confirmation",
     transactionData: {
       transaction_date: txnDate,

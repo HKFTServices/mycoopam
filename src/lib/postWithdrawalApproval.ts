@@ -439,6 +439,7 @@ export async function postWithdrawalApproval(
     sendTransactionEmail({
       tenantId,
       userId,
+      entityAccountId,
       applicationEvent: "transaction_confirmation",
       transactionData: {
         transaction_date: txnDate,
@@ -681,6 +682,7 @@ export async function postWithdrawalApproval(
   sendTransactionEmail({
     tenantId,
     userId,
+    entityAccountId,
     applicationEvent: "transaction_confirmation",
     transactionData: {
       transaction_date: txnDate,
