@@ -688,10 +688,11 @@ Deno.serve(async (req) => {
         entityId = entityAcct.entity_id;
         const { data: entity } = await adminClient
           .from("entities")
-          .select("email_address, name, last_name")
+          .select("email_address, additional_email_address, name, last_name")
           .eq("id", entityAcct.entity_id)
           .single();
         entityEmail = entity?.email_address || null;
+        entityAdditionalEmail = entity?.additional_email_address || null;
         entityAccountName = [entity?.name, entity?.last_name].filter(Boolean).join(" ");
 
         // Fetch all account IDs for this entity (needed for statement)
