@@ -229,6 +229,28 @@ Deno.serve(async (req) => {
       } catch (smtpErr: any) {
         console.error(`[send-approval-notification] SMTP error for ${profile.email}:`, smtpErr.message);
       }
+
+      // Always insert an in-app notification for the approver (even if email fails)
+      try {
+        await adminClient.from("notifications").insert({
+          tenant_id,
+          recipient_user_id: profile.user_id,
+          actor_user_id: null,
+          category: "approval",
+          event: "pending_approval",
+          title: userLang === "af"
+            ? `${transaction_type || "Transaksie"} wag vir goedkeuring`
+            : `${transaction_type || "Transaction"} pending approval`,
+          body: userLang === "af"
+            ? `${member_name || "Onbekend"} het 'n ${transaction_type || "transaksie"} ingedien${formattedAmount ? ` van ${formattedAmount}` : ""}.`
+            : `${member_name || "Unknown"} submitted a ${transaction_type || "transaction"}${formattedAmount ? ` of ${formattedAmount}` : ""}.`,
+          status: "unread",
+          related_table: "cashflow_transactions",
+          related_id: null,
+        });
+      } catch (notifErr: any) {
+        console.warn("[send-approval-notification] Failed to insert notification:", notifErr.message);
+      }
     }
 
     return new Response(
