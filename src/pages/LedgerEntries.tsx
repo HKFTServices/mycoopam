@@ -672,45 +672,8 @@ const LedgerEntries = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Approve mutation
-  const approveMutation = useMutation({
-    mutationFn: async (entryId: string) => {
-      if (!user || !currentTenant) throw new Error("Missing context");
-      // Update parent and all children to posted
-      await (supabase as any).from("cashflow_transactions")
-        .update({ status: "posted", approved_by: user.id, approved_at: new Date().toISOString() })
-        .eq("id", entryId).eq("tenant_id", currentTenant.id);
-      await (supabase as any).from("cashflow_transactions")
-        .update({ status: "posted", approved_by: user.id, approved_at: new Date().toISOString() })
-        .eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
-      queryClient.invalidateQueries({ queryKey: ["cft_bank_entries"] });
-      queryClient.invalidateQueries({ queryKey: ["cft_journal_entries"] });
-      queryClient.invalidateQueries({ queryKey: ["cft_control_balances"] });
-      setReviewEntry(null);
-      toast.success("Entry approved and posted to ledger");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  // Decline mutation
-  const declineMutation = useMutation({
-    mutationFn: async ({ entryId, reason }: { entryId: string; reason: string }) => {
-      if (!user || !currentTenant) throw new Error("Missing context");
-      const update = { status: "declined", declined_by: user.id, declined_at: new Date().toISOString(), declined_reason: reason };
-      await (supabase as any).from("cashflow_transactions").update(update).eq("id", entryId).eq("tenant_id", currentTenant.id);
-      await (supabase as any).from("cashflow_transactions").update(update).eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cft_pending_entries"] });
-      setReviewEntry(null);
-      setDeclineReason("");
-      toast.success("Entry declined");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const deleteEntryMutation = useMutation({
     mutationFn: async ({ id, type }: { id: string; type: "bank" | "journal" }) => {
