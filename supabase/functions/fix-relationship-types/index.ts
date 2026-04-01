@@ -31,7 +31,6 @@ function queryMssql(config: Record<string, unknown>, sql: string): Promise<Recor
         port,
       },
     };
-    };
 
     const connection = new Connection(connConfig as any);
     connection.on("connect", (err: Error | undefined) => {
