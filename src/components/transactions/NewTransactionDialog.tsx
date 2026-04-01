@@ -1115,7 +1115,7 @@ const NewTransactionDialog = ({
       } else {
         // Amount mode: user enters net payout, we add fees on top
         const amtNum = parseFloat(entry.amountInput) || 0;
-        const feeCalc = calculateFees(selectedTxnTypeId, amtNum, paymentMethod, feeRules, isVatRegistered, vatRate);
+        const feeCalc = calculateFees(selectedTxnTypeId, amtNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct);
         const grossAmt = amtNum + feeCalc.totalFee;
         netPayout = amtNum;
         grossUnits = entry.unitPrice > 0 ? grossAmt / entry.unitPrice : 0;
