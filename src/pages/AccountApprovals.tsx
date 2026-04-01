@@ -2074,10 +2074,14 @@ const AccountApprovals = () => {
             onApprove={async (group) => {
               try {
                 await postTransferApproval(group, currentTenant.id, currentUser.id);
+                const allIds = [group.primary.id, ...group.siblings.map((s: any) => s.id)];
+                clearGroupNotifications(currentTenant.id, allIds);
                 setReviewTransferTxnId(null);
                 queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
                 queryClient.invalidateQueries({ queryKey: ["member_pool_holdings"] });
                 queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
+                queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
                 toast.success("Transfer approved — units moved to recipient");
               } catch (err: any) {
                 toast.error(err.message || "Failed to approve transfer");
