@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -450,7 +451,7 @@ const StockWithdrawalDetailsStep = ({
 
           {currentUnitPriceSell > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Units @ {formatCurrency(currentUnitPriceSell, "R", 5)} (Sell)</span>
+              <span>Units @ {formatUnitPrice(currentUnitPriceSell)} (Sell)</span>
               <span className="font-mono font-bold">{grossUnitsRedeemed.toFixed(5)}</span>
             </div>
           )}

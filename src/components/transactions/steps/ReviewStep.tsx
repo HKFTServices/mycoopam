@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CheckCircle, Clock, Award, CreditCard, Wallet, TrendingUp, TrendingDown, ArrowRightLeft, Minus, CalendarIcon } from "lucide-react";
@@ -171,7 +172,7 @@ const ReviewStep = ({
           </div>
           {transferUnitPriceSell > 0 && (
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Gross Units @ UP Sell {formatCurrency(transferUnitPriceSell, "R", 5)}</span>
+              <span>Gross Units @ UP Sell {formatUnitPrice(transferUnitPriceSell)}</span>
               <span className="font-mono">
                 {((transferGrossRedemption || (transferNetAmount + transferTotalFee)) / transferUnitPriceSell).toFixed(5)} units
               </span>
@@ -252,7 +253,7 @@ const ReviewStep = ({
                 </div>
                 {switchFromUnitPrice > 0 && (
                   <div className="flex justify-between text-xs bg-orange-500/5 rounded p-2">
-                    <span className="text-muted-foreground">Units @ {formatCurrency(switchFromUnitPrice, "R", 5)} / unit</span>
+                    <span className="text-muted-foreground">Units @ {formatUnitPrice(switchFromUnitPrice)} / unit</span>
                     <span className="font-mono font-bold text-orange-600 dark:text-orange-400">
                       {switchFromUnits.toFixed(5)} units
                     </span>
@@ -275,7 +276,7 @@ const ReviewStep = ({
                 </div>
                 {switchToUnitPrice > 0 && (
                   <div className="flex justify-between text-xs bg-emerald-500/5 rounded p-2">
-                    <span className="text-muted-foreground">Units @ {formatCurrency(switchToUnitPrice, "R", 5)} / unit</span>
+                    <span className="text-muted-foreground">Units @ {formatUnitPrice(switchToUnitPrice)} / unit</span>
                     <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {switchToUnits.toFixed(5)} units
                     </span>
@@ -304,7 +305,7 @@ const ReviewStep = ({
                   </div>
                   {s.unitPrice > 0 && (
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Units @ {formatCurrency(s.unitPrice, "R", 5)}/u</span>
+                      <span>Units @ {formatUnitPrice(s.unitPrice)}/u</span>
                       <span className="font-mono">{s.units.toFixed(5)}</span>
                     </div>
                   )}
@@ -429,7 +430,7 @@ const ReviewStep = ({
                           </div>
                           <div>
                             <p className="text-[10px] text-muted-foreground">Unit Price</p>
-                            <p className="text-xs font-semibold">{formatCurrency(s.unitPrice, "R", 5)}</p>
+                            <p className="text-xs font-semibold">{formatUnitPrice(s.unitPrice)}</p>
                           </div>
                           <div>
                             <p className="text-[10px] text-muted-foreground">Units</p>
@@ -461,7 +462,7 @@ const ReviewStep = ({
                     <>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Unit Price</span>
-                        <span>{formatCurrency(currentUnitPrice, "R", 5)}</span>
+                        <span>{formatUnitPrice(currentUnitPrice)}</span>
                       </div>
                       <div className="flex justify-between text-sm font-bold text-primary">
                         <span>Units {isWithdrawal ? "Redeemed" : "Purchased"}</span>

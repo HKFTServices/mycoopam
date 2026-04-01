@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -589,7 +590,7 @@ const DepositDetailsStep = ({
               </div>
               {currentUnitPrice > 0 && (
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Units @ {formatCurrency(currentUnitPrice, "R", 5)}</span>
+                  <span>Units @ {formatUnitPrice(currentUnitPrice)}</span>
                   <span className="font-mono font-bold">{Math.abs(unitsToTransact).toFixed(5)}</span>
                 </div>
               )}

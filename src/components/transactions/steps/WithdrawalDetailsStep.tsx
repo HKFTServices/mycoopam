@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -211,7 +212,7 @@ const WithdrawalDetailsStep = ({
                       {entry.unitPrice > 0 && parseFloat(entry.unitsInput) > 0 && (
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Info className="h-3 w-3" />
-                          ≈ {formatCurrency(parseFloat(entry.unitsInput) * entry.unitPrice)} gross at {formatCurrency(entry.unitPrice, "R", 5)}/unit
+                          ≈ {formatCurrency(parseFloat(entry.unitsInput) * entry.unitPrice)} gross at {formatUnitPrice(entry.unitPrice)}/unit
                         </p>
                       )}
                     </div>
@@ -235,7 +236,7 @@ const WithdrawalDetailsStep = ({
                     <span className="font-bold text-primary text-right">{formatCurrency(summary.grossAmount)}</span>
                     <span>Available</span>
                     <span className="text-right">{formatCurrency(summary.holdingValue)}</span>
-                    <span>Units @ {formatCurrency(summary.unitPrice, "R", 5)}</span>
+                    <span>Units @ {formatUnitPrice(summary.unitPrice)}</span>
                     <span className="font-mono text-right">{summary.units.toFixed(5)}</span>
                   </div>
                   {isOver && (
