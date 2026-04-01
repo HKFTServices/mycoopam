@@ -647,15 +647,17 @@ const LegacyGlAllocation = () => {
       }
       // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
       else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
-        for (const split of (mapping.split_rule as any).splits) {
+         for (const split of (mapping.split_rule as any).splits) {
           // Skip the Share portion (gl_code 3000) — not mapped
           if (split.gl_code === "3000") continue;
+          // Override: reduce membership fee by R50 for legacy transaction 310
+          const splitAmount = rootCftId === "310" ? Math.max(split.amount - 50, 0) : split.amount;
           const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
           // CR the GL account for the split amount
           proposed.push({
             description: split.description,
             debit: 0,
-            credit: split.amount,
+            credit: splitAmount,
             gl_account_id: split.gl_account_id,
             gl_account_label: glLabel,
             control_account_id: null, control_account_label: "",
@@ -664,12 +666,12 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
           // DR Admin Cash Control for the admin fee portion (R349)
-          if (split.gl_code !== "3000" && split.amount > 0) {
+           if (split.gl_code !== "3000" && splitAmount > 0) {
             const adminCa = controlAccounts?.find(c => c.account_type === "cash" && c.name?.toLowerCase().includes("admin"));
             if (adminCa) {
               proposed.push({
                 description: `Admin Fee — Membership Fee`,
-                debit: split.amount,
+                debit: splitAmount,
                 credit: 0,
                 gl_account_id: null, gl_account_label: "",
                 control_account_id: adminCa.new_id, control_account_label: adminCa.name ?? "Admin Cash",
