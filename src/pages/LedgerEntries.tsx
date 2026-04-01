@@ -152,8 +152,7 @@ const LedgerEntries = () => {
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
   const [monthEndOpen, setMonthEndOpen] = useState(false);
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
-  const [reviewEntry, setReviewEntry] = useState<any | null>(null);
-  const [declineReason, setDeclineReason] = useState("");
+  const [editMode, setEditMode] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
 
