@@ -248,7 +248,8 @@ const Reports = () => {
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
       // Legacy entries are stored with correct Dr/Cr sides → straight posting.
       // Native bank and loan entries are also straight. Native non-bank entries use contra convention.
-      const isStraightPosting = isLegacy || Boolean(r.is_bank) || isLoanEntry;
+      const isBankContra = (r.entry_type as string) === "bank_contra";
+      const isStraightPosting = isLegacy || Boolean(r.is_bank) || isLoanEntry || isBankContra;
 
       const exclVat = Number(r.amount_excl_vat || 0);
       const dr = Number(r.debit || 0);
@@ -297,7 +298,7 @@ const Reports = () => {
       if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
       const isLegacy = !!r.legacy_transaction_id;
-      if (isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry) {
+      if (isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || r.entry_type === "bank_contra") {
         // Straight posting: CFT Dr = GL Dr, CFT Cr = GL Cr
         map[r.gl_account_id].netDebit  += Number(r.debit || 0);
         map[r.gl_account_id].netCredit += Number(r.credit || 0);
