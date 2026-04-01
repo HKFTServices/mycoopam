@@ -659,6 +659,22 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "membership_fee",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
+          // DR Admin Cash Control for the admin fee portion (R349)
+          if (split.gl_code !== "3000" && split.amount > 0) {
+            const adminCa = controlAccounts?.find(c => c.account_type === "cash" && c.name?.toLowerCase().includes("admin"));
+            if (adminCa) {
+              proposed.push({
+                description: `Admin Fee — Membership Fee`,
+                debit: split.amount,
+                credit: 0,
+                gl_account_id: null, gl_account_label: "",
+                control_account_id: adminCa.new_id, control_account_label: adminCa.name ?? "Admin Cash",
+                pool_id: null, entity_account_id: eaInfo?.id ?? null,
+                transaction_date: txDate, entry_type: "legacy_control_mirror",
+                reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+              });
+            }
+          }
         }
       }
       // ── Loan Instalment (1978) — GL: CR Member Loans ──
