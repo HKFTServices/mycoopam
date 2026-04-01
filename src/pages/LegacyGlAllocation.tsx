@@ -666,12 +666,12 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
           // DR Admin Cash Control for the admin fee portion (R349)
-          if (split.gl_code !== "3000" && split.amount > 0) {
+           if (split.gl_code !== "3000" && splitAmount > 0) {
             const adminCa = controlAccounts?.find(c => c.account_type === "cash" && c.name?.toLowerCase().includes("admin"));
             if (adminCa) {
               proposed.push({
                 description: `Admin Fee — Membership Fee`,
-                debit: split.amount,
+                debit: splitAmount,
                 credit: 0,
                 gl_account_id: null, gl_account_label: "",
                 control_account_id: adminCa.new_id, control_account_label: adminCa.name ?? "Admin Cash",
