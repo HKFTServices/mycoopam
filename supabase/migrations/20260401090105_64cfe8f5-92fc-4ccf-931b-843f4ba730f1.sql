@@ -1,0 +1,1 @@
+ALTER TABLE public.tenant_configuration ADD COLUMN IF NOT EXISTS approval_cc_email text DEFAULT '';
