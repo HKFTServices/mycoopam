@@ -153,6 +153,7 @@ const NewTransactionDialog = ({
       setLoanRepaymentOnly(false);
       setLoanRepaymentAmount("__reset__");
       setNoPoolAllocation(false);
+      setAdminFeeOverridePct(null);
       // Reset debit order state
       setDoBankName("");
       setDoBranchCode("");
