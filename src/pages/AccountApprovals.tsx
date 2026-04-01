@@ -1711,6 +1711,11 @@ const AccountApprovals = () => {
                             <AccordionContent className="pb-3">
                               <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground space-y-1">
+                                  {(entry.contraGls || []).length > 0 && (
+                                    <p className="break-words">Contra GL: <span className="text-foreground/90">
+                                      {(entry.contraGls as any[]).map((g: any) => `${g.code} ${g.name} (${g.gl_type})`).join(", ")}
+                                    </span></p>
+                                  )}
                                   <p className="break-words">Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span></p>
                                   <p className="break-words">Submitted by: <span className="text-foreground/90">{getLedgerSubmitterName(entry)}</span></p>
                                 </div>
