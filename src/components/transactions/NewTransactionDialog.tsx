@@ -150,6 +150,7 @@ const NewTransactionDialog = ({
       setWithdrawalPoolInputs({});
       setLoanRepaymentOnly(false);
       setLoanRepaymentAmount("__reset__");
+      setNoPoolAllocation(false);
       // Reset debit order state
       setDoBankName("");
       setDoBranchCode("");
