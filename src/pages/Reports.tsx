@@ -248,7 +248,8 @@ const Reports = () => {
       const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
       // Legacy entries are stored with correct Dr/Cr sides → straight posting.
       // Native bank and loan entries are also straight. Native non-bank entries use contra convention.
-      const isStraightPosting = isLegacy || Boolean(r.is_bank) || isLoanEntry;
+      const isBankContra = (r.entry_type as string) === "bank_contra";
+      const isStraightPosting = isLegacy || Boolean(r.is_bank) || isLoanEntry || isBankContra;
 
       const exclVat = Number(r.amount_excl_vat || 0);
       const dr = Number(r.debit || 0);
