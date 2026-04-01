@@ -175,7 +175,7 @@ export function GlAccountSelector({ glAccounts, value, onChange, allowCreate = t
         glAccounts={glAccounts}
         tenantId={currentTenant?.id || ""}
         onCreated={(gl) => {
-          queryClient.invalidateQueries({ queryKey: ["gl_accounts"] });
+          queryClient.invalidateQueries({ predicate: (query) => typeof query.queryKey[0] === 'string' && (query.queryKey[0] as string).startsWith('gl_accounts') });
           onChange(gl.id, gl);
         }}
       />
