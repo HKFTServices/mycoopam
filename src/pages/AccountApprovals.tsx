@@ -24,6 +24,7 @@ import { postWithdrawalApproval } from "@/lib/postWithdrawalApproval";
 import { postSwitchApproval } from "@/lib/postSwitchApproval";
 import { postTransferApproval } from "@/lib/postTransferApproval";
 import { postAdminStockApproval } from "@/lib/postAdminStockApproval";
+import { clearGroupNotifications } from "@/lib/clearTransactionNotifications";
 import AdminStockReviewDialog from "@/components/approvals/AdminStockReviewDialog";
 import StockDocumentActions from "@/components/stock/StockDocumentActions";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -341,10 +342,15 @@ const AccountApprovals = () => {
         ? "Switch approved — units redeemed and reinvested"
         : "Transaction approved successfully";
       toast.success(msg);
+      // Clean up related notifications
+      const allIds = [group.primary.id, ...group.siblings.map((s: any) => s.id)];
+      if (currentTenant) clearGroupNotifications(currentTenant.id, allIds);
       queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
       queryClient.invalidateQueries({ queryKey: ["member_pool_holdings"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewWithdrawalGroup(null);
       setReviewTxnGroup(null);
       setReviewSwitchGroup(null);
@@ -369,12 +375,16 @@ const AccountApprovals = () => {
 
       await postWithdrawalApproval(group, currentTenant.id, currentUser.id, true, popFilePath, popFileName);
     },
-    onSuccess: () => {
+    onSuccess: (_, { group }) => {
       toast.success("Payout confirmed — all ledger entries posted");
+      const allIds = [group.primary.id, ...group.siblings.map((s: any) => s.id)];
+      if (currentTenant) clearGroupNotifications(currentTenant.id, allIds);
       queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       queryClient.invalidateQueries({ queryKey: ["member_pool_holdings"] });
       queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewWithdrawalGroup(null);
     },
     onError: (err: any) => toast.error(err.message || "Failed to confirm payout"),
@@ -388,10 +398,13 @@ const AccountApprovals = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, { ids }) => {
       toast.success("Transaction declined");
+      if (currentTenant) clearGroupNotifications(currentTenant.id, ids);
       queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewTxnGroup(null);
       setReviewSwitchGroup(null);
       setReviewWithdrawalGroup(null);
@@ -633,10 +646,13 @@ const AccountApprovals = () => {
       if (!currentUser) throw new Error("No user");
       await postAdminStockApproval(txnId, currentTenant!.id, currentUser.id);
     },
-    onSuccess: () => {
+    onSuccess: (_, txnId) => {
       toast.success("Stock transaction approved — ledger entries posted");
+      if (currentTenant) clearGroupNotifications(currentTenant.id, [txnId]);
       queryClient.invalidateQueries({ queryKey: ["admin_stock_transactions"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
       setReviewAdminStock(null);
     },
     onError: (err: any) => toast.error(err.message || "Approval failed"),
@@ -2058,10 +2074,14 @@ const AccountApprovals = () => {
             onApprove={async (group) => {
               try {
                 await postTransferApproval(group, currentTenant.id, currentUser.id);
+                const allIds = [group.primary.id, ...group.siblings.map((s: any) => s.id)];
+                clearGroupNotifications(currentTenant.id, allIds);
                 setReviewTransferTxnId(null);
                 queryClient.invalidateQueries({ queryKey: ["pending_transaction_approvals"] });
                 queryClient.invalidateQueries({ queryKey: ["member_pool_holdings"] });
                 queryClient.invalidateQueries({ queryKey: ["member_transactions"] });
+                queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                queryClient.invalidateQueries({ queryKey: ["notifications_unread_count"] });
                 toast.success("Transfer approved — units moved to recipient");
               } catch (err: any) {
                 toast.error(err.message || "Failed to approve transfer");
