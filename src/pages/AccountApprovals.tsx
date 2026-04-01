@@ -762,6 +762,22 @@ const AccountApprovals = () => {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
+      // Fetch child entries to find contra GL accounts
+      const parentIds = (data || []).map((e: any) => e.id);
+      let childrenMap: Record<string, any[]> = {};
+      if (parentIds.length > 0) {
+        const { data: children } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("parent_id, gl_account_id, gl_accounts(name, code, gl_type)")
+          .in("parent_id", parentIds)
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true);
+        for (const c of (children || [])) {
+          if (!childrenMap[c.parent_id]) childrenMap[c.parent_id] = [];
+          childrenMap[c.parent_id].push(c);
+        }
+      }
+
       // Fetch submitter profiles separately (no FK from posted_by to profiles)
       const posterIds = [...new Set((data || []).map((e: any) => e.posted_by).filter(Boolean))];
       let profilesMap: Record<string, any> = {};
@@ -774,8 +790,21 @@ const AccountApprovals = () => {
           profilesMap[p.user_id] = p;
         }
       }
-      return (data || []).map((e: any) => ({ ...e, profiles: profilesMap[e.posted_by] || null }));
-      return data ?? [];
+      return (data || []).map((e: any) => {
+        // Find contra GL accounts from children (GL accounts different from parent)
+        const children = childrenMap[e.id] || [];
+        const contraGls = children
+          .filter((c: any) => c.gl_account_id && c.gl_account_id !== e.gl_account_id && c.gl_accounts)
+          .map((c: any) => c.gl_accounts);
+        // Deduplicate
+        const seen = new Set<string>();
+        const uniqueContraGls = contraGls.filter((g: any) => {
+          if (seen.has(g.code)) return false;
+          seen.add(g.code);
+          return true;
+        });
+        return { ...e, profiles: profilesMap[e.posted_by] || null, contraGls: uniqueContraGls };
+      });
     },
     enabled: !!currentTenant,
   });
@@ -1682,6 +1711,11 @@ const AccountApprovals = () => {
                             <AccordionContent className="pb-3">
                               <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground space-y-1">
+                                  {(entry.contraGls || []).length > 0 && (
+                                    <p className="break-words">Contra GL: <span className="text-foreground/90">
+                                      {(entry.contraGls as any[]).map((g: any) => `${g.code} ${g.name} (${g.gl_type})`).join(", ")}
+                                    </span></p>
+                                  )}
                                   <p className="break-words">Control: <span className="text-foreground/90">{entry.control_accounts?.name || "—"}</span></p>
                                   <p className="break-words">Submitted by: <span className="text-foreground/90">{getLedgerSubmitterName(entry)}</span></p>
                                 </div>
@@ -1711,6 +1745,7 @@ const AccountApprovals = () => {
                           <TableHead>Date</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>GL Account</TableHead>
+                          <TableHead>Contra GL</TableHead>
                           <TableHead>Control Account</TableHead>
                           <TableHead>Submitted By</TableHead>
                           <TableHead className="text-right">Debit (+)</TableHead>
@@ -1727,6 +1762,17 @@ const AccountApprovals = () => {
                             <TableCell className="text-sm">
                               <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
                               {entry.gl_accounts?.name || entry.description || "—"}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {(entry.contraGls || []).length > 0
+                                ? (entry.contraGls as any[]).map((g: any, i: number) => (
+                                    <span key={i} className="block">
+                                      <span className="font-mono text-xs text-muted-foreground mr-1">{g.code}</span>
+                                      {g.name}
+                                      <Badge variant="outline" className="ml-1 text-[9px] h-4 capitalize">{g.gl_type}</Badge>
+                                    </span>
+                                  ))
+                                : <span className="text-muted-foreground">—</span>}
                             </TableCell>
                             <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getLedgerSubmitterName(entry)}</TableCell>
