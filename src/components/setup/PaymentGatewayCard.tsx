@@ -29,10 +29,6 @@ interface GatewayForm {
   api_key_public: string;
   merchant_id: string;
   gateway_mode: string;
-  gateway_fee_type: string;
-  gateway_fee_percentage: number;
-  gateway_fee_fixed: number;
-  gateway_fee_passed_to: string;
   notes: string;
 }
 
@@ -43,10 +39,6 @@ const emptyForm: GatewayForm = {
   api_key_public: "",
   merchant_id: "",
   gateway_mode: "test",
-  gateway_fee_type: "percentage",
-  gateway_fee_percentage: 0,
-  gateway_fee_fixed: 0,
-  gateway_fee_passed_to: "member",
   notes: "",
 };
 
@@ -71,7 +63,6 @@ const PaymentGatewayCard = () => {
     enabled: !!currentTenant,
   });
 
-  // Sync form when gateway data loads/changes
   const gatewayId = gateway?.id;
   useState(() => {});
   if (gateway && gatewayId !== form.id) {
@@ -82,10 +73,6 @@ const PaymentGatewayCard = () => {
       api_key_public: gateway.api_key_public ?? "",
       merchant_id: gateway.merchant_id ?? "",
       gateway_mode: gateway.gateway_mode ?? "test",
-      gateway_fee_type: gateway.gateway_fee_type ?? "percentage",
-      gateway_fee_percentage: gateway.gateway_fee_percentage ?? 0,
-      gateway_fee_fixed: gateway.gateway_fee_fixed ?? 0,
-      gateway_fee_passed_to: gateway.gateway_fee_passed_to ?? "member",
       notes: gateway.notes ?? "",
     });
   }
@@ -102,10 +89,6 @@ const PaymentGatewayCard = () => {
         api_key_public: form.api_key_public || null,
         merchant_id: form.merchant_id || null,
         gateway_mode: form.gateway_mode,
-        gateway_fee_type: form.gateway_fee_type,
-        gateway_fee_percentage: form.gateway_fee_percentage,
-        gateway_fee_fixed: form.gateway_fee_fixed,
-        gateway_fee_passed_to: form.gateway_fee_passed_to,
         notes: form.notes || null,
       };
       if (form.id) {
@@ -151,7 +134,6 @@ const PaymentGatewayCard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Status Banner */}
           {!isConfigComplete && (
             <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
@@ -171,7 +153,6 @@ const PaymentGatewayCard = () => {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Gateway Provider */}
             <div className="space-y-2">
               <Label>Gateway Provider</Label>
               <Select value={form.gateway_name} onValueChange={(v) => setForm({ ...form, gateway_name: v })}>
@@ -184,7 +165,6 @@ const PaymentGatewayCard = () => {
               </Select>
             </div>
 
-            {/* Mode */}
             <div className="space-y-2">
               <Label>Mode</Label>
               <Select value={form.gateway_mode} onValueChange={(v) => setForm({ ...form, gateway_mode: v })}>
@@ -200,7 +180,6 @@ const PaymentGatewayCard = () => {
               </Select>
             </div>
 
-            {/* Public Key */}
             <div className="space-y-2">
               <Label>Public / Publishable Key</Label>
               <Input
@@ -210,7 +189,6 @@ const PaymentGatewayCard = () => {
               />
             </div>
 
-            {/* Merchant ID */}
             <div className="space-y-2">
               <Label>Merchant ID</Label>
               <Input
@@ -221,7 +199,6 @@ const PaymentGatewayCard = () => {
             </div>
           </div>
 
-          {/* Active toggle */}
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
               <Label className="text-sm font-medium">Enable Credit Card Payments</Label>
@@ -238,7 +215,6 @@ const PaymentGatewayCard = () => {
             />
           </div>
 
-          {/* Notes */}
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea
@@ -247,82 +223,6 @@ const PaymentGatewayCard = () => {
               placeholder="Internal notes about this gateway..."
               rows={2}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Gateway Fees */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Gateway Transaction Fees</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Define the additional fee charged for credit card transactions. This fee covers payment gateway processing costs.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Fee Type */}
-            <div className="space-y-2">
-              <Label>Fee Type</Label>
-              <Select value={form.gateway_fee_type} onValueChange={(v) => setForm({ ...form, gateway_fee_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percentage">Percentage (%)</SelectItem>
-                  <SelectItem value="fixed">Fixed Amount</SelectItem>
-                  <SelectItem value="both">Percentage + Fixed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Fee Percentage */}
-            {(form.gateway_fee_type === "percentage" || form.gateway_fee_type === "both") && (
-              <div className="space-y-2">
-                <Label>Fee Percentage (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={form.gateway_fee_percentage}
-                  onChange={(e) => setForm({ ...form, gateway_fee_percentage: parseFloat(e.target.value) || 0 })}
-                  placeholder="2.90"
-                />
-                <p className="text-xs text-muted-foreground">e.g. 2.90 for 2.9%</p>
-              </div>
-            )}
-
-            {/* Fixed Fee */}
-            {(form.gateway_fee_type === "fixed" || form.gateway_fee_type === "both") && (
-              <div className="space-y-2">
-                <Label>Fixed Fee Amount</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.gateway_fee_fixed}
-                  onChange={(e) => setForm({ ...form, gateway_fee_fixed: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.30"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Who Pays */}
-          <div className="space-y-2">
-            <Label>Gateway Fee Charged To</Label>
-            <Select value={form.gateway_fee_passed_to} onValueChange={(v) => setForm({ ...form, gateway_fee_passed_to: v })}>
-              <SelectTrigger className="w-full md:w-[320px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="member">Member (added to transaction total)</SelectItem>
-                <SelectItem value="coop">Co-operative (deducted from deposit)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {form.gateway_fee_passed_to === "member"
-                ? "The gateway fee will be added on top of the deposit amount."
-                : "The gateway fee will be deducted from the deposit before pool allocation."}
-            </p>
           </div>
 
           <div className="flex justify-end">

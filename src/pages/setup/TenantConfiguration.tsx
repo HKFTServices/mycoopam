@@ -755,7 +755,7 @@ const TenantConfiguration = () => {
             <TabsTrigger value="theme" className="gap-1.5 text-xs sm:text-sm"><Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Theme</TabsTrigger>
             <TabsTrigger value="data" className="gap-1.5 text-xs sm:text-sm"><Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Data</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5 text-xs sm:text-sm"><Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Referral Program</span><span className="sm:hidden">Referral</span></TabsTrigger>
-            <TabsTrigger value="payments" className="gap-1.5 text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Payment Gateway</span><span className="sm:hidden">Payments</span></TabsTrigger>
+            <TabsTrigger value="payments" className="gap-1.5 text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Payment Methods</span><span className="sm:hidden">Payments</span></TabsTrigger>
           </TabsList>
         </div>
 
@@ -1171,7 +1171,7 @@ const TenantConfiguration = () => {
           <ReferralProgramCard />
         </TabsContent>
 
-        {/* ── Payment Gateway ── */}
+        {/* ── Payment Methods ── */}
         <TabsContent value="payments" className="space-y-4">
           <PaymentGatewayCard />
         </TabsContent>
