@@ -309,35 +309,9 @@ const LedgerEntries = () => {
     enabled: !!user && !!currentTenant,
   });
 
-  const { data: canPostLedger = false, isLoading: ledgerPermissionLoading } = useQuery({
-    queryKey: ["ledger_post_permission", user?.id, currentTenant?.id],
-    queryFn: async () => {
-      if (!user || !currentTenant) return false;
-
-      const roleNames = (userRoles ?? []).map((r: any) => r.role);
-      if (roleNames.includes("super_admin")) return true;
-
-      const { data: allowedPerms } = await (supabase as any)
-        .from("permissions")
-        .select("role")
-        .eq("tenant_id", currentTenant.id)
-        .eq("resource", "ledger")
-        .eq("action", "post")
-        .eq("is_allowed", true);
-
-      return (allowedPerms ?? []).some((perm: any) => roleNames.includes(perm.role));
-    },
-    enabled: !!user && !!currentTenant && !rolesLoading,
-  });
-
   const isAdmin = userRoles.some((r: any) =>
     r.role === "super_admin" || (r.role === "tenant_admin" && (!r.tenant_id || r.tenant_id === currentTenant?.id))
   );
-  const isApprover = userRoles.some((r: any) =>
-    ["super_admin", "tenant_admin", "manager"].includes(r.role) &&
-    (!r.tenant_id || r.tenant_id === currentTenant?.id || r.role === "super_admin")
-  );
-  const canReviewApprovals = !rolesLoading && !ledgerPermissionLoading && (isApprover || canPostLedger);
 
   // ── Build ledger preview lines ──
   const buildBankPreview = (form: typeof bankForm) => {
