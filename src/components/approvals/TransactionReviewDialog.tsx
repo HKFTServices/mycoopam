@@ -893,7 +893,7 @@ const TransactionReviewDialog = ({
                       <AlertTriangle className="h-3.5 w-3.5" />
                       No price
                     </span>
-                  ) : fmt(effectiveUnitPrice)}
+                  ) : fmtUP(effectiveUnitPrice)}
                 </p>
               </div>
               <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
