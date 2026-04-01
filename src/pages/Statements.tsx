@@ -885,10 +885,14 @@ export default function Statements() {
           {isAdmin && docType === "statement" && (
             <div className="space-y-3 border rounded-md p-3 bg-muted/20 max-w-lg">
               <p className="text-sm font-medium">Email Options</p>
-              <div className="flex items-center gap-2">
-                <Checkbox id="cc-admin" checked={ccAdmin} onCheckedChange={(v) => setCcAdmin(!!v)} />
-                <label htmlFor="cc-admin" className="text-sm cursor-pointer">CC Admin ({user?.email})</label>
-              </div>
+              {tenantConfig?.approval_cc_email?.trim() ? (
+                <div className="flex items-center gap-2">
+                  <Checkbox id="cc-admin" checked={ccAdmin} onCheckedChange={(v) => setCcAdmin(!!v)} />
+                  <label htmlFor="cc-admin" className="text-sm cursor-pointer">CC Admin ({tenantConfig.approval_cc_email.trim()})</label>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No admin CC email configured. Set one in Tenant Configuration → Email SMTP.</p>
+              )}
               <div className="space-y-2">
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
