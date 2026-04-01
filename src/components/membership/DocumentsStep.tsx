@@ -278,11 +278,63 @@ const DocumentsStep = ({ data, update, tenantId, entityId }: DocumentsStepProps)
   };
 
   const handleViewDocument = async (filePath: string) => {
-    const { data: signedUrl } = await supabase.storage
-      .from("member-documents")
-      .createSignedUrl(filePath, 300);
-    if (signedUrl?.signedUrl) {
+    setActionLoading(filePath + "_view");
+    try {
+      const { data: signedUrl, error } = await supabase.storage
+        .from("member-documents")
+        .createSignedUrl(filePath, 300);
+      if (error || !signedUrl?.signedUrl) {
+        toast.error("Could not open document — the file may not be available in storage.");
+        return;
+      }
       window.open(signedUrl.signedUrl, "_blank");
+    } catch {
+      toast.error("Failed to open document");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDownloadDocument = async (filePath: string, fileName: string) => {
+    setActionLoading(filePath + "_download");
+    try {
+      const { data: blob, error } = await supabase.storage
+        .from("member-documents")
+        .download(filePath);
+      if (error || !blob) {
+        toast.error("Could not download — the file may not be available in storage.");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download document");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string, filePath: string) => {
+    try {
+      // Soft delete in DB
+      await (supabase as any)
+        .from("entity_documents")
+        .update({ is_deleted: true, is_active: false })
+        .eq("id", docId);
+      // Try to delete from storage (ignore errors for legacy files)
+      await supabase.storage.from("member-documents").remove([filePath]);
+      toast.success("Document deleted");
+      queryClient.invalidateQueries({ queryKey: ["entity_documents", tenantId, entityId] });
+    } catch {
+      toast.error("Failed to delete document");
+    } finally {
+      setDeletingDocId(null);
     }
   };
 
