@@ -472,6 +472,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const filteredDailyPrices = useMemo(() => filterItems(dailyPricesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredOtherTransactions = useMemo(() => filterItems(otherTransactionsNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
   const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
   const filteredGlobalSetup = useMemo(() => filterItems(globalSetupNavItems, normalizedQuery), [normalizedQuery]);
