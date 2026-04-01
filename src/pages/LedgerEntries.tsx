@@ -28,6 +28,7 @@ import {
 import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays, Clock, Check, X, Edit3, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
+import { GlAccountSelector } from "@/components/ledger/GlAccountSelector";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
 type ControlAccount = { id: string; name: string; account_type: string };
