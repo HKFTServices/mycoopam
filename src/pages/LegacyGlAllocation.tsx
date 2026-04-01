@@ -461,7 +461,7 @@ const LegacyGlAllocation = () => {
       console.log("CFT 12497 group:", check12497.map(e => `${e.cft_id} (parent=${e.parent_id}, entry=${e.entry_type_id}, DR=${e.debit}, CR=${e.credit})`));
 
       setCftEntries(entries);
-      toast.success(`Loaded ${entries.length} entries from 1 Mar 2025`);
+      toast.success(`Loaded ${entries?.length ?? 0} entries (${allRows.length} raw rows, ${allParsed.length} parsed) from 1 Mar 2025`);
     } catch (err: any) {
       toast.error("Failed to load: " + err.message);
     } finally {
