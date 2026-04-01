@@ -1135,7 +1135,7 @@ const NewTransactionDialog = ({
   // grossAmount = amount + fees (total units redeemed from pool)
   // netPayoutAmount = amount (what member actually receives)
   const withdrawalGrossAmount = amountNum + feeCalculation.totalFee;
-  const netAmount = isWithdrawal ? amountNum : amountNum - feeCalculation.totalFee;
+  const netAmount = isWithdrawal ? amountNum : amountNum - (isMembershipOnlyDeposit || noPoolAllocation ? 0 : feeCalculation.totalFee);
   const withdrawalTotalUnits = currentUnitPrice > 0 ? withdrawalGrossAmount / currentUnitPrice : 0;
   const unitsToTransact = isWithdrawal
     ? withdrawalTotalUnits
