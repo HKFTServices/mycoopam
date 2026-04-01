@@ -1541,46 +1541,8 @@ const LedgerEntries = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Decline Dialog ── */}
-      <Dialog open={!!reviewEntry} onOpenChange={(o) => { if (!o) { setReviewEntry(null); setDeclineReason(""); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive"><X className="h-5 w-5" /> Decline Entry</DialogTitle>
-            <DialogDescription>
-              Provide a reason for declining this {reviewEntry?.is_bank ? "bank" : "journal"} entry.
-            </DialogDescription>
-          </DialogHeader>
-          {reviewEntry && (
-            <div className="space-y-4">
-              <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date</span>
-                  <span>{reviewEntry.transaction_date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">GL Account</span>
-                  <span className="font-mono text-xs">{reviewEntry.gl_accounts?.code} — {reviewEntry.gl_accounts?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="font-semibold">{formatCurrency(reviewEntry.debit || reviewEntry.credit)}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Reason for declining *</Label>
-                <Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} placeholder="Explain why this entry is being declined..." rows={3} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setReviewEntry(null); setDeclineReason(""); }}>Cancel</Button>
-            <Button variant="destructive" disabled={!declineReason.trim() || declineMutation.isPending}
-              onClick={() => reviewEntry && declineMutation.mutate({ entryId: reviewEntry.id, reason: declineReason })}>
-              {declineMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Declining…</> : "Decline Entry"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* ── Pay Commission Dialog ── */}
       <AlertDialog open={!!payCommDialog} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
