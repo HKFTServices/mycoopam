@@ -628,6 +628,7 @@ export async function postTransferApproval(
       sendTransactionEmail({
         tenantId,
         userId: receiverUserId,
+        entityAccountId: toAccountId,
         applicationEvent: "transaction_confirmation",
         transactionData: {
           transaction_date: txnDate,

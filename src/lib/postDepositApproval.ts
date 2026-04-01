@@ -907,6 +907,7 @@ export async function postDepositApproval(
   sendTransactionEmail({
     tenantId,
     userId,
+    entityAccountId,
     applicationEvent: emailEvent,
     transactionData: {
       transaction_date: txnDate,
