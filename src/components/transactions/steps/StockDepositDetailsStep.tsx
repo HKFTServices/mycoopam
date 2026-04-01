@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -488,8 +489,8 @@ const StockDepositDetailsStep = ({
 
           {currentUnitPriceBuy > 0 && netForPool > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Units @ {formatCurrency(currentUnitPriceBuy)}</span>
-              <span className="font-mono font-bold text-primary">{unitsAcquired.toFixed(4)}</span>
+              <span>Units @ {formatUnitPrice(currentUnitPriceBuy)}</span>
+              <span className="font-mono font-bold text-primary">{unitsAcquired.toFixed(5)}</span>
             </div>
           )}
 

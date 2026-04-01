@@ -15,6 +15,8 @@ import {
 
 const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUP = (v: number) =>
+  `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`;
 
 interface TransferReviewDialogProps {
   open: boolean;
@@ -113,12 +115,12 @@ const TransferReviewDialog = ({
               </div>
             ))}
             <div className="flex justify-between text-sm font-bold text-orange-600 dark:text-orange-400">
-              <span>Gross Redeemed (UP Sell {fmt(unitPriceSell)})</span>
+              <span>Gross Redeemed (UP Sell {fmtUP(unitPriceSell)})</span>
               <span className="font-mono">{fmt(grossRedemption)}</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Units Redeemed</span>
-              <span className="font-mono">{unitsRedeemed.toFixed(4)}</span>
+              <span className="font-mono">{unitsRedeemed.toFixed(5)}</span>
             </div>
           </div>
 
@@ -148,7 +150,7 @@ const TransferReviewDialog = ({
             <Separator />
             <div className="flex justify-between text-sm font-bold text-emerald-600 dark:text-emerald-400">
               <span>Net Units Credited</span>
-              <span className="font-mono">{unitsReceived.toFixed(4)}</span>
+              <span className="font-mono">{unitsReceived.toFixed(5)}</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Net Value (at UP Sell)</span>

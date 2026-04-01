@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,7 +134,7 @@ const WithdrawalDetailsStep = ({
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-sm">{entry.poolName}</span>
                 <Badge variant="outline" className="text-[10px] font-mono">
-                  {entry.holdingUnits.toFixed(4)} units ≈ {formatCurrency(entry.holdingValue)}
+                  {entry.holdingUnits.toFixed(5)} units ≈ {formatCurrency(entry.holdingValue)}
                 </Badge>
               </div>
 
@@ -149,7 +150,7 @@ const WithdrawalDetailsStep = ({
                     onPoolEntryChange(entry.poolId, {
                       useAllUnits: checked,
                       amountInput: checked ? entry.holdingValue.toFixed(2) : "",
-                      unitsInput: checked ? entry.holdingUnits.toFixed(4) : "",
+                      unitsInput: checked ? entry.holdingUnits.toFixed(5) : "",
                     })
                   }
                 />
@@ -211,7 +212,7 @@ const WithdrawalDetailsStep = ({
                       {entry.unitPrice > 0 && parseFloat(entry.unitsInput) > 0 && (
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Info className="h-3 w-3" />
-                          ≈ {formatCurrency(parseFloat(entry.unitsInput) * entry.unitPrice)} gross at {formatCurrency(entry.unitPrice)}/unit
+                          ≈ {formatCurrency(parseFloat(entry.unitsInput) * entry.unitPrice)} gross at {formatUnitPrice(entry.unitPrice)}/unit
                         </p>
                       )}
                     </div>
@@ -235,8 +236,8 @@ const WithdrawalDetailsStep = ({
                     <span className="font-bold text-primary text-right">{formatCurrency(summary.grossAmount)}</span>
                     <span>Available</span>
                     <span className="text-right">{formatCurrency(summary.holdingValue)}</span>
-                    <span>Units @ {formatCurrency(summary.unitPrice)}</span>
-                    <span className="font-mono text-right">{summary.units.toFixed(4)}</span>
+                    <span>Units @ {formatUnitPrice(summary.unitPrice)}</span>
+                    <span className="font-mono text-right">{summary.units.toFixed(5)}</span>
                   </div>
                   {isOver && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive mt-1">

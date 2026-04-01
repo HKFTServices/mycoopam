@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -339,11 +340,11 @@ const TransferDetailsStep = ({
         </p>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Available Units</span>
-          <span className="font-semibold font-mono">{currentHolding.toFixed(4)}</span>
+          <span className="font-semibold font-mono">{currentHolding.toFixed(5)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Unit Price (UP Sell)</span>
-          <span className="font-semibold font-mono">{formatCurrency(unitPriceSell)}</span>
+          <span className="font-semibold font-mono">{formatUnitPrice(unitPriceSell)}</span>
         </div>
         <div className="flex justify-between text-sm font-bold text-orange-600 dark:text-orange-400">
           <span>Available Value</span>
@@ -405,16 +406,16 @@ const TransferDetailsStep = ({
                 <span className="font-mono">{formatCurrency(grossRedemption)}</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Gross Units Redeemed (UP Sell {formatCurrency(unitPriceSell)})</span>
-                <span className="font-mono">{grossUnitsRedeemed.toFixed(4)} units</span>
+                <span>Gross Units Redeemed (UP Sell {formatUnitPrice(unitPriceSell)})</span>
+                <span className="font-mono">{grossUnitsRedeemed.toFixed(5)} units</span>
               </div>
               <Separator />
               <div className="flex justify-between text-sm font-bold text-primary">
                 <span>Net Units Credited to Recipient</span>
-                <span className="font-mono">{netUnitsReceived.toFixed(4)} units</span>
+                <span className="font-mono">{netUnitsReceived.toFixed(5)} units</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Net Value @ UP Buy {formatCurrency(unitPriceBuy)}</span>
+                <span>Net Value @ UP Buy {formatUnitPrice(unitPriceBuy)}</span>
                 <span className="font-mono">{formatCurrency(netTransferAmount)}</span>
               </div>
             </div>

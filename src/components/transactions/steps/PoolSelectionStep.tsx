@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -111,15 +112,15 @@ const PoolSelectionStep = ({
                     <div className="flex items-start justify-between gap-2 min-w-0">
                       <p className="font-semibold text-sm truncate">{p.name}</p>
                       <Badge variant="outline" className="text-[10px] shrink-0 font-mono hidden sm:inline-flex">
-                        {formatCurrency(unitPrice)}/u
+                        {formatUnitPrice(unitPrice)}/u
                       </Badge>
                     </div>
                     {poolUnits > 0
-                      ? <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(4)} units ≈ {formatCurrency(availableValue)}</p>
+                      ? <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(5)} units ≈ {formatCurrency(availableValue)}</p>
                       : <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertCircle className="h-3 w-3" />No holdings</p>
                     }
                     <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
-                      {formatCurrency(unitPrice)}/u
+                      {formatUnitPrice(unitPrice)}/u
                     </p>
                   </div>
                 </div>
@@ -278,14 +279,14 @@ const PoolSelectionStep = ({
                     <div className="flex items-start justify-between gap-2 min-w-0">
                       <p className="font-semibold text-sm truncate">{p.name}</p>
                       <Badge variant="outline" className="text-[10px] shrink-0 font-mono hidden sm:inline-flex">
-                        {formatCurrency(unitPrice)}/u
+                        {formatUnitPrice(unitPrice)}/u
                       </Badge>
                     </div>
                     {p.description ? (
                       <p className="text-xs text-muted-foreground break-words sm:truncate">{p.description}</p>
                     ) : null}
                     <p className="text-[11px] text-muted-foreground font-mono sm:hidden mt-0.5">
-                      {formatCurrency(unitPrice)}/u
+                      {formatUnitPrice(unitPrice)}/u
                     </p>
                   </div>
                 </div>
@@ -399,7 +400,7 @@ const PoolSelectionStep = ({
                 </div>
                 {(isTransfer || isSwitch) && accountHoldings.length > 0 ? (
                   hasUnits ? (
-                    <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(4)} units held</p>
+                    <p className="text-xs text-muted-foreground break-words sm:truncate">{poolUnits.toFixed(5)} units held</p>
                   ) : (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" /> No holdings

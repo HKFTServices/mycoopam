@@ -1,3 +1,4 @@
+import { formatUnitPrice } from "@/lib/formatCurrency";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -299,7 +300,7 @@ const DepositDetailsStep = ({
         )}
         {isWithdrawal && currentHolding > 0 && (
           <p className="text-xs text-muted-foreground">
-            Available: {currentHolding.toFixed(4)} units ({formatCurrency(currentHolding * currentUnitPrice)})
+            Available: {currentHolding.toFixed(5)} units ({formatCurrency(currentHolding * currentUnitPrice)})
           </p>
         )}
       </div>
@@ -567,7 +568,7 @@ const DepositDetailsStep = ({
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{formatCurrency(s.netAmount)}</span>
-                        <span className="font-mono font-bold text-primary">{s.units.toFixed(4)} units</span>
+                        <span className="font-mono font-bold text-primary">{s.units.toFixed(5)} units</span>
                       </div>
                     </div>
                   ))}
@@ -589,8 +590,8 @@ const DepositDetailsStep = ({
               </div>
               {currentUnitPrice > 0 && (
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Units @ {formatCurrency(currentUnitPrice)}</span>
-                  <span className="font-mono font-bold">{Math.abs(unitsToTransact).toFixed(4)}</span>
+                  <span>Units @ {formatUnitPrice(currentUnitPrice)}</span>
+                  <span className="font-mono font-bold">{Math.abs(unitsToTransact).toFixed(5)}</span>
                 </div>
               )}
             </>
