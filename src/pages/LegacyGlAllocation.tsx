@@ -763,28 +763,33 @@ const LegacyGlAllocation = () => {
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
       }
-      // ── Withdrawal fee entries (1936 Courier, 1940 Admin) — DR Admin Cash Control + CR Fee Income GL ──
-      // Fees paid from units: the pool redemption already CR'd the pool cash control,
-      // so the fee flows INTO admin cash (debit) and is recognized as income (credit).
+      // ── Withdrawal fee entries (1936 Courier, 1940 Admin) ──
+      // Legacy has paired entries per fee type (one CR, one DR). We only process the
+      // debit entry to avoid duplication. The fee is paid by redeeming units, so:
+      //   1. DR Member Interest (2020) — units redeemed to pay the fee
+      //   2. CR Fee Income GL (4000/4040) — income recognition
+      //   3. DR Admin Cash Control — cash flowing into admin
       else if (isWithdrawal && withdrawalFeeEntryTypes.has(entry.entry_type_id)) {
+        // Skip the credit-side duplicate — only process the debit entry
+        if (entry.credit > 0 && entry.debit === 0) continue;
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
         const feeGlId = entry.entry_type_id === "1936"
           ? "7c3ca82b-ef31-406e-91a8-20ddc4306b0f" // 4040 Courier Fee Income
           : "6cf12752-95ba-499c-a86c-3c17fe2407f5"; // 4000 Administration Income
         const feeGlLabel = entry.entry_type_id === "1936" ? "4040 Courier Fee Income" : "4000 Administration Income";
-        // 1. DR Admin Cash Control — fee flows into admin
+        // 1. DR Member Interest GL — units redeemed to pay the fee
         proposed.push({
-          description: `${mapping.entry_type_name ?? "Fee"} — ${poolName}`,
+          description: `Member Interest — ${mapping.entry_type_name ?? "Fee"}`,
           debit: amount, credit: 0,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
+          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
+          control_account_id: null, control_account_label: "",
           pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "withdrawal_fee",
+          transaction_date: txDate, entry_type: "member_interest_dr",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
-        // 2. CR Fee Income GL (income is always credited)
+        // 2. CR Fee Income GL (income recognition)
         proposed.push({
           description: `${mapping.entry_type_name ?? "Fee"} Income`,
           debit: 0, credit: amount,
@@ -794,6 +799,19 @@ const LegacyGlAllocation = () => {
           transaction_date: txDate, entry_type: "fee_income_cr",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
+        // 3. DR Admin Cash Control — fee flows into admin
+        const adminCa = controlAccounts?.find(c => c.account_type === "cash" && c.name?.toLowerCase().includes("admin"));
+        if (adminCa) {
+          proposed.push({
+            description: `${mapping.entry_type_name ?? "Fee"} — Admin`,
+            debit: amount, credit: 0,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: adminCa.new_id, control_account_label: adminCa.name ?? "Admin Cash",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "withdrawal_fee",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
       }
       // ── Switching (1955) — CR source pool cash control + DR dest pool cash control ──
       // Each switch entry has debit on dest and credit on source
