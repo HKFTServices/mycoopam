@@ -1171,7 +1171,7 @@ const TenantConfiguration = () => {
           <ReferralProgramCard />
         </TabsContent>
 
-        {/* ── Payment Gateway ── */}
+        {/* ── Payment Methods ── */}
         <TabsContent value="payments" className="space-y-4">
           <PaymentGatewayCard />
         </TabsContent>

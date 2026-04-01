@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
@@ -6,8 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Loader2, Save, Wallet, Landmark, Repeat2, CreditCard, Banknote, Bitcoin } from "lucide-react";
+import { Loader2, Wallet, Landmark, Repeat2, CreditCard, Banknote, Bitcoin } from "lucide-react";
 import { toast } from "sonner";
 
 const METHOD_ICONS: Record<string, React.ElementType> = {
@@ -17,6 +17,14 @@ const METHOD_ICONS: Record<string, React.ElementType> = {
   crypto: Bitcoin,
   cash: Banknote,
 };
+
+const DEFAULT_METHODS = [
+  { method_code: "eft", method_label: "EFT (Bank Transfer)", display_order: 1 },
+  { method_code: "debit_order", method_label: "Debit Order", display_order: 2 },
+  { method_code: "card", method_label: "Card Payment", display_order: 3 },
+  { method_code: "crypto", method_label: "Crypto Payment", display_order: 4 },
+  { method_code: "cash", method_label: "Cash Deposit", display_order: 5 },
+];
 
 interface PaymentMethod {
   id: string;
@@ -31,7 +39,7 @@ const PaymentMethodsSection = () => {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
 
-  const { data: methods, isLoading } = useQuery({
+  const { data: methods, isLoading, isFetched } = useQuery({
     queryKey: ["tenant_payment_methods", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
@@ -45,6 +53,34 @@ const PaymentMethodsSection = () => {
     },
     enabled: !!currentTenant,
   });
+
+  // Auto-seed default methods if none exist
+  const seedMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentTenant) throw new Error("No tenant");
+      const rows = DEFAULT_METHODS.map((m) => ({
+        tenant_id: currentTenant.id,
+        method_code: m.method_code,
+        method_label: m.method_label,
+        is_enabled: m.method_code === "eft", // EFT enabled by default
+        display_order: m.display_order,
+      }));
+      const { error } = await (supabase as any)
+        .from("tenant_payment_methods")
+        .insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenant_payment_methods"] });
+    },
+    onError: (e: any) => toast.error("Failed to create default methods: " + e.message),
+  });
+
+  useEffect(() => {
+    if (isFetched && methods && methods.length === 0 && !seedMutation.isPending && !seedMutation.isSuccess) {
+      seedMutation.mutate();
+    }
+  }, [isFetched, methods]);
 
   const { data: feeTypes } = useQuery({
     queryKey: ["transaction_fee_types", currentTenant?.id],
@@ -92,7 +128,7 @@ const PaymentMethodsSection = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  if (isLoading) {
+  if (isLoading || seedMutation.isPending) {
     return (
       <Card>
         <CardContent className="flex justify-center py-8">
@@ -103,21 +139,7 @@ const PaymentMethodsSection = () => {
   }
 
   if (!methods || methods.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Deposit Payment Methods
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No payment methods configured. Please contact support to seed default methods.
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return null; // Will be seeded momentarily
   }
 
   return (
