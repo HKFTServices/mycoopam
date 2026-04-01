@@ -649,8 +649,9 @@ const LegacyGlAllocation = () => {
       else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
          for (const split of (mapping.split_rule as any).splits) {
           const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
-          // For the Share portion (gl_code 3000), output as R1 CR only — no control mirror
-          if (split.gl_code === "3000") {
+          const isJoiningShare = split.gl_code === "3000" || (split.description ?? "").toLowerCase().includes("joining share");
+          // For the Share portion, output as CR only — no control mirror or adjustment
+          if (isJoiningShare) {
             proposed.push({
               description: split.description,
               debit: 0,
