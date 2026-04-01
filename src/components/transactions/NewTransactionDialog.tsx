@@ -2014,6 +2014,9 @@ const NewTransactionDialog = ({
               }}
               onRecipientIdNumberChange={setTransferRecipientIdNumber}
               formatCurrency={formatCurrency}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
