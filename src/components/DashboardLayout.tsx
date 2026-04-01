@@ -130,10 +130,14 @@ const messagesNavItems: NavItem[] = [
   { label: "Campaign History", icon: History, path: "/dashboard/message-history" },
 ];
 
+const otherTransactionsNavItems: NavItem[] = [
+  { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
+  { label: "Journal Entries", icon: Archive, path: "/dashboard/operating-journals" },
+  { label: "Stock Transactions", icon: Package, path: "/dashboard/transactions?tab=stock" },
+];
+
 const adminOnlyNavItems: NavItem[] = [
   { label: "Users", icon: KeyRound, path: "/dashboard/users" },
-  { label: "Ledger Entries", icon: Layers, path: "/dashboard/ledger-entries" },
-  { label: "Legacy Journals", icon: Archive, path: "/dashboard/operating-journals" },
   { label: "Reports", icon: FileText, path: "/dashboard/reports" },
 ];
 
