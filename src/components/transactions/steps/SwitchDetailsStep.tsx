@@ -64,6 +64,10 @@ interface SwitchDetailsStepProps {
   formatCurrency: (v: number) => string;
   transactionDate: Date;
   onTransactionDateChange: (date: Date) => void;
+  // Admin fee override
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 const POOL_COLORS = [
