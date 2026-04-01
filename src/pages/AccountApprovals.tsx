@@ -1758,6 +1758,17 @@ const AccountApprovals = () => {
                               <span className="font-mono text-xs text-muted-foreground mr-1">{entry.gl_accounts?.code}</span>
                               {entry.gl_accounts?.name || entry.description || "—"}
                             </TableCell>
+                            <TableCell className="text-sm">
+                              {(entry.contraGls || []).length > 0
+                                ? (entry.contraGls as any[]).map((g: any, i: number) => (
+                                    <span key={i} className="block">
+                                      <span className="font-mono text-xs text-muted-foreground mr-1">{g.code}</span>
+                                      {g.name}
+                                      <Badge variant="outline" className="ml-1 text-[9px] h-4 capitalize">{g.gl_type}</Badge>
+                                    </span>
+                                  ))
+                                : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                             <TableCell className="text-sm">{entry.control_accounts?.name || "—"}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getLedgerSubmitterName(entry)}</TableCell>
                             <TableCell className="text-right text-sm font-medium">{entry.debit > 0 ? formatCurrency(entry.debit, approvalSym) : ""}</TableCell>
