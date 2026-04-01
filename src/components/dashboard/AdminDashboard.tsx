@@ -624,6 +624,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                     </DropdownMenuItem>
                   </>
                 )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => adminTour.startTour()}>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Setup Guide
