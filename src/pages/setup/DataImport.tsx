@@ -416,13 +416,31 @@ const EntityDocumentsImport = ({ tenantId }: { tenantId?: string }) => {
     currentRow.push(currentField.trim());
     if (currentRow.some(f => f !== '')) records.push(currentRow);
     
-    if (records.length < 2) return [];
-    const headers = records[0].map(h => h.replace(/^\uFEFF/, '').trim());
-    console.log("CSV headers parsed:", headers);
-    console.log("Total data rows:", records.length - 1);
-    console.log("First record keys sample:", headers.join(', '));
+    if (records.length < 1) return [];
     
-    return records.slice(1).map((vals, idx) => {
+    // Expected column order from the SQL query
+    const expectedHeaders = ['legacy_id', 'FileName', 'Description', 'DocumentDate', 'legacy_entity_id', 'legacy_document_type_id', 'DocumentId', 'IsActive', 'Bytes'];
+    
+    // Detect if first row is headers or data: if the first field looks like an ID (numeric or UUID), it's data
+    const firstField = records[0][0];
+    const looksLikeData = /^\d+$/.test(firstField) || /^[0-9a-f]{8}-/i.test(firstField);
+    
+    let headers: string[];
+    let dataRows: string[][];
+    
+    if (looksLikeData) {
+      // No header row — use expected column order
+      headers = expectedHeaders.slice(0, records[0].length);
+      dataRows = records;
+      console.log("CSV detected as headerless, using default headers:", headers);
+    } else {
+      headers = records[0].map(h => h.replace(/^\uFEFF/, '').trim());
+      dataRows = records.slice(1);
+      console.log("CSV headers parsed:", headers);
+    }
+    console.log("Total data rows:", dataRows.length);
+    
+    return dataRows.map((vals, idx) => {
       const obj: any = {};
       headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
       if (idx === 0) console.log("First record after parse:", Object.keys(obj), "legacy_id:", obj.legacy_id);
