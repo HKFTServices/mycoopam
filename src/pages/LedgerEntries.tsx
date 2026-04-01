@@ -28,6 +28,7 @@ import {
 import { Loader2, Plus, Landmark, BookOpen, DollarSign, CheckCircle2, Trash2, Building2, ShieldCheck, ShieldX, CalendarDays, Clock, Check, X, Edit3, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { MonthEndRunDialog } from "@/components/ledger/MonthEndRunDialog";
+import { sendApprovalNotification } from "@/lib/sendApprovalNotification";
 import { GlAccountSelector } from "@/components/ledger/GlAccountSelector";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
@@ -505,9 +506,21 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       setBankDialogOpen(false);
       setBankForm({ ...defaultBankForm });
       toast.success("Bank entry submitted for approval");
+      if (currentTenant) {
+        const desc = bankForm.gl_account_id ? (glAccounts.find(g => g.id === bankForm.gl_account_id)?.name || "Bank Entry") : "Bank Entry";
+        sendApprovalNotification({
+          tenantId: currentTenant.id,
+          transactionType: "Bank Entry",
+          memberName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          accountNumber: "",
+          amount: bankForm.amount,
+          transactionDate: bankForm.transaction_date,
+        });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -622,9 +635,20 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       setJournalDialogOpen(false);
       setJournalForm({ ...defaultJournalForm });
       toast.success("Journal entry submitted for approval");
+      if (currentTenant) {
+        sendApprovalNotification({
+          tenantId: currentTenant.id,
+          transactionType: "Journal Entry",
+          memberName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          accountNumber: "",
+          amount: journalForm.amount,
+          transactionDate: journalForm.transaction_date,
+        });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
