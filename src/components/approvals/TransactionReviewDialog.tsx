@@ -733,7 +733,7 @@ const TransactionReviewDialog = ({
                       </div>
                       <div>
                         <p className="text-muted-foreground">UP</p>
-                        <p className={cn("font-mono font-bold", dateChanged ? "text-primary" : "")}>{fmt(effectiveUnitPrice)}</p>
+                        <p className={cn("font-mono font-bold", dateChanged ? "text-primary" : "")}>{fmtUP(effectiveUnitPrice)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Units</p>
