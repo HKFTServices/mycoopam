@@ -1022,8 +1022,8 @@ const NewTransactionDialog = ({
   );
 
   const feeCalculation = useMemo(
-    () => calculateFees(selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate),
-    [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate]
+    () => calculateFees(selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct),
+    [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
 
   const commissionBase = isDeposit && commissionPct > 0 && !isMembershipOnlyDeposit && !noPoolAllocation ? amountAfterMembership * (commissionPct / 100) : 0;
