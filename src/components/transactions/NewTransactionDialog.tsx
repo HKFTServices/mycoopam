@@ -2043,6 +2043,9 @@ const NewTransactionDialog = ({
               formatCurrency={formatCurrency}
               currentUnitPriceBuy={currentUnitPriceBuy}
               poolName={selectedPool?.name || ""}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
