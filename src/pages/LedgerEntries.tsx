@@ -515,6 +515,7 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
       queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      queryClient.invalidateQueries({ queryKey: ["gl_accounts"] });
       setBankDialogOpen(false);
       setBankForm({ ...defaultBankForm });
       toast.success("Bank entry submitted for approval");
