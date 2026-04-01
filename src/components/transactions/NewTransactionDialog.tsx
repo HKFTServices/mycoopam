@@ -109,6 +109,8 @@ const NewTransactionDialog = ({
   const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
   const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
   const [noPoolAllocation, setNoPoolAllocation] = useState(false);
+  // Admin fee override — staff can override the admin fee percentage (null = use default from rules)
+  const [adminFeeOverridePct, setAdminFeeOverridePct] = useState<number | null>(null);
   // Debit order state
   const [doBankName, setDoBankName] = useState("");
   const [doBranchCode, setDoBranchCode] = useState("");
@@ -151,6 +153,7 @@ const NewTransactionDialog = ({
       setLoanRepaymentOnly(false);
       setLoanRepaymentAmount("__reset__");
       setNoPoolAllocation(false);
+      setAdminFeeOverridePct(null);
       // Reset debit order state
       setDoBankName("");
       setDoBranchCode("");
@@ -949,6 +952,7 @@ const NewTransactionDialog = ({
     rules: any[],
     vatRegistered: boolean,
     vat: number,
+    overridePct?: number | null,
   ) => {
     if (!txnTypeId || txnAmount <= 0) return { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] };
     const applicableRules = rules.filter((r: any) => {
@@ -963,17 +967,22 @@ const NewTransactionDialog = ({
       let fee = 0;
       let appliedPct: number | null = null;
       if (rule.calculation_method === "percentage") {
-        appliedPct = Number(rule.percentage);
+        appliedPct = overridePct != null ? overridePct : Number(rule.percentage);
         fee = txnAmount * (appliedPct / 100);
       } else if (rule.calculation_method === "fixed_amount") {
         fee = Number(rule.fixed_amount);
       } else if (rule.calculation_method === "sliding_scale") {
-        const tiers = (rule.transaction_fee_tiers || []).sort((a: any, b: any) => Number(a.min_amount) - Number(b.min_amount));
-        for (const tier of tiers) {
-          if (txnAmount >= Number(tier.min_amount) && txnAmount <= (tier.max_amount ? Number(tier.max_amount) : Infinity)) {
-            appliedPct = Number(tier.percentage);
-            fee = txnAmount * (appliedPct / 100);
-            break;
+        if (overridePct != null) {
+          appliedPct = overridePct;
+          fee = txnAmount * (appliedPct / 100);
+        } else {
+          const tiers = (rule.transaction_fee_tiers || []).sort((a: any, b: any) => Number(a.min_amount) - Number(b.min_amount));
+          for (const tier of tiers) {
+            if (txnAmount >= Number(tier.min_amount) && txnAmount <= (tier.max_amount ? Number(tier.max_amount) : Infinity)) {
+              appliedPct = Number(tier.percentage);
+              fee = txnAmount * (appliedPct / 100);
+              break;
+            }
           }
         }
       }
@@ -1007,14 +1016,14 @@ const NewTransactionDialog = ({
   // Suppress admin fees when deposit is fully consumed by membership deductions or no pool allocation chosen
   const depositFees = useMemo(
     () => (isDeposit && !isMembershipOnlyDeposit && !noPoolAllocation)
-      ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate)
+      ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate]
+    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
 
   const feeCalculation = useMemo(
-    () => calculateFees(selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate),
-    [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate]
+    () => calculateFees(selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct),
+    [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
 
   const commissionBase = isDeposit && commissionPct > 0 && !isMembershipOnlyDeposit && !noPoolAllocation ? amountAfterMembership * (commissionPct / 100) : 0;
@@ -1065,7 +1074,7 @@ const NewTransactionDialog = ({
       if (entry.useAllUnits) {
         // Redeem all units at the sell price
         const grossFromUnits = entry.holdingUnits * entry.unitPrice;
-        const feeCalc = calculateFees(selectedTxnTypeId, grossFromUnits, paymentMethod, feeRules, isVatRegistered, vatRate);
+        const feeCalc = calculateFees(selectedTxnTypeId, grossFromUnits, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct);
         netPayout = Math.max(0, grossFromUnits - feeCalc.totalFee);
         grossUnits = entry.holdingUnits;
         const grossAmt = grossFromUnits;
@@ -1086,7 +1095,7 @@ const NewTransactionDialog = ({
       } else if (entry.inputMode === "units") {
         const unitsNum = parseFloat(entry.unitsInput) || 0;
         const grossAmt = unitsNum * entry.unitPrice;
-        const feeCalc = calculateFees(selectedTxnTypeId, grossAmt, paymentMethod, feeRules, isVatRegistered, vatRate);
+        const feeCalc = calculateFees(selectedTxnTypeId, grossAmt, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct);
         netPayout = Math.max(0, grossAmt - feeCalc.totalFee);
         grossUnits = unitsNum;
         const holdingValue = entry.holdingValue;
@@ -1106,7 +1115,7 @@ const NewTransactionDialog = ({
       } else {
         // Amount mode: user enters net payout, we add fees on top
         const amtNum = parseFloat(entry.amountInput) || 0;
-        const feeCalc = calculateFees(selectedTxnTypeId, amtNum, paymentMethod, feeRules, isVatRegistered, vatRate);
+        const feeCalc = calculateFees(selectedTxnTypeId, amtNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct);
         const grossAmt = amtNum + feeCalc.totalFee;
         netPayout = amtNum;
         grossUnits = entry.unitPrice > 0 ? grossAmt / entry.unitPrice : 0;
@@ -1126,7 +1135,7 @@ const NewTransactionDialog = ({
         };
       }
     });
-  }, [isWithdrawal, withdrawalPoolEntries, selectedTxnTypeId, paymentMethod, feeRules, isVatRegistered, vatRate]);
+  }, [isWithdrawal, withdrawalPoolEntries, selectedTxnTypeId, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]);
 
   const anyWithdrawalSplitOverHolding = withdrawalSplitSummaries.some((s) => s.isOverHolding);
 
@@ -1148,8 +1157,8 @@ const NewTransactionDialog = ({
   const allUnitsValue = currentHolding * currentUnitPrice; // uses UP Sell
   const switchFeeBaseAmount = switchUseAllUnits ? allUnitsValue : amountNum;
   const switchFeeCalc = useMemo(
-    () => isSwitch ? calculateFees(selectedTxnTypeId, switchFeeBaseAmount, "switch", feeRules, isVatRegistered, vatRate) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isSwitch, selectedTxnTypeId, switchFeeBaseAmount, feeRules, isVatRegistered, vatRate]
+    () => isSwitch ? calculateFees(selectedTxnTypeId, switchFeeBaseAmount, "switch", feeRules, isVatRegistered, vatRate, adminFeeOverridePct) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
+    [isSwitch, selectedTxnTypeId, switchFeeBaseAmount, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   const switchGrossRedemption = isSwitch
     ? (switchUseAllUnits ? allUnitsValue : amountNum + switchFeeCalc.totalFee)
@@ -1165,8 +1174,8 @@ const NewTransactionDialog = ({
   const transferAllUnitsValue = currentHolding * currentUnitPriceSell;
   const transferFeeBaseAmount = transferUseAllUnits ? transferAllUnitsValue : amountNum;
   const transferFeeCalc = useMemo(
-    () => isTransfer ? calculateFees(selectedTxnTypeId, transferFeeBaseAmount, "transfer", feeRules, isVatRegistered, vatRate) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isTransfer, selectedTxnTypeId, transferFeeBaseAmount, feeRules, isVatRegistered, vatRate]
+    () => isTransfer ? calculateFees(selectedTxnTypeId, transferFeeBaseAmount, "transfer", feeRules, isVatRegistered, vatRate, adminFeeOverridePct) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
+    [isTransfer, selectedTxnTypeId, transferFeeBaseAmount, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   // Transfer model (same as Switch):
   // - Sender redeems GROSS units = net amount to transfer + fees (all at UP Sell)
@@ -1211,9 +1220,9 @@ const NewTransactionDialog = ({
   const effectiveCourierFeeDeposit = activeCourierFee;
   const stockDepositFees = useMemo(
     () => isStockDeposit
-      ? calculateFees(selectedTxnTypeId, stockDepositTotalValue, "stock_deposit", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate)
+      ? calculateFees(selectedTxnTypeId, stockDepositTotalValue, "stock_deposit", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isStockDeposit, selectedTxnTypeId, stockDepositTotalValue, feeRules, isVatRegistered, vatRate]
+    [isStockDeposit, selectedTxnTypeId, stockDepositTotalValue, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   const stockDepositMembershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
   const stockDepositNetForPool = Math.max(0, stockDepositTotalValue - stockDepositMembershipDeductions - stockDepositFees.totalFee - effectiveCourierFeeDeposit);
@@ -1231,9 +1240,9 @@ const NewTransactionDialog = ({
   const effectiveCourierFeeWithdrawal = activeCourierFee;
   const stockWithdrawalFees = useMemo(
     () => isStockWithdrawal
-      ? calculateFees(selectedTxnTypeId, stockWithdrawalTotalValue, "stock_withdrawal", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate)
+      ? calculateFees(selectedTxnTypeId, stockWithdrawalTotalValue, "stock_withdrawal", feeRules.filter((r: any) => !r.transaction_fee_types?.code?.toUpperCase().includes("COUR")), isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isStockWithdrawal, selectedTxnTypeId, stockWithdrawalTotalValue, feeRules, isVatRegistered, vatRate]
+    [isStockWithdrawal, selectedTxnTypeId, stockWithdrawalTotalValue, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   const stockWithdrawalGrossRedemption = stockWithdrawalTotalValue + stockWithdrawalFees.totalFee + effectiveCourierFeeWithdrawal;
   const stockWithdrawalGrossUnits = currentUnitPriceSell > 0 ? stockWithdrawalGrossRedemption / currentUnitPriceSell : 0;
@@ -1303,6 +1312,7 @@ const NewTransactionDialog = ({
         is_vat_registered: isVatRegistered,
         total_vat: totalVatAmount,
         user_notes: notes || "",
+        admin_fee_override_pct: adminFeeOverridePct,
       });
 
       if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation)) {
@@ -2090,6 +2100,9 @@ const NewTransactionDialog = ({
               outstandingLoanBalance={outstandingLoanInfo?.outstanding || 0}
               loanInstalment={outstandingLoanInfo?.instalment || 0}
               loanRepaymentOnly={loanRepaymentOnly}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 

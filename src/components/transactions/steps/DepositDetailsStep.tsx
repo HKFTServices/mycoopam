@@ -92,6 +92,10 @@ interface DepositDetailsStepProps {
   outstandingLoanBalance?: number;
   loanInstalment?: number;
   loanRepaymentOnly?: boolean;
+  // Admin fee override
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 const DepositDetailsStep = ({
@@ -104,6 +108,7 @@ const DepositDetailsStep = ({
   transactionDate, onTransactionDateChange,
   loanRepaymentAmount = 0, onLoanRepaymentAmountChange, hasOutstandingLoan = false,
   outstandingLoanBalance = 0, loanInstalment = 0, loanRepaymentOnly = false,
+  isStaff = false, adminFeeOverridePct, onAdminFeeOverridePctChange,
 }: DepositDetailsStepProps) => {
   const { currentTenant } = useTenant();
   const [displayAmount, setDisplayAmount] = useState(amount || "");
@@ -375,7 +380,47 @@ const DepositDetailsStep = ({
         )}
       </div>
 
-      {/* Notes */}
+      {/* Admin Fee Override — staff only */}
+      {isStaff && isDeposit && onAdminFeeOverridePctChange && (
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3 space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs font-bold">
+            <AlertTriangle className="h-3.5 w-3.5 text-primary" />
+            Admin Fee Override (Staff Only)
+          </Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              placeholder="Default %"
+              value={adminFeeOverridePct != null ? String(adminFeeOverridePct) : ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === null) {
+                  onAdminFeeOverridePctChange(null);
+                } else {
+                  const n = parseFloat(v);
+                  if (!isNaN(n) && n >= 0 && n <= 100) onAdminFeeOverridePctChange(n);
+                }
+              }}
+              className="w-28 h-8 text-sm font-bold"
+            />
+            <span className="text-xs text-muted-foreground">%</span>
+            {adminFeeOverridePct != null && (
+              <button
+                type="button"
+                onClick={() => onAdminFeeOverridePctChange(null)}
+                className="text-xs text-primary underline"
+              >
+                Reset to default
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground">Leave blank to use the standard fee schedule. Enter 0 for no admin fee.</p>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label>Notes (optional)</Label>
         <Textarea
