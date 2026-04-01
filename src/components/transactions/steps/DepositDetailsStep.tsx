@@ -92,6 +92,10 @@ interface DepositDetailsStepProps {
   outstandingLoanBalance?: number;
   loanInstalment?: number;
   loanRepaymentOnly?: boolean;
+  // Admin fee override
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 const DepositDetailsStep = ({
@@ -104,6 +108,7 @@ const DepositDetailsStep = ({
   transactionDate, onTransactionDateChange,
   loanRepaymentAmount = 0, onLoanRepaymentAmountChange, hasOutstandingLoan = false,
   outstandingLoanBalance = 0, loanInstalment = 0, loanRepaymentOnly = false,
+  isStaff = false, adminFeeOverridePct, onAdminFeeOverridePctChange,
 }: DepositDetailsStepProps) => {
   const { currentTenant } = useTenant();
   const [displayAmount, setDisplayAmount] = useState(amount || "");
