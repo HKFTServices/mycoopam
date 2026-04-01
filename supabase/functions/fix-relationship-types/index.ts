@@ -1,0 +1,211 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Connection, Request as TediousRequest } from "npm:tedious@19";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+function queryMssql(config: Record<string, unknown>, sql: string): Promise<Record<string, unknown>[]> {
+  return new Promise((resolve, reject) => {
+    const mssqlPort = Deno.env.get("MSSQL_PORT");
+    const port = mssqlPort ? parseInt(mssqlPort, 10) : 1433;
+    const connConfig: Record<string, unknown> = {
+      server: config.server as string,
+      authentication: { type: "default", options: { userName: config.user as string, password: config.password as string } },
+      options: { database: config.database as string, encrypt: true, trustServerCertificate: true, requestTimeout: 60000, connectTimeout: 30000, port },
+    };
+    const connection = new Connection(connConfig as any);
+    connection.on("connect", (err: Error | undefined) => {
+      if (err) { reject(err); return; }
+      const rows: Record<string, unknown>[] = [];
+      const request = new TediousRequest(sql, (reqErr: Error | null) => {
+        connection.close();
+        if (reqErr) reject(reqErr); else resolve(rows);
+      });
+      request.on("row", (columns: Array<{ metadata: { colName: string }; value: unknown }>) => {
+        const row: Record<string, unknown> = {};
+        for (const col of columns) row[col.metadata.colName] = col.value;
+        rows.push(row);
+      });
+      connection.execSql(request);
+    });
+    connection.connect();
+  });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Missing authorization");
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) throw new Error("Unauthorized");
+
+    const adminClient = createClient(supabaseUrl, serviceKey);
+
+    const body = await req.json();
+    const { tenant_id, dry_run = true } = body;
+    if (!tenant_id) throw new Error("Missing tenant_id");
+
+    // 1. Fetch legacy entity_user_relationships with RelationshipTypeId
+    const mssqlHost = Deno.env.get("MSSQL_HOST");
+    const mssqlDatabase = Deno.env.get("MSSQL_DATABASE");
+    const mssqlUser = Deno.env.get("MSSQL_USER");
+    const mssqlPassword = Deno.env.get("MSSQL_PASSWORD");
+    if (!mssqlHost || !mssqlDatabase || !mssqlUser || !mssqlPassword) throw new Error("SQL Server credentials not configured");
+
+    const legacyRows = await queryMssql(
+      { server: mssqlHost, database: mssqlDatabase, user: mssqlUser, password: mssqlPassword },
+      `SELECT CAST(Id AS VARCHAR(36)) AS legacy_id,
+        CAST(RelationshipTypeId AS VARCHAR(36)) AS legacy_relationship_type_id
+       FROM dbo.EntityUserRelationships
+       WHERE IsDeleted = 0`
+    );
+
+    // 2. Get global relationship_type mappings (stored under any tenant)
+    const { data: relTypeMappings } = await adminClient
+      .from("legacy_id_mappings")
+      .select("legacy_id, new_id")
+      .eq("table_name", "relationship_types");
+
+    const relTypeMap = new Map<string, string>();
+    for (const m of (relTypeMappings ?? [])) {
+      relTypeMap.set(String(m.legacy_id), m.new_id);
+    }
+
+    // 3. Get existing imported relationship mappings for this tenant
+    const { data: existingMappings } = await adminClient
+      .from("legacy_id_mappings")
+      .select("legacy_id, new_id")
+      .eq("table_name", "entity_user_relationships")
+      .eq("tenant_id", tenant_id);
+
+    const existingMap = new Map<string, string>();
+    for (const m of (existingMappings ?? [])) {
+      existingMap.set(String(m.legacy_id), m.new_id);
+    }
+
+    // 4. Build updates
+    const updates: Array<{ uer_id: string; legacy_id: string; old_rel_type: string; new_rel_type_id: string; new_rel_type_name: string }> = [];
+    const skipped: string[] = [];
+    const notFound: string[] = [];
+
+    // Build reverse lookup for relationship type names
+    const relTypeNames = new Map<string, string>();
+    for (const m of (relTypeMappings ?? [])) {
+      const notes = ""; // We'll look up from the mapping
+      relTypeNames.set(m.new_id, m.legacy_id);
+    }
+
+    // Get relationship type names
+    const { data: relTypes } = await adminClient.from("relationship_types").select("id, name");
+    const relTypeNameMap = new Map<string, string>();
+    for (const rt of (relTypes ?? [])) {
+      relTypeNameMap.set(rt.id, rt.name);
+    }
+
+    const myselfId = "ff74a3e5-b204-4719-8031-18c47f557b8b";
+
+    for (const legacyRow of legacyRows) {
+      const legacyId = String(legacyRow.legacy_id);
+      const legacyRelTypeId = String(legacyRow.legacy_relationship_type_id);
+
+      // Find corresponding new UER record
+      const uerId = existingMap.get(legacyId);
+      if (!uerId) { continue; } // Not imported for this tenant
+
+      // Resolve correct relationship type
+      const correctRelTypeId = relTypeMap.get(legacyRelTypeId);
+      if (!correctRelTypeId) {
+        notFound.push(`Legacy rel type ${legacyRelTypeId} not mapped`);
+        continue;
+      }
+
+      // Only update if currently "Myself" but should be something else
+      if (correctRelTypeId === myselfId) {
+        skipped.push(legacyId); // Already correct
+        continue;
+      }
+
+      updates.push({
+        uer_id: uerId,
+        legacy_id: legacyId,
+        old_rel_type: "Myself",
+        new_rel_type_id: correctRelTypeId,
+        new_rel_type_name: relTypeNameMap.get(correctRelTypeId) || "Unknown",
+      });
+    }
+
+    // 5. Verify which ones actually have "Myself" currently and need updating
+    const finalUpdates: typeof updates = [];
+    if (updates.length > 0) {
+      const uerIds = updates.map(u => u.uer_id);
+      const { data: currentRecords } = await adminClient
+        .from("user_entity_relationships")
+        .select("id, relationship_type_id")
+        .in("id", uerIds);
+
+      const currentMap = new Map<string, string>();
+      for (const r of (currentRecords ?? [])) {
+        currentMap.set(r.id, r.relationship_type_id);
+      }
+
+      for (const u of updates) {
+        const currentRelType = currentMap.get(u.uer_id);
+        if (currentRelType === myselfId) {
+          finalUpdates.push(u);
+        }
+      }
+    }
+
+    // 6. Apply updates if not dry run
+    const applied: string[] = [];
+    const errors: string[] = [];
+    if (!dry_run) {
+      for (const u of finalUpdates) {
+        const { error } = await adminClient
+          .from("user_entity_relationships")
+          .update({ relationship_type_id: u.new_rel_type_id })
+          .eq("id", u.uer_id);
+        if (error) {
+          errors.push(`${u.uer_id}: ${error.message}`);
+        } else {
+          applied.push(`${u.uer_id} -> ${u.new_rel_type_name}`);
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      dry_run,
+      legacy_records_fetched: legacyRows.length,
+      mapped_to_tenant: existingMap.size,
+      updates_needed: finalUpdates.length,
+      updates_detail: finalUpdates.map(u => ({
+        uer_id: u.uer_id,
+        legacy_id: u.legacy_id,
+        from: "Myself",
+        to: u.new_rel_type_name,
+      })),
+      applied: applied.length,
+      errors,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err: any) {
+    console.error("fix-relationship-types error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
