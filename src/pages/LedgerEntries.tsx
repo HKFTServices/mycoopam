@@ -631,9 +631,17 @@ const LedgerEntries = () => {
       queryClient.invalidateQueries({ queryKey: ["report_is"] });
       queryClient.invalidateQueries({ queryKey: ["report_bs"] });
       queryClient.invalidateQueries({ queryKey: ["report_cft"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
       setJournalDialogOpen(false);
       setJournalForm({ ...defaultJournalForm });
       toast.success("Journal entry submitted for approval");
+      if (currentTenant) {
+        sendApprovalNotification({
+          tenantId: currentTenant.id,
+          transactionType: "Journal Entry",
+          submitterName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+        });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
