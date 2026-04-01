@@ -130,10 +130,14 @@ const messagesNavItems: NavItem[] = [
   { label: "Campaign History", icon: History, path: "/dashboard/message-history" },
 ];
 
+const otherTransactionsNavItems: NavItem[] = [
+  { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
+  { label: "Journal Entries", icon: Archive, path: "/dashboard/operating-journals" },
+  { label: "Stock Transactions", icon: Package, path: "/dashboard/transactions?tab=stock" },
+];
+
 const adminOnlyNavItems: NavItem[] = [
   { label: "Users", icon: KeyRound, path: "/dashboard/users" },
-  { label: "Ledger Entries", icon: Layers, path: "/dashboard/ledger-entries" },
-  { label: "Legacy Journals", icon: Archive, path: "/dashboard/operating-journals" },
   { label: "Reports", icon: FileText, path: "/dashboard/reports" },
 ];
 
@@ -234,6 +238,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     location.pathname.includes("/dashboard/transactions") ||
       location.pathname.includes("/dashboard/loan-applications") ||
       location.pathname.includes("/dashboard/debit-orders"),
+  );
+  const [otherTransactionsOpen, setOtherTransactionsOpen] = useState(
+    location.pathname.includes("/dashboard/ledger-entries") ||
+      location.pathname.includes("/dashboard/operating-journals"),
   );
   const [entitiesOpen, setEntitiesOpen] = useState(location.pathname.includes("/dashboard/entit"));
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));
@@ -464,6 +472,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const filteredDailyPrices = useMemo(() => filterItems(dailyPricesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredOtherTransactions = useMemo(() => filterItems(otherTransactionsNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
   const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
   const filteredGlobalSetup = useMemo(() => filterItems(globalSetupNavItems, normalizedQuery), [normalizedQuery]);
@@ -643,12 +652,22 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                 {showTransactions &&
                   renderGroup({
-                    label: "Transactions",
+                    label: "Member Transactions",
                     icon: TrendingUp,
                     open: transactionsOpen,
                     setOpen: setTransactionsOpen,
                     viewAll: { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions" },
                     items: filteredTransactions.filter((i) => i.path !== "/dashboard/transactions"),
+                  })}
+
+                {(isAdmin || isClerkOrManager) &&
+                  renderGroup({
+                    label: "Other Transactions",
+                    icon: Layers,
+                    open: otherTransactionsOpen,
+                    setOpen: setOtherTransactionsOpen,
+                    viewAll: { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
+                    items: filteredOtherTransactions.filter((i) => i.path !== "/dashboard/ledger-entries"),
                   })}
               </SidebarMenu>
             </SidebarGroupContent>
