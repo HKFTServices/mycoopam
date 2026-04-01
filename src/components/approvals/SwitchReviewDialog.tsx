@@ -333,7 +333,7 @@ const SwitchReviewDialog = ({
                       <AlertTriangle className="h-3.5 w-3.5" />
                       No price
                     </span>
-                  ) : (effectiveFromUnitPrice > 0 ? fmt(effectiveFromUnitPrice) : "—")}
+                  ) : (effectiveFromUnitPrice > 0 ? fmtUP(effectiveFromUnitPrice) : "—")}
                 </p>
               </div>
               <div className="rounded-lg bg-orange-500/10 px-3 py-2 space-y-0.5">
