@@ -876,10 +876,16 @@ const AccountApprovals = () => {
                   <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="ledger" className="gap-1.5">
+                <BookOpen className="h-3.5 w-3.5" />
+                Ledger
+                {pendingLedgerEntries.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingLedgerEntries.length}</Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
-
         {/* Registration Approvals Tab */}
         <TabsContent value="registrations">
           <Card>
