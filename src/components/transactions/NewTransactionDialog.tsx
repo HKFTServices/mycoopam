@@ -952,6 +952,7 @@ const NewTransactionDialog = ({
     rules: any[],
     vatRegistered: boolean,
     vat: number,
+    overridePct?: number | null,
   ) => {
     if (!txnTypeId || txnAmount <= 0) return { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] };
     const applicableRules = rules.filter((r: any) => {
