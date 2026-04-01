@@ -363,13 +363,17 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
       }
 
       // Save referrer data directly on the entity
-      await (supabase as any)
+      const { error: refError } = await (supabase as any)
         .from("entities")
         .update({
           agent_house_agent_id: data.hasReferrer && data.referrerId ? data.referrerId : null,
           agent_commission_percentage: data.hasReferrer ? parseFloat(data.commissionPercentage) || 0 : 0,
         })
         .eq("id", entityId);
+      if (refError) {
+        console.error("Failed to save referrer:", refError);
+        toast.error("Failed to save referrer assignment");
+      }
 
       // Upload new documents (multiple per type)
       for (const [docTypeId, rawDocFiles] of Object.entries(data.uploadedDocs)) {
