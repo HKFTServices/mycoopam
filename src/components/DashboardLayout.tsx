@@ -746,7 +746,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                           return (
                             <SidebarMenuItem key="head-office">
-                              <SidebarMenuButton asChild isActive={isActive}>
+                              <SidebarMenuButton asChild isActive={isActive} size="sm">
                                 <button
                                   type="button"
                                   onClick={() => setHeadOfficeOpen(!headOfficeOpen)}
