@@ -1977,6 +1977,9 @@ const NewTransactionDialog = ({
               formatCurrency={formatCurrency}
               transactionDate={transactionDate}
               onTransactionDateChange={setTransactionDate}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
