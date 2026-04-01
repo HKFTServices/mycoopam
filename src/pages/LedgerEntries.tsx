@@ -1389,26 +1389,19 @@ const LedgerEntries = () => {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>GL Account *</Label>
-              <Select value={journalForm.gl_account_id} onValueChange={(v) => {
-                const gl = glAccounts.find((g) => g.id === v);
-                const defaultCA = gl?.control_account_id || "";
-                const isDebitDefault = gl?.default_entry_type === "debit";
-                setJournalForm({
-                  ...journalForm, gl_account_id: v,
-                  debit_control_account_id: isDebitDefault ? defaultCA : journalForm.debit_control_account_id,
-                  credit_control_account_id: !isDebitDefault ? defaultCA : journalForm.credit_control_account_id,
-                });
-              }}>
-                <SelectTrigger><SelectValue placeholder="Select GL account" /></SelectTrigger>
-                <SelectContent>
-                  {glAccounts.map((gl) => (
-                    <SelectItem key={gl.id} value={gl.id}>
-                      <span className="font-mono text-xs text-muted-foreground mr-2">{gl.code}</span>
-                      {gl.name} <span className="ml-1 text-xs text-muted-foreground">({gl.gl_type})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <GlAccountSelector
+                glAccounts={glAccounts}
+                value={journalForm.gl_account_id}
+                onChange={(v, gl) => {
+                  const defaultCA = gl?.control_account_id || "";
+                  const isDebitDefault = gl?.default_entry_type === "debit";
+                  setJournalForm({
+                    ...journalForm, gl_account_id: v,
+                    debit_control_account_id: isDebitDefault ? defaultCA : journalForm.debit_control_account_id,
+                    credit_control_account_id: !isDebitDefault ? defaultCA : journalForm.credit_control_account_id,
+                  });
+                }}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
