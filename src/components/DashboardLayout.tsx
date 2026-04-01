@@ -483,7 +483,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const isActive = location.pathname === item.path;
     return (
       <SidebarMenuItem key={item.path}>
-        <SidebarMenuButton asChild isActive={isActive}>
+        <SidebarMenuButton asChild isActive={isActive} size="sm">
           <Link to={item.path}>
             <item.icon />
             <span>{item.label}</span>
@@ -515,7 +515,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       return (
       <SidebarMenuItem key={params.label} data-tour={params.dataTour}>
-        <SidebarMenuButton asChild isActive={isActive}>
+        <SidebarMenuButton asChild isActive={isActive} size="sm">
           <button
             type="button"
             onClick={() => {
@@ -621,7 +621,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         <SidebarSeparator />
 
-        <SidebarContent data-tour="sidebar-nav">
+        <SidebarContent data-tour="sidebar-nav" className="overflow-y-auto">
           {showDashboardSkeleton ? (
             <SidebarGroup>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -746,7 +746,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                           return (
                             <SidebarMenuItem key="head-office">
-                              <SidebarMenuButton asChild isActive={isActive}>
+                              <SidebarMenuButton asChild isActive={isActive} size="sm">
                                 <button
                                   type="button"
                                   onClick={() => setHeadOfficeOpen(!headOfficeOpen)}
