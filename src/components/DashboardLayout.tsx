@@ -578,7 +578,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 value={currentTenant.id}
                 onValueChange={(val) => {
                   const t = tenants.find((x) => x.id === val);
-                  if (t) setCurrentTenant(t);
+                  if (t && t.id !== currentTenant.id) {
+                    // Persist switch: save to localStorage then redirect to new tenant's domain
+                    localStorage.setItem("currentTenantId", t.id);
+                    if (t.slug && isOnProductionDomain()) {
+                      // Production: redirect to tenant subdomain dashboard
+                      window.location.replace(`${getTenantUrl(t.slug)}/dashboard`);
+                    } else {
+                      // Dev/preview: just update context (localStorage already saved)
+                      setCurrentTenant(t);
+                      navigate("/dashboard", { replace: true });
+                    }
+                  }
                 }}
               >
                 <SelectTrigger className="w-full h-9 text-sm bg-sidebar">
