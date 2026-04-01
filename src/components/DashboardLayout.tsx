@@ -383,7 +383,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     queryKey: ["pending_approvals_count", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return 0;
-      const [accountRes, txnRes, regRes, refRes, loanRes] = await Promise.all([
+      const [accountRes, txnRes, regRes, refRes, loanRes, ledgerRes] = await Promise.all([
         (supabase as any)
           .from("entity_accounts")
           .select("id", { count: "exact", head: true })
@@ -410,13 +410,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", currentTenant.id)
           .in("status", ["pending", "approved"]),
+        (supabase as any)
+          .from("cashflow_transactions")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true)
+          .eq("status", "pending_approval")
+          .is("parent_id", null),
       ]);
       return (
         (accountRes.count ?? 0) +
         (txnRes.count ?? 0) +
         (regRes.count ?? 0) +
         (refRes.count ?? 0) +
-        (loanRes.count ?? 0)
+        (loanRes.count ?? 0) +
+        (ledgerRes.count ?? 0)
       );
     },
     enabled: !!currentTenant && canApprove,
