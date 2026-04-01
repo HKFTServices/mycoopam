@@ -248,13 +248,24 @@ Deno.serve(async (req) => {
             if (globalConfig.targetTable === "relationship_types") {
               const legacyCatId = record.entity_category_id || record.EntityCategoryId || record.EntityCategoryID;
               if (legacyCatId) {
-                // Resolve from legacy_id_mappings
-                const { data: catMapping } = await adminClient.from("legacy_id_mappings")
+                // Resolve from legacy_id_mappings (tenant-scoped first, then global fallback)
+                let catMapping: { new_id: string } | null = null;
+                const { data: tenantCatMap } = await adminClient.from("legacy_id_mappings")
                   .select("new_id")
                   .eq("tenant_id", tenant_id)
                   .eq("table_name", "entity_categories")
                   .eq("legacy_id", String(legacyCatId))
                   .maybeSingle();
+                catMapping = tenantCatMap;
+                if (!catMapping) {
+                  const { data: globalCatMap } = await adminClient.from("legacy_id_mappings")
+                    .select("new_id")
+                    .eq("table_name", "entity_categories")
+                    .eq("legacy_id", String(legacyCatId))
+                    .limit(1)
+                    .maybeSingle();
+                  catMapping = globalCatMap;
+                }
                 if (catMapping) {
                   insertRow.entity_category_id = catMapping.new_id;
                 } else {
