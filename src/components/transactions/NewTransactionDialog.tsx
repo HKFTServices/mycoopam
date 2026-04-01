@@ -1001,11 +1001,15 @@ const NewTransactionDialog = ({
     : 0;
   const amountAfterMembership = Math.max(0, amountNum - effectiveLoanRepayment - membershipDeductions);
 
+  // Detect "membership only" deposit: entire amount consumed by join share + membership fee
+  const isMembershipOnlyDeposit = isDeposit && joinShareInfo.needed && amountNum > 0 && amountAfterMembership <= 0;
+
+  // Suppress admin fees when deposit is fully consumed by membership deductions or no pool allocation chosen
   const depositFees = useMemo(
-    () => isDeposit
+    () => (isDeposit && !isMembershipOnlyDeposit && !noPoolAllocation)
       ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isDeposit, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate]
+    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate]
   );
 
   const feeCalculation = useMemo(
@@ -1013,7 +1017,7 @@ const NewTransactionDialog = ({
     [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate]
   );
 
-  const commissionBase = isDeposit && commissionPct > 0 ? amountAfterMembership * (commissionPct / 100) : 0;
+  const commissionBase = isDeposit && commissionPct > 0 && !isMembershipOnlyDeposit && !noPoolAllocation ? amountAfterMembership * (commissionPct / 100) : 0;
   const commissionVat = isVatRegistered && commissionBase > 0 ? commissionBase * (vatRate / 100) : 0;
   const commissionAmount = commissionBase + commissionVat;
   const depositTotalDeductions = effectiveLoanRepayment + membershipDeductions + depositFees.totalFee + commissionAmount;
