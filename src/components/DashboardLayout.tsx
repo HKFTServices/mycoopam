@@ -965,9 +965,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               aria-label="Notifications"
             >
               <BellRing className="h-5 w-5" />
-              {notificationsUnreadCount > 0 && (
+              {(notificationsUnreadCount + (canApprove ? pendingCount : 0)) > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {notificationsUnreadCount}
+                  {notificationsUnreadCount + (canApprove ? pendingCount : 0)}
                 </span>
               )}
             </button>
