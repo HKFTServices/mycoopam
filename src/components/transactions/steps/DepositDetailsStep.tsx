@@ -147,6 +147,23 @@ const DepositDetailsStep = ({
   const totalMembershipDeductions = joinShareInfo.needed ? joinShareInfo.shareCost + joinShareInfo.membershipFee : 0;
   const minimumDeposit = totalMembershipDeductions + 1;
 
+  // Fetch tenant-configured payment methods
+  const { data: tenantMethods } = useQuery({
+    queryKey: ["tenant_payment_methods_enabled", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return null;
+      const { data, error } = await (supabase as any)
+        .from("tenant_payment_methods")
+        .select("*")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_enabled", true)
+        .order("display_order");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentTenant,
+  });
+
   // Check if credit card payment gateway is active for this tenant
   const { data: gatewayConfig } = useQuery({
     queryKey: ["tenant_payment_gateway_active", currentTenant?.id],
@@ -165,9 +182,16 @@ const DepositDetailsStep = ({
     enabled: !!currentTenant,
   });
 
-  const availableMethods = gatewayConfig
-    ? [...PAYMENT_METHODS, { value: "credit_card", label: "Credit Card", icon: CreditCard }]
-    : PAYMENT_METHODS;
+  // Build available methods from tenant config, fallback to hardcoded
+  const availableMethods = tenantMethods && tenantMethods.length > 0
+    ? tenantMethods.map((m: any) => ({
+        value: m.method_code === "cash" ? "cash_deposit" : m.method_code === "card" ? "credit_card" : m.method_code,
+        label: m.method_label,
+        icon: METHOD_ICON_MAP[m.method_code] || Wallet,
+      }))
+    : gatewayConfig
+      ? [...FALLBACK_METHODS, { value: "credit_card", label: "Credit Card", icon: CreditCard }]
+      : FALLBACK_METHODS;
 
   // Calculate gateway fee for display
   const gatewayFeeAmount = paymentMethod === "credit_card" && gatewayConfig
