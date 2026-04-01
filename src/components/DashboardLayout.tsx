@@ -483,7 +483,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const isActive = location.pathname === item.path;
     return (
       <SidebarMenuItem key={item.path}>
-        <SidebarMenuButton asChild isActive={isActive}>
+        <SidebarMenuButton asChild isActive={isActive} size="sm">
           <Link to={item.path}>
             <item.icon />
             <span>{item.label}</span>
