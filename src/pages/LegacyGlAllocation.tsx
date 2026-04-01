@@ -864,28 +864,58 @@ const LegacyGlAllocation = () => {
         }
       }
       // ── Switching admin fee (1939) ──
+      // Fee is paid by redeeming units from the source pool, same pattern as withdrawal fees:
+      //   1. CR Pool Cash Control — fee paid from pool cash
+      //   2. CR 4000 Administration Income — revenue recognition
+      //   3. DR Member Interest (2020) — units redeemed to pay the fee
       else if (isSwitching && entry.entry_type_id === "1939") {
-        const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
-        const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
-        proposed.push({
-          description: `Switching Admin Fee — ${poolName}`,
-          debit: 0, credit: amount,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "switch_fee",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
+        // Skip the credit-side duplicate — only process the debit entry
+        if (entry.credit > 0 && entry.debit === 0) continue;
+        // Find the source pool cash control from the switch-out entry
+        const switchOutEntry = allEntries.find(e => switchingPoolEntryTypes.has(e.entry_type_id) && e.credit > 0 && e.cash_account_id !== "0");
+        const poolCa = switchOutEntry
+          ? controlAccounts?.find(c => c.legacy_id === switchOutEntry.cash_account_id)
+          : controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
+        const poolName = poolCa?.pool_name ?? poolCa?.name ?? `CA#${entry.cash_account_id}`;
+
+        // 1. CR Pool Cash Control — fee is paid from pool's cash
+        if (poolCa) {
+          proposed.push({
+            description: `Switching Admin Fee — ${poolName}`,
+            debit: 0, credit: amount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: poolCa.new_id ?? null,
+            control_account_label: poolCa ? `${poolCa.name} (${poolCa.pool_name})` : `CA#${entry.cash_account_id}`,
+            pool_id: (poolCa as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "switch_fee_pool_cash",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+        // 2. CR 4000 Administration Income — revenue
         proposed.push({
           description: "Switching Admin Fee Income",
-          debit: amount, credit: 0,
+          debit: 0, credit: amount,
           gl_account_id: "6cf12752-95ba-499c-a86c-3c17fe2407f5", gl_account_label: "4000 Administration Income",
           control_account_id: null, control_account_label: "",
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "fee_income_dr",
+          pool_id: (poolCa as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "fee_income_cr",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
+        // 3. DR Member Interest (2020) — units redeemed to pay the fee
+        proposed.push({
+          description: `Member Interest — ${poolName}`,
+          debit: amount, credit: 0,
+          gl_account_id: tenantGlConfig?.poolAllocationGlId ?? null,
+          gl_account_label: tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest",
+          control_account_id: null, control_account_label: "",
+          pool_id: (poolCa as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "member_interest_dr",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+      }
+      // ── Switching member fee (1924) — skip, already handled by 1939 ──
+      else if (isSwitching && entry.entry_type_id === "1924") {
+        continue;
       }
       // ── Income/Expense (1988) — Resolve IncExpID for description & GL ──
       // Inc/Exp transactions move cash between control accounts and GL.
