@@ -8,9 +8,11 @@ import type { LivePostingPreview } from "./types";
 
 const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUP = (v: number) =>
+  `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`;
 
 const fmtUnits = (v: number) =>
-  Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 });
 
 interface CftEntriesPreviewProps {
   preview: LivePostingPreview;
@@ -171,7 +173,7 @@ const CftEntriesPreview = ({ preview, title = "Posting Entries Preview" }: CftEn
                         {l.description && <span className="ml-1.5 text-[10px] text-muted-foreground">— {l.description}</span>}
                       </TableCell>
                       <TableCell className="py-1.5 text-right text-xs font-medium">{fmtUnits(l.units)}</TableCell>
-                      <TableCell className="py-1.5 text-right text-xs text-muted-foreground">{fmt(l.unitPrice)}</TableCell>
+                      <TableCell className="py-1.5 text-right text-xs text-muted-foreground">{fmtUP(l.unitPrice)}</TableCell>
                       <TableCell className="py-1.5 text-right text-xs font-medium">{fmt(l.value)}</TableCell>
                     </TableRow>
                   ))}

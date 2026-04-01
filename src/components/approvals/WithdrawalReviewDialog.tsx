@@ -18,6 +18,8 @@ import { format, parseISO } from "date-fns";
 
 const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUP = (v: number) =>
+  `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`;
 
 interface WithdrawalReviewDialogProps {
   open: boolean;
@@ -198,7 +200,7 @@ const WithdrawalReviewDialog = ({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                     <p className="text-muted-foreground">Unit Price (Sell)</p>
-                    <p className="font-mono font-bold">{fmt(Number(txn.unit_price))}</p>
+                    <p className="font-mono font-bold">{fmtUP(Number(txn.unit_price))}</p>
                   </div>
                   <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                     <p className="text-muted-foreground">Units Redeemed</p>

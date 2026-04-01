@@ -15,6 +15,8 @@ import {
 
 const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUP = (v: number) =>
+  `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`;
 
 interface TransferReviewDialogProps {
   open: boolean;
@@ -113,7 +115,7 @@ const TransferReviewDialog = ({
               </div>
             ))}
             <div className="flex justify-between text-sm font-bold text-orange-600 dark:text-orange-400">
-              <span>Gross Redeemed (UP Sell {fmt(unitPriceSell)})</span>
+              <span>Gross Redeemed (UP Sell {fmtUP(unitPriceSell)})</span>
               <span className="font-mono">{fmt(grossRedemption)}</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">

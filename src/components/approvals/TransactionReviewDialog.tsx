@@ -58,6 +58,8 @@ export interface StockApprovalMeta {
 
 const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUP = (v: number) =>
+  `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`;
 
 // Step definitions for stock deposit workflow
 type StepId = "review" | "courier" | "stock_received" | "receipt" | "approve";
@@ -515,7 +517,7 @@ const TransactionReviewDialog = ({
               const units = unitPrice > 0 ? txnAdjustedNet / unitPrice : 0;
               return (
                 <div key={txn.id} className="flex justify-between text-xs text-muted-foreground pl-2">
-                  <span>{txn.pools?.name || "Pool"} @ {fmt(unitPrice)}/unit</span>
+                  <span>{txn.pools?.name || "Pool"} @ {fmtUP(unitPrice)}/unit</span>
                   <span className="font-mono font-semibold">{units.toFixed(5)} units</span>
                 </div>
               );
