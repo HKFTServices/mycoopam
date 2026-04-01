@@ -196,6 +196,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const forceRun = body.force === true;
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -211,9 +214,9 @@ Deno.serve(async (req) => {
     const currentHour = nowSast.getHours();
     const currentMinute = nowSast.getMinutes();
 
-    console.log(`Scheduled price update check at SAST ${currentHour}:${String(currentMinute).padStart(2, "0")}`);
+    console.log(`Scheduled price update check at SAST ${currentHour}:${String(currentMinute).padStart(2, "0")}${forceRun ? " (FORCED)" : ""}`);
 
-    // Find active schedules where update_time falls within the current 5-minute window
+    // Find active schedules
     const { data: schedules, error: schedErr } = await supabase
       .from("pool_price_schedules")
       .select("id, tenant_id, update_time, is_active")
@@ -226,10 +229,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Filter schedules that match the current 5-minute window
-    const matchingSchedules = schedules.filter((s: any) => {
+    // If forced, use all active schedules; otherwise filter by time window
+    const matchingSchedules = forceRun ? schedules : schedules.filter((s: any) => {
       const [h, m] = s.update_time.split(":").map(Number);
-      // Match if the schedule time is within [currentMinute - 4, currentMinute]
       return h === currentHour && m >= (currentMinute - 4) && m <= currentMinute;
     });
 
