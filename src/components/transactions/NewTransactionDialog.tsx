@@ -967,7 +967,7 @@ const NewTransactionDialog = ({
       let fee = 0;
       let appliedPct: number | null = null;
       if (rule.calculation_method === "percentage") {
-        appliedPct = Number(rule.percentage);
+        appliedPct = overridePct != null ? overridePct : Number(rule.percentage);
         fee = txnAmount * (appliedPct / 100);
       } else if (rule.calculation_method === "fixed_amount") {
         fee = Number(rule.fixed_amount);
