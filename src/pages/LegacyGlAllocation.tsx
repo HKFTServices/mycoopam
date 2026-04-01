@@ -812,6 +812,20 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         }
+        // 4. CR Pool Cash Control — fee is paid from the pool's cash account
+        const poolCa = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id)
+          ?? controlAccounts?.find(c => c.account_type === "cash" && c.pool_id != null);
+        if (poolCa) {
+          proposed.push({
+            description: `${mapping.entry_type_name ?? "Fee"} — ${poolCa.pool_name ?? poolCa.name ?? "Pool Cash"}`,
+            debit: 0, credit: amount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: poolCa.new_id, control_account_label: poolCa.name ?? "Pool Cash",
+            pool_id: (poolCa as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "withdrawal_fee_pool_cash",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
       }
       // ── Switching (1955) — CR source pool cash control + DR dest pool cash control ──
       // Each switch entry has debit on dest and credit on source
