@@ -24,6 +24,7 @@ import { postWithdrawalApproval } from "@/lib/postWithdrawalApproval";
 import { postSwitchApproval } from "@/lib/postSwitchApproval";
 import { postTransferApproval } from "@/lib/postTransferApproval";
 import { postAdminStockApproval } from "@/lib/postAdminStockApproval";
+import { clearGroupNotifications } from "@/lib/clearTransactionNotifications";
 import AdminStockReviewDialog from "@/components/approvals/AdminStockReviewDialog";
 import StockDocumentActions from "@/components/stock/StockDocumentActions";
 import { formatCurrency } from "@/lib/formatCurrency";
