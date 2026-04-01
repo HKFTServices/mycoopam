@@ -511,10 +511,14 @@ const LedgerEntries = () => {
       setBankForm({ ...defaultBankForm });
       toast.success("Bank entry submitted for approval");
       if (currentTenant) {
+        const desc = bankForm.gl_account_id ? (glAccounts.find(g => g.id === bankForm.gl_account_id)?.name || "Bank Entry") : "Bank Entry";
         sendApprovalNotification({
           tenantId: currentTenant.id,
           transactionType: "Bank Entry",
-          submitterName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          memberName: [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          accountNumber: "",
+          amount: bankForm.amount,
+          transactionDate: bankForm.transaction_date,
         });
       }
     },
