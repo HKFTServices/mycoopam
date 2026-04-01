@@ -1173,6 +1173,8 @@ const LegacyGlAllocation = () => {
     if (isDepFunds) {
       for (const entry of allEntries) {
         if (entry.cash_account_id === "0") continue;
+        // Skip membership fee (1922) — share control entry handled separately in split logic above
+        if (entry.entry_type_id === "1922") continue;
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         if (!ca) continue;
         const mapping = getGlMapping(entry.entry_type_id);
