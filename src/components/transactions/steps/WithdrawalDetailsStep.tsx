@@ -50,6 +50,9 @@ interface WithdrawalDetailsStepProps {
   formatCurrency: (v: number) => string;
   transactionDate: Date;
   onTransactionDateChange: (date: Date) => void;
+  isStaff?: boolean;
+  adminFeeOverridePct?: number | null;
+  onAdminFeeOverridePctChange?: (val: number | null) => void;
 }
 
 const WithdrawalDetailsStep = ({
@@ -62,6 +65,9 @@ const WithdrawalDetailsStep = ({
   formatCurrency,
   transactionDate,
   onTransactionDateChange,
+  isStaff = false,
+  adminFeeOverridePct,
+  onAdminFeeOverridePctChange,
 }: WithdrawalDetailsStepProps) => {
   const anyOverHolding = withdrawalSummaries.some((s) => s.isOverHolding);
   const totalNetPayout = withdrawalSummaries.reduce((sum, s) => sum + s.netPayout, 0);
