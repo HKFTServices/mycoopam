@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 
 const fmt = (v: number) =>
   `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUP = (v: number) =>
+  `R ${Number(v).toLocaleString("en-ZA", { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`;
 
 export interface SwitchDateOverride {
   newDate: string;           // yyyy-MM-dd
