@@ -58,6 +58,7 @@ const AccountApprovals = () => {
   const [acceptLoanApp, setAcceptLoanApp] = useState<any>(null);
   const [reviewLedgerEntry, setReviewLedgerEntry] = useState<any | null>(null);
   const [ledgerDeclineReason, setLedgerDeclineReason] = useState("");
+  const [viewLedgerEntry, setViewLedgerEntry] = useState<any | null>(null);
 
   // Check user roles for approval workflow
   const { data: userRoles = [] } = useQuery({
