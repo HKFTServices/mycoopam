@@ -6182,7 +6182,7 @@ export type Database = {
           net_amount: number
           notes: string | null
           payment_method: string
-          pool_id: string
+          pool_id: string | null
           pop_file_name: string | null
           pop_file_path: string | null
           receiver_approved_at: string | null
@@ -6210,7 +6210,7 @@ export type Database = {
           net_amount?: number
           notes?: string | null
           payment_method?: string
-          pool_id: string
+          pool_id?: string | null
           pop_file_name?: string | null
           pop_file_path?: string | null
           receiver_approved_at?: string | null
@@ -6238,7 +6238,7 @@ export type Database = {
           net_amount?: number
           notes?: string | null
           payment_method?: string
-          pool_id?: string
+          pool_id?: string | null
           pop_file_name?: string | null
           pop_file_path?: string | null
           receiver_approved_at?: string | null
