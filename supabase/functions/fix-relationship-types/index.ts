@@ -11,7 +11,7 @@ function queryMssql(config: Record<string, unknown>, sql: string): Promise<Recor
   return new Promise((resolve, reject) => {
     const mssqlPort = Deno.env.get("MSSQL_PORT");
     const port = mssqlPort ? parseInt(mssqlPort, 10) : 1433;
-    const connConfig: Record<string, unknown> = {
+    const connConfig = {
       server: config.server as string,
       authentication: { type: "default", options: { userName: config.user as string, password: config.password as string } },
       options: { database: config.database as string, encrypt: true, trustServerCertificate: true, requestTimeout: 60000, connectTimeout: 30000, port },
