@@ -109,6 +109,8 @@ const NewTransactionDialog = ({
   const [loanRepaymentOnly, setLoanRepaymentOnly] = useState(false);
   const [loanRepaymentAmount, setLoanRepaymentAmount] = useState("");
   const [noPoolAllocation, setNoPoolAllocation] = useState(false);
+  // Admin fee override — staff can override the admin fee percentage (null = use default from rules)
+  const [adminFeeOverridePct, setAdminFeeOverridePct] = useState<number | null>(null);
   // Debit order state
   const [doBankName, setDoBankName] = useState("");
   const [doBranchCode, setDoBranchCode] = useState("");
