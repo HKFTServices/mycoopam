@@ -172,24 +172,29 @@ const NewTransactionDialog = ({
   }, [open, defaultPoolId, defaultAccountId]);
 
 
-  // Staff check
+  // Staff check — use security-definer RPC to bypass RLS
   const { data: isStaff = false } = useQuery({
     queryKey: ["is_staff_for_txn", user?.id, currentTenant?.id],
     queryFn: async () => {
       if (!user || !currentTenant) return false;
-      const { data: roles, error } = await supabase
-        .from("user_roles")
-        .select("role, tenant_id")
-        .eq("user_id", user.id);
-      if (error || !roles) return false;
-      // Check for staff role in current tenant OR a global (null tenant_id) role
-      const staffRoles = ["super_admin", "tenant_admin", "manager", "clerk"];
-      return roles.some((r) =>
-        staffRoles.includes(r.role) &&
-        (r.tenant_id === currentTenant.id || r.tenant_id === null)
-      );
+      const staffRoles = ["super_admin", "tenant_admin", "manager", "clerk"] as const;
+      for (const role of staffRoles) {
+        const { data } = await supabase.rpc("has_tenant_role", {
+          _user_id: user.id,
+          _role: role,
+          _tenant_id: currentTenant.id,
+        });
+        if (data === true) return true;
+      }
+      // Also check global super_admin (no tenant)
+      const { data: globalSa } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "super_admin",
+      });
+      return globalSa === true;
     },
     enabled: !!user && !!currentTenant && open,
+    staleTime: 60_000,
   });
 
   // Accounts
