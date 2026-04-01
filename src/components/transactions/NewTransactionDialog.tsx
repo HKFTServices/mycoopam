@@ -1016,9 +1016,9 @@ const NewTransactionDialog = ({
   // Suppress admin fees when deposit is fully consumed by membership deductions or no pool allocation chosen
   const depositFees = useMemo(
     () => (isDeposit && !isMembershipOnlyDeposit && !noPoolAllocation)
-      ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate)
+      ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate]
+    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
 
   const feeCalculation = useMemo(
