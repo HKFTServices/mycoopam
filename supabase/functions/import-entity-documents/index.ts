@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
         documentTypeId = docTypeMapping?.new_id || null;
       }
-      // Fallback: match by document type name
+      // Fallback: match by document type name field
       if (!documentTypeId && legacyDocTypeName) {
         const { data: docTypeByName } = await adminClient
           .from("document_types")
@@ -125,6 +125,25 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
         documentTypeId = docTypeByName?.id || null;
+      }
+      // Fallback: parse description field (format "TypeName: FileName")
+      if (!documentTypeId) {
+        const desc = document.description || document.Description || "";
+        const colonIdx = desc.indexOf(":");
+        if (colonIdx > 0) {
+          const parsedTypeName = desc.substring(0, colonIdx).trim();
+          if (parsedTypeName) {
+            const { data: docTypeFromDesc } = await adminClient
+              .from("document_types")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .ilike("name", parsedTypeName)
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+            documentTypeId = docTypeFromDesc?.id || null;
+          }
+        }
       }
       // Fallback: try to infer from filename
       if (!documentTypeId) {
