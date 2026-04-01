@@ -652,12 +652,22 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                 {showTransactions &&
                   renderGroup({
-                    label: "Transactions",
+                    label: "Member Transactions",
                     icon: TrendingUp,
                     open: transactionsOpen,
                     setOpen: setTransactionsOpen,
                     viewAll: { label: "Transactions", icon: TrendingUp, path: "/dashboard/transactions" },
                     items: filteredTransactions.filter((i) => i.path !== "/dashboard/transactions"),
+                  })}
+
+                {(isAdmin || isClerkOrManager) &&
+                  renderGroup({
+                    label: "Other Transactions",
+                    icon: Layers,
+                    open: otherTransactionsOpen,
+                    setOpen: setOtherTransactionsOpen,
+                    viewAll: { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
+                    items: filteredOtherTransactions.filter((i) => i.path !== "/dashboard/ledger-entries"),
                   })}
               </SidebarMenu>
             </SidebarGroupContent>
