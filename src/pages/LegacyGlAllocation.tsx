@@ -1115,11 +1115,9 @@ const LegacyGlAllocation = () => {
       const grossRedemption = allEntries
         .filter(e => e.is_bank && poolWithdrawalEntryTypes.has(e.entry_type_id))
         .reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
-      // Subtract fees paid from units — these don't flow to the bank
-      const feesFromUnits = allEntries
-        .filter(e => withdrawalFeeEntryTypes.has(e.entry_type_id))
-        .reduce((sum, e) => sum + (e.debit > 0 ? e.debit : e.credit), 0);
-      const bankTotal = grossRedemption - feesFromUnits;
+      // Bank payout = full gross redemption (member interest amount).
+      // Fees are paid separately from the pool cash, not deducted from the bank payout.
+      const bankTotal = grossRedemption;
       if (bankTotal > 0) {
         proposed.push({
           description: "Bank Payment",
