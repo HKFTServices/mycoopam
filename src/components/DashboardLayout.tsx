@@ -228,6 +228,7 @@ const SidebarAutoCloseOnNavigate = () => {
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, signOut, user } = useAuth();
   const { tenants, currentTenant, setCurrentTenant, branding, loading: tenantLoading } = useTenant();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
