@@ -646,6 +646,8 @@ const LegacyGlAllocation = () => {
       // ── Membership Fee (1922) — Split: CR Join Share GL + CR Fee Income GL ──
       else if (entry.entry_type_id === "1922" && (mapping.split_rule as any)?.splits) {
         for (const split of (mapping.split_rule as any).splits) {
+          // Skip the Share portion (gl_code 3000) — not mapped
+          if (split.gl_code === "3000") continue;
           const glLabel = split.gl_code ? `${split.gl_code} ${split.description}` : split.description;
           // CR the GL account for the split amount
           proposed.push({
