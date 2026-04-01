@@ -673,6 +673,7 @@ Deno.serve(async (req) => {
     // Resolve entity email + name
     const txn = transaction_data || {};
     let entityEmail: string | null = null;
+    let entityAdditionalEmail: string | null = null;
     let entityAccountName = "";
     let entityId: string | null = null;
     let entityAccountIds: string[] = [];
