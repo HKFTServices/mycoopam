@@ -951,6 +951,15 @@ Deno.serve(async (req) => {
       recipientSet.add(entityEmail.toLowerCase());
     }
 
+    // Build CC list from member's additional email
+    const ccAddresses: string[] = [];
+    if (entityAdditionalEmail) {
+      const ccNorm = entityAdditionalEmail.trim().toLowerCase();
+      if (ccNorm && !recipientSet.has(ccNorm)) {
+        ccAddresses.push(entityAdditionalEmail.trim());
+      }
+    }
+
     // Send to member + entity email
     let memberSent = false;
     let memberMessageId = "";
