@@ -24,19 +24,23 @@ const RoleProtectedRoute = ({
   redirectTo = "/dashboard",
 }: RoleProtectedRouteProps) => {
   const { user } = useAuth();
+  const { currentTenant } = useTenant();
 
   const { data: userRoles, isLoading } = useQuery({
-    queryKey: ["user_roles_route_guard", user?.id],
+    queryKey: ["user_roles_route_guard", user?.id, currentTenant?.id],
     queryFn: async () => {
       if (!user) return [];
       const { data } = await supabase
         .from("user_roles")
-        .select("role")
+        .select("role, tenant_id")
         .eq("user_id", user.id);
-      return (data ?? []).map((r: any) => r.role as string);
+      // Only include roles scoped to the current tenant or global (null tenant_id)
+      return (data ?? [])
+        .filter((r: any) => r.tenant_id === currentTenant?.id || r.tenant_id === null)
+        .map((r: any) => r.role as string);
     },
     enabled: !!user,
-    staleTime: 60_000, // cache for 1 min to avoid repeated queries across navigations
+    staleTime: 60_000,
   });
 
   if (isLoading) {
