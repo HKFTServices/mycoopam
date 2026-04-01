@@ -822,6 +822,23 @@ const AccountApprovals = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Fetch child rows for the ledger entry being viewed
+  const { data: viewLedgerChildren = [] } = useQuery({
+    queryKey: ["cft_children", viewLedgerEntry?.id],
+    queryFn: async () => {
+      if (!viewLedgerEntry || !currentTenant) return [];
+      const { data } = await (supabase as any)
+        .from("cashflow_transactions")
+        .select("*, control_accounts(name, account_type), gl_accounts(name, code, gl_type)")
+        .eq("parent_id", viewLedgerEntry.id)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      return data ?? [];
+    },
+    enabled: !!viewLedgerEntry && !!currentTenant,
+  });
+
   const totalPending = pendingAccounts.length + groupedTxns.length;
 
   return (
