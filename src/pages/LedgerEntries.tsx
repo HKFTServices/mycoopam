@@ -746,11 +746,8 @@ const LedgerEntries = () => {
   const canPostBank = bankForm.gl_account_id && bankForm.control_account_id && bankForm.amount > 0;
   const canPostJournal = journalForm.gl_account_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
 
-  const getSubmitterName = (entry: any) => {
-    const p = entry.profiles;
-    if (!p) return "Unknown";
-    return `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email || "Unknown";
-  };
+
+
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
