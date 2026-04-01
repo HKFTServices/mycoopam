@@ -1891,15 +1891,23 @@ const NewTransactionDialog = ({
               loanRepaymentOnly={loanRepaymentOnly}
               onLoanRepaymentOnlyChange={(val) => {
                 setLoanRepaymentOnly(val);
+                setNoPoolAllocation(false);
                 if (val) {
                   setPoolSplits([]);
-                  // Auto-fill gross deposit with loan repayment amount
                   const repayment = parseFloat(loanRepaymentAmount) || 0;
                   if (repayment > 0) {
                     setAmount(String(repayment));
                   }
-                  // If user chooses loan-only, move forward immediately
                   if (outstandingLoanInfo) setStep("details");
+                }
+              }}
+              noPoolAllocation={noPoolAllocation}
+              isMembershipOnlyDeposit={isMembershipOnlyDeposit}
+              onNoPoolAllocationChange={(val) => {
+                setNoPoolAllocation(val);
+                if (val) {
+                  setPoolSplits([]);
+                  setLoanRepaymentOnly(false);
                 }
               }}
             />
