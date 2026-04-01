@@ -5161,6 +5161,7 @@ export type Database = {
       tenant_configuration: {
         Row: {
           administrator_entity_id: string | null
+          approval_cc_email: string | null
           associated_membership_enabled: boolean
           associated_membership_fee: number
           associated_membership_monthly_fee: number
@@ -5227,6 +5228,7 @@ export type Database = {
         }
         Insert: {
           administrator_entity_id?: string | null
+          approval_cc_email?: string | null
           associated_membership_enabled?: boolean
           associated_membership_fee?: number
           associated_membership_monthly_fee?: number
@@ -5293,6 +5295,7 @@ export type Database = {
         }
         Update: {
           administrator_entity_id?: string | null
+          approval_cc_email?: string | null
           associated_membership_enabled?: boolean
           associated_membership_fee?: number
           associated_membership_monthly_fee?: number

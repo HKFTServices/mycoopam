@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     // Fetch tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
-      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
+      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id, approval_cc_email")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
@@ -207,7 +207,8 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const info = await transporter.sendMail({ from: fromHeader, to: profile.email, subject, html: body });
+        const ccEmail = tenantConfig?.approval_cc_email?.trim() || undefined;
+        const info = await transporter.sendMail({ from: fromHeader, to: profile.email, ...(ccEmail ? { cc: ccEmail } : {}), subject, html: body });
         emailsSent++;
         console.log(`[send-approval-notification] Sent to ${profile.email}: ${info.messageId} (SMTP source: ${smtp.source})`);
 
