@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, BookOpen, RotateCcw, Landmark, Archive } from "lucide-react";
 import { toast } from "sonner";
+import { GlAccountSelector } from "@/components/ledger/GlAccountSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type GLAccount = { id: string; name: string; code: string; gl_type: string; control_account_id: string | null; default_entry_type: string };
