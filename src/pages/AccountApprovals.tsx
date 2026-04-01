@@ -1735,6 +1735,10 @@ const AccountApprovals = () => {
                             <TableCell className="text-sm text-muted-foreground">{entry.reference || "—"}</TableCell>
                             <TableCell>
                               <div className="flex gap-1">
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                                  onClick={() => setViewLedgerEntry(entry)}>
+                                  <Eye className="h-3 w-3 mr-1" /> View
+                                </Button>
                                 <Button size="sm" variant="default" className="h-7 px-2 text-xs"
                                   onClick={() => approveLedgerMutation.mutate(entry.id)} disabled={approveLedgerMutation.isPending}>
                                   <Check className="h-3 w-3 mr-1" /> Approve
