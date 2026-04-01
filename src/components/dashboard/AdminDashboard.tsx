@@ -48,6 +48,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   const { currentTenant, branding } = useTenant();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const { isDebitOrderEnabled } = useDebitOrderEnabled();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
