@@ -1135,7 +1135,7 @@ const NewTransactionDialog = ({
         };
       }
     });
-  }, [isWithdrawal, withdrawalPoolEntries, selectedTxnTypeId, paymentMethod, feeRules, isVatRegistered, vatRate]);
+  }, [isWithdrawal, withdrawalPoolEntries, selectedTxnTypeId, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]);
 
   const anyWithdrawalSplitOverHolding = withdrawalSplitSummaries.some((s) => s.isOverHolding);
 
