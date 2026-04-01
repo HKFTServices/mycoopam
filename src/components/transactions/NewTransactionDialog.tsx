@@ -1095,7 +1095,7 @@ const NewTransactionDialog = ({
       } else if (entry.inputMode === "units") {
         const unitsNum = parseFloat(entry.unitsInput) || 0;
         const grossAmt = unitsNum * entry.unitPrice;
-        const feeCalc = calculateFees(selectedTxnTypeId, grossAmt, paymentMethod, feeRules, isVatRegistered, vatRate);
+        const feeCalc = calculateFees(selectedTxnTypeId, grossAmt, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct);
         netPayout = Math.max(0, grossAmt - feeCalc.totalFee);
         grossUnits = unitsNum;
         const holdingValue = entry.holdingValue;
