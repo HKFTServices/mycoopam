@@ -140,6 +140,9 @@ const PaymentGatewayCard = () => {
 
   return (
     <div className="space-y-4">
+      {/* Payment Methods Configuration */}
+      <PaymentMethodsSection />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">

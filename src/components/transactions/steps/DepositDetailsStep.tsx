@@ -14,11 +14,21 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 
-const PAYMENT_METHODS = [
+import { Bitcoin } from "lucide-react";
+
+const FALLBACK_METHODS = [
   { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
   { value: "cash_deposit", label: "Cash Deposit", icon: Banknote },
   { value: "debit_order", label: "Debit Order", icon: Repeat2 },
 ];
+
+const METHOD_ICON_MAP: Record<string, React.ElementType> = {
+  eft: Landmark,
+  debit_order: Repeat2,
+  card: CreditCard,
+  crypto: Bitcoin,
+  cash: Banknote,
+};
 
 interface JoinShareInfo {
   needed: boolean;
