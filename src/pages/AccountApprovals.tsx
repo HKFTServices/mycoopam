@@ -27,7 +27,6 @@ import { postAdminStockApproval } from "@/lib/postAdminStockApproval";
 import AdminStockReviewDialog from "@/components/approvals/AdminStockReviewDialog";
 import StockDocumentActions from "@/components/stock/StockDocumentActions";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
