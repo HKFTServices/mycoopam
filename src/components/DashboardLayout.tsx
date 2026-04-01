@@ -583,7 +583,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     localStorage.setItem("currentTenantId", t.id);
                     if (t.slug && isOnProductionDomain()) {
                       // Production: redirect to tenant subdomain dashboard
-                      window.location.replace(`https://${t.slug}.${window.location.hostname.split('.').slice(-2).join('.')}/dashboard`);
+                      window.location.replace(`${getTenantUrl(t.slug)}/dashboard`);
                     } else {
                       // Dev/preview: just update context (localStorage already saved)
                       setCurrentTenant(t);
