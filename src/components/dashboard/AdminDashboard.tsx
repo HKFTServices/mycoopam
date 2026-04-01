@@ -175,13 +175,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
   }, [adminEntityAccounts, debitOrderAccountQuery]);
 
   const openNewDebitOrder = () => {
-    if (memberPrimaryAccount) {
-      setDebitOrderOpen(true);
-      return;
-    }
-    if (canAdminPickDebitEntity) {
-      setDebitOrderAccountSelectOpen(true);
-    }
+    navigate("/debit-orders?new=1");
   };
 
   // Legal entity check
