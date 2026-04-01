@@ -111,9 +111,9 @@ async function fetchProviderPrices(provider: ApiProvider, symbols: string[]): Pr
   return prices;
 }
 
-/** Round to 4 decimal places for better precision on unit prices */
+/** Round to 5 decimal places for better precision on unit prices */
 function round4(n: number): number {
-  return Math.round(n * 10000) / 10000;
+  return Math.round(n * 100000) / 100000;
 }
 
 /** Round to 2 decimal places for monetary amounts */
