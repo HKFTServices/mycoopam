@@ -1783,7 +1783,13 @@ const NewTransactionDialog = ({
     }
 
     if (isDeposit) {
-      if (!loanRepaymentOnly && poolSplits.length === 0) {
+      // If membership-only deposit, auto-advance (no pool needed)
+      if (isMembershipOnlyDeposit) {
+        setNoPoolAllocation(true);
+        setStep("details");
+        return;
+      }
+      if (!loanRepaymentOnly && !noPoolAllocation && poolSplits.length === 0) {
         setPoolSplits([{ poolId: onlyPoolId, percentage: 100 }]);
       }
       setSelectedPoolId(onlyPoolId);
