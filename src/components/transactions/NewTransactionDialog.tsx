@@ -972,12 +972,17 @@ const NewTransactionDialog = ({
       } else if (rule.calculation_method === "fixed_amount") {
         fee = Number(rule.fixed_amount);
       } else if (rule.calculation_method === "sliding_scale") {
-        const tiers = (rule.transaction_fee_tiers || []).sort((a: any, b: any) => Number(a.min_amount) - Number(b.min_amount));
-        for (const tier of tiers) {
-          if (txnAmount >= Number(tier.min_amount) && txnAmount <= (tier.max_amount ? Number(tier.max_amount) : Infinity)) {
-            appliedPct = Number(tier.percentage);
-            fee = txnAmount * (appliedPct / 100);
-            break;
+        if (overridePct != null) {
+          appliedPct = overridePct;
+          fee = txnAmount * (appliedPct / 100);
+        } else {
+          const tiers = (rule.transaction_fee_tiers || []).sort((a: any, b: any) => Number(a.min_amount) - Number(b.min_amount));
+          for (const tier of tiers) {
+            if (txnAmount >= Number(tier.min_amount) && txnAmount <= (tier.max_amount ? Number(tier.max_amount) : Infinity)) {
+              appliedPct = Number(tier.percentage);
+              fee = txnAmount * (appliedPct / 100);
+              break;
+            }
           }
         }
       }
