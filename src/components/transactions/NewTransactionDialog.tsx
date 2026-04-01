@@ -2099,6 +2099,9 @@ const NewTransactionDialog = ({
               outstandingLoanBalance={outstandingLoanInfo?.outstanding || 0}
               loanInstalment={outstandingLoanInfo?.instalment || 0}
               loanRepaymentOnly={loanRepaymentOnly}
+              isStaff={isStaff}
+              adminFeeOverridePct={adminFeeOverridePct}
+              onAdminFeeOverridePctChange={setAdminFeeOverridePct}
             />
           )}
 
