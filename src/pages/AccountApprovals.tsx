@@ -1802,6 +1802,74 @@ const AccountApprovals = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ── Ledger View Dialog ── */}
+      <Dialog open={!!viewLedgerEntry} onOpenChange={(o) => { if (!o) setViewLedgerEntry(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              {viewLedgerEntry?.is_bank ? "Bank" : "Journal"} Entry Detail
+            </DialogTitle>
+            <DialogDescription>Review all ledger lines before approving or declining.</DialogDescription>
+          </DialogHeader>
+          {viewLedgerEntry && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Parent entry */}
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{viewLedgerEntry.transaction_date}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Type</span><Badge variant="outline" className="text-[10px]">{viewLedgerEntry.is_bank ? "Bank" : "Journal"}</Badge></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">GL Account</span><span className="text-right"><span className="font-mono text-xs text-muted-foreground mr-1">{viewLedgerEntry.gl_accounts?.code}</span>{viewLedgerEntry.gl_accounts?.name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Control Account</span><span>{viewLedgerEntry.control_accounts?.name || "—"}</span></div>
+                {viewLedgerEntry.debit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Debit</span><span className="font-semibold">{formatCurrency(viewLedgerEntry.debit, approvalSym)}</span></div>}
+                {viewLedgerEntry.credit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Credit</span><span className="font-semibold">{formatCurrency(viewLedgerEntry.credit, approvalSym)}</span></div>}
+                {viewLedgerEntry.reference && <div className="flex justify-between"><span className="text-muted-foreground">Reference</span><span>{viewLedgerEntry.reference}</span></div>}
+                <div className="flex justify-between"><span className="text-muted-foreground">Submitted By</span><span>{getLedgerSubmitterName(viewLedgerEntry)}</span></div>
+              </div>
+
+              {/* Child rows */}
+              {viewLedgerChildren.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Contra & VAT Lines</h4>
+                  <div className="space-y-2">
+                    {viewLedgerChildren.map((child: any) => (
+                      <div key={child.id} className="bg-muted/30 rounded-lg p-3 space-y-1 text-sm border border-border/50">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Type</span><Badge variant="secondary" className="text-[10px]">{child.entry_type}</Badge></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">GL Account</span><span className="text-right"><span className="font-mono text-xs text-muted-foreground mr-1">{child.gl_accounts?.code}</span>{child.gl_accounts?.name}</span></div>
+                        {child.control_accounts?.name && <div className="flex justify-between"><span className="text-muted-foreground">Control Account</span><span>{child.control_accounts.name}</span></div>}
+                        {child.debit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Debit</span><span className="font-semibold">{formatCurrency(child.debit, approvalSym)}</span></div>}
+                        {child.credit > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Credit</span><span className="font-semibold">{formatCurrency(child.credit, approvalSym)}</span></div>}
+                        {child.description && <div className="flex justify-between"><span className="text-muted-foreground">Description</span><span>{child.description}</span></div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes from parent */}
+              {viewLedgerEntry.notes && (() => {
+                try {
+                  const parsed = JSON.parse(viewLedgerEntry.notes);
+                  return parsed.entry_type ? (
+                    <div className="text-xs text-muted-foreground">
+                      Original entry type: <span className="text-foreground">{parsed.entry_type}</span>
+                    </div>
+                  ) : null;
+                } catch { return null; }
+              })()}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setViewLedgerEntry(null)}>Close</Button>
+            <Button variant="destructive" onClick={() => { setReviewLedgerEntry(viewLedgerEntry); setLedgerDeclineReason(""); setViewLedgerEntry(null); }}>
+              <X className="h-4 w-4 mr-1" /> Decline
+            </Button>
+            <Button onClick={() => { if (viewLedgerEntry) { approveLedgerMutation.mutate(viewLedgerEntry.id); setViewLedgerEntry(null); } }} disabled={approveLedgerMutation.isPending}>
+              <Check className="h-4 w-4 mr-1" /> Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Loan Review Dialog */}
       <LoanReviewDialog
         open={!!reviewLoanApp}
