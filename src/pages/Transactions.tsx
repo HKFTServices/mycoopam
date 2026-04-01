@@ -334,44 +334,22 @@ const Transactions = () => {
         <div className="flex items-center gap-3">
           <ArrowLeftRight className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Transactions</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage your investment transactions</p>
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Member Transactions</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View and manage member investment transactions</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {canAccessStock && (
-            <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setStockDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              {isMobile ? "Stock" : "New Stock Transaction"}
-            </Button>
-          )}
-          <Button size={isMobile ? "sm" : "default"} onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            {isMobile ? "New Txn" : "New Member Transaction"}
-          </Button>
-        </div>
+        <Button size={isMobile ? "sm" : "default"} onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" />
+          {isMobile ? "New Txn" : "New Member Transaction"}
+        </Button>
       </div>
 
       <MobileTableHint />
 
-      <Tabs defaultValue={searchParams.get("tab") === "stock" ? "stock" : "member"}>
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="member" className="gap-1.5 text-xs sm:text-sm">
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            {isMobile ? "Member" : "Member Transactions"}
-            {transactions.length > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-[10px]">{transactions.length}</Badge>}
-          </TabsTrigger>
-          {canAccessStock && (
-            <TabsTrigger value="stock" className="gap-1.5 text-xs sm:text-sm">
-              <Package className="h-3.5 w-3.5" />
-              {isMobile ? "Stock" : "Admin Stock"}
-              {adminStockTxns.length > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-[10px]">{adminStockTxns.length}</Badge>}
-            </TabsTrigger>
-          )}
-        </TabsList>
+      <div>
 
-        {/* ─── Member Transactions Tab ─── */}
-        <TabsContent value="member">
+        {/* ─── Member Transactions ─── */}
+        <div className="mt-4">
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -498,99 +476,8 @@ const Transactions = () => {
           </Table>
         </div>
       )}
-        </TabsContent>
-
-        {/* ─── Admin Stock Transactions Tab ─── */}
-        <TabsContent value="stock">
-          {loadingStock ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : adminStockTxns.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No admin stock transactions yet</p>
-              <p className="text-sm mt-1">Use "New Stock Transaction" to record a purchase, sale or adjustment</p>
-            </div>
-          ) : (
-            <div className="rounded-xl border bg-card overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">Reference</TableHead>
-                    <TableHead className="text-xs text-right">Excl. VAT</TableHead>
-                    <TableHead className="text-xs text-right">VAT</TableHead>
-                    <TableHead className="text-xs text-right">Total Invoice</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs w-36">Documents</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {adminStockTxns.map((tx: any) => {
-                    const typeIcons: Record<string, any> = {
-                      STOCK_PURCHASES: ShoppingCart,
-                      STOCK_SALES: TrendingDown,
-                      STOCK_ADJUSTMENTS: SlidersHorizontal,
-                    };
-                    const typeLabels: Record<string, string> = {
-                      STOCK_PURCHASES: "Stock Purchase",
-                      STOCK_SALES: "Stock Sale",
-                      STOCK_ADJUSTMENTS: "Stock Adjustment",
-                    };
-                    const stockStatusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-                      pending: { label: "Pending", variant: "outline" },
-                      vault_confirmed: { label: "Vault Confirmed", variant: "secondary" },
-                      approved: { label: "Approved", variant: "default" },
-                      declined: { label: "Declined", variant: "destructive" },
-                    };
-                    const Icon = typeIcons[tx.transaction_type_code] ?? Package;
-                    const statusCfg = stockStatusConfig[tx.status] ?? stockStatusConfig.pending;
-                    const isAdj = tx.transaction_type_code === "STOCK_ADJUSTMENTS";
-                    return (
-                      <TableRow key={tx.id} className="text-sm">
-                        <TableCell className="text-xs font-mono">
-                          {format(new Date(tx.transaction_date), "dd MMM yyyy")}
-                        </TableCell>
-                        <TableCell className="text-xs font-medium">
-                          <span className="flex items-center gap-1.5">
-                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                            {typeLabels[tx.transaction_type_code] ?? tx.transaction_type_code}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground">
-                          {tx.reference || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-mono">
-                          {isAdj ? "—" : formatCurrency(Number(tx.total_excl_vat))}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-mono text-muted-foreground">
-                          {isAdj ? "—" : (Number(tx.total_vat) > 0 ? formatCurrency(Number(tx.total_vat)) : "—")}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-mono font-semibold">
-                          {isAdj ? "—" : formatCurrency(Number(tx.total_invoice_amount))}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusCfg.variant} className="text-[10px]">
-                            {statusCfg.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {(tx.status === "approved" || tx.status === "vault_confirmed") &&
-                            tx.transaction_type_code !== "STOCK_ADJUSTMENTS" && (
-                            <StockDocumentActions txn={tx} compact />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <NewTransactionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <AdminStockTransactionDialog open={stockDialogOpen} onOpenChange={setStockDialogOpen} />

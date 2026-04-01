@@ -41,6 +41,7 @@ import Pools from "./pages/Pools";
 import Fees from "./pages/Fees";
 import TransactionTypes from "./pages/TransactionTypes";
 import Transactions from "./pages/Transactions";
+import StockTransactions from "./pages/StockTransactions";
 import OperatingJournals from "./pages/OperatingJournals";
 import LedgerEntries from "./pages/LedgerEntries";
 import GLAccounts from "./pages/setup/GLAccounts";
@@ -176,6 +177,7 @@ const App = () => (
               <Route path="/dashboard/operating-journals" element={<StaffRoute><OperatingJournals /></StaffRoute>} />
               <Route path="/dashboard/ledger-entries" element={<StaffRoute><LedgerEntries /></StaffRoute>} />
               <Route path="/dashboard/daily-prices/stock" element={<StaffRoute><DailyStockPrices /></StaffRoute>} />
+              <Route path="/dashboard/stock-transactions" element={<StaffRoute><StockTransactions /></StaffRoute>} />
               <Route path="/dashboard/daily-prices/pools" element={<StaffRoute><DailyPoolPrices /></StaffRoute>} />
               <Route path="/dashboard/send-message" element={<StaffRoute><SendMessage /></StaffRoute>} />
               <Route path="/dashboard/message-history" element={<StaffRoute><MessageHistory /></StaffRoute>} />
