@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Connection, Request as TediousRequest } from "npm:tedious@19";
+import { Connection, Request as TediousRequest } from "npm:tedious@18";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
