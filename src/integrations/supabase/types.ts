@@ -5708,6 +5708,57 @@ export type Database = {
           },
         ]
       }
+      tenant_payment_methods: {
+        Row: {
+          created_at: string
+          display_order: number
+          fee_type_id: string | null
+          id: string
+          is_enabled: boolean
+          method_code: string
+          method_label: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          fee_type_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          method_code: string
+          method_label: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          fee_type_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          method_code?: string
+          method_label?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_payment_methods_fee_type_id_fkey"
+            columns: ["fee_type_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_fee_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_payment_methods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_sla: {
         Row: {
           created_at: string
