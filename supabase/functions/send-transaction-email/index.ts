@@ -968,6 +968,7 @@ Deno.serve(async (req) => {
         const info = await transporter.sendMail({
           from: fromHeader,
           to: recipientAddr,
+          ...(ccAddresses.length > 0 ? { cc: ccAddresses.join(", ") } : {}),
           subject,
           html: body,
           attachments,
