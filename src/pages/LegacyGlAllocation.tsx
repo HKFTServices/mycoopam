@@ -659,28 +659,12 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "membership_fee",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // If split has a control_account_id, also DR the control account (e.g. Admin Cash for membership fee income)
-          if (split.control_account_id) {
-            const ctrlName = controlAccounts.find((ca: any) => ca.new_id === split.control_account_id)?.name ?? "Admin Cash";
-            const ctrlPoolId = controlAccounts.find((ca: any) => ca.new_id === split.control_account_id)?.pool_id ?? null;
-            proposed.push({
-              description: `${split.description} — Admin Cash DR`,
-              debit: split.amount,
-              credit: 0,
-              gl_account_id: null, gl_account_label: "",
-              control_account_id: split.control_account_id,
-              control_account_label: ctrlName,
-              pool_id: ctrlPoolId, entity_account_id: eaInfo?.id ?? null,
-              transaction_date: txDate, entry_type: "admin_cash_dr",
-              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-            });
-          }
         }
       }
-      // ── Loan Instalment (1978) — Triple entry ──
+      // ── Loan Instalment (1978) — GL: CR Member Loans ──
       else if (entry.entry_type_id === "1978") {
         const repaymentAmount = entry.debit > 0 ? entry.debit : entry.credit;
-        // 1. CR Member Loans GL (1025)
+        // CR Member Loans GL (1025)
         proposed.push({
           description: "Loan Repayment",
           debit: 0, credit: repaymentAmount,
@@ -691,38 +675,12 @@ const LegacyGlAllocation = () => {
           transaction_date: txDate, entry_type: "loan_repayment",
           reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
         });
-        // 2. CR Loan Control (Member Account)
-        proposed.push({
-          description: "Loan Repayment — Loan Control CR",
-          debit: 0, credit: repaymentAmount,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: memberAcctLoanControl?.id ?? mapping.control_account_id,
-          control_account_label: memberAcctLoanControl?.name ?? "Member Account Loans",
-          pool_id: memberAcctCashControl?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "loan_control_cr",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-        // 3. DR Cash Control (Member Account)
-        proposed.push({
-          description: "Loan Repayment — Cash Control DR",
-          debit: repaymentAmount, credit: 0,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: memberAcctCashControl?.id ?? null,
-          control_account_label: memberAcctCashControl?.name ?? "Member Account Cash",
-          pool_id: memberAcctCashControl?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "cash_control_dr",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
       }
-      // ── Pool Deposit entries — DR Cash Control + CR Member Interest GL ──
-      // Matches new deposit pattern: DR pool cash control (cash flowing in),
-      // GL = Member Interest (2020) for pool allocations, Fee Income (4010) for fees
+      // ── Pool Deposit entries — GL: CR Member Interest or Fee Income ──
       else if (isDepFunds && poolDepositEntryTypes.has(entry.entry_type_id)) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
         const isFeeEntry = entry.entry_type_id === "1924";
-        // 1924 always maps to Administration Income (4000) from the mapping.
-        // Membership Fee Income (4010) is only used inside the 1922 split (R199).
         const glId = isFeeEntry
           ? (mapping.gl_account_id ?? null)
           : (tenantGlConfig?.poolAllocationGlId ?? null);
@@ -730,18 +688,7 @@ const LegacyGlAllocation = () => {
           ? (mapping.gl_account_code ? `${mapping.gl_account_code} ${mapping.gl_account_name}` : "Administration Fee Income")
           : (tenantGlConfig?.poolAllocationGlLabel ?? "Member Interest");
 
-        // 1. DR Cash Control — cash flowing into the pool
-        proposed.push({
-          description: `${mapping.entry_type_name ?? "Pool Deposit"} — ${poolName}`,
-          debit: amount, credit: 0,
-          gl_account_id: null, gl_account_label: "",
-          control_account_id: ca?.new_id ?? null,
-          control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-          pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-          transaction_date: txDate, entry_type: "pool_deposit",
-          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-        });
-        // 2. CR GL Account — Member Interest (BS) or Fee Income (IS)
+        // CR GL Account — Member Interest (BS) or Fee Income (IS)
         proposed.push({
           description: `${isFeeEntry ? "Fee Income" : "Member Interest"} — ${poolName}`,
           debit: 0, credit: amount,
