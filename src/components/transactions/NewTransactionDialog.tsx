@@ -1157,8 +1157,8 @@ const NewTransactionDialog = ({
   const allUnitsValue = currentHolding * currentUnitPrice; // uses UP Sell
   const switchFeeBaseAmount = switchUseAllUnits ? allUnitsValue : amountNum;
   const switchFeeCalc = useMemo(
-    () => isSwitch ? calculateFees(selectedTxnTypeId, switchFeeBaseAmount, "switch", feeRules, isVatRegistered, vatRate) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isSwitch, selectedTxnTypeId, switchFeeBaseAmount, feeRules, isVatRegistered, vatRate]
+    () => isSwitch ? calculateFees(selectedTxnTypeId, switchFeeBaseAmount, "switch", feeRules, isVatRegistered, vatRate, adminFeeOverridePct) : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
+    [isSwitch, selectedTxnTypeId, switchFeeBaseAmount, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
   const switchGrossRedemption = isSwitch
     ? (switchUseAllUnits ? allUnitsValue : amountNum + switchFeeCalc.totalFee)
