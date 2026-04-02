@@ -610,20 +610,6 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                   <Plus className="mr-2 h-4 w-4" />
                   New Loan Application
                 </DropdownMenuItem>
-                {isDebitOrderEnabled && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        if (memberPrimaryAccountLoading) return;
-                        openNewDebitOrder();
-                      }}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Debit Order
-                    </DropdownMenuItem>
-                  </>
-                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => adminTour.startTour()}>
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -657,18 +643,6 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
                 View Loan Transactions
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-background shadow-sm hover:bg-muted/40"
-                disabled={memberPrimaryAccountLoading}
-                onClick={openNewDebitOrder}
-              >
-                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30 text-emerald-700 dark:text-emerald-400">
-                  <Plus className="h-3.5 w-3.5" />
-                </span>
-                New Debit Order
-              </Button>
 
               <Button
                 variant="outline"
