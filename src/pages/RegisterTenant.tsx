@@ -103,12 +103,19 @@ const RegisterTenant = () => {
   };
   
   const selectedPlan = feePlans.find((p: any) => p.id === selectedPlanId);
-  const computedMonthlyFee = selectedPlan ? (
-    (selectedServices.includes("membership_admin") ? (selectedPlan.membership_admin_fee || 250) : 0) +
-    (selectedServices.includes("loans") ? (selectedPlan.loans_fee || 50) : 0) +
-    (selectedServices.includes("debit_orders") ? (selectedPlan.debit_orders_fee || 50) : 0) +
-    (selectedServices.includes("accounting") ? (selectedPlan.accounting_fee || 50) : 0)
-  ) : 0;
+  const fallbackPlan = feePlans[0];
+  const feePlan = selectedPlan || fallbackPlan;
+  const computedMonthlyFee = feePlan ? (
+    (selectedServices.includes("membership_admin") ? (feePlan.membership_admin_fee || 250) : 0) +
+    (selectedServices.includes("loans") ? (feePlan.loans_fee || 50) : 0) +
+    (selectedServices.includes("debit_orders") ? (feePlan.debit_orders_fee || 50) : 0) +
+    (selectedServices.includes("accounting") ? (feePlan.accounting_fee || 50) : 0)
+  ) : (
+    (selectedServices.includes("membership_admin") ? 250 : 0) +
+    (selectedServices.includes("loans") ? 50 : 0) +
+    (selectedServices.includes("debit_orders") ? 50 : 0) +
+    (selectedServices.includes("accounting") ? 50 : 0)
+  );
 
   // ─── Step 3: Logo + Prefixes ───
   const [logoFile, setLogoFile] = useState<File | null>(null);
