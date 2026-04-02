@@ -348,16 +348,15 @@ const EditEntityProfileDialog = ({ open, onOpenChange, entityId, entityType, ini
             ...(proofPath ? { proof_document_name: proofName, proof_document_path: proofPath } : {}),
           }).eq("id", memberBankDetails.id);
         } else {
-          // Create new member bank detail
-          await supabase.from("member_bank_details").insert({
-            user_id: user.id,
+          // Create new entity bank detail
+          await (supabase as any).from("entity_bank_details").insert({
+            entity_id: entityId,
             tenant_id: currentTenant.id,
             bank_id: data.bankId,
             bank_account_type_id: data.bankAccountTypeId,
-            account_name: data.accountName,
+            account_holder: data.accountName,
             account_number: data.accountNumber,
-            proof_document_name: proofName || null,
-            proof_document_path: proofPath || null,
+            creator_user_id: user.id,
           });
         }
       }
