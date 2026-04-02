@@ -1704,13 +1704,19 @@ const LegacyGlAllocation = () => {
               <span>{selectedTypeName} — {allProposed.length} transactions from 1 Mar 2025</span>
               <div className="flex gap-2">
                 {(() => {
-                  const bal = allProposed.filter(g => g.isBalanced).length;
-                  const unbal = allProposed.length - bal;
+                  const fullyMapped = allProposed.filter(g => g.isBalanced && !g.hasUnmappedGl).length;
+                  const unmapped = allProposed.filter(g => g.hasUnmappedGl).length;
+                  const unbal = allProposed.filter(g => !g.isBalanced && !g.hasUnmappedGl).length;
                   return (
                     <>
                       <Badge variant="outline" className="gap-1">
-                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {bal} balanced
+                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {fullyMapped} ready to post
                       </Badge>
+                      {unmapped > 0 && (
+                        <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-600 bg-amber-500/10">
+                          <AlertTriangle className="h-3 w-3" /> {unmapped} unmapped GL
+                        </Badge>
+                      )}
                       {unbal > 0 && (
                         <Badge variant="destructive" className="gap-1">
                           <AlertTriangle className="h-3 w-3" /> {unbal} unbalanced
