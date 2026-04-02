@@ -1046,8 +1046,8 @@ const LegacyGlAllocation = () => {
           proposed.push({
             description: `${itemDesc} — GL`,
             debit: entry.credit, credit: entry.debit,
-            gl_account_id: incExpItem?.gl_account_id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `No GL mapped (${itemDesc})`,
+            gl_account_id: incExpItem?.gl_account_id ?? fuzzyMatchGl(itemDesc)?.id ?? null,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyMatchGl(itemDesc) ? `${fuzzyMatchGl(itemDesc)!.code} ${fuzzyMatchGl(itemDesc)!.name} (auto)` : `No GL mapped (${itemDesc})`),
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
