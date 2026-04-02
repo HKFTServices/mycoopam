@@ -1020,7 +1020,34 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "bank_payment",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 3. Cash control entry (pool cash movement) — skip for pure GL journals
+          // 3. Self-reversing corrections (e.g. "Corr - ..."): add reversal lines (net zero)
+          const isCorrectionEntry = incExpItem?.description?.toLowerCase().startsWith("corr");
+          if (isCorrectionEntry) {
+            // Reversal: opposite of lines 1 & 2
+            proposed.push({
+              description: `${itemDesc} (reversal) — ${poolName}`,
+              debit: isExpense ? 0 : amount,
+              credit: isExpense ? amount : 0,
+              gl_account_id: incExpItem?.gl_account_id ?? fuzzyGl?.id ?? null,
+              gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyGl ? `${fuzzyGl.code} ${fuzzyGl.name} (auto)` : `No GL mapped (${itemDesc})`),
+              control_account_id: null, control_account_label: "",
+              pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "income_expense_gl",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+            proposed.push({
+              description: `Bank (reversal) — ${itemDesc}`,
+              debit: isExpense ? amount : 0,
+              credit: isExpense ? 0 : amount,
+              gl_account_id: tenantGlConfig?.bankGlId ?? null,
+              gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+              control_account_id: null, control_account_label: "",
+              pool_id: null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "bank_payment",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+          }
+          // 4. Cash control entry (pool cash movement) — skip for pure GL journals
           const hasCaMapping = incExpItem?.debit_control_account_id || incExpItem?.credit_control_account_id;
           const isDefaultCa = !incExpItem; // no inc/exp item means we still track pool cash
           if (hasCaMapping || isDefaultCa) {
