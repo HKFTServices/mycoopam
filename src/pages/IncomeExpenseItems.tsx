@@ -225,7 +225,8 @@ const IncomeExpenseItems = () => {
       setLegacyGlSelections(prev => ({ ...auto, ...prev }));
     }
   }, [legacyEntries, items]);
-
+  // Save GL account selection on an item
+  const saveGlMutation = useMutation({
     mutationFn: async ({ itemId, glAccountId }: { itemId: string; glAccountId: string }) => {
       const { error } = await (supabase as any)
         .from("income_expense_items")
