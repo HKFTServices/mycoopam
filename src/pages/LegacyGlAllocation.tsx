@@ -1646,7 +1646,7 @@ const LegacyGlAllocation = () => {
                   <FileSearch className="h-4 w-4" />
                   Preview CFT Posting
                 </Button>
-                {allProposed.filter(g => g.isBalanced).length > 0 && (
+                {allProposed.filter(g => g.isBalanced && !g.hasUnmappedGl).length > 0 && (
                   <Button
                     size="sm"
                     onClick={() => {
@@ -1656,7 +1656,12 @@ const LegacyGlAllocation = () => {
                     className="gap-2"
                   >
                     {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                    Post {allProposed.filter(g => g.isBalanced).length} Balanced Groups
+                    Post {allProposed.filter(g => g.isBalanced && !g.hasUnmappedGl).length} Fully Mapped Groups
+                    {allProposed.filter(g => g.hasUnmappedGl).length > 0 && (
+                      <Badge variant="outline" className="ml-1 text-[10px]">
+                        {allProposed.filter(g => g.hasUnmappedGl).length} skipped (unmapped)
+                      </Badge>
+                    )}
                   </Button>
                 )}
               </>
