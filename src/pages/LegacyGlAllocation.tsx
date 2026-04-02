@@ -271,6 +271,63 @@ const LegacyGlAllocation = () => {
     enabled: !!currentTenant,
   });
 
+  // Fetch all tenant GL accounts for fuzzy auto-matching
+  const { data: allGlAccounts } = useQuery({
+    queryKey: ["all-gl-accounts", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data } = await supabase
+        .from("gl_accounts")
+        .select("id, code, name, gl_type")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true);
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  /**
+   * Fuzzy-match a legacy description to the closest GL account by name.
+   * Normalises both strings and checks for substring/keyword overlap.
+   * Returns { id, code, name } or null.
+   */
+  const fuzzyMatchGl = useMemo(() => {
+    const accounts = allGlAccounts ?? [];
+    return (description: string): { id: string; code: string; name: string } | null => {
+      if (!description || accounts.length === 0) return null;
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+      const desc = norm(description);
+      const descWords = desc.split(" ").filter(w => w.length > 2);
+
+      let bestMatch: (typeof accounts)[0] | null = null;
+      let bestScore = 0;
+
+      for (const gl of accounts) {
+        const glName = norm(gl.name);
+        // Exact match
+        if (glName === desc) return { id: gl.id, code: gl.code, name: gl.name };
+        // Substring match (either direction)
+        let score = 0;
+        if (glName.includes(desc) || desc.includes(glName)) {
+          score = 80;
+        } else {
+          // Word overlap scoring
+          const glWords = glName.split(" ").filter(w => w.length > 2);
+          const overlap = descWords.filter(w => glWords.some(gw => gw.includes(w) || w.includes(gw)));
+          if (overlap.length > 0) {
+            score = (overlap.length / Math.max(descWords.length, glWords.length)) * 60;
+          }
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = gl;
+        }
+      }
+
+      return bestScore >= 30 && bestMatch ? { id: bestMatch.id, code: bestMatch.code, name: bestMatch.name } : null;
+    };
+  }, [allGlAccounts]);
+
   // Fetch entity account mappings for resolving EntityID
   const { data: entityAccountMap } = useQuery({
     queryKey: ["entity-accounts-map", currentTenant?.id],
@@ -937,13 +994,14 @@ const LegacyGlAllocation = () => {
           // Income received to bank: DR Bank GL, CR Income GL
           const isExpense = entry.credit > 0; // CFT credit = cash leaving pool = expense
 
+          const fuzzyGl = !incExpItem?.gl_account_id ? fuzzyMatchGl(itemDesc) : null;
           // 1. Expense/Income GL entry
           proposed.push({
             description: `${itemDesc} — ${poolName}`,
             debit: isExpense ? amount : 0,
             credit: isExpense ? 0 : amount,
-            gl_account_id: incExpItem?.gl_account_id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `No GL mapped (${itemDesc})`,
+            gl_account_id: incExpItem?.gl_account_id ?? fuzzyGl?.id ?? null,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyGl ? `${fuzzyGl.code} ${fuzzyGl.name} (auto)` : `No GL mapped (${itemDesc})`),
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
@@ -985,12 +1043,13 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
+          const fuzzyGlJ = !incExpItem?.gl_account_id ? fuzzyMatchGl(itemDesc) : null;
           // 2. GL entry (opposite side)
           proposed.push({
             description: `${itemDesc} — GL`,
             debit: entry.credit, credit: entry.debit,
-            gl_account_id: incExpItem?.gl_account_id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : `No GL mapped (${itemDesc})`,
+            gl_account_id: incExpItem?.gl_account_id ?? fuzzyGlJ?.id ?? null,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyGlJ ? `${fuzzyGlJ.code} ${fuzzyGlJ.name} (auto)` : `No GL mapped (${itemDesc})`),
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
