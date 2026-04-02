@@ -109,41 +109,82 @@ const SlaAgreement = () => {
               <CardContent className="py-6 space-y-4">
                 <h2 className="text-lg font-semibold">3. Fee Structure</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  The applicable fees are determined by the service plan selected during registration.
+                  The applicable fees are determined by the service plan and modular services selected during registration.
                   All fees are exclusive of VAT unless otherwise stated.
                 </p>
+
+                {/* 3.1 Modular Base Services */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">3.1 Modular Monthly Base Services</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    The Client selects from the following modular services during registration. The monthly base fee is the sum of the selected services:
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                    <li>• Membership Administration — <strong>R 250.00</strong> per month</li>
+                    <li>• Loans Module — <strong>R 50.00</strong> per month</li>
+                    <li>• Debit Orders Module — <strong>R 50.00</strong> per month</li>
+                    <li>• Accounting Module — <strong>R 50.00</strong> per month</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground italic">
+                    Membership Administration is mandatory. All other modules are optional add-ons.
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* 3.2 Plan Tiers */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">3.2 Plan Tiers</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    In addition to the modular base fee, the Client selects one of the following plan tiers:
+                  </p>
+                </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   {plans.map((plan) => {
                     const isBasic = plan.plan_type === "basic";
+                    const includesPooling = plan.includes_pooling === true;
                     return (
                       <div key={plan.id} className="border rounded-xl p-4 space-y-3">
                         <h3 className="font-bold">{plan.plan_label}</h3>
                         {isBasic ? (
                           <div>
-                            <p className="text-xl font-bold text-primary">{formatCurrency(plan.monthly_fee_excl_vat ?? 599)}</p>
-                            <p className="text-xs text-muted-foreground">per month + VAT • No setup fee</p>
+                            <p className="text-xl font-bold text-primary">R 0.00</p>
+                            <p className="text-xs text-muted-foreground">No once-off setup fee</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Monthly fee = sum of selected base services above
+                            </p>
                           </div>
                         ) : (
                           <div>
                             <p className="text-xl font-bold text-primary">{formatCurrency(plan.setup_fee_excl_vat)}</p>
-                            <p className="text-xs text-muted-foreground">once-off setup + VAT</p>
+                            <p className="text-xs text-muted-foreground">once-off setup fee + VAT</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <strong>Plus</strong> monthly base services fee (as selected above)
+                            </p>
                           </div>
                         )}
                         <Separator />
-                        {!isBasic && (
+                        {includesPooling && (
                           <div className="space-y-1 text-sm">
+                            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+                              Pooling & Unitizing included
+                            </p>
                             <p>{plan.deposit_fee_pct}% on deposits</p>
                             <p>{plan.switch_transfer_withdrawal_fee_pct}% on switches/transfers/withdrawals</p>
                             <Separator className="my-2" />
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly (% of TPV p.a.)</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                              % of Total Pool Value p.a. — payable monthly
+                            </p>
                             <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
                             <p className="text-xs">{plan.tpv_tier2_pct_pa}% — {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
                             <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
                           </div>
                         )}
                         {isBasic && (
-                          <p className="text-sm text-muted-foreground">Flat monthly fee — no transaction-based charges.</p>
+                          <p className="text-sm text-muted-foreground">
+                            Flat monthly fee based on selected services — no transaction-based or pooling charges.
+                          </p>
                         )}
                       </div>
                     );
