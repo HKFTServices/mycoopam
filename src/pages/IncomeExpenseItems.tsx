@@ -49,6 +49,8 @@ type LegacyEntry = {
   type_tx_id: string | null;
   parent_id: string | null;
   entity_name: string | null;
+  is_bank: boolean;
+  inc_exp_item_id: string | null;
 };
 
 const IncomeExpenseItems = () => {
