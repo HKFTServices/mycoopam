@@ -1077,17 +1077,48 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense_gl",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 4. GL Admin Income CR (e.g. 4000 Administration Income)
-          proposed.push({
-            description: `${recovGl?.name ?? itemDesc} — GL`,
-            debit: 0, credit: amount,
-            gl_account_id: incExpItem.gl_account_id ?? null,
-            gl_account_label: recovGl ? `${recovGl.code} ${recovGl.name}` : `No GL mapped (${itemDesc})`,
-            control_account_id: null, control_account_label: "",
-            pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: "income_expense_gl",
-            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-          });
+          // 4. GL Credit line(s)
+          // Membership fee entries: split into Joining Share (R1) + Membership Fee Income (remainder)
+          const isMembershipFee = itemDesc.toLowerCase().includes("membership fees paid");
+          if (isMembershipFee && amount > 1) {
+            const joiningShareGl = allGlAccounts?.find((g: any) => g.code === "2030/01");
+            const memberFeeGl = allGlAccounts?.find((g: any) => g.code === "4010");
+            const shareAmount = 1;
+            const feeAmount = Math.round((amount - shareAmount) * 100) / 100;
+            // 4a. Joining Share CR (R1)
+            proposed.push({
+              description: `${joiningShareGl?.name ?? "Member Share Joining"} — GL`,
+              debit: 0, credit: shareAmount,
+              gl_account_id: joiningShareGl?.id ?? null,
+              gl_account_label: joiningShareGl ? `${joiningShareGl.code} ${joiningShareGl.name}` : "2030/01 Member Share Joining",
+              control_account_id: null, control_account_label: "",
+              pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "income_expense_gl",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+            // 4b. Membership Fee Income CR (remainder)
+            proposed.push({
+              description: `${memberFeeGl?.name ?? "Membership Fee Income"} — GL`,
+              debit: 0, credit: feeAmount,
+              gl_account_id: memberFeeGl?.id ?? null,
+              gl_account_label: memberFeeGl ? `${memberFeeGl.code} ${memberFeeGl.name}` : "4010 Membership Fee Income",
+              control_account_id: null, control_account_label: "",
+              pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "income_expense_gl",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+          } else {
+            proposed.push({
+              description: `${recovGl?.name ?? itemDesc} — GL`,
+              debit: 0, credit: amount,
+              gl_account_id: incExpItem.gl_account_id ?? null,
+              gl_account_label: recovGl ? `${recovGl.code} ${recovGl.name}` : `No GL mapped (${itemDesc})`,
+              control_account_id: null, control_account_label: "",
+              pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "income_expense_gl",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+          }
         }
       }
       // ── Stock Purchase (1948) — Stock Control DR (stock in) ──
