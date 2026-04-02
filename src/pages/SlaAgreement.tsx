@@ -142,46 +142,48 @@ const SlaAgreement = () => {
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   {plans.map((plan) => {
-                    const isBasic = plan.plan_type === "basic";
                     const includesPooling = plan.includes_pooling === true;
                     return (
                       <div key={plan.id} className="border rounded-xl p-4 space-y-3">
                         <h3 className="font-bold">{plan.plan_label}</h3>
-                        {isBasic ? (
-                          <div>
-                            <p className="text-xl font-bold text-primary">R 0.00</p>
-                            <p className="text-xs text-muted-foreground">No once-off setup fee</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Monthly fee = sum of selected base services above
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="text-xl font-bold text-primary">{formatCurrency(plan.setup_fee_excl_vat)}</p>
-                            <p className="text-xs text-muted-foreground">once-off setup fee + VAT</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              <strong>Plus</strong> monthly base services fee (as selected above)
-                            </p>
-                          </div>
-                        )}
-                        <Separator />
+
+                        {/* Once-off Setup Fee */}
+                        <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Once-off Setup Fee</p>
+                          <p className="text-xl font-bold text-primary">{formatCurrency(plan.setup_fee_excl_vat)}</p>
+                          <p className="text-xs text-muted-foreground">+ VAT</p>
+                        </div>
+
+                        {/* Monthly Base Fee */}
+                        <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly Base Fee</p>
+                          <p className="text-xs text-muted-foreground">
+                            Sum of selected modular services (see section 3.1 above)
+                          </p>
+                        </div>
+
                         {includesPooling && (
-                          <div className="space-y-1 text-sm">
-                            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+                          <>
+                            <Separator />
+                            <p className="text-xs font-semibold text-primary uppercase tracking-wider">
                               Pooling & Unitizing included
                             </p>
-                            <p>{plan.deposit_fee_pct}% on deposits</p>
-                            <p>{plan.switch_transfer_withdrawal_fee_pct}% on switches/transfers/withdrawals</p>
-                            <Separator className="my-2" />
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                              % of Total Pool Value p.a. — payable monthly
-                            </p>
-                            <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
-                            <p className="text-xs">{plan.tpv_tier2_pct_pa}% — {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
-                            <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
-                          </div>
+                            <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Transaction Fees</p>
+                              <p className="text-xs">{plan.deposit_fee_pct}% on deposits</p>
+                              <p className="text-xs">{plan.switch_transfer_withdrawal_fee_pct}% on switches/transfers/withdrawals</p>
+                            </div>
+                            <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                Recurring (% of Total Pool Value p.a. — payable monthly)
+                              </p>
+                              <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
+                              <p className="text-xs">{plan.tpv_tier2_pct_pa}% — {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                              <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
+                            </div>
+                          </>
                         )}
-                        {isBasic && (
+                        {!includesPooling && (
                           <p className="text-sm text-muted-foreground">
                             Flat monthly fee based on selected services — no transaction-based or pooling charges.
                           </p>
