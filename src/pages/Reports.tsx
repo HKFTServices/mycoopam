@@ -239,7 +239,7 @@ const Reports = () => {
       while (true) {
         const { data } = await (supabase as any)
           .from("cashflow_transactions")
-          .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
+          .select("gl_account_id, transaction_date, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
           .eq("tenant_id", tenantId)
           .eq("is_active", true)
           .not("gl_account_id", "is", null)
@@ -307,38 +307,62 @@ const Reports = () => {
   const netProfit = totalIncomeExclVat - totalExpenseExclVat;
 
 
-  // Aggregate Balance Sheet / GL Trial Balance data
-  // Legacy entries → straight posting. Native: bank/vat/stock_control/loan → straight; others → contra.
+  // Helper: determine posting direction for a CFT row
+  const isStraightPostingRow = (r: any) => {
+    const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
+    const isLegacy = !!r.legacy_transaction_id;
+    return isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || r.entry_type === "bank_contra";
+  };
+
+  // Aggregate Balance Sheet / GL Trial Balance data — split into opening & movement
   const bsAggregated = (() => {
-    const map: Record<string, { name: string; code: string; gl_type: string; netDebit: number; netCredit: number }> = {};
+    const map: Record<string, { name: string; code: string; gl_type: string; openDr: number; openCr: number; moveDr: number; moveCr: number }> = {};
     for (const r of bsData) {
       const gl = r.gl_accounts;
       if (!gl) continue;
       const type = gl.gl_type as string;
       if (!["asset", "liability", "equity", "income", "expense"].includes(type)) continue;
-      if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
-      const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      const isLegacy = !!r.legacy_transaction_id;
-      if (isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || r.entry_type === "bank_contra") {
-        // Straight posting: CFT Dr = GL Dr, CFT Cr = GL Cr
-        map[r.gl_account_id].netDebit  += Number(r.debit || 0);
-        map[r.gl_account_id].netCredit += Number(r.credit || 0);
+      if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, openDr: 0, openCr: 0, moveDr: 0, moveCr: 0 };
+
+      const dr = Number(r.debit || 0);
+      const cr = Number(r.credit || 0);
+      let postDr: number, postCr: number;
+      if (isStraightPostingRow(r)) {
+        postDr = dr; postCr = cr;
       } else {
-        // Contra posting for native non-bank entries: CFT Dr = GL Cr, CFT Cr = GL Dr
-        map[r.gl_account_id].netCredit += Number(r.debit || 0);
-        map[r.gl_account_id].netDebit  += Number(r.credit || 0);
+        postDr = cr; postCr = dr;
       }
+
+      // Split into opening (before fromDate) vs movement (within period)
+      const txDate = r.transaction_date as string;
+      const isBeforePeriod = fromDate && txDate < fromDate;
+      const isInPeriod = (!fromDate || txDate >= fromDate) && (!toDate || txDate <= toDate);
+
+      if (isBeforePeriod) {
+        map[r.gl_account_id].openDr += postDr;
+        map[r.gl_account_id].openCr += postCr;
+      } else if (isInPeriod) {
+        map[r.gl_account_id].moveDr += postDr;
+        map[r.gl_account_id].moveCr += postCr;
+      }
+      // transactions after toDate are excluded from both
     }
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
   })();
 
-  // GL Balances — raw cumulative debit/credit per account, grouped by gl_type
-  // Section totals: sum raw Dr and raw Cr columns separately (no flipping)
-  const glSection = (type: string) => ({
-    rows: bsAggregated.filter(r => r.gl_type === type),
-    totalDr: bsAggregated.filter(r => r.gl_type === type).reduce((s, r) => s + r.netDebit, 0),
-    totalCr: bsAggregated.filter(r => r.gl_type === type).reduce((s, r) => s + r.netCredit, 0),
-  });
+  // GL section helper for trial balance
+  const glSection = (type: string) => {
+    const rows = bsAggregated.filter(r => r.gl_type === type);
+    return {
+      rows,
+      totalOpenDr: rows.reduce((s, r) => s + r.openDr, 0),
+      totalOpenCr: rows.reduce((s, r) => s + r.openCr, 0),
+      totalMoveDr: rows.reduce((s, r) => s + r.moveDr, 0),
+      totalMoveCr: rows.reduce((s, r) => s + r.moveCr, 0),
+      totalDr: rows.reduce((s, r) => s + r.openDr + r.moveDr, 0),
+      totalCr: rows.reduce((s, r) => s + r.openCr + r.moveCr, 0),
+    };
+  };
   const glAssets      = glSection("asset");
   const glLiabilities = glSection("liability");
   const glEquity      = glSection("equity");
@@ -369,6 +393,25 @@ const Reports = () => {
     { label: "Last 30 days", days: 30 },
     { label: "Last 90 days", days: 90 },
   ];
+
+  // Financial year helpers (Mar–Feb)
+  const getFYRange = (offset: number): { from: Date; to: Date } => {
+    const now = new Date();
+    // FY starts in March. If current month < March, we're still in the FY that started last year.
+    const currentFYStartYear = now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
+    const startYear = currentFYStartYear + offset;
+    return {
+      from: new Date(startYear, 2, 1),       // 1 March
+      to: new Date(startYear + 1, 1, 28),    // 28 Feb (safe end)
+    };
+  };
+  // Use last day of Feb properly
+  const getFYRangeProper = (offset: number): { from: Date; to: Date } => {
+    const r = getFYRange(offset);
+    // Set to last day of February
+    const lastFeb = new Date(r.to.getFullYear(), 2, 0); // day 0 of March = last day of Feb
+    return { from: r.from, to: lastFeb };
+  };
 
   // Non-admin referrer/house: only show My Commissions
   if (!isAdmin && isReferrerOrHouse) {
@@ -405,6 +448,22 @@ const Reports = () => {
               {p.label}
             </Button>
           ))}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { const r = getFYRangeProper(0); setDateRange({ from: r.from, to: r.to }); }}
+            className="text-xs sm:text-sm"
+          >
+            Current FY
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { const r = getFYRangeProper(-1); setDateRange({ from: r.from, to: r.to }); }}
+            className="text-xs sm:text-sm"
+          >
+            Previous FY
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -610,7 +669,7 @@ const Reports = () => {
           <Card className={cn(isMobile && "overflow-hidden")}>
             <CardHeader>
               <CardTitle>GL Balances (Trial Balance)</CardTitle>
-              <p className="text-sm text-muted-foreground">All-time cumulative Dr/Cr per GL account as at {format(new Date(), "dd MMM yyyy")}</p>
+              <p className="text-sm text-muted-foreground">Period: {dateRange?.from ? format(dateRange.from, "dd MMM yyyy") : "—"} – {dateRange?.to ? format(dateRange.to, "dd MMM yyyy") : "—"}</p>
             </CardHeader>
             <CardContent>
               {isMobile ? (
@@ -626,78 +685,72 @@ const Reports = () => {
                       <div key={glType} className="rounded-2xl border border-border bg-card/60 p-3">
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-semibold">{labelMap[glType]}</h3>
-                          <Badge variant="outline" className="text-[10px] h-5">All-time</Badge>
                         </div>
 
                         <div className="mt-3 space-y-2">
-	                          {section.rows.map((r) => (
-	                            <div key={r.code} className="rounded-xl border bg-background/60 p-2">
-	                              <div className="flex items-start justify-between gap-3">
-	                                <div className="min-w-0">
-	                                  <p className="text-sm font-medium break-words">{r.name}</p>
-	                                  <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
-	                                </div>
-	                                <div className="text-right text-xs max-w-[55%] break-words">
-	                                  <div className="flex items-center justify-end gap-2">
-	                                    <span className="text-muted-foreground">Dr</span>
-	                                    <span className="font-mono break-all">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</span>
-	                                  </div>
-	                                  <div className="flex items-center justify-end gap-2 mt-1">
-	                                    <span className="text-muted-foreground">Cr</span>
-	                                    <span className="font-mono break-all">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</span>
-	                                  </div>
-	                                </div>
-	                              </div>
-	                            </div>
-	                          ))}
+                          {section.rows.map((r) => {
+                            const closeDr = r.openDr + r.moveDr;
+                            const closeCr = r.openCr + r.moveCr;
+                            return (
+                              <div key={r.code} className="rounded-xl border bg-background/60 p-2">
+                                <div className="min-w-0 mb-1">
+                                  <p className="text-sm font-medium break-words">{r.name}</p>
+                                  <p className="text-[11px] text-muted-foreground font-mono">{r.code}</p>
+                                </div>
+                                <div className="grid grid-cols-3 gap-1 text-[10px]">
+                                  <div className="text-center">
+                                    <p className="text-muted-foreground">Opening</p>
+                                    <p className="font-mono">{r.openDr > 0 ? `Dr ${fmtAmt(r.openDr)}` : r.openCr > 0 ? `Cr ${fmtAmt(r.openCr)}` : "—"}</p>
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-muted-foreground">Movement</p>
+                                    <p className="font-mono">{r.moveDr > 0 ? `Dr ${fmtAmt(r.moveDr)}` : ""}{r.moveDr > 0 && r.moveCr > 0 ? " / " : ""}{r.moveCr > 0 ? `Cr ${fmtAmt(r.moveCr)}` : r.moveDr === 0 ? "—" : ""}</p>
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-muted-foreground">Closing</p>
+                                    <p className="font-mono">{closeDr > 0 ? `Dr ${fmtAmt(closeDr)}` : closeCr > 0 ? `Cr ${fmtAmt(closeCr)}` : "—"}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
 
                           {section.rows.length === 0 && !showAccProfit && (
                             <div className="text-center text-muted-foreground py-4 text-sm">No records</div>
                           )}
 
-	                          {showAccProfit && (
-	                            <div className="rounded-xl border bg-muted/30 p-2 text-xs">
-	                              <div className="flex items-start justify-between gap-3">
-	                                <div className="min-w-0">
-	                                  <p className="text-sm font-medium">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</p>
-	                                  <p className="text-[11px] text-muted-foreground">Calculated from all-time income/expense</p>
-	                                </div>
-	                                <div className="text-right max-w-[55%] break-words">
-	                                  <div className="flex items-center justify-end gap-2">
-	                                    <span className="text-muted-foreground">Dr</span>
-	                                    <span className="font-mono break-all">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</span>
-	                                  </div>
-	                                  <div className="flex items-center justify-end gap-2 mt-1">
-	                                    <span className="text-muted-foreground">Cr</span>
-	                                    <span className="font-mono break-all">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</span>
-	                                  </div>
-	                                </div>
-	                              </div>
-	                            </div>
-	                          )}
+                          {showAccProfit && (
+                            <div className="rounded-xl border bg-muted/30 p-2 text-xs">
+                              <p className="text-sm font-medium">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</p>
+                              <p className="font-mono mt-1">{accumulatedProfit >= 0 ? `Cr ${fmtAmt(accumulatedProfit)}` : `Dr ${fmtAmt(Math.abs(accumulatedProfit))}`}</p>
+                            </div>
+                          )}
 
-	                          <div className="rounded-xl border bg-muted/30 p-2">
-	                            <div className="flex items-start justify-between gap-3 text-xs font-semibold min-w-0">
-	                              <span className="min-w-0">Total {labelMap[glType]}</span>
-	                              <span className="font-mono text-right break-all max-w-[65%]">Dr {totalDr > 0 ? fmtAmt(totalDr) : "—"} | Cr {totalCr > 0 ? fmtAmt(totalCr) : "—"}</span>
-	                            </div>
-	                          </div>
-	                        </div>
-	                      </div>
+                          <div className="rounded-xl border bg-muted/30 p-2">
+                            <div className="flex items-start justify-between gap-3 text-xs font-semibold min-w-0">
+                              <span className="min-w-0">Total {labelMap[glType]}</span>
+                              <span className="font-mono text-right break-all max-w-[65%]">Dr {totalDr > 0 ? fmtAmt(totalDr) : "—"} | Cr {totalCr > 0 ? fmtAmt(totalCr) : "—"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               ) : (
                 <>
-                  {/* Single unified table so all columns align */}
                   <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-24">GL Code</TableHead>
+                          <TableHead className="w-20">GL Code</TableHead>
                           <TableHead>Account</TableHead>
-                          <TableHead className="text-right w-40">Debit</TableHead>
-                          <TableHead className="text-right w-40">Credit</TableHead>
+                          <TableHead className="text-right w-28">Open Dr</TableHead>
+                          <TableHead className="text-right w-28">Open Cr</TableHead>
+                          <TableHead className="text-right w-28">Move Dr</TableHead>
+                          <TableHead className="text-right w-28">Move Cr</TableHead>
+                          <TableHead className="text-right w-28">Close Dr</TableHead>
+                          <TableHead className="text-right w-28">Close Cr</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -709,33 +762,43 @@ const Reports = () => {
                           const totalCr = section.totalCr + (showAccProfit && accumulatedProfit >= 0 ? accumulatedProfit : 0);
                           return (
                             <>
-                              {/* Section heading row */}
                               <TableRow key={`heading-${glType}`} className="bg-muted/30 border-t-2">
-                                <TableCell colSpan={4} className="font-semibold text-sm py-2">{labelMap[glType]}</TableCell>
+                                <TableCell colSpan={8} className="font-semibold text-sm py-2">{labelMap[glType]}</TableCell>
                               </TableRow>
-                              {/* Data rows */}
-                              {section.rows.map(r => (
-                                <TableRow key={r.code}>
-                                  <TableCell className="font-mono text-xs pl-6">{r.code}</TableCell>
-                                  <TableCell className="pl-6">{r.name}</TableCell>
-                                  <TableCell className="text-right">{r.netDebit > 0 ? fmtAmt(r.netDebit) : "—"}</TableCell>
-                                  <TableCell className="text-right">{r.netCredit > 0 ? fmtAmt(r.netCredit) : "—"}</TableCell>
-                                </TableRow>
-                              ))}
+                              {section.rows.map(r => {
+                                const closeDr = r.openDr + r.moveDr;
+                                const closeCr = r.openCr + r.moveCr;
+                                return (
+                                  <TableRow key={r.code}>
+                                    <TableCell className="font-mono text-xs pl-6">{r.code}</TableCell>
+                                    <TableCell className="pl-6">{r.name}</TableCell>
+                                    <TableCell className="text-right text-muted-foreground">{r.openDr > 0 ? fmtAmt(r.openDr) : "—"}</TableCell>
+                                    <TableCell className="text-right text-muted-foreground">{r.openCr > 0 ? fmtAmt(r.openCr) : "—"}</TableCell>
+                                    <TableCell className="text-right">{r.moveDr > 0 ? fmtAmt(r.moveDr) : "—"}</TableCell>
+                                    <TableCell className="text-right">{r.moveCr > 0 ? fmtAmt(r.moveCr) : "—"}</TableCell>
+                                    <TableCell className="text-right font-semibold">{closeDr > 0 ? fmtAmt(closeDr) : "—"}</TableCell>
+                                    <TableCell className="text-right font-semibold">{closeCr > 0 ? fmtAmt(closeCr) : "—"}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
                               {section.rows.length === 0 && !showAccProfit && (
-                                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground pl-6 text-xs">No records</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground pl-6 text-xs">No records</TableCell></TableRow>
                               )}
                               {showAccProfit && (
                                 <TableRow className="italic text-muted-foreground">
                                   <TableCell className="font-mono text-xs pl-6">—</TableCell>
                                   <TableCell className="pl-6">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
+                                  <TableCell colSpan={4}></TableCell>
                                   <TableCell className="text-right">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
                                   <TableCell className="text-right">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
                                 </TableRow>
                               )}
-                              {/* Section total row */}
                               <TableRow key={`total-${glType}`} className="font-semibold bg-muted/50 border-b-2">
                                 <TableCell colSpan={2}>Total {labelMap[glType]}</TableCell>
+                                <TableCell className="text-right">{section.totalOpenDr > 0 ? fmtAmt(section.totalOpenDr) : "—"}</TableCell>
+                                <TableCell className="text-right">{section.totalOpenCr > 0 ? fmtAmt(section.totalOpenCr) : "—"}</TableCell>
+                                <TableCell className="text-right">{section.totalMoveDr > 0 ? fmtAmt(section.totalMoveDr) : "—"}</TableCell>
+                                <TableCell className="text-right">{section.totalMoveCr > 0 ? fmtAmt(section.totalMoveCr) : "—"}</TableCell>
                                 <TableCell className="text-right">{totalDr > 0 ? fmtAmt(totalDr) : "—"}</TableCell>
                                 <TableCell className="text-right">{totalCr > 0 ? fmtAmt(totalCr) : "—"}</TableCell>
                               </TableRow>
@@ -751,7 +814,7 @@ const Reports = () => {
                           const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
                           return (
                             <TableRow className="font-bold text-base border-t-4 border-foreground/30">
-                              <TableCell colSpan={2} className="text-base font-bold py-3">Grand Total</TableCell>
+                              <TableCell colSpan={6} className="text-base font-bold py-3">Grand Total</TableCell>
                               <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalDr)}</TableCell>
                               <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalCr)}</TableCell>
                             </TableRow>
