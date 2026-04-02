@@ -1032,11 +1032,18 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         } else if (incExpItem?.debit_control_account_id && incExpItem?.credit_control_account_id) {
-          // ── RECOVERY JOURNAL: two control account lines only (e.g. Monthly Admin) ──
+          // ── RECOVERY JOURNAL: 4-line pattern (e.g. Monthly Admin) ──
+          // Lines: Admin Cash DR, Pool Cash CR, GL Cash Control DR, GL Admin Income CR
           const drCa = allControlAccounts?.find((c: any) => c.id === incExpItem.debit_control_account_id);
           const crCa = allControlAccounts?.find((c: any) => c.id === incExpItem.credit_control_account_id);
           const drPoolName = (drCa as any)?.pools?.name ?? drCa?.name ?? "Debit Account";
           const crPoolName = (crCa as any)?.pools?.name ?? crCa?.name ?? "Credit Account";
+          // Resolve GL account from income_expense_item (e.g. 4000 Administration Income)
+          const recovGl = incExpItem.gl_account_id
+            ? allGlAccounts?.find((g: any) => g.id === incExpItem.gl_account_id)
+            : null;
+          // Resolve Cash Control GL (code 1040)
+          const cashControlGl = allGlAccounts?.find((g: any) => g.code === "1040");
           // 1. DR debit control account (e.g. Admin Cash)
           proposed.push({
             description: `${itemDesc} — ${drPoolName}`,
@@ -1059,43 +1066,26 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-        } else {
-          // ── JOURNAL ENTRY (no bank): Cash control + GL + Bank GL ──
-          const isExpenseJ = entry.credit > 0;
-          const fuzzyGlJ = !incExpItem?.gl_account_id ? fuzzyMatchGl(itemDesc) : null;
-          // 1. Cash control entry
+          // 3. GL Cash Control DR (1040)
           proposed.push({
-            description: `${itemDesc} — ${poolName}`,
-            debit: entry.debit, credit: entry.credit,
-            gl_account_id: null, gl_account_label: "",
-            control_account_id: ca?.new_id ?? null,
-            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: "income_expense",
-            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-          });
-          // 2. GL entry (expense/income side)
-          proposed.push({
-            description: `${itemDesc} — GL`,
-            debit: isExpenseJ ? amount : 0,
-            credit: isExpenseJ ? 0 : amount,
-            gl_account_id: incExpItem?.gl_account_id ?? fuzzyGlJ?.id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyGlJ ? `${fuzzyGlJ.code} ${fuzzyGlJ.name} (auto)` : `No GL mapped (${itemDesc})`),
+            description: `Cash Control — ${itemDesc}`,
+            debit: amount, credit: 0,
+            gl_account_id: cashControlGl?.id ?? null,
+            gl_account_label: cashControlGl ? `${cashControlGl.code} ${cashControlGl.name}` : "1040 Cash Control",
             control_account_id: null, control_account_label: "",
-            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 3. Bank GL entry (opposite side to balance GL)
+          // 4. GL Admin Income CR (e.g. 4000 Administration Income)
           proposed.push({
-            description: `Bank — ${itemDesc}`,
-            debit: isExpenseJ ? 0 : amount,
-            credit: isExpenseJ ? amount : 0,
-            gl_account_id: tenantGlConfig?.bankGlId ?? null,
-            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+            description: `${recovGl?.name ?? itemDesc} — GL`,
+            debit: 0, credit: amount,
+            gl_account_id: incExpItem.gl_account_id ?? null,
+            gl_account_label: recovGl ? `${recovGl.code} ${recovGl.name}` : `No GL mapped (${itemDesc})`,
             control_account_id: null, control_account_label: "",
-            pool_id: null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: "bank_contra",
+            pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense_gl",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         }
