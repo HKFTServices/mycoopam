@@ -342,7 +342,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   });
 
   // Derive tenant-scoped role flags
-  const isSuperAdmin = userRolesRaw.some((r) => r.role === "super_admin" && r.tenant_id === null);
+  const isSuperAdmin = userRolesRaw.some((r) => r.role === "super_admin");
   const isTenantAdmin = userRolesRaw.some(
     (r) => r.role === "tenant_admin" && (r.tenant_id === currentTenant?.id || r.tenant_id === null),
   );
