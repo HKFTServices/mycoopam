@@ -864,15 +864,29 @@ const RegisterTenant = () => {
 
                                 <p className="text-xs text-muted-foreground">{planDescriptions[plan.plan_code] || ""}</p>
 
-                                {/* Pricing */}
-                                <div className="space-y-1">
+                                {/* ── BLOCK 1: Once-off Setup Fee ── */}
+                                <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Once-off Setup Fee</p>
                                   <p className="text-xl sm:text-2xl font-bold text-primary">
                                     {formatCurrency(plan.setup_fee_excl_vat)}
-                                    <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT once-off</span>
+                                    <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT</span>
                                   </p>
                                 </div>
 
-                                <Separator />
+                                {/* Plus separator */}
+                                <div className="flex items-center justify-center">
+                                  <Plus className="h-5 w-5 text-primary" />
+                                </div>
+
+                                {/* ── BLOCK 2: Monthly Base Fee (live) ── */}
+                                <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly Base Fee</p>
+                                  <p className="text-lg font-bold text-primary">
+                                    {formatCurrency(computedMonthlyFee)}
+                                    <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT / month</span>
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">Based on your selected services above</p>
+                                </div>
 
                                 {/* Pooling badge */}
                                 <div className="flex items-center gap-2">
@@ -883,18 +897,29 @@ const RegisterTenant = () => {
                                   )}
                                 </div>
 
-                                {/* Transaction fees (pooling plans only) */}
+                                {/* Transaction & Recurring fees (pooling plans only) */}
                                 {hasPooling && (
                                   <>
-                                    <Separator />
-                                    <div className="space-y-1 text-sm">
+                                    {/* Plus separator */}
+                                    <div className="flex items-center justify-center">
+                                      <Plus className="h-5 w-5 text-primary" />
+                                    </div>
+
+                                    {/* ── BLOCK 3: Transaction Fees ── */}
+                                    <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
                                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Transaction Fees</p>
                                       <p className="text-xs"><span className="font-medium">{plan.deposit_fee_pct}%</span> on deposits</p>
                                       <p className="text-xs"><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches/transfers/withdrawals</p>
                                     </div>
-                                    <Separator />
-                                    <div className="space-y-1 text-sm">
-                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Recurring (% of TPV p.a.)</p>
+
+                                    {/* Plus separator */}
+                                    <div className="flex items-center justify-center">
+                                      <Plus className="h-5 w-5 text-primary" />
+                                    </div>
+
+                                    {/* ── BLOCK 4: Recurring TPV Fees ── */}
+                                    <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Recurring (% of TPV p.a. — payable monthly)</p>
                                       <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
                                       <p className="text-xs">{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
                                       <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
