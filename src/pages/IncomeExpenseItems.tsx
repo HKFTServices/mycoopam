@@ -121,11 +121,13 @@ const IncomeExpenseItems = () => {
     enabled: !!currentTenant,
   });
 
-  // Legacy unposted entries (type 1950)
+  // Legacy unposted entries (type 1988 = income/expense CFT entries)
   const { data: legacyEntries = [], isLoading: legacyLoading } = useQuery({
     queryKey: ["legacy_ie_entries", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
+
+      // Fetch all legacy CFT entries
       const { data, error } = await (supabase as any)
         .from("legacy_id_mappings")
         .select("legacy_id, notes, new_id")
@@ -134,20 +136,28 @@ const IncomeExpenseItems = () => {
         .order("legacy_id");
       if (error) throw error;
 
-      // Filter to type 1950 entries and check which are already posted (active)
+      // Fetch income_expense_items legacy mappings to resolve IncExpID → item
+      const { data: ieMappings } = await (supabase as any)
+        .from("legacy_id_mappings")
+        .select("legacy_id, new_id")
+        .eq("table_name", "income_expense_items")
+        .eq("tenant_id", currentTenant.id);
+      const ieMap = new Map<string, string>();
+      (ieMappings || []).forEach((m: any) => ieMap.set(m.legacy_id, m.new_id));
+
+      // Filter to type 1988 entries (income/expense transactions)
       const entries: any[] = data || [];
-      const type1950 = entries.filter((e: any) => {
+      const type1988 = entries.filter((e: any) => {
         try {
           const n = JSON.parse(e.notes);
-          return n.Type_TransactionEntryID === "1950";
+          return n.Type_TransactionEntryID === "1988";
         } catch { return false; }
       });
 
-      // Check which have active CFT entries
-      const newIds = type1950.map((e: any) => e.new_id).filter(Boolean);
+      // Check which have active CFT entries (already posted)
+      const newIds = type1988.map((e: any) => e.new_id).filter(Boolean);
       let activeIds = new Set<string>();
       if (newIds.length > 0) {
-        // Check in batches
         for (let i = 0; i < newIds.length; i += 50) {
           const batch = newIds.slice(i, i + 50);
           const { data: activeCfts } = await (supabase as any)
@@ -159,10 +169,12 @@ const IncomeExpenseItems = () => {
         }
       }
 
-      return type1950
+      return type1988
         .filter((e: any) => !activeIds.has(e.new_id))
         .map((e: any) => {
           const n = JSON.parse(e.notes);
+          const incExpId = n.IncExpID || null;
+          const ieItemId = incExpId ? ieMap.get(incExpId) || null : null;
           return {
             legacy_id: e.legacy_id,
             tx_date: n.TransactionDate?.split(" ")[0] || "",
@@ -172,6 +184,8 @@ const IncomeExpenseItems = () => {
             type_tx_id: n.Type_TransactionID || null,
             parent_id: n.ParentID || null,
             entity_name: null,
+            is_bank: n.IsBank === "1" || n.IsBank === 1,
+            inc_exp_item_id: ieItemId,
           } as LegacyEntry;
         })
         .sort((a: LegacyEntry, b: LegacyEntry) => a.tx_date.localeCompare(b.tx_date));
