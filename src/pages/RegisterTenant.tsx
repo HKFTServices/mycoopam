@@ -586,6 +586,7 @@ const RegisterTenant = () => {
           custom_pools: customPools.length > 0 ? customPools : undefined,
           entity_account_type_prefixes: prefixes,
           sla_fee_plan_id: selectedPlanId,
+          selected_services: selectedServices,
           sla_signature: slaSignature || null,
           logo_data: logoBase64,
           logo_file_name: logoFileName,
