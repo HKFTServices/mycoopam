@@ -6624,21 +6624,13 @@ export type Database = {
           total_units: number
         }[]
       }
-      get_stock_quantities:
-        | {
-            Args: { p_tenant_id: string }
-            Returns: {
-              item_id: string
-              total_quantity: number
-            }[]
-          }
-        | {
-            Args: { p_tenant_id: string; p_up_to_date?: string }
-            Returns: {
-              item_id: string
-              total_quantity: number
-            }[]
-          }
+      get_stock_quantities: {
+        Args: { p_tenant_id: string; p_up_to_date?: string }
+        Returns: {
+          item_id: string
+          total_quantity: number
+        }[]
+      }
       get_tenant_branding: {
         Args: never
         Returns: {
