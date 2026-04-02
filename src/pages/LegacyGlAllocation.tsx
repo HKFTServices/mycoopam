@@ -1967,11 +1967,11 @@ const LegacyGlAllocation = () => {
             <Button variant="outline" onClick={() => setShowPreview(false)}>Cancel</Button>
             <Button
               onClick={() => postEntries()}
-              disabled={posting || proposedGroups.filter(g => g.isBalanced).length === 0}
+              disabled={posting || proposedGroups.filter(g => g.isBalanced && !g.hasUnmappedGl).length === 0}
               className="gap-2"
             >
               {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              Post {proposedGroups.filter(g => g.isBalanced).length} Balanced Groups
+              Post {proposedGroups.filter(g => g.isBalanced && !g.hasUnmappedGl).length} Fully Mapped Groups
             </Button>
           </DialogFooter>
         </DialogContent>
