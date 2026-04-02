@@ -4886,12 +4886,17 @@ export type Database = {
       }
       sla_fee_plans: {
         Row: {
+          accounting_fee: number
           additional_exclusions: string | null
           additional_inclusions: string | null
           created_at: string
+          debit_orders_fee: number
           deposit_fee_pct: number
           id: string
+          includes_pooling: boolean
           is_active: boolean
+          loans_fee: number
+          membership_admin_fee: number
           monthly_fee_excl_vat: number
           plan_code: string
           plan_label: string
@@ -4906,12 +4911,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accounting_fee?: number
           additional_exclusions?: string | null
           additional_inclusions?: string | null
           created_at?: string
+          debit_orders_fee?: number
           deposit_fee_pct?: number
           id?: string
+          includes_pooling?: boolean
           is_active?: boolean
+          loans_fee?: number
+          membership_admin_fee?: number
           monthly_fee_excl_vat?: number
           plan_code: string
           plan_label: string
@@ -4926,12 +4936,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accounting_fee?: number
           additional_exclusions?: string | null
           additional_inclusions?: string | null
           created_at?: string
+          debit_orders_fee?: number
           deposit_fee_pct?: number
           id?: string
+          includes_pooling?: boolean
           is_active?: boolean
+          loans_fee?: number
+          membership_admin_fee?: number
           monthly_fee_excl_vat?: number
           plan_code?: string
           plan_label?: string
@@ -5765,6 +5780,7 @@ export type Database = {
           grace_period_ends_at: string | null
           id: string
           registration_number: string | null
+          selected_services: Json
           setup_fee_paid: boolean
           setup_fee_paid_at: string | null
           signature_data: string | null
@@ -5780,6 +5796,7 @@ export type Database = {
           grace_period_ends_at?: string | null
           id?: string
           registration_number?: string | null
+          selected_services?: Json
           setup_fee_paid?: boolean
           setup_fee_paid_at?: string | null
           signature_data?: string | null
@@ -5795,6 +5812,7 @@ export type Database = {
           grace_period_ends_at?: string | null
           id?: string
           registration_number?: string | null
+          selected_services?: Json
           setup_fee_paid?: boolean
           setup_fee_paid_at?: string | null
           signature_data?: string | null
