@@ -994,13 +994,14 @@ const LegacyGlAllocation = () => {
           // Income received to bank: DR Bank GL, CR Income GL
           const isExpense = entry.credit > 0; // CFT credit = cash leaving pool = expense
 
+          const fuzzyGl = !incExpItem?.gl_account_id ? fuzzyMatchGl(itemDesc) : null;
           // 1. Expense/Income GL entry
           proposed.push({
             description: `${itemDesc} — ${poolName}`,
             debit: isExpense ? amount : 0,
             credit: isExpense ? 0 : amount,
-            gl_account_id: incExpItem?.gl_account_id ?? fuzzyMatchGl(itemDesc)?.id ?? null,
-            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyMatchGl(itemDesc) ? `${fuzzyMatchGl(itemDesc)!.code} ${fuzzyMatchGl(itemDesc)!.name} (auto)` : `No GL mapped (${itemDesc})`),
+            gl_account_id: incExpItem?.gl_account_id ?? fuzzyGl?.id ?? null,
+            gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyGl ? `${fuzzyGl.code} ${fuzzyGl.name} (auto)` : `No GL mapped (${itemDesc})`),
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
