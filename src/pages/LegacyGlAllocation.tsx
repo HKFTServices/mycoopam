@@ -1020,17 +1020,21 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "bank_payment",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 3. Cash control entry (pool cash movement)
-          proposed.push({
-            description: `${itemDesc} — ${poolName} Cash`,
-            debit: entry.debit, credit: entry.credit,
-            gl_account_id: null, gl_account_label: "",
-            control_account_id: ca?.new_id ?? null,
-            control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
-            pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
-            transaction_date: txDate, entry_type: "income_expense",
-            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
-          });
+          // 3. Cash control entry (pool cash movement) — skip for pure GL journals
+          const hasCaMapping = incExpItem?.debit_control_account_id || incExpItem?.credit_control_account_id;
+          const isDefaultCa = !incExpItem; // no inc/exp item means we still track pool cash
+          if (hasCaMapping || isDefaultCa) {
+            proposed.push({
+              description: `${itemDesc} — ${poolName} Cash`,
+              debit: entry.debit, credit: entry.credit,
+              gl_account_id: null, gl_account_label: "",
+              control_account_id: ca?.new_id ?? null,
+              control_account_label: ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`,
+              pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+              transaction_date: txDate, entry_type: "income_expense",
+              reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+            });
+          }
         } else if (incExpItem?.debit_control_account_id && incExpItem?.credit_control_account_id) {
           // ── RECOVERY JOURNAL: 4-line pattern (e.g. Monthly Admin) ──
           // Lines: Admin Cash DR, Pool Cash CR, GL Cash Control DR, GL Admin Income CR
