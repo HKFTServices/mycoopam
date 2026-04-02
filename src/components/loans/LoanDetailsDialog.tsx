@@ -285,25 +285,26 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                     </TableRow>
                   ) : (
                     transactionsWithBalance.map((txn, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="text-xs">{formatDate(txn.transaction_date)}</TableCell>
-                        <TableCell>
-                          <div className={`flex items-center gap-1.5 text-xs font-medium ${entryTypeColor(txn.entry_type)}`}>
+                      <TableRow key={idx} className="text-[11px]">
+                        <TableCell className="py-1.5">{formatDate(txn.transaction_date)}</TableCell>
+                        <TableCell className="py-1.5">
+                          <div className={`flex items-center gap-1 font-medium ${entryTypeColor(txn.entry_type)}`}>
                             {entryTypeIcon(txn.entry_type)}
                             {txn.entry_type_name}
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate py-1.5">
                           {txn.description || txn.pool_name || "-"}
                         </TableCell>
-                        <TableCell className="text-right text-xs">
+                        <TableCell className="text-right py-1.5">
                           {txn.debit > 0 ? formatCurrency(txn.debit) : "-"}
                         </TableCell>
-                        <TableCell className="text-right text-xs">
+                        <TableCell className="text-right py-1.5">
                           {txn.credit > 0 ? formatCurrency(txn.credit) : "-"}
                         </TableCell>
-                        <TableCell className={`text-right text-xs font-medium ${txn.balance > 0.01 ? 'text-red-600 dark:text-red-400' : txn.balance < -0.01 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                        <TableCell className={`text-right font-medium py-1.5 ${txn.balance > 0.01 ? 'text-red-600 dark:text-red-400' : txn.balance < -0.01 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
                           {formatCurrency(txn.balance)}
+                        </TableCell>
                         </TableCell>
                       </TableRow>
                     ))
