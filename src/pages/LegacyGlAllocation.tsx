@@ -1031,6 +1031,34 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
+        } else if (incExpItem?.debit_control_account_id && incExpItem?.credit_control_account_id) {
+          // ── RECOVERY JOURNAL: two control account lines only (e.g. Monthly Admin) ──
+          const drCa = allControlAccounts?.find((c: any) => c.id === incExpItem.debit_control_account_id);
+          const crCa = allControlAccounts?.find((c: any) => c.id === incExpItem.credit_control_account_id);
+          const drPoolName = (drCa as any)?.pools?.name ?? drCa?.name ?? "Debit Account";
+          const crPoolName = (crCa as any)?.pools?.name ?? crCa?.name ?? "Credit Account";
+          // 1. DR debit control account (e.g. Admin Cash)
+          proposed.push({
+            description: `${itemDesc} — ${drPoolName}`,
+            debit: amount, credit: 0,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: incExpItem.debit_control_account_id,
+            control_account_label: `${drCa?.name ?? "Debit"} (${drPoolName})`,
+            pool_id: drCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 2. CR credit control account (e.g. Pool Cash)
+          proposed.push({
+            description: `${itemDesc} — ${crPoolName}`,
+            debit: 0, credit: amount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: incExpItem.credit_control_account_id,
+            control_account_label: `${crCa?.name ?? "Credit"} (${crPoolName})`,
+            pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
         } else {
           // ── JOURNAL ENTRY (no bank): Cash control + GL + Bank GL ──
           const isExpenseJ = entry.credit > 0;
