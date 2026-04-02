@@ -96,6 +96,7 @@ interface ProposedGroup {
   totalDebit: number;
   totalCredit: number;
   isBalanced: boolean;
+  hasUnmappedGl: boolean;
   entityName: string;
   controlWarnings: ControlDirectionWarning[];
 }
