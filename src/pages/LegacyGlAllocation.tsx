@@ -1566,7 +1566,7 @@ const LegacyGlAllocation = () => {
   const allProposed = useMemo(() => {
     if (!glMappings?.length || !controlAccounts || !grouped.length) return [];
     return grouped.map(g => buildProposedForGroup(g));
-  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap, tenantGlConfig]);
+  }, [grouped, glMappings, controlAccounts, allControlAccounts, entityAccountMap, tenantGlConfig, incExpMap]);
 
   const buildPreview = () => {
     setProposedGroups(allProposed);
