@@ -111,19 +111,49 @@ const LoanApplications = () => {
 
   const hasAccounts = memberAccounts.length > 0;
 
+  const handleNewLoanClick = () => {
+    if (memberAccounts.length === 1) {
+      const a = memberAccounts[0];
+      const name = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ");
+      setSelectedAccount({
+        entityId: a.entity_id,
+        entityAccountId: a.id,
+        entityName: name,
+        accountNumber: a.account_number ?? "",
+      });
+      setLoanApplyOpen(true);
+    } else {
+      setAccountPickerOpen(true);
+    }
+  };
+
+  const handleAccountSelected = (accountId: string) => {
+    const a = memberAccounts.find((acc: any) => acc.id === accountId);
+    if (!a) return;
+    const name = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ");
+    setSelectedAccount({
+      entityId: a.entity_id,
+      entityAccountId: a.id,
+      entityName: name,
+      accountNumber: a.account_number ?? "",
+    });
+    setAccountPickerOpen(false);
+    setLoanApplyOpen(true);
+  };
+
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
-    if (memberPrimaryAccountLoading) return;
+    if (memberAccountsLoading) return;
 
-    if (memberPrimaryAccount) {
-      setLoanApplyOpen(true);
+    if (hasAccounts) {
+      handleNewLoanClick();
     }
 
     const next = new URLSearchParams(searchParams);
     next.delete("new");
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, memberPrimaryAccountLoading, memberPrimaryAccount]);
+  }, [searchParams, memberAccountsLoading, hasAccounts]);
 
   // Fetch applications
   const { data: applications = [], isLoading, isFetching } = useQuery({
