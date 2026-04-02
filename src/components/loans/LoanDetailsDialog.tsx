@@ -311,7 +311,7 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           </div>
         )}
       </DialogContent>
