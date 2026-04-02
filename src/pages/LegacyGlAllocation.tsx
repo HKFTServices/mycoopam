@@ -96,6 +96,7 @@ interface ProposedGroup {
   totalDebit: number;
   totalCredit: number;
   isBalanced: boolean;
+  hasUnmappedGl: boolean;
   entityName: string;
   controlWarnings: ControlDirectionWarning[];
 }
@@ -1447,6 +1448,13 @@ const LegacyGlAllocation = () => {
       }
     }
 
+    // Check if any GL-type entry has a null gl_account_id (unmapped)
+    const hasUnmappedGl = proposed.some(e =>
+      !e.gl_account_id && !e.control_account_id && e.entry_type !== "unit_buy" && e.entry_type !== "unit_sell"
+    ) || proposed.some(e =>
+      e.gl_account_label?.includes("No GL mapped")
+    );
+
     return {
       root: group.root,
       children: group.children,
@@ -1454,6 +1462,7 @@ const LegacyGlAllocation = () => {
       totalDebit,
       totalCredit,
       isBalanced,
+      hasUnmappedGl,
       entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
       controlWarnings,
     };
@@ -1477,7 +1486,7 @@ const LegacyGlAllocation = () => {
   const postEntries = async (groups?: ProposedGroup[]) => {
     if (!currentTenant) return;
     const source = groups ?? proposedGroups;
-    const balanced = source.filter(g => g.isBalanced);
+    const balanced = source.filter(g => g.isBalanced && !g.hasUnmappedGl);
     if (balanced.length === 0) {
       toast.error("No balanced groups to post");
       return;
@@ -1637,7 +1646,7 @@ const LegacyGlAllocation = () => {
                   <FileSearch className="h-4 w-4" />
                   Preview CFT Posting
                 </Button>
-                {allProposed.filter(g => g.isBalanced).length > 0 && (
+                {allProposed.filter(g => g.isBalanced && !g.hasUnmappedGl).length > 0 && (
                   <Button
                     size="sm"
                     onClick={() => {
@@ -1647,7 +1656,12 @@ const LegacyGlAllocation = () => {
                     className="gap-2"
                   >
                     {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                    Post {allProposed.filter(g => g.isBalanced).length} Balanced Groups
+                    Post {allProposed.filter(g => g.isBalanced && !g.hasUnmappedGl).length} Fully Mapped Groups
+                    {allProposed.filter(g => g.hasUnmappedGl).length > 0 && (
+                      <Badge variant="outline" className="ml-1 text-[10px]">
+                        {allProposed.filter(g => g.hasUnmappedGl).length} skipped (unmapped)
+                      </Badge>
+                    )}
                   </Button>
                 )}
               </>
@@ -1690,13 +1704,19 @@ const LegacyGlAllocation = () => {
               <span>{selectedTypeName} — {allProposed.length} transactions from 1 Mar 2025</span>
               <div className="flex gap-2">
                 {(() => {
-                  const bal = allProposed.filter(g => g.isBalanced).length;
-                  const unbal = allProposed.length - bal;
+                  const fullyMapped = allProposed.filter(g => g.isBalanced && !g.hasUnmappedGl).length;
+                  const unmapped = allProposed.filter(g => g.hasUnmappedGl).length;
+                  const unbal = allProposed.filter(g => !g.isBalanced && !g.hasUnmappedGl).length;
                   return (
                     <>
                       <Badge variant="outline" className="gap-1">
-                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {bal} balanced
+                        <CheckCircle2 className="h-3 w-3 text-green-600" /> {fullyMapped} ready to post
                       </Badge>
+                      {unmapped > 0 && (
+                        <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-600 bg-amber-500/10">
+                          <AlertTriangle className="h-3 w-3" /> {unmapped} unmapped GL
+                        </Badge>
+                      )}
                       {unbal > 0 && (
                         <Badge variant="destructive" className="gap-1">
                           <AlertTriangle className="h-3 w-3" /> {unbal} unbalanced
@@ -1745,7 +1765,7 @@ const LegacyGlAllocation = () => {
                         {/* Summary row */}
                         <TableRow
                           key={`root-${pg.root.cft_id}`}
-                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!pg.isBalanced ? 'bg-destructive/5' : pg.controlWarnings.length > 0 ? 'bg-amber-500/5' : ''}`}
+                          className={`cursor-pointer hover:bg-muted/50 font-medium ${!pg.isBalanced ? 'bg-destructive/5' : pg.hasUnmappedGl ? 'bg-amber-500/5' : pg.controlWarnings.length > 0 ? 'bg-amber-500/5' : ''}`}
                           onClick={() => toggleParent(pg.root.cft_id)}
                         >
                           <TableCell className="px-2">
@@ -1773,7 +1793,11 @@ const LegacyGlAllocation = () => {
                             {pg.totalCredit > 0 ? formatCurrency(pg.totalCredit) : ""}
                           </TableCell>
                           <TableCell className="text-xs text-right font-mono">
-                            {pg.isBalanced ? (
+                            {pg.hasUnmappedGl ? (
+                              <Badge variant="outline" className="text-[10px] gap-1 border-amber-500/40 text-amber-600">
+                                <AlertTriangle className="h-3 w-3" /> Unmapped GL
+                              </Badge>
+                            ) : pg.isBalanced ? (
                               <Badge variant="outline" className="text-[10px] gap-1">
                                 <CheckCircle2 className="h-3 w-3 text-green-600" /> ✓
                               </Badge>
@@ -1953,11 +1977,11 @@ const LegacyGlAllocation = () => {
             <Button variant="outline" onClick={() => setShowPreview(false)}>Cancel</Button>
             <Button
               onClick={() => postEntries()}
-              disabled={posting || proposedGroups.filter(g => g.isBalanced).length === 0}
+              disabled={posting || proposedGroups.filter(g => g.isBalanced && !g.hasUnmappedGl).length === 0}
               className="gap-2"
             >
               {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              Post {proposedGroups.filter(g => g.isBalanced).length} Balanced Groups
+              Post {proposedGroups.filter(g => g.isBalanced && !g.hasUnmappedGl).length} Fully Mapped Groups
             </Button>
           </DialogFooter>
         </DialogContent>
