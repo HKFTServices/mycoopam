@@ -370,6 +370,25 @@ const Reports = () => {
     { label: "Last 90 days", days: 90 },
   ];
 
+  // Financial year helpers (Mar–Feb)
+  const getFYRange = (offset: number): { from: Date; to: Date } => {
+    const now = new Date();
+    // FY starts in March. If current month < March, we're still in the FY that started last year.
+    const currentFYStartYear = now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
+    const startYear = currentFYStartYear + offset;
+    return {
+      from: new Date(startYear, 2, 1),       // 1 March
+      to: new Date(startYear + 1, 1, 28),    // 28 Feb (safe end)
+    };
+  };
+  // Use last day of Feb properly
+  const getFYRangeProper = (offset: number): { from: Date; to: Date } => {
+    const r = getFYRange(offset);
+    // Set to last day of February
+    const lastFeb = new Date(r.to.getFullYear(), 2, 0); // day 0 of March = last day of Feb
+    return { from: r.from, to: lastFeb };
+  };
+
   // Non-admin referrer/house: only show My Commissions
   if (!isAdmin && isReferrerOrHouse) {
     return (
