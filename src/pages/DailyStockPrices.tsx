@@ -236,7 +236,7 @@ const DailyStockPrices = () => {
         // Recalculate sell price from cost and sell margin
         sellPriceExclVat = costExclVat * (1 - item.sell_margin_percentage / 100);
         sellPriceInclVat = sellPriceExclVat * (1 + vatRate);
-        pricingSource = item.api_link ? "API" : item.use_fixed_price != null ? "Fixed" : item.calculate_price_with_item_id ? "Formula" : "Manual";
+        pricingSource = (item as any).api_provider_id ? ((item as any).price_formula ? "API" : "API") : item.use_fixed_price != null ? "Fixed" : "Manual";
       } else if (item.use_fixed_price != null) {
         costExclVat = item.use_fixed_price;
         costInclVat = costExclVat * (1 + vatRate);
