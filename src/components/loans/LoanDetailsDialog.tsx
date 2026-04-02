@@ -172,7 +172,7 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setSelectedEntity(null); }}>
-      <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-4">
         <DialogHeader>
           <DialogTitle>
             {selectedEntity ? `Loan Detail — ${entityName(selectedEntity)}` : "Loans Outstanding"}
