@@ -206,8 +206,26 @@ const IncomeExpenseItems = () => {
 
   const incomeGlAccounts = useMemo(() => glAccounts.filter(g => g.gl_type === "income" || g.gl_type === "expense"), [glAccounts]);
 
-  // Save GL account selection on an item
-  const saveGlMutation = useMutation({
+  // Build item lookup map (id → item)
+  const itemMap = useMemo(() => Object.fromEntries(items.map(i => [i.id, i])), [items]);
+
+  // Auto-populate GL selections from income_expense_items when legacy entries load
+  useMemo(() => {
+    if (legacyEntries.length === 0 || items.length === 0) return;
+    const auto: Record<string, string> = {};
+    for (const entry of legacyEntries) {
+      if (entry.inc_exp_item_id && !legacyGlSelections[entry.legacy_id]) {
+        const item = itemMap[entry.inc_exp_item_id];
+        if (item?.gl_account_id) {
+          auto[entry.legacy_id] = item.gl_account_id;
+        }
+      }
+    }
+    if (Object.keys(auto).length > 0) {
+      setLegacyGlSelections(prev => ({ ...auto, ...prev }));
+    }
+  }, [legacyEntries, items]);
+
     mutationFn: async ({ itemId, glAccountId }: { itemId: string; glAccountId: string }) => {
       const { error } = await (supabase as any)
         .from("income_expense_items")
