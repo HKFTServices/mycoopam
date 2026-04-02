@@ -707,7 +707,7 @@ const RegisterTenant = () => {
       </header>
 
       <main className="flex-1 flex items-start justify-center p-6 pt-8">
-        <Card className="w-full max-w-2xl border-border/50 shadow-lg">
+        <Card className={`w-full border-border/50 shadow-lg ${step === 2 ? "max-w-5xl" : "max-w-2xl"}`}>
           <CardHeader className="text-center space-y-2">
             <div className="mx-auto h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
               {(() => {
