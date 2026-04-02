@@ -200,7 +200,7 @@ const SlaAgreement = () => {
               <CardContent className="py-6 space-y-4">
                 <h2 className="text-lg font-semibold">4. Payment Terms</h2>
                 <ul className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-                  <li><strong>4.1</strong> The once-off setup fee (Option A/B) is payable within 7 (seven) days of registration. A 7-day grace period is provided before the tenant account is deactivated.</li>
+                  <li><strong>4.1</strong> The once-off setup fee is payable within 7 (seven) days of registration. A 7-day grace period is provided before the tenant account is deactivated.</li>
                   <li><strong>4.2</strong> Monthly recurring fees are invoiced on the first business day of each calendar month and payable within 7 days of invoice date.</li>
                   <li><strong>4.3</strong> Transaction-based fees are calculated and billed monthly in arrears.</li>
                   <li><strong>4.4</strong> All fees are exclusive of Value Added Tax (VAT) at the prevailing rate.</li>
