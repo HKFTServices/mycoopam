@@ -218,17 +218,27 @@ const Reports = () => {
   });
 
   // GL Balances: all-time CFT — all GL types (active only, include VAT entries for VAT control account)
+  // Fetch ALL rows using pagination to avoid the Supabase 1000-row default limit
   const { data: bsData = [], isLoading: bsLoading_ } = useQuery({
     queryKey: ["report_bs_v2", tenantId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("cashflow_transactions")
-        .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
-        .eq("tenant_id", tenantId)
-        .eq("is_active", true)
-        .not("gl_account_id", "is", null)
-        .limit(5000);
-      return data || [];
+      const PAGE = 1000;
+      let allRows: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("gl_account_id, debit, credit, amount_excl_vat, vat_amount, is_bank, entry_type, legacy_transaction_id, gl_accounts(name, code, gl_type)")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
+          .not("gl_account_id", "is", null)
+          .range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        allRows = allRows.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return allRows;
     },
     enabled: !!tenantId,
   });
