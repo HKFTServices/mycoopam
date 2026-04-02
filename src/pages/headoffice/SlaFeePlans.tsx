@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, Save, DollarSign, TrendingUp, Percent } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -26,6 +27,11 @@ interface FeePlan {
   tpv_tier2_threshold: number;
   tpv_tier2_pct_pa: number;
   tpv_tier3_pct_pa: number;
+  membership_admin_fee: number;
+  loans_fee: number;
+  debit_orders_fee: number;
+  accounting_fee: number;
+  includes_pooling: boolean;
   additional_inclusions: string | null;
   additional_exclusions: string | null;
   is_active: boolean;
@@ -42,13 +48,12 @@ const SlaFeePlans = () => {
       const { data, error } = await (supabase as any)
         .from("sla_fee_plans")
         .select("*")
-        .order("plan_code");
+        .order("setup_fee_excl_vat");
       if (error) throw error;
       return data as FeePlan[];
     },
   });
 
-  // Fetch tenant SLA agreements to show which tenants selected which plan
   const { data: tenantSlas = [] } = useQuery({
     queryKey: ["tenant_slas_summary"],
     queryFn: async () => {
@@ -62,13 +67,12 @@ const SlaFeePlans = () => {
 
   const savePlan = useMutation({
     mutationFn: async (planId: string) => {
-      const plan = plans.find((p) => p.id === planId);
-      if (!plan) throw new Error("Plan not found");
       const payload: Record<string, any> = { updated_at: new Date().toISOString() };
       const numFields = [
         "setup_fee_excl_vat", "monthly_fee_excl_vat", "deposit_fee_pct", "switch_transfer_withdrawal_fee_pct",
         "tpv_tier1_threshold", "tpv_tier1_pct_pa", "tpv_tier2_threshold",
         "tpv_tier2_pct_pa", "tpv_tier3_pct_pa",
+        "membership_admin_fee", "loans_fee", "debit_orders_fee", "accounting_fee",
       ];
       for (const field of numFields) {
         if (formData[field] !== undefined) payload[field] = Number(formData[field]);
@@ -76,6 +80,7 @@ const SlaFeePlans = () => {
       if (formData.additional_inclusions !== undefined) payload.additional_inclusions = formData.additional_inclusions;
       if (formData.additional_exclusions !== undefined) payload.additional_exclusions = formData.additional_exclusions;
       if (formData.plan_label !== undefined) payload.plan_label = formData.plan_label;
+      if (formData.includes_pooling !== undefined) payload.includes_pooling = formData.includes_pooling === "true";
 
       const { error } = await (supabase as any)
         .from("sla_fee_plans")
@@ -126,7 +131,6 @@ const SlaFeePlans = () => {
         </p>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-5">
@@ -165,8 +169,7 @@ const SlaFeePlans = () => {
         </Card>
       </div>
 
-      {/* Plan Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {plans.map((plan) => {
           const isEditing = editingPlan === plan.id;
           const subscriberCount = getSlaCount(plan.id);
@@ -185,7 +188,9 @@ const SlaFeePlans = () => {
                       ) : (
                         plan.plan_label
                       )}
-                      <Badge variant="secondary">{plan.plan_code}</Badge>
+                      <Badge variant={plan.includes_pooling ? "default" : "secondary"}>
+                        {plan.includes_pooling ? "Pooling" : "Basic"}
+                      </Badge>
                     </CardTitle>
                     <CardDescription>
                       {subscriberCount} tenant{subscriberCount !== 1 ? "s" : ""} on this plan
@@ -197,18 +202,8 @@ const SlaFeePlans = () => {
                     </Button>
                   ) : (
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => { setEditingPlan(null); setFormData({}); }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => savePlan.mutate(plan.id)}
-                        disabled={savePlan.isPending}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => { setEditingPlan(null); setFormData({}); }}>Cancel</Button>
+                      <Button size="sm" onClick={() => savePlan.mutate(plan.id)} disabled={savePlan.isPending}>
                         {savePlan.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                         Save
                       </Button>
@@ -218,141 +213,118 @@ const SlaFeePlans = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Setup Fee */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Setup Fee (excl. VAT)</Label>
-                    {isEditing ? (
-                      <Input type="number" step="0.01" value={getVal(plan, "setup_fee_excl_vat")} onChange={(e) => updateField("setup_fee_excl_vat", e.target.value)} />
-                    ) : (
-                      <p className="text-lg font-semibold">{formatCurrency(plan.setup_fee_excl_vat)}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Fee (excl. VAT)</Label>
-                    {isEditing ? (
-                      <Input type="number" step="0.01" value={getVal(plan, "monthly_fee_excl_vat")} onChange={(e) => updateField("monthly_fee_excl_vat", e.target.value)} />
-                    ) : (
-                      <p className="text-lg font-semibold">{formatCurrency(plan.monthly_fee_excl_vat)}</p>
-                    )}
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Once-off Setup Fee (excl. VAT)</Label>
+                  {isEditing ? (
+                    <Input type="number" step="0.01" value={getVal(plan, "setup_fee_excl_vat")} onChange={(e) => updateField("setup_fee_excl_vat", e.target.value)} />
+                  ) : (
+                    <p className="text-lg font-semibold">{formatCurrency(plan.setup_fee_excl_vat)}</p>
+                  )}
                 </div>
 
                 <Separator />
 
-                {/* Transaction Fees */}
+                {/* Modular Service Fees */}
                 <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Transaction Fees (recouped from pools)</Label>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Module Fees (excl. VAT)</Label>
                   <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Deposits %</Label>
-                      {isEditing ? (
-                        <Input
-                          type="number" step="0.01"
-                          value={getVal(plan, "deposit_fee_pct")}
-                          onChange={(e) => updateField("deposit_fee_pct", e.target.value)}
-                        />
-                      ) : (
-                        <p className="font-medium">{plan.deposit_fee_pct}%</p>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Switches/Transfers/Withdrawals %</Label>
-                      {isEditing ? (
-                        <Input
-                          type="number" step="0.01"
-                          value={getVal(plan, "switch_transfer_withdrawal_fee_pct")}
-                          onChange={(e) => updateField("switch_transfer_withdrawal_fee_pct", e.target.value)}
-                        />
-                      ) : (
-                        <p className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* TPV Tiers */}
-                <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Recurring Fees (% of Total Pool Value per annum)
-                  </Label>
-                  <div className="space-y-3 mt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">
-                        TPV &lt; {isEditing ? (
-                          <Input
-                            type="number" step="1000000" className="inline w-32"
-                            value={getVal(plan, "tpv_tier1_threshold")}
-                            onChange={(e) => updateField("tpv_tier1_threshold", e.target.value)}
-                          />
-                        ) : (
-                          formatCurrency(plan.tpv_tier1_threshold)
-                        )}
-                      </span>
-                      {isEditing ? (
-                        <Input
-                          type="number" step="0.01" className="w-24"
-                          value={getVal(plan, "tpv_tier1_pct_pa")}
-                          onChange={(e) => updateField("tpv_tier1_pct_pa", e.target.value)}
-                        />
-                      ) : (
-                        <Badge>{plan.tpv_tier1_pct_pa}% p.a.</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">
+                    {[
+                      { key: "membership_admin_fee", label: "Membership Admin" },
+                      { key: "loans_fee", label: "Loans" },
+                      { key: "debit_orders_fee", label: "Debit Orders" },
+                      { key: "accounting_fee", label: "Accounting" },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="space-y-1">
+                        <Label className="text-xs">{label}</Label>
                         {isEditing ? (
-                          <>
-                            TPV between thresholds →{" "}
-                            <Input
-                              type="number" step="1000000" className="inline w-32"
-                              value={getVal(plan, "tpv_tier2_threshold")}
-                              onChange={(e) => updateField("tpv_tier2_threshold", e.target.value)}
-                            />
-                          </>
+                          <Input type="number" step="0.01" value={getVal(plan, key)} onChange={(e) => updateField(key, e.target.value)} />
                         ) : (
-                          <>TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</>
+                          <p className="font-medium">{formatCurrency((plan as any)[key])}</p>
                         )}
-                      </span>
-                      {isEditing ? (
-                        <Input
-                          type="number" step="0.01" className="w-24"
-                          value={getVal(plan, "tpv_tier2_pct_pa")}
-                          onChange={(e) => updateField("tpv_tier2_pct_pa", e.target.value)}
-                        />
-                      ) : (
-                        <Badge>{plan.tpv_tier2_pct_pa}% p.a.</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</span>
-                      {isEditing ? (
-                        <Input
-                          type="number" step="0.01" className="w-24"
-                          value={getVal(plan, "tpv_tier3_pct_pa")}
-                          onChange={(e) => updateField("tpv_tier3_pct_pa", e.target.value)}
-                        />
-                      ) : (
-                        <Badge>{plan.tpv_tier3_pct_pa}% p.a.</Badge>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* Inclusions / Exclusions */}
+                {/* Pooling toggle */}
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={isEditing ? getVal(plan, "includes_pooling") === "true" : plan.includes_pooling}
+                    onCheckedChange={(v) => isEditing && updateField("includes_pooling", v ? "true" : "false")}
+                    disabled={!isEditing}
+                  />
+                  <Label className="text-sm">Includes Pooling & Unitizing</Label>
+                </div>
+
+                {/* Transaction fees (only relevant for pooling plans) */}
+                {plan.includes_pooling && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Transaction Fees</Label>
+                      <div className="grid grid-cols-2 gap-3 mt-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Deposits %</Label>
+                          {isEditing ? (
+                            <Input type="number" step="0.01" value={getVal(plan, "deposit_fee_pct")} onChange={(e) => updateField("deposit_fee_pct", e.target.value)} />
+                          ) : (
+                            <p className="font-medium">{plan.deposit_fee_pct}%</p>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Switches/Transfers/Withdrawals %</Label>
+                          {isEditing ? (
+                            <Input type="number" step="0.01" value={getVal(plan, "switch_transfer_withdrawal_fee_pct")} onChange={(e) => updateField("switch_transfer_withdrawal_fee_pct", e.target.value)} />
+                          ) : (
+                            <p className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                        Recurring (% of TPV p.a.)
+                      </Label>
+                      <div className="space-y-2 mt-2">
+                        {[
+                          { label: "Tier 1 threshold", threshKey: "tpv_tier1_threshold", pctKey: "tpv_tier1_pct_pa" },
+                          { label: "Tier 2 threshold", threshKey: "tpv_tier2_threshold", pctKey: "tpv_tier2_pct_pa" },
+                          { label: "Tier 3 %", threshKey: null, pctKey: "tpv_tier3_pct_pa" },
+                        ].map(({ label, threshKey, pctKey }) => (
+                          <div key={pctKey} className="flex items-center justify-between gap-2">
+                            <div className="text-sm flex-1">
+                              {threshKey && isEditing ? (
+                                <Input type="number" step="1000000" className="w-full" value={getVal(plan, threshKey)} onChange={(e) => updateField(threshKey, e.target.value)} />
+                              ) : threshKey ? (
+                                <span>{formatCurrency((plan as any)[threshKey])}</span>
+                              ) : (
+                                <span>Above Tier 2</span>
+                              )}
+                            </div>
+                            {isEditing ? (
+                              <Input type="number" step="0.01" className="w-24" value={getVal(plan, pctKey)} onChange={(e) => updateField(pctKey, e.target.value)} />
+                            ) : (
+                              <Badge>{(plan as any)[pctKey]}% p.a.</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <Separator />
+
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Additional Inclusions</Label>
                     {isEditing ? (
-                      <Textarea
-                        rows={2}
-                        value={getVal(plan, "additional_inclusions")}
-                        onChange={(e) => updateField("additional_inclusions", e.target.value)}
-                        placeholder="List additional services included..."
-                      />
+                      <Textarea rows={2} value={getVal(plan, "additional_inclusions")} onChange={(e) => updateField("additional_inclusions", e.target.value)} placeholder="List additional services..." />
                     ) : (
                       <p className="text-sm text-muted-foreground">{plan.additional_inclusions || "—"}</p>
                     )}
@@ -360,12 +332,7 @@ const SlaFeePlans = () => {
                   <div className="space-y-1">
                     <Label className="text-xs">Additional Exclusions</Label>
                     {isEditing ? (
-                      <Textarea
-                        rows={2}
-                        value={getVal(plan, "additional_exclusions")}
-                        onChange={(e) => updateField("additional_exclusions", e.target.value)}
-                        placeholder="List exclusions..."
-                      />
+                      <Textarea rows={2} value={getVal(plan, "additional_exclusions")} onChange={(e) => updateField("additional_exclusions", e.target.value)} placeholder="List exclusions..." />
                     ) : (
                       <p className="text-sm text-muted-foreground">{plan.additional_exclusions || "—"}</p>
                     )}
