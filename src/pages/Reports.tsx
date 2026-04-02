@@ -369,11 +369,16 @@ const Reports = () => {
   const glIncome      = glSection("income");
   const glExpense     = glSection("expense");
 
-  // Accumulated profit for Balance Sheet: must use all-time bsData (not date-filtered IS)
+  // Accumulated profit for Balance Sheet: all-time (closing) and opening (before period)
   const accumulatedProfit = (() => {
     const allTimeIncome = glIncome.totalCr - glIncome.totalDr;
     const allTimeExpense = Math.abs(glExpense.totalDr - glExpense.totalCr);
     return allTimeIncome - allTimeExpense;
+  })();
+  const openingAccumulatedProfit = (() => {
+    const openIncome = (glIncome.totalOpenCr) - (glIncome.totalOpenDr);
+    const openExpense = Math.abs((glExpense.totalOpenDr) - (glExpense.totalOpenCr));
+    return openIncome - openExpense;
   })();
 
   // Grand totals across all GL types
