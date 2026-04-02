@@ -818,11 +818,14 @@ const Reports = () => {
                           const baseCr = glAssets.totalCr + glLiabilities.totalCr + glEquity.totalCr;
                           const totalDr = baseDr + (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
                           const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
+                          const closeNet = totalDr - totalCr;
                           return (
                             <TableRow className="font-bold text-base border-t-4 border-foreground/30">
-                              <TableCell colSpan={6} className="text-base font-bold py-3">Grand Total</TableCell>
-                              <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalDr)}</TableCell>
-                              <TableCell className="text-right text-base font-bold py-3">{fmtAmt(totalCr)}</TableCell>
+                              <TableCell colSpan={4} className="text-base font-bold py-3">Grand Total</TableCell>
+                              <TableCell></TableCell>
+                              <TableCell className="text-right text-base font-bold py-3">
+                                {closeNet !== 0 ? `${fmtAmt(Math.abs(closeNet))} ${closeNet > 0 ? "Dr" : "Cr"}` : "Balanced"}
+                              </TableCell>
                             </TableRow>
                           );
                         })()}
