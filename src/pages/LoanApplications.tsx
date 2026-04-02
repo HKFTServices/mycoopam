@@ -86,12 +86,18 @@ const LoanApplications = () => {
 
       const { data: accounts, error: accErr } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, entity_id, account_number, entity_account_types(name)")
+        .select("id, entity_id, account_number, entity_account_types(name, account_type)")
         .eq("tenant_id", currentTenant.id)
         .in("entity_id", entityIds)
         .eq("is_active", true)
         .eq("is_approved", true)
         .order("created_at");
+      if (accErr) throw accErr;
+
+      // Only membership accounts (account_type = 1)
+      const membershipAccounts = (accounts ?? []).filter(
+        (a: any) => a.entity_account_types?.account_type === 1
+      );
       if (accErr) throw accErr;
 
       return (accounts ?? []).map((a: any) => {
