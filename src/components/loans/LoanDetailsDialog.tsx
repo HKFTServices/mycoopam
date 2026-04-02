@@ -172,7 +172,7 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setSelectedEntity(null); }}>
-      <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-4">
         <DialogHeader>
           <DialogTitle>
             {selectedEntity ? `Loan Detail — ${entityName(selectedEntity)}` : "Loans Outstanding"}
@@ -240,9 +240,9 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
           </div>
         ) : (
           /* ── Detail View ── */
-          <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="flex-1 flex flex-col min-h-0">
             {/* Summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
               <SummaryCard label="Payout" value={selectedEntity.total_payout} />
               <SummaryCard label="Loading" value={selectedEntity.total_loading} />
               <SummaryCard label="Total Loan" value={selectedEntity.total_loan} />
@@ -253,22 +253,22 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
             {/* Back button */}
             <button
               onClick={() => setSelectedEntity(null)}
-              className="text-xs text-primary hover:underline mb-2 self-start"
+              className="text-[11px] text-primary hover:underline mb-2 self-start"
             >
               ← Back to summary
             </button>
 
             {/* Transaction table */}
-            <ScrollArea className="flex-1">
+            <div className="flex-1 min-h-0 overflow-auto border rounded-md">
               <Table>
-                <TableHeader>
+                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    <TableHead className="w-[100px]">Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="w-[90px] text-[11px]">Date</TableHead>
+                    <TableHead className="text-[11px]">Type</TableHead>
+                    <TableHead className="text-[11px]">Description</TableHead>
+                    <TableHead className="text-right text-[11px]">Debit</TableHead>
+                    <TableHead className="text-right text-[11px]">Credit</TableHead>
+                    <TableHead className="text-right text-[11px]">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -285,24 +285,24 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                     </TableRow>
                   ) : (
                     transactionsWithBalance.map((txn, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="text-xs">{formatDate(txn.transaction_date)}</TableCell>
-                        <TableCell>
-                          <div className={`flex items-center gap-1.5 text-xs font-medium ${entryTypeColor(txn.entry_type)}`}>
+                      <TableRow key={idx} className="text-[11px]">
+                        <TableCell className="py-1.5">{formatDate(txn.transaction_date)}</TableCell>
+                        <TableCell className="py-1.5">
+                          <div className={`flex items-center gap-1 font-medium ${entryTypeColor(txn.entry_type)}`}>
                             {entryTypeIcon(txn.entry_type)}
                             {txn.entry_type_name}
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate py-1.5">
                           {txn.description || txn.pool_name || "-"}
                         </TableCell>
-                        <TableCell className="text-right text-xs">
+                        <TableCell className="text-right py-1.5">
                           {txn.debit > 0 ? formatCurrency(txn.debit) : "-"}
                         </TableCell>
-                        <TableCell className="text-right text-xs">
+                        <TableCell className="text-right py-1.5">
                           {txn.credit > 0 ? formatCurrency(txn.credit) : "-"}
                         </TableCell>
-                        <TableCell className={`text-right text-xs font-medium ${txn.balance > 0.01 ? 'text-red-600 dark:text-red-400' : txn.balance < -0.01 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                        <TableCell className={`text-right font-medium py-1.5 ${txn.balance > 0.01 ? 'text-red-600 dark:text-red-400' : txn.balance < -0.01 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
                           {formatCurrency(txn.balance)}
                         </TableCell>
                       </TableRow>
@@ -310,7 +310,7 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           </div>
         )}
       </DialogContent>
