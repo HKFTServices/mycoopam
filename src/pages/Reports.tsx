@@ -745,12 +745,10 @@ const Reports = () => {
                         <TableRow>
                           <TableHead className="w-20">GL Code</TableHead>
                           <TableHead>Account</TableHead>
-                          <TableHead className="text-right w-28">Open Dr</TableHead>
-                          <TableHead className="text-right w-28">Open Cr</TableHead>
+                          <TableHead className="text-right w-32">Opening Bal</TableHead>
                           <TableHead className="text-right w-28">Move Dr</TableHead>
                           <TableHead className="text-right w-28">Move Cr</TableHead>
-                          <TableHead className="text-right w-28">Close Dr</TableHead>
-                          <TableHead className="text-right w-28">Close Cr</TableHead>
+                          <TableHead className="text-right w-32">Closing Bal</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -760,47 +758,55 @@ const Reports = () => {
                           const showAccProfit = glType === "equity";
                           const totalDr = section.totalDr + (showAccProfit && accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
                           const totalCr = section.totalCr + (showAccProfit && accumulatedProfit >= 0 ? accumulatedProfit : 0);
+                          const totalCloseNet = totalDr - totalCr;
+                          const totalOpenNet = (section.totalOpenDr - section.totalOpenCr) + (showAccProfit ? 0 : 0);
                           return (
                             <>
                               <TableRow key={`heading-${glType}`} className="bg-muted/30 border-t-2">
-                                <TableCell colSpan={8} className="font-semibold text-sm py-2">{labelMap[glType]}</TableCell>
+                                <TableCell colSpan={6} className="font-semibold text-sm py-2">{labelMap[glType]}</TableCell>
                               </TableRow>
                               {section.rows.map(r => {
-                                const closeDr = r.openDr + r.moveDr;
-                                const closeCr = r.openCr + r.moveCr;
+                                const openNet = r.openDr - r.openCr;
+                                const closeNet = (r.openDr + r.moveDr) - (r.openCr + r.moveCr);
                                 return (
                                   <TableRow key={r.code}>
                                     <TableCell className="font-mono text-xs pl-6">{r.code}</TableCell>
                                     <TableCell className="pl-6">{r.name}</TableCell>
-                                    <TableCell className="text-right text-muted-foreground">{r.openDr > 0 ? fmtAmt(r.openDr) : "—"}</TableCell>
-                                    <TableCell className="text-right text-muted-foreground">{r.openCr > 0 ? fmtAmt(r.openCr) : "—"}</TableCell>
+                                    <TableCell className="text-right text-muted-foreground">
+                                      {openNet !== 0 ? `${fmtAmt(Math.abs(openNet))} ${openNet > 0 ? "Dr" : "Cr"}` : "—"}
+                                    </TableCell>
                                     <TableCell className="text-right">{r.moveDr > 0 ? fmtAmt(r.moveDr) : "—"}</TableCell>
                                     <TableCell className="text-right">{r.moveCr > 0 ? fmtAmt(r.moveCr) : "—"}</TableCell>
-                                    <TableCell className="text-right font-semibold">{closeDr > 0 ? fmtAmt(closeDr) : "—"}</TableCell>
-                                    <TableCell className="text-right font-semibold">{closeCr > 0 ? fmtAmt(closeCr) : "—"}</TableCell>
+                                    <TableCell className="text-right font-semibold">
+                                      {closeNet !== 0 ? `${fmtAmt(Math.abs(closeNet))} ${closeNet > 0 ? "Dr" : "Cr"}` : "—"}
+                                    </TableCell>
                                   </TableRow>
                                 );
                               })}
                               {section.rows.length === 0 && !showAccProfit && (
-                                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground pl-6 text-xs">No records</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground pl-6 text-xs">No records</TableCell></TableRow>
                               )}
                               {showAccProfit && (
                                 <TableRow className="italic text-muted-foreground">
                                   <TableCell className="font-mono text-xs pl-6">—</TableCell>
                                   <TableCell className="pl-6">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
-                                  <TableCell colSpan={4}></TableCell>
-                                  <TableCell className="text-right">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
-                                  <TableCell className="text-right">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell colSpan={2}></TableCell>
+                                  <TableCell className="text-right font-semibold">
+                                    {accumulatedProfit !== 0 ? `${fmtAmt(Math.abs(accumulatedProfit))} ${accumulatedProfit >= 0 ? "Cr" : "Dr"}` : "—"}
+                                  </TableCell>
                                 </TableRow>
                               )}
                               <TableRow key={`total-${glType}`} className="font-semibold bg-muted/50 border-b-2">
                                 <TableCell colSpan={2}>Total {labelMap[glType]}</TableCell>
-                                <TableCell className="text-right">{section.totalOpenDr > 0 ? fmtAmt(section.totalOpenDr) : "—"}</TableCell>
-                                <TableCell className="text-right">{section.totalOpenCr > 0 ? fmtAmt(section.totalOpenCr) : "—"}</TableCell>
+                                <TableCell className="text-right">
+                                  {totalOpenNet !== 0 ? `${fmtAmt(Math.abs(totalOpenNet))} ${totalOpenNet > 0 ? "Dr" : "Cr"}` : "—"}
+                                </TableCell>
                                 <TableCell className="text-right">{section.totalMoveDr > 0 ? fmtAmt(section.totalMoveDr) : "—"}</TableCell>
                                 <TableCell className="text-right">{section.totalMoveCr > 0 ? fmtAmt(section.totalMoveCr) : "—"}</TableCell>
-                                <TableCell className="text-right">{totalDr > 0 ? fmtAmt(totalDr) : "—"}</TableCell>
-                                <TableCell className="text-right">{totalCr > 0 ? fmtAmt(totalCr) : "—"}</TableCell>
+                                <TableCell className="text-right">
+                                  {totalCloseNet !== 0 ? `${fmtAmt(Math.abs(totalCloseNet))} ${totalCloseNet > 0 ? "Dr" : "Cr"}` : "—"}
+                                </TableCell>
                               </TableRow>
                             </>
                           );
