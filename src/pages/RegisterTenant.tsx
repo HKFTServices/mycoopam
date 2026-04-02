@@ -819,7 +819,7 @@ const RegisterTenant = () => {
                           </label>
                         ))}
                       </div>
-                      {selectedPlanId && (
+                      {feePlans.length > 0 && (
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Monthly base fee:</p>
                           <p className="text-lg font-bold text-primary">{formatCurrency(computedMonthlyFee)} <span className="text-xs font-normal text-muted-foreground">+ VAT / month</span></p>
