@@ -781,42 +781,71 @@ const RegisterTenant = () => {
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">
-                      Select your preferred service plan. The setup fee is payable upfront (7-day grace period applies).
-                      A higher initial fee results in lower ongoing transaction costs.
-                    </p>
+                    {/* ── Modular Service Selection ── */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Your Services</h3>
+                      <p className="text-sm text-muted-foreground">Tick the modules you need. Membership Admin is always included.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { key: "membership_admin", label: "Membership Administration", fee: selectedPlan?.membership_admin_fee ?? 250, required: true },
+                          { key: "loans", label: "Loans", fee: selectedPlan?.loans_fee ?? 50, required: false },
+                          { key: "debit_orders", label: "Debit Orders", fee: selectedPlan?.debit_orders_fee ?? 50, required: false },
+                          { key: "accounting", label: "Accounting", fee: selectedPlan?.accounting_fee ?? 50, required: false },
+                        ].map((svc) => (
+                          <label
+                            key={svc.key}
+                            className={`flex items-center gap-3 border rounded-lg p-3 cursor-pointer transition-colors ${
+                              selectedServices.includes(svc.key) ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"
+                            } ${svc.required ? "cursor-default" : ""}`}
+                          >
+                            <Checkbox
+                              checked={selectedServices.includes(svc.key)}
+                              onCheckedChange={() => toggleService(svc.key)}
+                              disabled={svc.required}
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{svc.label}</p>
+                              <p className="text-xs text-muted-foreground">{formatCurrency(svc.fee)} / month</p>
+                            </div>
+                            {svc.required && <Badge variant="secondary" className="text-[10px]">Required</Badge>}
+                          </label>
+                        ))}
+                      </div>
+                      {selectedPlanId && (
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Monthly base fee:</p>
+                          <p className="text-lg font-bold text-primary">{formatCurrency(computedMonthlyFee)} <span className="text-xs font-normal text-muted-foreground">+ VAT / month</span></p>
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Feature matrix */}
+                    <Separator />
+
+                    {/* ── Package Selection ── */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Choose Your Package</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Packages differ by initial fee and access to investment pooling &amp; unitizing. A higher initial deposit means lower ongoing transaction fees.
+                      </p>
+                    </div>
+
                     {(() => {
-                      const features = [
-                        { label: "Member administration", full: true, basic: true },
-                        { label: "Entity & account management", full: true, basic: true },
-                        { label: "Document management", full: true, basic: true },
-                        { label: "Income, expenses & basic accounting", full: true, basic: true },
-                        { label: "Communication templates & emails", full: true, basic: true },
-                        { label: "Investment pools & unit pricing", full: true, basic: false },
-                        { label: "Daily pool price updates", full: true, basic: false },
-                        { label: "Deposits, withdrawals & switches", full: true, basic: false },
-                        { label: "Member statements & certificates", full: true, basic: true },
-                        { label: "Fee engine & sliding scales", full: true, basic: false },
-                        { label: "Loan management", full: true, basic: false },
-                        { label: "Debit order management", full: true, basic: false },
-                        { label: "Stock / commodity trading", full: true, basic: false },
-                        { label: "Member Asset Manager (MAM)", full: true, basic: false },
-                        { label: "Dedicated support", full: true, basic: true },
-                      ];
-
-                      // Sort plans: A, B, then C
                       const sortedPlans = [...feePlans].sort((a, b) => {
-                        const order: Record<string, number> = { A: 0, B: 1, C: 2 };
+                        const order: Record<string, number> = { starter: 0, growth: 1, enterprise: 2 };
                         return (order[a.plan_code] ?? 9) - (order[b.plan_code] ?? 9);
                       });
+
+                      const planDescriptions: Record<string, string> = {
+                        starter: "Administration only — no investment pooling",
+                        growth: "Full platform with pooling & unitizing at competitive rates",
+                        enterprise: "Premium: lowest transaction fees, full pooling & unitizing",
+                      };
 
                       return (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                           {sortedPlans.map((plan) => {
-                            const isBasic = plan.plan_type === "basic";
                             const isSelected = selectedPlanId === plan.id;
+                            const hasPooling = plan.includes_pooling;
                             return (
                               <div
                                 key={plan.id}
@@ -832,60 +861,71 @@ const RegisterTenant = () => {
                                   {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
                                 </div>
 
+                                <p className="text-xs text-muted-foreground">{planDescriptions[plan.plan_code] || ""}</p>
+
                                 {/* Pricing */}
                                 <div className="space-y-1">
-                                  {isBasic ? (
-                                    <>
-                                      <p className="text-xl sm:text-2xl font-bold text-primary">
-                                        {formatCurrency(plan.monthly_fee_excl_vat ?? 599)}
-                                        <span className="text-xs font-normal text-muted-foreground ml-1">/ month + VAT</span>
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">No setup fee</p>
-                                    </>
-                                  ) : (
-                                    <p className="text-xl sm:text-2xl font-bold text-primary">
-                                      {formatCurrency(plan.setup_fee_excl_vat)}
-                                      <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT setup</span>
-                                    </p>
-                                  )}
+                                  <p className="text-xl sm:text-2xl font-bold text-primary">
+                                    {formatCurrency(plan.setup_fee_excl_vat)}
+                                    <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT once-off</span>
+                                  </p>
                                 </div>
 
                                 <Separator />
 
-                                {/* Transaction fees (full plans only) */}
-                                {!isBasic && (
+                                {/* Pooling badge */}
+                                <div className="flex items-center gap-2">
+                                  {hasPooling ? (
+                                    <Badge className="text-xs">Pooling & Unitizing ✓</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs">No Pooling</Badge>
+                                  )}
+                                </div>
+
+                                {/* Transaction fees (pooling plans only) */}
+                                {hasPooling && (
                                   <>
+                                    <Separator />
                                     <div className="space-y-1 text-sm">
-                                      <p><span className="font-medium">{plan.deposit_fee_pct}%</span> on all deposits</p>
-                                      <p><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches, transfers & withdrawals</p>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Transaction Fees</p>
+                                      <p className="text-xs"><span className="font-medium">{plan.deposit_fee_pct}%</span> on deposits</p>
+                                      <p className="text-xs"><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches/transfers/withdrawals</p>
                                     </div>
                                     <Separator />
                                     <div className="space-y-1 text-sm">
-                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly recurring (% of TPV p.a.)</p>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Recurring (% of TPV p.a.)</p>
                                       <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
                                       <p className="text-xs">{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
                                       <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
                                     </div>
-                                    <Separator />
                                   </>
                                 )}
 
-                                {/* Feature checklist */}
+                                {/* Core features */}
+                                <Separator />
                                 <div className="space-y-1.5">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Features included</p>
-                                  {features.map((f) => {
-                                    const included = isBasic ? f.basic : f.full;
-                                    return (
-                                      <div key={f.label} className="flex items-start gap-2 text-xs">
-                                        {included ? (
-                                          <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                                        ) : (
-                                          <Minus className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
-                                        )}
-                                        <span className={included ? "text-foreground" : "text-muted-foreground/40 line-through"}>{f.label}</span>
-                                      </div>
-                                    );
-                                  })}
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Includes</p>
+                                  {[
+                                    "Member administration",
+                                    "Entity & account management",
+                                    "Document management",
+                                    "Communication templates",
+                                    "Member statements",
+                                    "Dedicated support",
+                                    ...(hasPooling ? [
+                                      "Investment pools & unit pricing",
+                                      "Daily pool price updates",
+                                      "Deposits, withdrawals & switches",
+                                      "Fee engine & sliding scales",
+                                      "Stock / commodity trading",
+                                      "Member Asset Manager (MAM)",
+                                    ] : []),
+                                  ].map((f) => (
+                                    <div key={f} className="flex items-start gap-2 text-xs">
+                                      <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                      <span>{f}</span>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             );
@@ -919,9 +959,11 @@ const RegisterTenant = () => {
                           />
                           <Label htmlFor="sla-accept" className="text-sm leading-relaxed">
                             I, on behalf of <strong>{name || "the Co-operative"}</strong> (Registration: {registrationNumber || "—"}),
-                            accept the selected service plan and agree to the Service Level Agreement terms between
-                            HKFT Services (Pty) Ltd and {name || "the Co-operative"}. The once-off setup fee is payable
-                            within 7 days of registration.
+                            accept the <strong>{selectedPlan?.plan_label}</strong> package at a once-off fee of{" "}
+                            <strong>{formatCurrency(selectedPlan?.setup_fee_excl_vat ?? 0)} + VAT</strong> and a monthly
+                            base fee of <strong>{formatCurrency(computedMonthlyFee)} + VAT</strong>.
+                            I agree to the Service Level Agreement terms between HKFT Services (Pty) Ltd and {name || "the Co-operative"}.
+                            The setup fee is payable within 7 days of registration.
                           </Label>
                         </div>
                       </div>
