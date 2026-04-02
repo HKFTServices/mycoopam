@@ -248,10 +248,6 @@ const LoanApplications = () => {
               </Button>
             </div>
           </CardHeader>
-        </Card>
-            </div>
-          </CardContent>
-        </Card>
       ) : null}
 
       <Card>
