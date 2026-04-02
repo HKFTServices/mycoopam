@@ -424,6 +424,22 @@ const Reports = () => {
               {p.label}
             </Button>
           ))}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { const r = getFYRangeProper(0); setDateRange({ from: r.from, to: r.to }); }}
+            className="text-xs sm:text-sm"
+          >
+            Current FY
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { const r = getFYRangeProper(-1); setDateRange({ from: r.from, to: r.to }); }}
+            className="text-xs sm:text-sm"
+          >
+            Previous FY
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button
