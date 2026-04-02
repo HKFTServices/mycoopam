@@ -223,7 +223,7 @@ const LoanApplications = () => {
 
       <MobileTableHint />
 
-      {memberPrimaryAccount ? (
+      {hasAccounts ? (
         <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
           <CardHeader className="pb-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -241,23 +241,14 @@ const LoanApplications = () => {
                   </CardDescription>
                 </div>
               </div>
-              <Button onClick={() => setLoanApplyOpen(true)} disabled={memberPrimaryAccountLoading} className="gap-2">
+              <Button onClick={handleNewLoanClick} disabled={memberAccountsLoading} className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Loan Application
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-xs text-muted-foreground">
-              Applying as <span className="font-medium text-foreground">{memberPrimaryAccount.entityName}</span>
-              {memberPrimaryAccount.accountNumber ? (
-                <>
-                  {" "}
-                  (Account <span className="font-mono">{memberPrimaryAccount.accountNumber}</span>)
-                </>
-              ) : null}
-              .
+        </Card>
             </div>
           </CardContent>
         </Card>
