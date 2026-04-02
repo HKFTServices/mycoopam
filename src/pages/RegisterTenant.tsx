@@ -93,6 +93,22 @@ const RegisterTenant = () => {
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [slaSignature, setSlaSignature] = useState("");
   const [slaAccepted, setSlaAccepted] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<string[]>(["membership_admin"]);
+  
+  const toggleService = (svc: string) => {
+    if (svc === "membership_admin") return; // always required
+    setSelectedServices(prev => 
+      prev.includes(svc) ? prev.filter(s => s !== svc) : [...prev, svc]
+    );
+  };
+  
+  const selectedPlan = feePlans.find((p: any) => p.id === selectedPlanId);
+  const computedMonthlyFee = selectedPlan ? (
+    (selectedServices.includes("membership_admin") ? (selectedPlan.membership_admin_fee || 250) : 0) +
+    (selectedServices.includes("loans") ? (selectedPlan.loans_fee || 50) : 0) +
+    (selectedServices.includes("debit_orders") ? (selectedPlan.debit_orders_fee || 50) : 0) +
+    (selectedServices.includes("accounting") ? (selectedPlan.accounting_fee || 50) : 0)
+  ) : 0;
 
   // ─── Step 3: Logo + Prefixes ───
   const [logoFile, setLogoFile] = useState<File | null>(null);
