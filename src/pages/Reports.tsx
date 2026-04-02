@@ -307,38 +307,62 @@ const Reports = () => {
   const netProfit = totalIncomeExclVat - totalExpenseExclVat;
 
 
-  // Aggregate Balance Sheet / GL Trial Balance data
-  // Legacy entries → straight posting. Native: bank/vat/stock_control/loan → straight; others → contra.
+  // Helper: determine posting direction for a CFT row
+  const isStraightPostingRow = (r: any) => {
+    const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
+    const isLegacy = !!r.legacy_transaction_id;
+    return isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || r.entry_type === "bank_contra";
+  };
+
+  // Aggregate Balance Sheet / GL Trial Balance data — split into opening & movement
   const bsAggregated = (() => {
-    const map: Record<string, { name: string; code: string; gl_type: string; netDebit: number; netCredit: number }> = {};
+    const map: Record<string, { name: string; code: string; gl_type: string; openDr: number; openCr: number; moveDr: number; moveCr: number }> = {};
     for (const r of bsData) {
       const gl = r.gl_accounts;
       if (!gl) continue;
       const type = gl.gl_type as string;
       if (!["asset", "liability", "equity", "income", "expense"].includes(type)) continue;
-      if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, netDebit: 0, netCredit: 0 };
-      const isLoanEntry = (r.entry_type as string)?.startsWith("loan_");
-      const isLegacy = !!r.legacy_transaction_id;
-      if (isLegacy || r.is_bank || r.entry_type === "vat" || r.entry_type === "stock_control" || isLoanEntry || r.entry_type === "bank_contra") {
-        // Straight posting: CFT Dr = GL Dr, CFT Cr = GL Cr
-        map[r.gl_account_id].netDebit  += Number(r.debit || 0);
-        map[r.gl_account_id].netCredit += Number(r.credit || 0);
+      if (!map[r.gl_account_id]) map[r.gl_account_id] = { name: gl.name, code: gl.code, gl_type: type, openDr: 0, openCr: 0, moveDr: 0, moveCr: 0 };
+
+      const dr = Number(r.debit || 0);
+      const cr = Number(r.credit || 0);
+      let postDr: number, postCr: number;
+      if (isStraightPostingRow(r)) {
+        postDr = dr; postCr = cr;
       } else {
-        // Contra posting for native non-bank entries: CFT Dr = GL Cr, CFT Cr = GL Dr
-        map[r.gl_account_id].netCredit += Number(r.debit || 0);
-        map[r.gl_account_id].netDebit  += Number(r.credit || 0);
+        postDr = cr; postCr = dr;
       }
+
+      // Split into opening (before fromDate) vs movement (within period)
+      const txDate = r.transaction_date as string;
+      const isBeforePeriod = fromDate && txDate < fromDate;
+      const isInPeriod = (!fromDate || txDate >= fromDate) && (!toDate || txDate <= toDate);
+
+      if (isBeforePeriod) {
+        map[r.gl_account_id].openDr += postDr;
+        map[r.gl_account_id].openCr += postCr;
+      } else if (isInPeriod) {
+        map[r.gl_account_id].moveDr += postDr;
+        map[r.gl_account_id].moveCr += postCr;
+      }
+      // transactions after toDate are excluded from both
     }
     return Object.values(map).sort((a, b) => a.gl_type.localeCompare(b.gl_type) || a.code.localeCompare(b.code));
   })();
 
-  // GL Balances — raw cumulative debit/credit per account, grouped by gl_type
-  // Section totals: sum raw Dr and raw Cr columns separately (no flipping)
-  const glSection = (type: string) => ({
-    rows: bsAggregated.filter(r => r.gl_type === type),
-    totalDr: bsAggregated.filter(r => r.gl_type === type).reduce((s, r) => s + r.netDebit, 0),
-    totalCr: bsAggregated.filter(r => r.gl_type === type).reduce((s, r) => s + r.netCredit, 0),
-  });
+  // GL section helper for trial balance
+  const glSection = (type: string) => {
+    const rows = bsAggregated.filter(r => r.gl_type === type);
+    return {
+      rows,
+      totalOpenDr: rows.reduce((s, r) => s + r.openDr, 0),
+      totalOpenCr: rows.reduce((s, r) => s + r.openCr, 0),
+      totalMoveDr: rows.reduce((s, r) => s + r.moveDr, 0),
+      totalMoveCr: rows.reduce((s, r) => s + r.moveCr, 0),
+      totalDr: rows.reduce((s, r) => s + r.openDr + r.moveDr, 0),
+      totalCr: rows.reduce((s, r) => s + r.openCr + r.moveCr, 0),
+    };
+  };
   const glAssets      = glSection("asset");
   const glLiabilities = glSection("liability");
   const glEquity      = glSection("equity");
