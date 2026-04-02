@@ -19,6 +19,8 @@ import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
 import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
+import AccountSelectionStep from "@/components/transactions/steps/AccountSelectionStep";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSearchParams } from "react-router-dom";
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
