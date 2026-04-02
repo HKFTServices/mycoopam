@@ -198,21 +198,62 @@ const DebitOrderSignUpDialog = ({
     enabled: !!entityId && open,
   });
 
-  // Pre-fill bank details from entity_bank_details
+  // Fetch existing bank details from entity-level records first, then linked member records
   const { data: existingBank, isLoading: bankLoading } = useQuery({
-    queryKey: ["entity_bank_debit", entityId],
+    queryKey: ["debit_order_bank_details", entityId, currentTenant?.id],
     queryFn: async () => {
-      if (!currentTenant) return null;
-      const { data } = await (supabase as any)
+      if (!currentTenant || !entityId) return null;
+
+      const { data: entityBank } = await (supabase as any)
         .from("entity_bank_details")
         .select("account_holder, account_number, bank_id, bank_account_type_id, banks(name, branch_code), bank_account_types(name)")
         .eq("entity_id", entityId)
         .eq("tenant_id", currentTenant.id)
         .eq("is_active", true)
         .eq("is_deleted", false)
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data;
+
+      if (entityBank) {
+        return {
+          accountHolder: entityBank.account_holder ?? "",
+          accountNumber: entityBank.account_number ?? "",
+          bankName: entityBank.banks?.name ?? "",
+          branchCode: entityBank.banks?.branch_code ?? "",
+          accountType: entityBank.bank_account_types?.name?.toLowerCase() ?? "savings",
+        };
+      }
+
+      const { data: linkedUser } = await (supabase as any)
+        .from("user_entity_relationships")
+        .select("user_id")
+        .eq("entity_id", entityId)
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (!linkedUser?.user_id) return null;
+
+      const { data: memberBank } = await (supabase as any)
+        .from("member_bank_details")
+        .select("account_name, account_number, banks:bank_id(name, branch_code), bank_account_types:bank_account_type_id(name)")
+        .eq("user_id", linkedUser.user_id)
+        .eq("tenant_id", currentTenant.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!memberBank) return null;
+
+      return {
+        accountHolder: memberBank.account_name ?? "",
+        accountNumber: memberBank.account_number ?? "",
+        bankName: memberBank.banks?.name ?? "",
+        branchCode: memberBank.banks?.branch_code ?? "",
+        accountType: memberBank.bank_account_types?.name?.toLowerCase() ?? "savings",
+      };
     },
     enabled: !!entityId && !!currentTenant && open,
   });
@@ -332,13 +373,13 @@ const DebitOrderSignUpDialog = ({
   // Auto-fill bank details when data loads (only if fields are empty and not editing)
   useEffect(() => {
     if (existingBank && !isEditMode && !bankName && !bankAccountNumber) {
-      setBankName(existingBank.banks?.name ?? "");
-      setBranchCode(existingBank.banks?.branch_code ?? "");
-      setAccountName(existingBank.account_holder ?? "");
-      setBankAccountNumber(existingBank.account_number ?? "");
-      setBankAccountType(existingBank.bank_account_types?.name?.toLowerCase() ?? "savings");
+      setBankName(existingBank.bankName ?? "");
+      setBranchCode(existingBank.branchCode ?? "");
+      setAccountName(existingBank.accountHolder ?? "");
+      setBankAccountNumber(existingBank.accountNumber ?? "");
+      setBankAccountType(existingBank.accountType ?? "savings");
     }
-  }, [existingBank]);
+  }, [existingBank, isEditMode, bankName, bankAccountNumber]);
 
   // Initialize allocations when pools load
   useEffect(() => {
