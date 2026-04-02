@@ -100,7 +100,7 @@ const LoanApplications = () => {
       );
       if (accErr) throw accErr;
 
-      return (accounts ?? []).map((a: any) => {
+      return membershipAccounts.map((a: any) => {
         const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
         const e = rel?.entities;
         return {
