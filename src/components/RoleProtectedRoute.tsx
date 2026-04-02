@@ -37,7 +37,9 @@ const RoleProtectedRoute = ({
         .eq("user_id", user.id);
       // Only include roles scoped to the current tenant or global (null tenant_id)
       return (data ?? [])
-        .filter((r: any) => r.tenant_id === currentTenant?.id || r.tenant_id === null)
+        .filter((r: any) =>
+          r.role === "super_admin" || r.tenant_id === currentTenant?.id || r.tenant_id === null
+        )
         .map((r: any) => r.role as string);
     },
     enabled: !!user,
