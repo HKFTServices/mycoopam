@@ -19,6 +19,8 @@ import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import LoanReviewDialog from "@/components/loans/LoanReviewDialog";
 import MemberLoanAcceptDialog from "@/components/loans/MemberLoanAcceptDialog";
 import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
+import AccountSelectionStep from "@/components/transactions/steps/AccountSelectionStep";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSearchParams } from "react-router-dom";
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -58,10 +60,18 @@ const LoanApplications = () => {
     enabled: !!user,
   });
 
-  const { data: memberPrimaryAccount, isLoading: memberPrimaryAccountLoading } = useQuery({
-    queryKey: ["loan_apply_primary_account", currentTenant?.id, user?.id],
+  const [selectedAccount, setSelectedAccount] = useState<{
+    entityId: string;
+    entityAccountId: string;
+    entityName: string;
+    accountNumber: string;
+  } | null>(null);
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+
+  const { data: memberAccounts = [], isLoading: memberAccountsLoading } = useQuery({
+    queryKey: ["loan_apply_accounts", currentTenant?.id, user?.id],
     queryFn: async () => {
-      if (!user || !currentTenant) return null;
+      if (!user || !currentTenant) return [];
 
       const { data: rels, error: relErr } = await (supabase as any)
         .from("user_entity_relationships")
@@ -72,48 +82,78 @@ const LoanApplications = () => {
       if (relErr) throw relErr;
 
       const entityIds = (rels ?? []).map((r: any) => r.entity_id).filter(Boolean);
-      if (entityIds.length === 0) return null;
+      if (entityIds.length === 0) return [];
 
       const { data: accounts, error: accErr } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, entity_id, account_number")
+        .select("id, entity_id, account_number, entity_account_types(name)")
         .eq("tenant_id", currentTenant.id)
         .in("entity_id", entityIds)
         .eq("is_active", true)
         .eq("is_approved", true)
-        .limit(1);
+        .order("created_at");
       if (accErr) throw accErr;
 
-      const a = accounts?.[0];
-      if (!a) return null;
-
-      const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
-      const e = rel?.entities;
-      const entityName = e ? [e.name, e.last_name].filter(Boolean).join(" ") : "Entity";
-
-      return {
-        entityId: a.entity_id as string,
-        entityAccountId: a.id as string,
-        entityName,
-        accountNumber: (a.account_number as string) ?? "",
-      };
+      return (accounts ?? []).map((a: any) => {
+        const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
+        const e = rel?.entities;
+        return {
+          id: a.id,
+          entity_id: a.entity_id,
+          account_number: a.account_number,
+          entities: e,
+          entity_account_types: a.entity_account_types,
+        };
+      });
     },
     enabled: !!user && !!currentTenant,
   });
 
+  const hasAccounts = memberAccounts.length > 0;
+
+  const handleNewLoanClick = () => {
+    if (memberAccounts.length === 1) {
+      const a = memberAccounts[0];
+      const name = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ");
+      setSelectedAccount({
+        entityId: a.entity_id,
+        entityAccountId: a.id,
+        entityName: name,
+        accountNumber: a.account_number ?? "",
+      });
+      setLoanApplyOpen(true);
+    } else {
+      setAccountPickerOpen(true);
+    }
+  };
+
+  const handleAccountSelected = (accountId: string) => {
+    const a = memberAccounts.find((acc: any) => acc.id === accountId);
+    if (!a) return;
+    const name = [a.entities?.name, a.entities?.last_name].filter(Boolean).join(" ");
+    setSelectedAccount({
+      entityId: a.entity_id,
+      entityAccountId: a.id,
+      entityName: name,
+      accountNumber: a.account_number ?? "",
+    });
+    setAccountPickerOpen(false);
+    setLoanApplyOpen(true);
+  };
+
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
-    if (memberPrimaryAccountLoading) return;
+    if (memberAccountsLoading) return;
 
-    if (memberPrimaryAccount) {
-      setLoanApplyOpen(true);
+    if (hasAccounts) {
+      handleNewLoanClick();
     }
 
     const next = new URLSearchParams(searchParams);
     next.delete("new");
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, memberPrimaryAccountLoading, memberPrimaryAccount]);
+  }, [searchParams, memberAccountsLoading, hasAccounts]);
 
   // Fetch applications
   const { data: applications = [], isLoading, isFetching } = useQuery({
@@ -183,7 +223,7 @@ const LoanApplications = () => {
 
       <MobileTableHint />
 
-      {memberPrimaryAccount ? (
+      {hasAccounts ? (
         <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
           <CardHeader className="pb-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -201,25 +241,13 @@ const LoanApplications = () => {
                   </CardDescription>
                 </div>
               </div>
-              <Button onClick={() => setLoanApplyOpen(true)} disabled={memberPrimaryAccountLoading} className="gap-2">
+              <Button onClick={handleNewLoanClick} disabled={memberAccountsLoading} className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Loan Application
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-xs text-muted-foreground">
-              Applying as <span className="font-medium text-foreground">{memberPrimaryAccount.entityName}</span>
-              {memberPrimaryAccount.accountNumber ? (
-                <>
-                  {" "}
-                  (Account <span className="font-mono">{memberPrimaryAccount.accountNumber}</span>)
-                </>
-              ) : null}
-              .
-            </div>
-          </CardContent>
         </Card>
       ) : null}
 
@@ -320,13 +348,30 @@ const LoanApplications = () => {
         />
       )}
 
-      {memberPrimaryAccount ? (
+      <Dialog open={accountPickerOpen} onOpenChange={setAccountPickerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Member Account</DialogTitle>
+          </DialogHeader>
+          <AccountSelectionStep
+            accounts={memberAccounts}
+            loading={memberAccountsLoading}
+            selectedAccountId={selectedAccount?.entityAccountId ?? ""}
+            onSelect={handleAccountSelected}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {selectedAccount ? (
         <LoanApplicationDialog
           open={loanApplyOpen}
-          onOpenChange={setLoanApplyOpen}
-          entityAccountId={memberPrimaryAccount.entityAccountId}
-          entityId={memberPrimaryAccount.entityId}
-          entityName={memberPrimaryAccount.entityName}
+          onOpenChange={(v) => {
+            setLoanApplyOpen(v);
+            if (!v) setSelectedAccount(null);
+          }}
+          entityAccountId={selectedAccount.entityAccountId}
+          entityId={selectedAccount.entityId}
+          entityName={selectedAccount.entityName}
         />
       ) : null}
     </div>
