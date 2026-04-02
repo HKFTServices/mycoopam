@@ -474,9 +474,10 @@ const IncomeExpenseItems = () => {
           <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-3">
             <AlertTriangle className="h-4 w-4 text-blue-600 shrink-0" />
             <p className="text-sm text-blue-700 dark:text-blue-400">
-              These are legacy income/expense transactions that have not yet been posted to the General Ledger. 
-              Select a GL account for each, then post. Entries with credits are <strong>Income</strong>, debits are <strong>Expenses</strong>.
-              Each will create a bank entry (GL 1000) and a contra GL entry.
+              Legacy income/expense transactions awaiting GL posting. 
+              <strong>Bank</strong> entries will create a bank line (GL 1000) + contra GL entry.
+              <strong>Journal</strong> entries will create only a GL entry with the selected account.
+              GL accounts are auto-suggested from item templates where possible.
             </p>
           </div>
 
