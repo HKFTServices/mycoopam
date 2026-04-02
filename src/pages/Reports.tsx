@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, subDays } from "date-fns";
+import { format, subDays, startOfMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
 import MyCommissionsTab from "@/components/reports/MyCommissionsTab";
 import { useIsMobile } from "@/hooks/use-mobile";
