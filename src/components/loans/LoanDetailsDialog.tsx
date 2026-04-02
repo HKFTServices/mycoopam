@@ -305,7 +305,6 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                         <TableCell className={`text-right font-medium py-1.5 ${txn.balance > 0.01 ? 'text-red-600 dark:text-red-400' : txn.balance < -0.01 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
                           {formatCurrency(txn.balance)}
                         </TableCell>
-                        </TableCell>
                       </TableRow>
                     ))
                   )}
