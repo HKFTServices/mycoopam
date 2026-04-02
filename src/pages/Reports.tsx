@@ -744,11 +744,13 @@ const Reports = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[60px] text-xs py-1.5 px-2">GL Code</TableHead>
-                          <TableHead className="text-xs py-1.5 px-2 w-[160px]">Account</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Opening</TableHead>
+                          <TableHead className="text-xs py-1.5 px-2 w-[140px]">Account</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2">Open Dr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2">Open Cr</TableHead>
                           <TableHead className="text-right text-xs py-1.5 px-2">Move Dr</TableHead>
                           <TableHead className="text-right text-xs py-1.5 px-2">Move Cr</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Closing</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2">Close Dr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2">Close Cr</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -761,7 +763,7 @@ const Reports = () => {
                           return (
                             <>
                               <TableRow key={`heading-${glType}`} className="bg-muted/30 border-t-2">
-                                <TableCell colSpan={6} className="font-semibold text-xs py-1.5 px-2">{labelMap[glType]}</TableCell>
+                                <TableCell colSpan={8} className="font-semibold text-xs py-1.5 px-2">{labelMap[glType]}</TableCell>
                               </TableRow>
                               {section.rows.map(r => {
                                 const openNet = r.openDr - r.openCr;
@@ -770,41 +772,35 @@ const Reports = () => {
                                   <TableRow key={r.code}>
                                     <TableCell className="font-mono text-[11px] pl-4 py-1.5 px-2">{r.code}</TableCell>
                                     <TableCell className="pl-4 py-1.5 px-2 text-xs truncate">{r.name}</TableCell>
-                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1.5 px-2">
-                                      {openNet !== 0 ? `${fmtAmt(Math.abs(openNet))} ${openNet > 0 ? "Dr" : "Cr"}` : "—"}
-                                    </TableCell>
+                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1.5 px-2">{openNet > 0 ? fmtAmt(openNet) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1.5 px-2">{openNet < 0 ? fmtAmt(Math.abs(openNet)) : "—"}</TableCell>
                                     <TableCell className="text-right text-[11px] py-1.5 px-2">{r.moveDr > 0 ? fmtAmt(r.moveDr) : "—"}</TableCell>
                                     <TableCell className="text-right text-[11px] py-1.5 px-2">{r.moveCr > 0 ? fmtAmt(r.moveCr) : "—"}</TableCell>
-                                    <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">
-                                      {closeNet !== 0 ? `${fmtAmt(Math.abs(closeNet))} ${closeNet > 0 ? "Dr" : "Cr"}` : "—"}
-                                    </TableCell>
+                                    <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{closeNet > 0 ? fmtAmt(closeNet) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{closeNet < 0 ? fmtAmt(Math.abs(closeNet)) : "—"}</TableCell>
                                   </TableRow>
                                 );
                               })}
                               {section.rows.length === 0 && !showAccProfit && (
-                                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-xs py-1.5 px-2">No records</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground text-xs py-1.5 px-2">No records</TableCell></TableRow>
                               )}
                               {showAccProfit && (
                                 <TableRow className="italic text-muted-foreground">
                                   <TableCell className="font-mono text-[11px] pl-4 py-1.5 px-2">—</TableCell>
                                   <TableCell className="pl-4 py-1.5 px-2 text-xs">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
-                                  <TableCell colSpan={2} className="py-1.5 px-2"></TableCell>
-                                  <TableCell className="py-1.5 px-2"></TableCell>
-                                  <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">
-                                    {accumulatedProfit !== 0 ? `${fmtAmt(Math.abs(accumulatedProfit))} ${accumulatedProfit >= 0 ? "Cr" : "Dr"}` : "—"}
-                                  </TableCell>
+                                  <TableCell colSpan={4} className="py-1.5 px-2"></TableCell>
+                                  <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
+                                  <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
                                 </TableRow>
                               )}
                               <TableRow key={`total-${glType}`} className="font-semibold bg-muted/50 border-b-2">
                                 <TableCell colSpan={2} className="text-xs py-1.5 px-2">Total {labelMap[glType]}</TableCell>
-                                <TableCell className="text-right text-[11px] py-1.5 px-2">
-                                  {totalOpenNet !== 0 ? `${fmtAmt(Math.abs(totalOpenNet))} ${totalOpenNet > 0 ? "Dr" : "Cr"}` : "—"}
-                                </TableCell>
+                                <TableCell className="text-right text-[11px] py-1.5 px-2">{totalOpenNet > 0 ? fmtAmt(totalOpenNet) : "—"}</TableCell>
+                                <TableCell className="text-right text-[11px] py-1.5 px-2">{totalOpenNet < 0 ? fmtAmt(Math.abs(totalOpenNet)) : "—"}</TableCell>
                                 <TableCell className="text-right text-[11px] py-1.5 px-2">{section.totalMoveDr > 0 ? fmtAmt(section.totalMoveDr) : "—"}</TableCell>
                                 <TableCell className="text-right text-[11px] py-1.5 px-2">{section.totalMoveCr > 0 ? fmtAmt(section.totalMoveCr) : "—"}</TableCell>
-                                <TableCell className="text-right text-[11px] py-1.5 px-2">
-                                  {totalCloseNet !== 0 ? `${fmtAmt(Math.abs(totalCloseNet))} ${totalCloseNet > 0 ? "Dr" : "Cr"}` : "—"}
-                                </TableCell>
+                                <TableCell className="text-right text-[11px] py-1.5 px-2">{totalCloseNet > 0 ? fmtAmt(totalCloseNet) : "—"}</TableCell>
+                                <TableCell className="text-right text-[11px] py-1.5 px-2">{totalCloseNet < 0 ? fmtAmt(Math.abs(totalCloseNet)) : "—"}</TableCell>
                               </TableRow>
                             </>
                           );
@@ -816,14 +812,12 @@ const Reports = () => {
                           const baseCr = glAssets.totalCr + glLiabilities.totalCr + glEquity.totalCr;
                           const totalDr = baseDr + (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
                           const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
-                          const closeNet = totalDr - totalCr;
                           return (
                             <TableRow className="font-bold border-t-4 border-foreground/30">
-                              <TableCell colSpan={4} className="text-xs font-bold py-2 px-2">Grand Total</TableCell>
-                              <TableCell className="py-2 px-2"></TableCell>
-                              <TableCell className="text-right text-xs font-bold py-2 px-2">
-                                {closeNet !== 0 ? `${fmtAmt(Math.abs(closeNet))} ${closeNet > 0 ? "Dr" : "Cr"}` : "Balanced"}
-                              </TableCell>
+                              <TableCell colSpan={2} className="text-xs font-bold py-2 px-2">Grand Total</TableCell>
+                              <TableCell colSpan={4} className="py-2 px-2"></TableCell>
+                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(totalDr)}</TableCell>
+                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(totalCr)}</TableCell>
                             </TableRow>
                           );
                         })()}
