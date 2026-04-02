@@ -1032,7 +1032,9 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         } else {
-          // ── JOURNAL ENTRY (no bank): Cash control + GL ──
+          // ── JOURNAL ENTRY (no bank): Cash control + GL + Bank GL ──
+          const isExpenseJ = entry.credit > 0;
+          const fuzzyGlJ = !incExpItem?.gl_account_id ? fuzzyMatchGl(itemDesc) : null;
           // 1. Cash control entry
           proposed.push({
             description: `${itemDesc} — ${poolName}`,
@@ -1044,16 +1046,28 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "income_expense",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          const fuzzyGlJ = !incExpItem?.gl_account_id ? fuzzyMatchGl(itemDesc) : null;
-          // 2. GL entry (opposite side)
+          // 2. GL entry (expense/income side)
           proposed.push({
             description: `${itemDesc} — GL`,
-            debit: entry.credit, credit: entry.debit,
+            debit: isExpenseJ ? amount : 0,
+            credit: isExpenseJ ? 0 : amount,
             gl_account_id: incExpItem?.gl_account_id ?? fuzzyGlJ?.id ?? null,
             gl_account_label: incExpItem?.gl_code ? `${incExpItem.gl_code} ${incExpItem.gl_name}` : (fuzzyGlJ ? `${fuzzyGlJ.code} ${fuzzyGlJ.name} (auto)` : `No GL mapped (${itemDesc})`),
             control_account_id: null, control_account_label: "",
             pool_id: (ca as any)?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "income_expense_gl",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 3. Bank GL entry (opposite side to balance GL)
+          proposed.push({
+            description: `Bank — ${itemDesc}`,
+            debit: isExpenseJ ? 0 : amount,
+            credit: isExpenseJ ? amount : 0,
+            gl_account_id: tenantGlConfig?.bankGlId ?? null,
+            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "bank_contra",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         }
