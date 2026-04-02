@@ -351,13 +351,30 @@ const LoanApplications = () => {
         />
       )}
 
-      {memberPrimaryAccount ? (
+      <Dialog open={accountPickerOpen} onOpenChange={setAccountPickerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Member Account</DialogTitle>
+          </DialogHeader>
+          <AccountSelectionStep
+            accounts={memberAccounts}
+            loading={memberAccountsLoading}
+            selectedAccountId={selectedAccount?.entityAccountId ?? ""}
+            onSelect={handleAccountSelected}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {selectedAccount ? (
         <LoanApplicationDialog
           open={loanApplyOpen}
-          onOpenChange={setLoanApplyOpen}
-          entityAccountId={memberPrimaryAccount.entityAccountId}
-          entityId={memberPrimaryAccount.entityId}
-          entityName={memberPrimaryAccount.entityName}
+          onOpenChange={(v) => {
+            setLoanApplyOpen(v);
+            if (!v) setSelectedAccount(null);
+          }}
+          entityAccountId={selectedAccount.entityAccountId}
+          entityId={selectedAccount.entityId}
+          entityName={selectedAccount.entityName}
         />
       ) : null}
     </div>
