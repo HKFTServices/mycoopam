@@ -1787,7 +1787,11 @@ const LegacyGlAllocation = () => {
                             {pg.totalCredit > 0 ? formatCurrency(pg.totalCredit) : ""}
                           </TableCell>
                           <TableCell className="text-xs text-right font-mono">
-                            {pg.isBalanced ? (
+                            {pg.hasUnmappedGl ? (
+                              <Badge variant="outline" className="text-[10px] gap-1 border-amber-500/40 text-amber-600">
+                                <AlertTriangle className="h-3 w-3" /> Unmapped GL
+                              </Badge>
+                            ) : pg.isBalanced ? (
                               <Badge variant="outline" className="text-[10px] gap-1">
                                 <CheckCircle2 className="h-3 w-3 text-green-600" /> ✓
                               </Badge>
