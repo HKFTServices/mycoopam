@@ -739,16 +739,18 @@ const Reports = () => {
                 </div>
               ) : (
                 <>
-                  <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+                  <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 text-xs">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-20">GL Code</TableHead>
-                          <TableHead>Account</TableHead>
-                          <TableHead className="text-right w-32">Opening Bal</TableHead>
-                          <TableHead className="text-right w-28">Move Dr</TableHead>
-                          <TableHead className="text-right w-28">Move Cr</TableHead>
-                          <TableHead className="text-right w-32">Closing Bal</TableHead>
+                          <TableHead className="w-16 text-xs py-1.5 px-2">GL Code</TableHead>
+                          <TableHead className="text-xs py-1.5 px-2 max-w-[180px]">Account</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2 w-24">Open Dr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2 w-24">Open Cr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2 w-24">Move Dr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2 w-24">Move Cr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2 w-24">Close Dr</TableHead>
+                          <TableHead className="text-right text-xs py-1.5 px-2 w-24">Close Cr</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
