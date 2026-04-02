@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
       }
 
       // Get stock quantities
-      const { data: stockQtyData } = await supabase.rpc("get_stock_quantities", { p_tenant_id: tenantId });
+      const { data: stockQtyData } = await supabase.rpc("get_stock_quantities", { p_tenant_id: tenantId, p_up_to_date: today });
       const stockQtys: Record<string, number> = {};
       (stockQtyData || []).forEach((r: any) => { if (r.item_id) stockQtys[r.item_id] = Number(r.total_quantity); });
 
