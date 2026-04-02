@@ -513,51 +513,62 @@ const IncomeExpenseItems = () => {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">✓</TableHead>
-                    <TableHead>BK#</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                    <TableHead className="min-w-[220px]">GL Account</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {legacyLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-                  ) : legacyEntries.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      <CheckCircle2 className="h-5 w-5 inline mr-2 text-green-500" />
-                      All legacy income/expense entries have been posted.
-                    </TableCell></TableRow>
-                  ) : (
-                    legacyEntries.map((entry) => {
-                      const isIncome = entry.credit > 0;
-                      const currentGl = legacyGlSelections[entry.legacy_id] || "";
-                      const glMatch = glAccounts.find(g => g.id === currentGl);
-                      return (
-                        <TableRow key={entry.legacy_id} className={selectedLegacy.has(entry.legacy_id) ? "bg-accent/50" : ""}>
-                          <TableCell>
-                            <input
-                              type="checkbox"
-                              checked={selectedLegacy.has(entry.legacy_id)}
-                              onChange={() => toggleSelect(entry.legacy_id)}
-                              className="h-4 w-4"
-                            />
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{entry.legacy_id}</TableCell>
-                          <TableCell className="text-xs">{entry.tx_date?.split("T")[0]}</TableCell>
-                          <TableCell>
-                            <Badge variant={isIncome ? "default" : "secondary"} className="text-xs">
-                              {isIncome ? "Income" : "Expense"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-xs font-mono">
-                            {entry.debit > 0 ? entry.debit.toFixed(2) : "—"}
-                          </TableCell>
-                          <TableCell className="text-right text-xs font-mono">
-                            {entry.credit > 0 ? entry.credit.toFixed(2) : "—"}
+                   <TableRow>
+                     <TableHead className="w-10">✓</TableHead>
+                     <TableHead>BK#</TableHead>
+                     <TableHead>Date</TableHead>
+                     <TableHead>Item</TableHead>
+                     <TableHead>Type</TableHead>
+                     <TableHead>Bank</TableHead>
+                     <TableHead className="text-right">Debit</TableHead>
+                     <TableHead className="text-right">Credit</TableHead>
+                     <TableHead className="min-w-[220px]">GL Account</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {legacyLoading ? (
+                     <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                   ) : legacyEntries.length === 0 ? (
+                     <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                       <CheckCircle2 className="h-5 w-5 inline mr-2 text-green-500" />
+                       All legacy income/expense entries have been posted.
+                     </TableCell></TableRow>
+                   ) : (
+                     legacyEntries.map((entry) => {
+                       const isIncome = entry.credit > 0;
+                       const currentGl = legacyGlSelections[entry.legacy_id] || "";
+                       const glMatch = glAccounts.find(g => g.id === currentGl);
+                       const linkedItem = entry.inc_exp_item_id ? itemMap[entry.inc_exp_item_id] : null;
+                       return (
+                         <TableRow key={entry.legacy_id} className={selectedLegacy.has(entry.legacy_id) ? "bg-accent/50" : ""}>
+                           <TableCell>
+                             <input
+                               type="checkbox"
+                               checked={selectedLegacy.has(entry.legacy_id)}
+                               onChange={() => toggleSelect(entry.legacy_id)}
+                               className="h-4 w-4"
+                             />
+                           </TableCell>
+                           <TableCell className="font-mono text-xs">{entry.legacy_id}</TableCell>
+                           <TableCell className="text-xs">{entry.tx_date?.split("T")[0]}</TableCell>
+                           <TableCell className="text-xs max-w-[140px] truncate" title={linkedItem?.description || ""}>
+                             {linkedItem?.item_code || "—"}
+                           </TableCell>
+                           <TableCell>
+                             <Badge variant={isIncome ? "default" : "secondary"} className="text-xs">
+                               {isIncome ? "Income" : "Expense"}
+                             </Badge>
+                           </TableCell>
+                           <TableCell>
+                             <Badge variant={entry.is_bank ? "default" : "outline"} className="text-xs">
+                               {entry.is_bank ? "Bank" : "Journal"}
+                             </Badge>
+                           </TableCell>
+                           <TableCell className="text-right text-xs font-mono">
+                             {entry.debit > 0 ? entry.debit.toFixed(2) : "—"}
+                           </TableCell>
+                           <TableCell className="text-right text-xs font-mono">
+                             {entry.credit > 0 ? entry.credit.toFixed(2) : "—"}
                           </TableCell>
                           <TableCell>
                             <Select
