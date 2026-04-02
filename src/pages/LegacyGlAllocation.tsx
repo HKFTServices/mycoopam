@@ -989,6 +989,14 @@ const LegacyGlAllocation = () => {
         const itemDesc = incExpItem?.description ?? incExpItem?.item_code ?? "Income/Expense";
         const amount = entry.debit > 0 ? entry.debit : entry.credit;
 
+        // Debug: trace Corr/HKFT entries
+        if (["823","824","1097","1183","1272"].includes(entry.id)) {
+          console.log(`[GL-DEBUG] Entry ${entry.id}: inc_exp_id=${entry.inc_exp_id}, incExpItem=`, incExpItem,
+            `is_bank=${entry.is_bank}, debit=${entry.debit}, credit=${entry.credit}`,
+            `hasCa=${!!incExpItem?.debit_control_account_id || !!incExpItem?.credit_control_account_id}`,
+            `isCorr=${incExpItem?.description?.toLowerCase().startsWith("corr")}`);
+        }
+
         if (entry.is_bank) {
           // ── BANK TRANSACTION ──
           // Expense paid from bank: DR Expense GL, CR Bank GL
