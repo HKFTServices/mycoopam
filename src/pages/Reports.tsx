@@ -745,17 +745,30 @@ const Reports = () => {
               ) : (
                 <>
                   <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 text-xs">
+                    {(() => {
+                      // Opening date = day before from, Closing date = to
+                      const openDate = dateRange?.from ? format(subDays(dateRange.from, 1), "dd MMM yy") : "—";
+                      const closeDate = dateRange?.to ? format(dateRange.to, "dd MMM yy") : "—";
+                      const periodLabel = dateRange?.from && dateRange?.to
+                        ? `${format(dateRange.from, "dd MMM yy")} – ${format(dateRange.to, "dd MMM yy")}`
+                        : "Period";
+                      return (
                     <Table className="table-fixed w-full">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px] text-xs py-1.5 px-2">GL Code</TableHead>
-                          <TableHead className="text-xs py-1.5 px-2 w-[140px]">Account</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Open Dr</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Open Cr</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Move Dr</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Move Cr</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Close Dr</TableHead>
-                          <TableHead className="text-right text-xs py-1.5 px-2">Close Cr</TableHead>
+                          <TableHead rowSpan={2} className="w-[55px] text-xs py-1 px-2 align-bottom border-r border-border">GL Code</TableHead>
+                          <TableHead rowSpan={2} className="text-xs py-1 px-2 w-[130px] align-bottom border-r border-border">Account</TableHead>
+                          <TableHead colSpan={2} className="text-center text-xs py-1 px-2 border-b border-r border-border bg-muted/20 font-semibold">Opening ({openDate})</TableHead>
+                          <TableHead colSpan={2} className="text-center text-xs py-1 px-2 border-b border-r border-border bg-muted/40 font-semibold">Movement ({periodLabel})</TableHead>
+                          <TableHead colSpan={2} className="text-center text-xs py-1 px-2 border-b border-border bg-muted/20 font-semibold">Closing ({closeDate})</TableHead>
+                        </TableRow>
+                        <TableRow>
+                          <TableHead className="text-right text-[11px] py-1 px-2 border-r border-border bg-muted/20">Dr</TableHead>
+                          <TableHead className="text-right text-[11px] py-1 px-2 border-r border-border bg-muted/20">Cr</TableHead>
+                          <TableHead className="text-right text-[11px] py-1 px-2 bg-muted/40">Dr</TableHead>
+                          <TableHead className="text-right text-[11px] py-1 px-2 border-r border-border bg-muted/40">Cr</TableHead>
+                          <TableHead className="text-right text-[11px] py-1 px-2 bg-muted/20">Dr</TableHead>
+                          <TableHead className="text-right text-[11px] py-1 px-2 bg-muted/20">Cr</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -763,8 +776,10 @@ const Reports = () => {
                           const labelMap: Record<string, string> = { asset: "Assets", liability: "Liabilities", equity: "Equity" };
                           const section = glType === "asset" ? glAssets : glType === "liability" ? glLiabilities : glEquity;
                           const showAccProfit = glType === "equity";
-                          const totalCloseNet = (section.totalDr - section.totalCr) + (showAccProfit ? (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : -accumulatedProfit) : 0);
-                          const totalOpenNet = section.totalOpenDr - section.totalOpenCr;
+                          const accProfitOpen = showAccProfit ? openingAccumulatedProfit : 0;
+                          const accProfitClose = showAccProfit ? accumulatedProfit : 0;
+                          const totalOpenNet = (section.totalOpenDr - section.totalOpenCr) + (accProfitOpen < 0 ? Math.abs(accProfitOpen) : -Math.max(0, accProfitOpen));
+                          const totalCloseNet = (section.totalDr - section.totalCr) + (accProfitClose < 0 ? Math.abs(accProfitClose) : -Math.max(0, accProfitClose));
                           return (
                             <>
                               <TableRow key={`heading-${glType}`} className="bg-muted/30 border-t-2">
@@ -775,35 +790,37 @@ const Reports = () => {
                                 const closeNet = (r.openDr + r.moveDr) - (r.openCr + r.moveCr);
                                 return (
                                   <TableRow key={r.code}>
-                                    <TableCell className="font-mono text-[11px] pl-4 py-1.5 px-2">{r.code}</TableCell>
-                                    <TableCell className="pl-4 py-1.5 px-2 text-xs truncate">{r.name}</TableCell>
-                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1.5 px-2">{openNet > 0 ? fmtAmt(openNet) : "—"}</TableCell>
-                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1.5 px-2">{openNet < 0 ? fmtAmt(Math.abs(openNet)) : "—"}</TableCell>
-                                    <TableCell className="text-right text-[11px] py-1.5 px-2">{r.moveDr > 0 ? fmtAmt(r.moveDr) : "—"}</TableCell>
-                                    <TableCell className="text-right text-[11px] py-1.5 px-2">{r.moveCr > 0 ? fmtAmt(r.moveCr) : "—"}</TableCell>
-                                    <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{closeNet > 0 ? fmtAmt(closeNet) : "—"}</TableCell>
-                                    <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{closeNet < 0 ? fmtAmt(Math.abs(closeNet)) : "—"}</TableCell>
+                                    <TableCell className="font-mono text-[11px] pl-4 py-1 px-2 border-r border-border">{r.code}</TableCell>
+                                    <TableCell className="pl-4 py-1 px-2 text-xs truncate border-r border-border">{r.name}</TableCell>
+                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1 px-2 bg-muted/10">{openNet > 0 ? fmtAmt(openNet) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] text-muted-foreground py-1 px-2 border-r border-border bg-muted/10">{openNet < 0 ? fmtAmt(Math.abs(openNet)) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] py-1 px-2 bg-muted/20">{r.moveDr > 0 ? fmtAmt(r.moveDr) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] py-1 px-2 border-r border-border bg-muted/20">{r.moveCr > 0 ? fmtAmt(r.moveCr) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] font-semibold py-1 px-2 bg-muted/10">{closeNet > 0 ? fmtAmt(closeNet) : "—"}</TableCell>
+                                    <TableCell className="text-right text-[11px] font-semibold py-1 px-2 bg-muted/10">{closeNet < 0 ? fmtAmt(Math.abs(closeNet)) : "—"}</TableCell>
                                   </TableRow>
                                 );
                               })}
                               {section.rows.length === 0 && !showAccProfit && (
-                                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground text-xs py-1.5 px-2">No records</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground text-xs py-1 px-2">No records</TableCell></TableRow>
                               )}
                               {showAccProfit && (
                                 <TableRow className="italic text-muted-foreground">
-                                  <TableCell className="font-mono text-[11px] pl-4 py-1.5 px-2">—</TableCell>
-                                  <TableCell className="pl-4 py-1.5 px-2 text-xs">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
-                                  <TableCell colSpan={4} className="py-1.5 px-2"></TableCell>
-                                  <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
-                                  <TableCell className="text-right text-[11px] font-semibold py-1.5 px-2">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
+                                  <TableCell className="font-mono text-[11px] pl-4 py-1 px-2 border-r border-border">—</TableCell>
+                                  <TableCell className="pl-4 py-1 px-2 text-xs border-r border-border">{accumulatedProfit >= 0 ? "Accumulated Profit" : "Accumulated Loss"}</TableCell>
+                                  <TableCell className="text-right text-[11px] py-1 px-2 bg-muted/10">{openingAccumulatedProfit < 0 ? fmtAmt(Math.abs(openingAccumulatedProfit)) : "—"}</TableCell>
+                                  <TableCell className="text-right text-[11px] py-1 px-2 border-r border-border bg-muted/10">{openingAccumulatedProfit >= 0 ? fmtAmt(openingAccumulatedProfit) : "—"}</TableCell>
+                                  <TableCell colSpan={2} className="py-1 px-2 border-r border-border bg-muted/20"></TableCell>
+                                  <TableCell className="text-right text-[11px] font-semibold py-1 px-2 bg-muted/10">{accumulatedProfit < 0 ? fmtAmt(Math.abs(accumulatedProfit)) : "—"}</TableCell>
+                                  <TableCell className="text-right text-[11px] font-semibold py-1 px-2 bg-muted/10">{accumulatedProfit >= 0 ? fmtAmt(accumulatedProfit) : "—"}</TableCell>
                                 </TableRow>
                               )}
                               <TableRow key={`total-${glType}`} className="font-semibold bg-muted/50 border-b-2">
-                                <TableCell colSpan={2} className="text-xs py-1.5 px-2">Total {labelMap[glType]}</TableCell>
+                                <TableCell colSpan={2} className="text-xs py-1.5 px-2 border-r border-border">Total {labelMap[glType]}</TableCell>
                                 <TableCell className="text-right text-[11px] py-1.5 px-2">{totalOpenNet > 0 ? fmtAmt(totalOpenNet) : "—"}</TableCell>
-                                <TableCell className="text-right text-[11px] py-1.5 px-2">{totalOpenNet < 0 ? fmtAmt(Math.abs(totalOpenNet)) : "—"}</TableCell>
+                                <TableCell className="text-right text-[11px] py-1.5 px-2 border-r border-border">{totalOpenNet < 0 ? fmtAmt(Math.abs(totalOpenNet)) : "—"}</TableCell>
                                 <TableCell className="text-right text-[11px] py-1.5 px-2">{section.totalMoveDr > 0 ? fmtAmt(section.totalMoveDr) : "—"}</TableCell>
-                                <TableCell className="text-right text-[11px] py-1.5 px-2">{section.totalMoveCr > 0 ? fmtAmt(section.totalMoveCr) : "—"}</TableCell>
+                                <TableCell className="text-right text-[11px] py-1.5 px-2 border-r border-border">{section.totalMoveCr > 0 ? fmtAmt(section.totalMoveCr) : "—"}</TableCell>
                                 <TableCell className="text-right text-[11px] py-1.5 px-2">{totalCloseNet > 0 ? fmtAmt(totalCloseNet) : "—"}</TableCell>
                                 <TableCell className="text-right text-[11px] py-1.5 px-2">{totalCloseNet < 0 ? fmtAmt(Math.abs(totalCloseNet)) : "—"}</TableCell>
                               </TableRow>
@@ -813,21 +830,25 @@ const Reports = () => {
 
                         {/* Grand Total row */}
                         {(() => {
-                          const baseDr = glAssets.totalDr + glLiabilities.totalDr + glEquity.totalDr;
-                          const baseCr = glAssets.totalCr + glLiabilities.totalCr + glEquity.totalCr;
-                          const totalDr = baseDr + (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
-                          const totalCr = baseCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
+                          const openDrTotal = glAssets.totalOpenDr + glLiabilities.totalOpenDr + glEquity.totalOpenDr + (openingAccumulatedProfit < 0 ? Math.abs(openingAccumulatedProfit) : 0);
+                          const openCrTotal = glAssets.totalOpenCr + glLiabilities.totalOpenCr + glEquity.totalOpenCr + (openingAccumulatedProfit >= 0 ? openingAccumulatedProfit : 0);
+                          const closeDrTotal = glAssets.totalDr + glLiabilities.totalDr + glEquity.totalDr + (accumulatedProfit < 0 ? Math.abs(accumulatedProfit) : 0);
+                          const closeCrTotal = glAssets.totalCr + glLiabilities.totalCr + glEquity.totalCr + (accumulatedProfit >= 0 ? accumulatedProfit : 0);
                           return (
                             <TableRow className="font-bold border-t-4 border-foreground/30">
-                              <TableCell colSpan={2} className="text-xs font-bold py-2 px-2">Grand Total</TableCell>
-                              <TableCell colSpan={4} className="py-2 px-2"></TableCell>
-                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(totalDr)}</TableCell>
-                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(totalCr)}</TableCell>
+                              <TableCell colSpan={2} className="text-xs font-bold py-2 px-2 border-r border-border">Grand Total</TableCell>
+                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(openDrTotal)}</TableCell>
+                              <TableCell className="text-right text-xs font-bold py-2 px-2 border-r border-border">{fmtAmt(openCrTotal)}</TableCell>
+                              <TableCell colSpan={2} className="py-2 px-2 border-r border-border"></TableCell>
+                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(closeDrTotal)}</TableCell>
+                              <TableCell className="text-right text-xs font-bold py-2 px-2">{fmtAmt(closeCrTotal)}</TableCell>
                             </TableRow>
                           );
                         })()}
                       </TableBody>
                     </Table>
+                      );
+                    })()}
                   </div>
                 </>
               )}
