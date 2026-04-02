@@ -49,6 +49,8 @@ type LegacyEntry = {
   type_tx_id: string | null;
   parent_id: string | null;
   entity_name: string | null;
+  is_bank: boolean;
+  inc_exp_item_id: string | null;
 };
 
 const IncomeExpenseItems = () => {
@@ -121,11 +123,13 @@ const IncomeExpenseItems = () => {
     enabled: !!currentTenant,
   });
 
-  // Legacy unposted entries (type 1950)
+  // Legacy unposted entries (type 1988 = income/expense CFT entries)
   const { data: legacyEntries = [], isLoading: legacyLoading } = useQuery({
     queryKey: ["legacy_ie_entries", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
+
+      // Fetch all legacy CFT entries
       const { data, error } = await (supabase as any)
         .from("legacy_id_mappings")
         .select("legacy_id, notes, new_id")
@@ -134,20 +138,28 @@ const IncomeExpenseItems = () => {
         .order("legacy_id");
       if (error) throw error;
 
-      // Filter to type 1950 entries and check which are already posted (active)
+      // Fetch income_expense_items legacy mappings to resolve IncExpID → item
+      const { data: ieMappings } = await (supabase as any)
+        .from("legacy_id_mappings")
+        .select("legacy_id, new_id")
+        .eq("table_name", "income_expense_items")
+        .eq("tenant_id", currentTenant.id);
+      const ieMap = new Map<string, string>();
+      (ieMappings || []).forEach((m: any) => ieMap.set(m.legacy_id, m.new_id));
+
+      // Filter to type 1988 entries (income/expense transactions)
       const entries: any[] = data || [];
-      const type1950 = entries.filter((e: any) => {
+      const type1988 = entries.filter((e: any) => {
         try {
           const n = JSON.parse(e.notes);
-          return n.Type_TransactionEntryID === "1950";
+          return n.Type_TransactionEntryID === "1988";
         } catch { return false; }
       });
 
-      // Check which have active CFT entries
-      const newIds = type1950.map((e: any) => e.new_id).filter(Boolean);
+      // Check which have active CFT entries (already posted)
+      const newIds = type1988.map((e: any) => e.new_id).filter(Boolean);
       let activeIds = new Set<string>();
       if (newIds.length > 0) {
-        // Check in batches
         for (let i = 0; i < newIds.length; i += 50) {
           const batch = newIds.slice(i, i + 50);
           const { data: activeCfts } = await (supabase as any)
@@ -159,10 +171,12 @@ const IncomeExpenseItems = () => {
         }
       }
 
-      return type1950
+      return type1988
         .filter((e: any) => !activeIds.has(e.new_id))
         .map((e: any) => {
           const n = JSON.parse(e.notes);
+          const incExpId = n.IncExpID || null;
+          const ieItemId = incExpId ? ieMap.get(incExpId) || null : null;
           return {
             legacy_id: e.legacy_id,
             tx_date: n.TransactionDate?.split(" ")[0] || "",
@@ -172,6 +186,8 @@ const IncomeExpenseItems = () => {
             type_tx_id: n.Type_TransactionID || null,
             parent_id: n.ParentID || null,
             entity_name: null,
+            is_bank: n.IsBank === "1" || n.IsBank === 1,
+            inc_exp_item_id: ieItemId,
           } as LegacyEntry;
         })
         .sort((a: LegacyEntry, b: LegacyEntry) => a.tx_date.localeCompare(b.tx_date));
@@ -190,6 +206,25 @@ const IncomeExpenseItems = () => {
 
   const incomeGlAccounts = useMemo(() => glAccounts.filter(g => g.gl_type === "income" || g.gl_type === "expense"), [glAccounts]);
 
+  // Build item lookup map (id → item)
+  const itemMap = useMemo(() => Object.fromEntries(items.map(i => [i.id, i])), [items]);
+
+  // Auto-populate GL selections from income_expense_items when legacy entries load
+  useMemo(() => {
+    if (legacyEntries.length === 0 || items.length === 0) return;
+    const auto: Record<string, string> = {};
+    for (const entry of legacyEntries) {
+      if (entry.inc_exp_item_id && !legacyGlSelections[entry.legacy_id]) {
+        const item = itemMap[entry.inc_exp_item_id];
+        if (item?.gl_account_id) {
+          auto[entry.legacy_id] = item.gl_account_id;
+        }
+      }
+    }
+    if (Object.keys(auto).length > 0) {
+      setLegacyGlSelections(prev => ({ ...auto, ...prev }));
+    }
+  }, [legacyEntries, items]);
   // Save GL account selection on an item
   const saveGlMutation = useMutation({
     mutationFn: async ({ itemId, glAccountId }: { itemId: string; glAccountId: string }) => {
@@ -231,32 +266,36 @@ const IncomeExpenseItems = () => {
         const glId = legacyGlSelections[entry.legacy_id];
         const isIncome = entry.credit > 0;
         const amount = isIncome ? entry.credit : entry.debit;
+        const isBankEntry = entry.is_bank;
+        const linkedItem = entry.inc_exp_item_id ? itemMap[entry.inc_exp_item_id] : null;
 
-        // Bank entry
-        rows.push({
-          tenant_id: currentTenant!.id,
-          transaction_date: entry.tx_date,
-          gl_account_id: bankGl.id,
-          entry_type: isIncome ? "bank_receipt" : "bank_payment",
-          debit: isIncome ? amount : 0,
-          credit: isIncome ? 0 : amount,
-          is_bank: true,
-          description: `Legacy I/E BK#${entry.legacy_id}`,
-          legacy_transaction_id: entry.legacy_id,
-          status: "approved",
-          is_active: true,
-        });
+        if (isBankEntry) {
+          // Bank entry (DR bank for income, CR bank for expense)
+          rows.push({
+            tenant_id: currentTenant!.id,
+            transaction_date: entry.tx_date,
+            gl_account_id: bankGl.id,
+            entry_type: "bank_contra",
+            debit: isIncome ? amount : 0,
+            credit: isIncome ? 0 : amount,
+            is_bank: true,
+            description: `Legacy I/E BK#${entry.legacy_id}${linkedItem ? ' – ' + linkedItem.item_code : ''}`,
+            legacy_transaction_id: entry.legacy_id,
+            status: "approved",
+            is_active: true,
+          });
+        }
 
-        // Contra GL entry
+        // Contra GL entry (always created)
         rows.push({
           tenant_id: currentTenant!.id,
           transaction_date: entry.tx_date,
           gl_account_id: glId,
-          entry_type: "income_expense",
+          entry_type: isBankEntry ? "bank_contra" : "journal",
           debit: isIncome ? 0 : amount,
           credit: isIncome ? amount : 0,
           is_bank: false,
-          description: `Legacy I/E BK#${entry.legacy_id}`,
+          description: `Legacy I/E BK#${entry.legacy_id}${linkedItem ? ' – ' + linkedItem.item_code : ''}`,
           legacy_transaction_id: entry.legacy_id,
           status: "approved",
           is_active: true,
@@ -435,9 +474,10 @@ const IncomeExpenseItems = () => {
           <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-3">
             <AlertTriangle className="h-4 w-4 text-blue-600 shrink-0" />
             <p className="text-sm text-blue-700 dark:text-blue-400">
-              These are legacy income/expense transactions that have not yet been posted to the General Ledger. 
-              Select a GL account for each, then post. Entries with credits are <strong>Income</strong>, debits are <strong>Expenses</strong>.
-              Each will create a bank entry (GL 1000) and a contra GL entry.
+              Legacy income/expense transactions awaiting GL posting. 
+              <strong>Bank</strong> entries will create a bank line (GL 1000) + contra GL entry.
+              <strong>Journal</strong> entries will create only a GL entry with the selected account.
+              GL accounts are auto-suggested from item templates where possible.
             </p>
           </div>
 
@@ -474,51 +514,62 @@ const IncomeExpenseItems = () => {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">✓</TableHead>
-                    <TableHead>BK#</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                    <TableHead className="min-w-[220px]">GL Account</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {legacyLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
-                  ) : legacyEntries.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      <CheckCircle2 className="h-5 w-5 inline mr-2 text-green-500" />
-                      All legacy income/expense entries have been posted.
-                    </TableCell></TableRow>
-                  ) : (
-                    legacyEntries.map((entry) => {
-                      const isIncome = entry.credit > 0;
-                      const currentGl = legacyGlSelections[entry.legacy_id] || "";
-                      const glMatch = glAccounts.find(g => g.id === currentGl);
-                      return (
-                        <TableRow key={entry.legacy_id} className={selectedLegacy.has(entry.legacy_id) ? "bg-accent/50" : ""}>
-                          <TableCell>
-                            <input
-                              type="checkbox"
-                              checked={selectedLegacy.has(entry.legacy_id)}
-                              onChange={() => toggleSelect(entry.legacy_id)}
-                              className="h-4 w-4"
-                            />
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{entry.legacy_id}</TableCell>
-                          <TableCell className="text-xs">{entry.tx_date?.split("T")[0]}</TableCell>
-                          <TableCell>
-                            <Badge variant={isIncome ? "default" : "secondary"} className="text-xs">
-                              {isIncome ? "Income" : "Expense"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-xs font-mono">
-                            {entry.debit > 0 ? entry.debit.toFixed(2) : "—"}
-                          </TableCell>
-                          <TableCell className="text-right text-xs font-mono">
-                            {entry.credit > 0 ? entry.credit.toFixed(2) : "—"}
+                   <TableRow>
+                     <TableHead className="w-10">✓</TableHead>
+                     <TableHead>BK#</TableHead>
+                     <TableHead>Date</TableHead>
+                     <TableHead>Item</TableHead>
+                     <TableHead>Type</TableHead>
+                     <TableHead>Bank</TableHead>
+                     <TableHead className="text-right">Debit</TableHead>
+                     <TableHead className="text-right">Credit</TableHead>
+                     <TableHead className="min-w-[220px]">GL Account</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {legacyLoading ? (
+                     <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                   ) : legacyEntries.length === 0 ? (
+                     <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                       <CheckCircle2 className="h-5 w-5 inline mr-2 text-green-500" />
+                       All legacy income/expense entries have been posted.
+                     </TableCell></TableRow>
+                   ) : (
+                     legacyEntries.map((entry) => {
+                       const isIncome = entry.credit > 0;
+                       const currentGl = legacyGlSelections[entry.legacy_id] || "";
+                       const glMatch = glAccounts.find(g => g.id === currentGl);
+                       const linkedItem = entry.inc_exp_item_id ? itemMap[entry.inc_exp_item_id] : null;
+                       return (
+                         <TableRow key={entry.legacy_id} className={selectedLegacy.has(entry.legacy_id) ? "bg-accent/50" : ""}>
+                           <TableCell>
+                             <input
+                               type="checkbox"
+                               checked={selectedLegacy.has(entry.legacy_id)}
+                               onChange={() => toggleSelect(entry.legacy_id)}
+                               className="h-4 w-4"
+                             />
+                           </TableCell>
+                           <TableCell className="font-mono text-xs">{entry.legacy_id}</TableCell>
+                           <TableCell className="text-xs">{entry.tx_date?.split("T")[0]}</TableCell>
+                           <TableCell className="text-xs max-w-[140px] truncate" title={linkedItem?.description || ""}>
+                             {linkedItem?.item_code || "—"}
+                           </TableCell>
+                           <TableCell>
+                             <Badge variant={isIncome ? "default" : "secondary"} className="text-xs">
+                               {isIncome ? "Income" : "Expense"}
+                             </Badge>
+                           </TableCell>
+                           <TableCell>
+                             <Badge variant={entry.is_bank ? "default" : "outline"} className="text-xs">
+                               {entry.is_bank ? "Bank" : "Journal"}
+                             </Badge>
+                           </TableCell>
+                           <TableCell className="text-right text-xs font-mono">
+                             {entry.debit > 0 ? entry.debit.toFixed(2) : "—"}
+                           </TableCell>
+                           <TableCell className="text-right text-xs font-mono">
+                             {entry.credit > 0 ? entry.credit.toFixed(2) : "—"}
                           </TableCell>
                           <TableCell>
                             <Select
