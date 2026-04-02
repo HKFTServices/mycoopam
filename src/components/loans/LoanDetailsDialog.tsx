@@ -261,14 +261,14 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
             {/* Transaction table */}
             <div className="flex-1 min-h-0 overflow-auto border rounded-md">
               <Table>
-                <TableHeader>
+                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    <TableHead className="w-[100px]">Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="w-[90px] text-[11px]">Date</TableHead>
+                    <TableHead className="text-[11px]">Type</TableHead>
+                    <TableHead className="text-[11px]">Description</TableHead>
+                    <TableHead className="text-right text-[11px]">Debit</TableHead>
+                    <TableHead className="text-right text-[11px]">Credit</TableHead>
+                    <TableHead className="text-right text-[11px]">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
