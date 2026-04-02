@@ -1486,7 +1486,7 @@ const LegacyGlAllocation = () => {
   const postEntries = async (groups?: ProposedGroup[]) => {
     if (!currentTenant) return;
     const source = groups ?? proposedGroups;
-    const balanced = source.filter(g => g.isBalanced);
+    const balanced = source.filter(g => g.isBalanced && !g.hasUnmappedGl);
     if (balanced.length === 0) {
       toast.error("No balanced groups to post");
       return;
