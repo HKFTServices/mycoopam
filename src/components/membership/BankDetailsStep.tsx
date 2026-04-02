@@ -42,7 +42,11 @@ const BankDetailsStep = ({ data, update, tenantId, bankProofRequired }: BankProp
   });
 
   useEffect(() => {
-    update({ skipBank: !bankProofRequired });
+    // Only default to skip if bank proof is not required AND no bank details have been entered
+    const hasBankData = !!(data.bankId || data.accountNumber || data.accountName);
+    if (!hasBankData) {
+      update({ skipBank: !bankProofRequired });
+    }
   }, [bankProofRequired]);
 
   const selectedBank = banks.find((b: any) => b.id === data.bankId);
