@@ -58,10 +58,18 @@ const LoanApplications = () => {
     enabled: !!user,
   });
 
-  const { data: memberPrimaryAccount, isLoading: memberPrimaryAccountLoading } = useQuery({
-    queryKey: ["loan_apply_primary_account", currentTenant?.id, user?.id],
+  const [selectedAccount, setSelectedAccount] = useState<{
+    entityId: string;
+    entityAccountId: string;
+    entityName: string;
+    accountNumber: string;
+  } | null>(null);
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+
+  const { data: memberAccounts = [], isLoading: memberAccountsLoading } = useQuery({
+    queryKey: ["loan_apply_accounts", currentTenant?.id, user?.id],
     queryFn: async () => {
-      if (!user || !currentTenant) return null;
+      if (!user || !currentTenant) return [];
 
       const { data: rels, error: relErr } = await (supabase as any)
         .from("user_entity_relationships")
@@ -72,34 +80,34 @@ const LoanApplications = () => {
       if (relErr) throw relErr;
 
       const entityIds = (rels ?? []).map((r: any) => r.entity_id).filter(Boolean);
-      if (entityIds.length === 0) return null;
+      if (entityIds.length === 0) return [];
 
       const { data: accounts, error: accErr } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, entity_id, account_number")
+        .select("id, entity_id, account_number, entity_account_types(name)")
         .eq("tenant_id", currentTenant.id)
         .in("entity_id", entityIds)
         .eq("is_active", true)
         .eq("is_approved", true)
-        .limit(1);
+        .order("created_at");
       if (accErr) throw accErr;
 
-      const a = accounts?.[0];
-      if (!a) return null;
-
-      const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
-      const e = rel?.entities;
-      const entityName = e ? [e.name, e.last_name].filter(Boolean).join(" ") : "Entity";
-
-      return {
-        entityId: a.entity_id as string,
-        entityAccountId: a.id as string,
-        entityName,
-        accountNumber: (a.account_number as string) ?? "",
-      };
+      return (accounts ?? []).map((a: any) => {
+        const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
+        const e = rel?.entities;
+        return {
+          id: a.id,
+          entity_id: a.entity_id,
+          account_number: a.account_number,
+          entities: e,
+          entity_account_types: a.entity_account_types,
+        };
+      });
     },
     enabled: !!user && !!currentTenant,
   });
+
+  const hasAccounts = memberAccounts.length > 0;
 
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
