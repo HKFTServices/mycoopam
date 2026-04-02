@@ -1448,6 +1448,13 @@ const LegacyGlAllocation = () => {
       }
     }
 
+    // Check if any GL-type entry has a null gl_account_id (unmapped)
+    const hasUnmappedGl = proposed.some(e =>
+      !e.gl_account_id && !e.control_account_id && e.entry_type !== "unit_buy" && e.entry_type !== "unit_sell"
+    ) || proposed.some(e =>
+      e.gl_account_label?.includes("No GL mapped")
+    );
+
     return {
       root: group.root,
       children: group.children,
@@ -1455,6 +1462,7 @@ const LegacyGlAllocation = () => {
       totalDebit,
       totalCredit,
       isBalanced,
+      hasUnmappedGl,
       entityName: eaInfo?.entity_name ?? `Entity#${entityId}`,
       controlWarnings,
     };
