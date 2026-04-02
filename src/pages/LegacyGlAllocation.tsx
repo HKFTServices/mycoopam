@@ -622,6 +622,9 @@ const LegacyGlAllocation = () => {
     // Switching entry types
     const switchingPoolEntryTypes = new Set(["1955", "0"]);
 
+    // Legacy income/expense entry types
+    const incomeExpenseEntryTypes = new Set(["1988", "1950"]);
+
     // Stock entry types (resolve via CashAccountID)
     const stockPoolEntryTypes = new Set(["0", "1931", "1932", "1954", "1964", "1995", "2006", "2007", "2009", "2011"]);
 
@@ -918,10 +921,10 @@ const LegacyGlAllocation = () => {
       else if (isSwitching && entry.entry_type_id === "1924") {
         continue;
       }
-      // ── Income/Expense (1988) — Resolve IncExpID for description & GL ──
+      // ── Income/Expense (1988 / 1950) — Resolve IncExpID for description & GL ──
       // Inc/Exp transactions move cash between control accounts and GL.
       // No unit redemption / member interest involved.
-      else if (isIncomeExpense && entry.entry_type_id === "1988") {
+      else if (isIncomeExpense && incomeExpenseEntryTypes.has(entry.entry_type_id)) {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
         const poolName = ca?.pool_name ?? ca?.name ?? `CA#${entry.cash_account_id}`;
         const incExpItem = entry.inc_exp_id !== "0" ? incExpMap?.[entry.inc_exp_id] : null;
