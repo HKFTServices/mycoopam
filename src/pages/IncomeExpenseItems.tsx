@@ -266,32 +266,36 @@ const IncomeExpenseItems = () => {
         const glId = legacyGlSelections[entry.legacy_id];
         const isIncome = entry.credit > 0;
         const amount = isIncome ? entry.credit : entry.debit;
+        const isBankEntry = entry.is_bank;
+        const linkedItem = entry.inc_exp_item_id ? itemMap[entry.inc_exp_item_id] : null;
 
-        // Bank entry
-        rows.push({
-          tenant_id: currentTenant!.id,
-          transaction_date: entry.tx_date,
-          gl_account_id: bankGl.id,
-          entry_type: isIncome ? "bank_receipt" : "bank_payment",
-          debit: isIncome ? amount : 0,
-          credit: isIncome ? 0 : amount,
-          is_bank: true,
-          description: `Legacy I/E BK#${entry.legacy_id}`,
-          legacy_transaction_id: entry.legacy_id,
-          status: "approved",
-          is_active: true,
-        });
+        if (isBankEntry) {
+          // Bank entry (DR bank for income, CR bank for expense)
+          rows.push({
+            tenant_id: currentTenant!.id,
+            transaction_date: entry.tx_date,
+            gl_account_id: bankGl.id,
+            entry_type: "bank_contra",
+            debit: isIncome ? amount : 0,
+            credit: isIncome ? 0 : amount,
+            is_bank: true,
+            description: `Legacy I/E BK#${entry.legacy_id}${linkedItem ? ' – ' + linkedItem.item_code : ''}`,
+            legacy_transaction_id: entry.legacy_id,
+            status: "approved",
+            is_active: true,
+          });
+        }
 
-        // Contra GL entry
+        // Contra GL entry (always created)
         rows.push({
           tenant_id: currentTenant!.id,
           transaction_date: entry.tx_date,
           gl_account_id: glId,
-          entry_type: "income_expense",
+          entry_type: isBankEntry ? "bank_contra" : "journal",
           debit: isIncome ? 0 : amount,
           credit: isIncome ? amount : 0,
           is_bank: false,
-          description: `Legacy I/E BK#${entry.legacy_id}`,
+          description: `Legacy I/E BK#${entry.legacy_id}${linkedItem ? ' – ' + linkedItem.item_code : ''}`,
           legacy_transaction_id: entry.legacy_id,
           status: "approved",
           is_active: true,
