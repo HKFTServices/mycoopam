@@ -164,7 +164,8 @@ const LedgerEntries = () => {
     queryKey: ["cft_bank_entries", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
-      const { data, error } = await (supabase as any)
+      // Fetch parent bank entries
+      const { data: parents, error } = await (supabase as any)
         .from("cashflow_transactions")
         .select("*, control_accounts(name), gl_accounts(name, code, gl_type)")
         .eq("tenant_id", currentTenant.id)
@@ -175,7 +176,27 @@ const LedgerEntries = () => {
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      const rows = parents ?? [];
+
+      // Fetch contra entries for these parents
+      const parentIds = rows.map((r: any) => r.id);
+      let contraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+      if (parentIds.length > 0) {
+        const { data: contras } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("parent_id, gl_accounts(name, code, gl_type)")
+          .in("parent_id", parentIds)
+          .eq("is_active", true)
+          .eq("entry_type", "bank_contra");
+        for (const c of contras ?? []) {
+          if (c.parent_id && c.gl_accounts) {
+            contraMap[c.parent_id] = c.gl_accounts;
+          }
+        }
+      }
+
+      // Attach contra GL info to each parent
+      return rows.map((r: any) => ({ ...r, _contraGl: contraMap[r.id] || null }));
     },
     enabled: !!currentTenant,
   });
@@ -880,6 +901,11 @@ const LedgerEntries = () => {
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground space-y-1">
+                                {r._contraGl && (
+                                  <p className="break-words">
+                                    Contra GL: <span className="text-foreground/90 font-mono">{r._contraGl.code}</span> <span className="text-foreground/90">{r._contraGl.name}</span>
+                                  </p>
+                                )}
                                 <p className="break-words">
                                   Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
                                 </p>
@@ -929,6 +955,7 @@ const LedgerEntries = () => {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>GL Account</TableHead>
+                      <TableHead>Contra GL</TableHead>
                       <TableHead>Control Account</TableHead>
                       <TableHead>Reference</TableHead>
                       <TableHead className="text-right">Debit (+)</TableHead>
@@ -940,17 +967,23 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {bankLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : bankEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
                     ) : bankEntries.map((r: any) => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
+                      const contraGl = r._contraGl;
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {contraGl ? (
+                              <><span className="font-mono text-xs text-muted-foreground mr-1">{contraGl.code}</span>{contraGl.name}</>
+                            ) : "—"}
                           </TableCell>
                           <TableCell className="text-sm">{r.control_accounts?.name || "—"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
