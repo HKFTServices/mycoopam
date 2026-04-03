@@ -984,8 +984,8 @@ const LedgerEntries = () => {
         </div>
       </div>
 
-        {/* ── Bank Entries ── */}
-        <TabsContent value="bank" className="space-y-3">
+      {activeTab === "bank" && (
+        <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               <Landmark className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
@@ -1000,7 +1000,8 @@ const LedgerEntries = () => {
               Bank entries are now available in the <span className="font-medium text-foreground">Reports</span> page under the <span className="font-medium text-foreground">Bank Entries</span> tab.
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
         {/* ── Journal Entries ── */}
         <TabsContent value="journal" className="space-y-3">
