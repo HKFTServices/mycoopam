@@ -58,6 +58,8 @@ const defaultBankForm = {
 const defaultJournalForm = {
   transaction_date: formatLocalDate(),
   gl_account_id: "",
+  gl_account_debit_id: "",
+  gl_account_credit_id: "",
   debit_control_account_id: "",
   credit_control_account_id: "",
   amount: 0,
