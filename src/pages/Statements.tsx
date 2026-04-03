@@ -752,16 +752,42 @@ export default function Statements() {
               {audienceType === "specific_member" && (
                 <div>
                   <Label>Select Member Account</Label>
-                  <Select value={specificMemberId} onValueChange={setSpecificMemberId}>
-                    <SelectTrigger className="max-w-sm"><SelectValue placeholder="Select member..." /></SelectTrigger>
-                    <SelectContent>
-                      {entityAccounts.map((ea: any) => (
-                        <SelectItem key={ea.id} value={ea.id}>
-                          {ea.account_number} — {[ea.entities?.name, ea.entities?.last_name].filter(Boolean).join(" ")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full max-w-sm justify-between font-normal">
+                        {specificMemberId
+                          ? (() => {
+                              const ea = entityAccounts.find((ea: any) => ea.id === specificMemberId);
+                              return ea ? `${ea.account_number} — ${[ea.entities?.name, ea.entities?.last_name].filter(Boolean).join(" ")}` : "Select member...";
+                            })()
+                          : "Select member..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0 pointer-events-auto" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search by name or account number..." />
+                        <CommandList>
+                          <CommandEmpty>No member found.</CommandEmpty>
+                          <CommandGroup>
+                            {entityAccounts.map((ea: any) => {
+                              const label = `${ea.account_number} — ${[ea.entities?.name, ea.entities?.last_name].filter(Boolean).join(" ")}`;
+                              return (
+                                <CommandItem
+                                  key={ea.id}
+                                  value={label}
+                                  onSelect={() => setSpecificMemberId(ea.id)}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", specificMemberId === ea.id ? "opacity-100" : "opacity-0")} />
+                                  {label}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
 
