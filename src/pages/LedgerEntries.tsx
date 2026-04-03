@@ -967,6 +967,18 @@ const LedgerEntries = () => {
 
 
 
+  return (
+    <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
+      <div className="flex items-center gap-3 min-w-0">
+        <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
+        <div>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Bank &amp; Journal Entries</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+            Post ad-hoc bank &amp; journal entries directly to the transaction ledger
+          </p>
+        </div>
+      </div>
+
       {/* ── Date Period Filter ── */}
       <div className="flex flex-col sm:flex-row sm:items-end gap-2">
         <div className="flex-1 min-w-0">
@@ -1005,18 +1017,6 @@ const LedgerEntries = () => {
         <p className="text-[10px] text-muted-foreground sm:ml-2 sm:pb-1">
           {dateRange.from} — {dateRange.to}
         </p>
-      </div>
-
-  return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
-      <div className="flex items-center gap-3 min-w-0">
-        <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
-        <div>
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Bank &amp; Journal Entries</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-            Post ad-hoc bank &amp; journal entries directly to the transaction ledger
-          </p>
-        </div>
       </div>
 
       <Tabs defaultValue="bank">
