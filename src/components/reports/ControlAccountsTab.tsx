@@ -24,12 +24,13 @@ const ControlAccountsTab = ({ fromDate, toDate }: ControlAccountsTabProps) => {
   const { data: controlAccounts = [] } = useQuery({
     queryKey: ["control_accounts_list", tenantId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("control_accounts")
-        .select("id, name, account_type, pool_id, pools(name)")
+        .select("id, name, account_type")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("name");
+      if (error) console.error("control_accounts fetch error", error);
       return data || [];
     },
     enabled: !!tenantId,
