@@ -139,7 +139,6 @@ const otherTransactionsNavItems: NavItem[] = [
 
 const adminOnlyNavItems: NavItem[] = [
   { label: "Users", icon: KeyRound, path: "/dashboard/users" },
-  { label: "Reports", icon: FileText, path: "/dashboard/reports" },
 ];
 
 const tenantSetupNavItems: NavItem[] = [
