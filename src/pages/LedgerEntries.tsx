@@ -1190,7 +1190,7 @@ const LedgerEntries = () => {
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground">
-                                <p className="break-words">Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span></p>
+                                <p className="break-words">Type: <span className="text-foreground/90">{r.description || "—"}</span></p>
                               </div>
                               <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs">
                                 <div className="rounded-xl border bg-background/60 p-2">
