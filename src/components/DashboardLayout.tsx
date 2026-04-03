@@ -703,6 +703,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </SidebarGroupContent>
               </SidebarGroup>
 
+              {(isReferrerOrHouse || isAdmin || isClerkOrManager) && (
+                <>
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Commissions</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {matchesQuery("My Commissions")
+                          ? renderLink({ label: "My Commissions", icon: DollarSign, path: "/dashboard/reports?tab=commissions" })
+                          : null}
+                        {(isAdmin || isClerkOrManager) && matchesQuery("Pay Commissions")
+                          ? renderLink({ label: "Pay Commissions", icon: Banknote, path: "/dashboard/ledger-entries?tab=commissions" })
+                          : null}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
+              )}
+
               {(isAdmin || isClerkOrManager) && (
                 <>
                   <SidebarSeparator />
