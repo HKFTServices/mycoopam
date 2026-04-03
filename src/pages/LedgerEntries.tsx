@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { formatLocalDate } from "@/lib/formatDate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears } from "date-fns";
@@ -11,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -150,6 +150,8 @@ const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; 
 };
 
 const LedgerEntries = () => {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "bank";
   const { user, profile } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -972,30 +974,19 @@ const LedgerEntries = () => {
       <div className="flex items-center gap-3 min-w-0">
         <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
         <div>
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Bank &amp; Journal Entries</h1>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
+            {activeTab === "journal" ? "Journal Entries" : activeTab === "commissions" ? "Pay Commissions" : "Bank Entries"}
+          </h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-            Post ad-hoc bank &amp; journal entries directly to the transaction ledger
+            {activeTab === "journal" ? "Post ad-hoc journal entries directly to the transaction ledger"
+              : activeTab === "commissions" ? "Review and pay pending referral commissions"
+              : "Post ad-hoc bank entries directly to the transaction ledger"}
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") || "bank"}>
-        <div className="max-w-full overflow-x-auto pb-1">
-          <TabsList className="min-w-max whitespace-nowrap justify-start">
-            <TabsTrigger value="bank">Bank Entries</TabsTrigger>
-            <TabsTrigger value="journal">Journal Entries</TabsTrigger>
-            
-            <TabsTrigger value="commissions">
-              Pay Commissions
-              {pendingCommissions.length > 0 && (
-                <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingCommissions.length}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* ── Bank Entries ── */}
-        <TabsContent value="bank" className="space-y-3">
+      {activeTab === "bank" && (
+        <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               <Landmark className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
@@ -1010,10 +1001,11 @@ const LedgerEntries = () => {
               Bank entries are now available in the <span className="font-medium text-foreground">Reports</span> page under the <span className="font-medium text-foreground">Bank Entries</span> tab.
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ── Journal Entries ── */}
-        <TabsContent value="journal" className="space-y-3">
+      {activeTab === "journal" && (
+        <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
               <CalendarDays className="h-4 w-4 mr-1" /> End of Month Run
@@ -1027,13 +1019,14 @@ const LedgerEntries = () => {
               Journal entries are now available in the <span className="font-medium text-foreground">Reports</span> page under the <span className="font-medium text-foreground">Journal Entries</span> tab.
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
 
 
 
-        {/* ── Pay Commissions ── */}
-        <TabsContent value="commissions" className="space-y-3">
+      {activeTab === "commissions" && (
+        <div className="space-y-3">
           {commLoading ? (
             <Card><CardContent className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></CardContent></Card>
           ) : pendingCommissions.length === 0 ? (
@@ -1209,8 +1202,8 @@ const LedgerEntries = () => {
               );
             });
           })()}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* ── Bank Entry Dialog ── */}
       <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
