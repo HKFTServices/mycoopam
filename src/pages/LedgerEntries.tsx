@@ -1460,7 +1460,7 @@ const LedgerEntries = () => {
 
       {/* ── Pay Commission Dialog ── */}
       <AlertDialog open={!!payCommDialog} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Pay Commission</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1473,38 +1473,167 @@ const LedgerEntries = () => {
                   const commExcl = payCommDialog.commission_amount;
                   const commVat = isHouseVat ? Math.round(commExcl * (vr / 100) * 100) / 100 : 0;
                   const commIncl = commExcl + commVat;
+                  const bd = payCommDialog.house_bank_details;
+
+                  // Build GL preview lines
+                  const commGlName = glAccounts.find((g) => g.id === (tenantConfig as any)?.commission_paid_gl_account_id)?.name;
+                  const commGlCode = glAccounts.find((g) => g.id === (tenantConfig as any)?.commission_paid_gl_account_id)?.code;
+                  const vatGlName = glAccounts.find((g) => g.id === (tenantConfig as any)?.vat_gl_account_id)?.name;
+                  const vatGlCode = glAccounts.find((g) => g.id === (tenantConfig as any)?.vat_gl_account_id)?.code;
+                  const cashCtrl = controlAccounts.find((c) => c.account_type?.toLowerCase() === "cash");
+
+                  const glDt = commVat > 0 && vatGlName ? commExcl + commVat : commExcl;
+                  const glCt = commExcl + (commVat > 0 ? commVat : 0);
+                  const glBalanced = Math.abs(glDt - glCt) < 0.01 || (commVat > 0 && vatGlName);
+                  // Actually: Commission GL Dt = commExcl, VAT GL Dt = commVat => total Dt = commIncl
+                  // Bank (cash control) Ct = commIncl => balanced
+                  const totalGlDt = commExcl + commVat;
+                  const totalGlCt = commIncl;
+                  const isBalanced = Math.abs(totalGlDt - totalGlCt) < 0.01;
+
                   return (
-                    <div className="bg-muted rounded-lg p-3 space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Referral House</span>
-                        <span className="font-medium">{houseName}</span>
+                    <>
+                      {/* Commission summary */}
+                      <div className="bg-muted rounded-lg p-3 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Referral House</span>
+                          <span className="font-medium">{houseName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">VAT Status</span>
+                          <span className={isHouseVat ? "font-medium text-emerald-600" : "text-muted-foreground"}>
+                            {isHouseVat ? "VAT Registered" : "Not VAT Registered"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Referrer</span>
+                          <span className="font-medium">
+                            {(payCommDialog as any).referrer ? `${(payCommDialog as any).referrer.name} ${(payCommDialog as any).referrer.last_name || ""}`.trim() : "—"}
+                          </span>
+                        </div>
+                        <div className="border-t border-border my-1" />
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Commission ({payCommDialog.commission_percentage}%) excl VAT</span>
+                          <span className="font-semibold text-foreground">{formatCurrency(commExcl)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">VAT ({isHouseVat ? `${vr}%` : "N/A"})</span>
+                          <span className="text-foreground">{formatCurrency(commVat)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold pt-1 border-t border-border">
+                          <span>Total Payable</span>
+                          <span className="text-primary">{formatCurrency(commIncl)}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">VAT Status</span>
-                        <span className={isHouseVat ? "font-medium text-emerald-600" : "text-muted-foreground"}>
-                          {isHouseVat ? "VAT Registered" : "Not VAT Registered"}
-                        </span>
+
+                      {/* Bank Details */}
+                      <div className="rounded-lg border border-border p-3 space-y-1 text-sm">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Landmark className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Referral House Banking Details</span>
+                        </div>
+                        {bd ? (
+                          <>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Account Holder</span><span className="font-medium">{bd.account_holder}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span className="font-medium">{bd.bank_name}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Account Number</span><span className="font-mono font-medium">{bd.account_number}</span></div>
+                            {bd.branch_code && <div className="flex justify-between"><span className="text-muted-foreground">Branch Code</span><span className="font-mono">{bd.branch_code}</span></div>}
+                            <div className="flex justify-between"><span className="text-muted-foreground">Account Type</span><span>{bd.account_type_name}</span></div>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No banking details on file for this referral house.</p>
+                        )}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Referrer</span>
-                        <span className="font-medium">
-                          {(payCommDialog as any).referrer ? `${(payCommDialog as any).referrer.name} ${(payCommDialog as any).referrer.last_name || ""}`.trim() : "—"}
-                        </span>
+
+                      {/* GL Entries Preview */}
+                      <div className="rounded-lg border border-border overflow-hidden">
+                        <div className="px-3 py-1.5 bg-muted/30 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <BookOpen className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">GL Entries to Post</span>
+                          </div>
+                          {isBalanced ? (
+                            <Badge variant="outline" className="text-[10px] h-5 gap-1 border-emerald-500/40 text-emerald-600 bg-emerald-500/10">
+                              <CheckCircle2 className="h-3 w-3" /> Balanced
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] h-5 gap-1 border-destructive/40 text-destructive bg-destructive/10">
+                              <X className="h-3 w-3" /> Unbalanced
+                            </Badge>
+                          )}
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="text-xs">
+                              <TableHead className="h-7 py-1 text-[10px]">Account</TableHead>
+                              <TableHead className="h-7 py-1 text-[10px] text-right">Debit</TableHead>
+                              <TableHead className="h-7 py-1 text-[10px] text-right">Credit</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {/* Commission expense GL - Debit */}
+                            <TableRow className="text-xs">
+                              <TableCell className="py-1">
+                                {commGlCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{commGlCode}</span>}
+                                <span>{commGlName || "Commission Paid GL (not set)"}</span>
+                              </TableCell>
+                              <TableCell className="py-1 text-right font-medium">{formatCurrency(commExcl)}</TableCell>
+                              <TableCell className="py-1 text-right">—</TableCell>
+                            </TableRow>
+                            {/* VAT GL - Debit */}
+                            {commVat > 0 && (
+                              <TableRow className="text-xs">
+                                <TableCell className="py-1">
+                                  {vatGlCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{vatGlCode}</span>}
+                                  <span>{vatGlName || "VAT GL (not set)"}</span>
+                                </TableCell>
+                                <TableCell className="py-1 text-right font-medium">{formatCurrency(commVat)}</TableCell>
+                                <TableCell className="py-1 text-right">—</TableCell>
+                              </TableRow>
+                            )}
+                            {/* Bank / Cash - Credit */}
+                            <TableRow className="text-xs">
+                              <TableCell className="py-1">
+                                <span className="text-muted-foreground">Bank / Cash</span>
+                              </TableCell>
+                              <TableCell className="py-1 text-right">—</TableCell>
+                              <TableCell className="py-1 text-right font-medium">{formatCurrency(commIncl)}</TableCell>
+                            </TableRow>
+                            {/* Totals */}
+                            <TableRow className="border-t-2 bg-muted/30 font-bold text-xs">
+                              <TableCell className="py-1 text-[10px]">Totals</TableCell>
+                              <TableCell className="py-1 text-right">{formatCurrency(totalGlDt)}</TableCell>
+                              <TableCell className="py-1 text-right">{formatCurrency(totalGlCt)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
                       </div>
-                      <div className="border-t border-border my-1" />
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Commission ({payCommDialog.commission_percentage}%) excl VAT</span>
-                        <span className="font-semibold text-foreground">{formatCurrency(commExcl)}</span>
+
+                      {/* Control Accounts Preview */}
+                      <div className="rounded-lg border border-border overflow-hidden">
+                        <div className="px-3 py-1.5 bg-muted/30 flex items-center gap-1.5">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Control Account Entries</span>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="text-xs">
+                              <TableHead className="h-7 py-1 text-[10px]">Control Account</TableHead>
+                              <TableHead className="h-7 py-1 text-[10px] text-right">Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow className="text-xs">
+                              <TableCell className="py-1">
+                                <span>{cashCtrl?.name || "Cash Control"}</span>
+                                <span className="ml-1.5 font-mono text-[10px] font-bold text-rose-600 dark:text-rose-400">(Ct)</span>
+                              </TableCell>
+                              <TableCell className="py-1 text-right font-medium">{formatCurrency(commIncl)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">VAT ({isHouseVat ? `${vr}%` : "N/A"})</span>
-                        <span className="text-foreground">{formatCurrency(commVat)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold pt-1 border-t border-border">
-                        <span>Total Payable</span>
-                        <span className="text-primary">{formatCurrency(commIncl)}</span>
-                      </div>
-                    </div>
+                    </>
                   );
                 })()}
                 <div className="space-y-2">
