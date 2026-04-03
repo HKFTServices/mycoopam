@@ -686,15 +686,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     items: filteredTransactions.filter((i) => i.path !== "/dashboard/transactions"),
                   })}
 
-                {(isAdmin || isClerkOrManager) &&
-                  renderGroup({
-                    label: "Other Transactions",
-                    icon: Layers,
-                    open: otherTransactionsOpen,
-                    setOpen: setOtherTransactionsOpen,
-                    viewAll: { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
-                    items: filteredOtherTransactions.filter((i) => i.path !== "/dashboard/ledger-entries"),
-                  })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -720,6 +711,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     <SidebarGroupLabel>Admin</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <SidebarMenu>
+                        {renderGroup({
+                          label: "Other Transactions",
+                          icon: Layers,
+                          open: otherTransactionsOpen,
+                          setOpen: setOtherTransactionsOpen,
+                          viewAll: { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
+                          items: filteredOtherTransactions.filter((i) => i.path !== "/dashboard/ledger-entries"),
+                        })}
+
                         {matchesQuery("Approvals")
                           ? renderLink(
                               { label: "Approvals", icon: ClipboardCheck, path: "/dashboard/account-approvals" },
@@ -728,21 +728,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           : null}
 
                         {renderGroup({
-                          label: "Entities",
-                          icon: Building2,
-                          open: entitiesOpen,
-                          setOpen: setEntitiesOpen,
-                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
-                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
-                        })}
-
-                        {renderGroup({
                           label: "Daily Prices",
                           icon: BarChart3,
                           open: dailyPricesOpen,
                           setOpen: setDailyPricesOpen,
                           viewAll: { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
                           items: filteredDailyPrices,
+                        })}
+
+                        {renderGroup({
+                          label: "Entities",
+                          icon: Building2,
+                          open: entitiesOpen,
+                          setOpen: setEntitiesOpen,
+                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
+                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
                         })}
 
                         {renderGroup({
