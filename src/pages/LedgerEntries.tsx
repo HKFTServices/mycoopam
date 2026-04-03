@@ -972,27 +972,16 @@ const LedgerEntries = () => {
       <div className="flex items-center gap-3 min-w-0">
         <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
         <div>
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Bank &amp; Journal Entries</h1>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
+            {activeTab === "journal" ? "Journal Entries" : activeTab === "commissions" ? "Pay Commissions" : "Bank Entries"}
+          </h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-            Post ad-hoc bank &amp; journal entries directly to the transaction ledger
+            {activeTab === "journal" ? "Post ad-hoc journal entries directly to the transaction ledger"
+              : activeTab === "commissions" ? "Review and pay pending referral commissions"
+              : "Post ad-hoc bank entries directly to the transaction ledger"}
           </p>
         </div>
       </div>
-
-      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") || "bank"}>
-        <div className="max-w-full overflow-x-auto pb-1">
-          <TabsList className="min-w-max whitespace-nowrap justify-start">
-            <TabsTrigger value="bank">Bank Entries</TabsTrigger>
-            <TabsTrigger value="journal">Journal Entries</TabsTrigger>
-            
-            <TabsTrigger value="commissions">
-              Pay Commissions
-              {pendingCommissions.length > 0 && (
-                <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1">{pendingCommissions.length}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </div>
 
         {/* ── Bank Entries ── */}
         <TabsContent value="bank" className="space-y-3">
