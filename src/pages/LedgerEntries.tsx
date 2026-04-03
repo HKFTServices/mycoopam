@@ -44,6 +44,11 @@ type Commission = {
   referral_house?: { name: string; last_name: string | null; is_vat_registered: boolean };
 };
 
+const formatEntryType = (et: string | null | undefined): string => {
+  if (!et) return "—";
+  return et.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 const defaultBankForm = {
   transaction_date: formatLocalDate(),
   gl_account_id: "",
@@ -969,6 +974,9 @@ const LedgerEntries = () => {
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground space-y-1">
+                                <p className="break-words">
+                                  Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span>
+                                </p>
                                 {r._contraGl ? (
                                   <p className="break-words">
                                     Contra GL: <span className="text-foreground/90 font-mono">{r._contraGl.code}</span> <span className="text-foreground/90">{r._contraGl.name}</span>
@@ -1024,6 +1032,7 @@ const LedgerEntries = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>GL Account</TableHead>
                       <TableHead>Contra GL</TableHead>
                       <TableHead>Control Account</TableHead>
@@ -1037,15 +1046,16 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {bankLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 11 : 10} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : bankEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 11 : 10} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
                     ) : bankEntries.map((r: any) => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       const contraGl = r._contraGl;
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatEntryType(r.entry_type)}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
@@ -1142,6 +1152,9 @@ const LedgerEntries = () => {
                           </AccordionTrigger>
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
+                              <div className="text-xs text-muted-foreground">
+                                <p className="break-words">Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span></p>
+                              </div>
                               <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs">
                                 <div className="rounded-xl border bg-background/60 p-2">
                                   <p className="text-[10px] text-muted-foreground">Debit</p>
@@ -1188,6 +1201,7 @@ const LedgerEntries = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>GL Account</TableHead>
                       <TableHead>Reference</TableHead>
                       <TableHead>Debit Control Account</TableHead>
@@ -1200,9 +1214,9 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {journalLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 10 : 9) : (isVatRegistered ? 9 : 8)} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : journalEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 10 : 9) : (isVatRegistered ? 9 : 8)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
                     ) : journalEntries.map((r: any) => {
                       const child = r.childRow;
                       const debitCA = r.control_accounts?.name || "—";
@@ -1210,6 +1224,7 @@ const LedgerEntries = () => {
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatEntryType(r.entry_type)}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
