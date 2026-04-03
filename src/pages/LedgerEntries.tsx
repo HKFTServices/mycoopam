@@ -975,7 +975,7 @@ const LedgerEntries = () => {
                                   </p>
                                 ) : r.legacy_transaction_id ? (
                                   <p className="break-words text-amber-600 italic">Contra GL: Unposted</p>
-                                )}
+                                ) : null}
                                 <p className="break-words">
                                   Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
                                 </p>
