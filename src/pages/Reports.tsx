@@ -1544,6 +1544,11 @@ const Reports = () => {
           </Card>
         </TabsContent>
 
+        {/* ── CONTROL ACCOUNTS ── */}
+        <TabsContent value="control-accounts">
+          <ControlAccountsTab fromDate={fromDate} toDate={toDate} />
+        </TabsContent>
+
         {/* ── MY COMMISSIONS (for referrer/house admins) ── */}
         {isReferrerOrHouse && (
           <TabsContent value="my-comm">
