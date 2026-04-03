@@ -800,7 +800,7 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
             <MetricCard title="Pool Values" subtitle="Co-op AUM" value={totalAUM} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
           )}
           {isWidgetVisible("metric-secondary") && (
-            <MetricCard title="Secondary account" subtitle="Loans outstanding" value={totalLoansOutstanding} ringValue={42} changePct={null} variant="neutral"
+            <MetricCard title="Loans" subtitle="Loans outstanding" value={totalLoansOutstanding} ringValue={42} changePct={null} variant="neutral"
               onClick={totalLoansOutstanding > 0 ? () => setLoanDialogOpen(true) : undefined} compact={isMobile} />
           )}
         </div>

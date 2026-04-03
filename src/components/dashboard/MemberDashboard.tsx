@@ -569,7 +569,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
               )}
               {isWidgetVisible("metric-secondary") && (
                 <div data-tour="metric-secondary">
-                  <MetricCard title="Secondary account" subtitle="Deposits (12 months)" value={rangeTotal} ringValue={55} changePct={null} variant="neutral" compact={isMobile} />
+                  <MetricCard title="Loans" subtitle="Deposits (12 months)" value={rangeTotal} ringValue={55} changePct={null} variant="neutral" compact={isMobile} />
                 </div>
               )}
             </div>
