@@ -974,6 +974,9 @@ const LedgerEntries = () => {
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground space-y-1">
+                                <p className="break-words">
+                                  Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span>
+                                </p>
                                 {r._contraGl ? (
                                   <p className="break-words">
                                     Contra GL: <span className="text-foreground/90 font-mono">{r._contraGl.code}</span> <span className="text-foreground/90">{r._contraGl.name}</span>
