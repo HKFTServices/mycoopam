@@ -962,17 +962,23 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {bankLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : bankEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
                     ) : bankEntries.map((r: any) => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
+                      const contraGl = r._contraGl;
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {contraGl ? (
+                              <><span className="font-mono text-xs text-muted-foreground mr-1">{contraGl.code}</span>{contraGl.name}</>
+                            ) : "—"}
                           </TableCell>
                           <TableCell className="text-sm">{r.control_accounts?.name || "—"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
