@@ -1476,10 +1476,10 @@ const LedgerEntries = () => {
                   const bd = payCommDialog.house_bank_details;
 
                   // Build GL preview lines
-                  const commGlName = glAccounts.find((g) => g.id === (tenantConfig as any)?.commission_paid_gl_account_id)?.name;
-                  const commGlCode = glAccounts.find((g) => g.id === (tenantConfig as any)?.commission_paid_gl_account_id)?.code;
-                  const vatGlName = glAccounts.find((g) => g.id === (tenantConfig as any)?.vat_gl_account_id)?.name;
-                  const vatGlCode = glAccounts.find((g) => g.id === (tenantConfig as any)?.vat_gl_account_id)?.code;
+                  const commGlName = glAccounts.find((g) => g.id === tenantConfig?.commission_paid_gl_account_id)?.name;
+                  const commGlCode = glAccounts.find((g) => g.id === tenantConfig?.commission_paid_gl_account_id)?.code;
+                  const vatGlName = glAccounts.find((g) => g.id === tenantConfig?.vat_gl_account_id)?.name;
+                  const vatGlCode = glAccounts.find((g) => g.id === tenantConfig?.vat_gl_account_id)?.code;
                   const cashCtrl = controlAccounts.find((c) => c.account_type?.toLowerCase() === "cash");
 
                   const glDt = commVat > 0 && vatGlName ? commExcl + commVat : commExcl;
