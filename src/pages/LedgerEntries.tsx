@@ -241,7 +241,7 @@ const LedgerEntries = () => {
       if (references.length > 0) {
         const { data: refSiblings } = await (supabase as any)
           .from("cashflow_transactions")
-          .select("reference, is_bank, gl_accounts(name, code, gl_type), gl_accounts!inner(gl_type)")
+          .select("reference, is_bank, gl_accounts(name, code, gl_type)")
           .in("reference", references)
           .eq("is_bank", false)
           .eq("is_active", true)
