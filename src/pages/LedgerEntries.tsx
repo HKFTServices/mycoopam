@@ -1096,7 +1096,7 @@ const LedgerEntries = () => {
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatEntryType(r.entry_type)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{r._txType || "—"}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
@@ -1108,7 +1108,6 @@ const LedgerEntries = () => {
                               <span className="text-xs italic text-amber-600">Unposted</span>
                             ) : "—"}
                           </TableCell>
-                          <TableCell className="text-sm">{r.control_accounts?.name || "—"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
                           <TableCell className="text-right text-sm font-medium">{r.debit > 0 ? formatCurrency(r.debit) : ""}</TableCell>
                           <TableCell className="text-right text-sm font-medium">{r.credit > 0 ? formatCurrency(r.credit) : ""}</TableCell>
