@@ -1437,21 +1437,35 @@ const LedgerEntries = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>GL Account *</Label>
-              <GlAccountSelector
-                glAccounts={glAccounts}
-                value={journalForm.gl_account_id}
-                onChange={(v, gl) => {
-                  const defaultCA = gl?.control_account_id || "";
-                  const isDebitDefault = gl?.default_entry_type === "debit";
-                  setJournalForm({
-                    ...journalForm, gl_account_id: v,
-                    debit_control_account_id: isDebitDefault ? defaultCA : journalForm.debit_control_account_id,
-                    credit_control_account_id: !isDebitDefault ? defaultCA : journalForm.credit_control_account_id,
-                  });
-                }}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label>GL Account Debit *</Label>
+                <GlAccountSelector
+                  glAccounts={glAccounts}
+                  value={journalForm.gl_account_debit_id}
+                  onChange={(v, gl) => {
+                    const defaultCA = gl?.control_account_id || "";
+                    setJournalForm({
+                      ...journalForm, gl_account_debit_id: v,
+                      debit_control_account_id: defaultCA || journalForm.debit_control_account_id,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>GL Account Credit *</Label>
+                <GlAccountSelector
+                  glAccounts={glAccounts}
+                  value={journalForm.gl_account_credit_id}
+                  onChange={(v, gl) => {
+                    const defaultCA = gl?.control_account_id || "";
+                    setJournalForm({
+                      ...journalForm, gl_account_credit_id: v,
+                      credit_control_account_id: defaultCA || journalForm.credit_control_account_id,
+                    });
+                  }}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
