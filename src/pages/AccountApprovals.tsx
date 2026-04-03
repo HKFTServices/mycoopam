@@ -236,6 +236,35 @@ const AccountApprovals = () => {
         .update({ is_approved: true, is_active: isMembership ? false : true, status: isMembership ? "approved" : "active", account_number: accountNumber })
         .eq("id", account.id);
       if (error) throw error;
+
+      // Auto-assign referral_house role when a Referral House account is approved
+      if (acctType?.account_type === 5) {
+        const { data: rels } = await (supabase as any)
+          .from("user_entity_relationships")
+          .select("user_id")
+          .eq("entity_id", account.entity_id)
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_primary", true)
+          .limit(1);
+        const userId = rels?.[0]?.user_id;
+        if (userId) {
+          const { data: existingRole } = await (supabase as any)
+            .from("user_roles")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("role", "referral_house")
+            .eq("tenant_id", currentTenant.id)
+            .limit(1);
+          if (!existingRole?.length) {
+            await (supabase as any).from("user_roles").insert({
+              user_id: userId,
+              role: "referral_house",
+              tenant_id: currentTenant.id,
+            });
+          }
+        }
+      }
+
       return { name: acctType?.name, accountNumber, isMembership };
     },
     onSuccess: (result) => {
