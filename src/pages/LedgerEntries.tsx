@@ -967,6 +967,45 @@ const LedgerEntries = () => {
 
 
 
+      {/* ── Date Period Filter ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs text-muted-foreground mb-1 block">Period</Label>
+          <Select value={datePeriod} onValueChange={setDatePeriod}>
+            <SelectTrigger className="h-8 text-xs w-full sm:w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7_days">Last 7 Days</SelectItem>
+              <SelectItem value="30_days">Last 30 Days</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="prev_month">Previous Month</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="prev_year">Previous Year</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {datePeriod === "custom" && (
+          <div className="flex items-end gap-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">From</Label>
+              <Input type="date" className="h-8 text-xs w-[140px]"
+                value={customFrom ? format(customFrom, "yyyy-MM-dd") : ""}
+                onChange={(e) => setCustomFrom(e.target.value ? new Date(e.target.value) : undefined)} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">To</Label>
+              <Input type="date" className="h-8 text-xs w-[140px]"
+                value={customTo ? format(customTo, "yyyy-MM-dd") : ""}
+                onChange={(e) => setCustomTo(e.target.value ? new Date(e.target.value) : undefined)} />
+            </div>
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground sm:ml-2 sm:pb-1">
+          {dateRange.from} — {dateRange.to}
+        </p>
+      </div>
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
