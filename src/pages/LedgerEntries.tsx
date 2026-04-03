@@ -1052,6 +1052,7 @@ const LedgerEntries = () => {
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatEntryType(r.entry_type)}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
