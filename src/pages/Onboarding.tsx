@@ -552,11 +552,9 @@ const Onboarding = () => {
       const isLegacyUser = currentStatus === "registered";
       const profileUpdate: any = { needs_onboarding: false };
 
-      if (isLegacyUser || isTenantAdmin) {
-        profileUpdate.registration_status = "registered";
-      } else {
-        profileUpdate.registration_status = "pending_approval";
-      }
+      // All users get 'registered' status after onboarding completion.
+      // Document review and membership approval happen together via the admin approval flow.
+      profileUpdate.registration_status = "registered";
 
       const { error: statusErr } = await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
       if (statusErr) throw statusErr;
