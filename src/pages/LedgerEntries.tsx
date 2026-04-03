@@ -194,10 +194,10 @@ const LedgerEntries = () => {
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: bankEntries = [], isLoading: bankLoading } = useQuery({
-    queryKey: ["cft_bank_entries", currentTenant?.id],
+    queryKey: ["cft_bank_entries", currentTenant?.id, dateRange.from, dateRange.to],
     queryFn: async () => {
       if (!currentTenant) return [];
-      // Fetch posted bank entries
+      // Fetch posted bank entries within date range
       const { data: parents, error } = await (supabase as any)
         .from("cashflow_transactions")
         .select("*, control_accounts(name), gl_accounts(name, code, gl_type)")
@@ -206,6 +206,8 @@ const LedgerEntries = () => {
         .eq("is_active", true)
         .eq("status", "posted")
         .not("gl_account_id", "is", null)
+        .gte("transaction_date", dateRange.from)
+        .lte("transaction_date", dateRange.to)
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
