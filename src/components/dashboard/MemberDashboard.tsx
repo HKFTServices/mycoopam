@@ -564,7 +564,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
             <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "lg:grid-cols-2"}`}>
               {isWidgetVisible("metric-primary") && (
                 <div data-tour="metric-primary">
-                  <MetricCard title="Primary account" subtitle="My portfolio" value={memberTotalValue} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
+                  <MetricCard title="Pool Values" subtitle="My portfolio" value={memberTotalValue} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
                 </div>
               )}
               {isWidgetVisible("metric-secondary") && (
