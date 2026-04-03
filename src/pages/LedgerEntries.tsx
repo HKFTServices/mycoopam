@@ -43,6 +43,7 @@ type Commission = {
   referral_house_account_id: string | null;
   referrer?: { name: string; last_name: string | null };
   referral_house?: { name: string; last_name: string | null; is_vat_registered: boolean };
+  house_bank_details?: { account_holder: string; account_number: string; bank_name: string; branch_code: string | null; account_type_name: string } | null;
 };
 
 const formatEntryType = (et: string | null | undefined): string => {
