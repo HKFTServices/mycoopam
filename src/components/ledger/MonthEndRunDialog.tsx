@@ -203,7 +203,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         .eq("tenant_id", activeTenant.id)
         .eq("status", "approved")
         .gte("transaction_date", monthStart)
-        .lte("transaction_date", runDate);
+        .lte("transaction_date", effectiveEnd);
 
       const txns = monthTxns ?? [];
 
