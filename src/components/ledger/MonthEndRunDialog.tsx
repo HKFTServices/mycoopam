@@ -654,7 +654,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5" />
