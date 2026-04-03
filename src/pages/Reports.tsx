@@ -1573,6 +1573,16 @@ const Reports = () => {
           </Card>
         </TabsContent>
 
+        {/* ── BANK ENTRIES ── */}
+        <TabsContent value="bank-entries">
+          <BankEntriesTab fromDate={fromDate} toDate={toDate} />
+        </TabsContent>
+
+        {/* ── JOURNAL ENTRIES ── */}
+        <TabsContent value="journal-entries">
+          <JournalEntriesTab fromDate={fromDate} toDate={toDate} />
+        </TabsContent>
+
         {/* ── CONTROL ACCOUNTS ── */}
         <TabsContent value="control-accounts">
           <ControlAccountsTab fromDate={fromDate} toDate={toDate} />
