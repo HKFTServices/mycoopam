@@ -180,9 +180,14 @@ const LedgerEntries = () => {
 
       const parentIds = rows.map((r: any) => r.id);
       const legacyIds = Array.from(new Set(rows.map((r: any) => r.legacy_transaction_id).filter(Boolean)));
+      const txIds = Array.from(new Set(rows.map((r: any) => r.transaction_id).filter(Boolean)));
+      const references = Array.from(new Set(rows.map((r: any) => r.reference).filter(Boolean)));
       const contraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
       const legacyContraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+      const txContraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+      const refContraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
 
+      // Strategy 1: children via parent_id
       if (parentIds.length > 0) {
         const { data: contras } = await (supabase as any)
           .from("cashflow_transactions")
@@ -198,6 +203,7 @@ const LedgerEntries = () => {
         }
       }
 
+      // Strategy 2: legacy siblings via legacy_transaction_id
       if (legacyIds.length > 0) {
         const { data: legacyGroupRows } = await (supabase as any)
           .from("cashflow_transactions")
@@ -214,9 +220,50 @@ const LedgerEntries = () => {
         }
       }
 
+      // Strategy 3: siblings via transaction_id
+      if (txIds.length > 0) {
+        const { data: txSiblings } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("transaction_id, is_bank, gl_accounts(name, code, gl_type)")
+          .in("transaction_id", txIds)
+          .eq("is_active", true)
+          .not("gl_account_id", "is", null);
+
+        for (const row of txSiblings ?? []) {
+          if (!row.transaction_id || row.is_bank || !row.gl_accounts) continue;
+          if (!txContraMap[row.transaction_id]) {
+            txContraMap[row.transaction_id] = row.gl_accounts;
+          }
+        }
+      }
+
+      // Strategy 4: journal entries sharing same reference (e.g. EOM entries)
+      if (references.length > 0) {
+        const { data: refSiblings } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("reference, is_bank, gl_accounts(name, code, gl_type)")
+          .in("reference", references)
+          .eq("is_bank", false)
+          .eq("is_active", true)
+          .not("gl_account_id", "is", null);
+
+        for (const row of refSiblings ?? []) {
+          if (!row.reference || !row.gl_accounts) continue;
+          // Prefer income/expense accounts as the contra rather than balance sheet accounts
+          const isIncomeExpense = row.gl_accounts.gl_type === "income" || row.gl_accounts.gl_type === "expense";
+          if (!refContraMap[row.reference] || isIncomeExpense) {
+            refContraMap[row.reference] = row.gl_accounts;
+          }
+        }
+      }
+
       return rows.map((r: any) => ({
         ...r,
-        _contraGl: contraMap[r.id] || (r.legacy_transaction_id ? legacyContraMap[r.legacy_transaction_id] || null : null),
+        _contraGl: contraMap[r.id]
+          || (r.legacy_transaction_id ? legacyContraMap[r.legacy_transaction_id] : null)
+          || (r.transaction_id ? txContraMap[r.transaction_id] : null)
+          || (r.reference ? refContraMap[r.reference] : null)
+          || null,
       }));
     },
     enabled: !!currentTenant,
