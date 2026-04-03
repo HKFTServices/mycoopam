@@ -134,7 +134,6 @@ const messagesNavItems: NavItem[] = [
 const otherTransactionsNavItems: NavItem[] = [
   { label: "Bank", icon: Landmark, path: "/dashboard/ledger-entries?tab=bank" },
   { label: "Journal", icon: BookOpen, path: "/dashboard/ledger-entries?tab=journal" },
-  { label: "Commissions", icon: DollarSign, path: "/dashboard/ledger-entries?tab=commissions" },
   { label: "Stock Transactions", icon: Package, path: "/dashboard/stock-transactions" },
 ];
 
@@ -703,6 +702,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+
+              {(isReferrerOrHouse || isAdmin || isClerkOrManager) && (
+                <>
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Commissions</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {matchesQuery("My Commissions")
+                          ? renderLink({ label: "My Commissions", icon: DollarSign, path: "/dashboard/reports?tab=commissions" })
+                          : null}
+                        {(isAdmin || isClerkOrManager) && matchesQuery("Pay Commissions")
+                          ? renderLink({ label: "Pay Commissions", icon: Banknote, path: "/dashboard/ledger-entries?tab=commissions" })
+                          : null}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
+              )}
 
               {(isAdmin || isClerkOrManager) && (
                 <>
