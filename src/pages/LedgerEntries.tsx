@@ -1201,8 +1201,8 @@ const LedgerEntries = () => {
               );
             });
           })()}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* ── Bank Entry Dialog ── */}
       <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
