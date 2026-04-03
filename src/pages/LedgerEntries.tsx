@@ -395,7 +395,34 @@ const LedgerEntries = () => {
         .eq("status", "pending")
         .order("transaction_date", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+
+      // Fetch bank details for each unique referral house entity
+      const houseIds = [...new Set((data ?? []).map((c: any) => c.referral_house_entity_id).filter(Boolean))];
+      let bankMap = new Map<string, any>();
+      if (houseIds.length > 0) {
+        const { data: bankDetails } = await (supabase as any)
+          .from("entity_bank_details")
+          .select("entity_id, account_holder, account_number, bank_id, branch_code:banks!entity_bank_details_bank_id_fkey(name, branch_code), bank_account_type_id, bat:bank_account_types!entity_bank_details_bank_account_type_id_fkey(name)")
+          .in("entity_id", houseIds)
+          .eq("is_active", true)
+          .eq("is_deleted", false);
+        (bankDetails ?? []).forEach((bd: any) => {
+          if (!bankMap.has(bd.entity_id)) {
+            bankMap.set(bd.entity_id, {
+              account_holder: bd.account_holder,
+              account_number: bd.account_number,
+              bank_name: bd.branch_code?.name || "—",
+              branch_code: bd.branch_code?.branch_code || null,
+              account_type_name: bd.bat?.name || "—",
+            });
+          }
+        });
+      }
+
+      return (data ?? []).map((c: any) => ({
+        ...c,
+        house_bank_details: c.referral_house_entity_id ? bankMap.get(c.referral_house_entity_id) || null : null,
+      }));
     },
     enabled: !!currentTenant,
   });
