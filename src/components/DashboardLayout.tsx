@@ -754,15 +754,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                         })}
 
                         {renderGroup({
-                          label: "Entities",
-                          icon: Building2,
-                          open: entitiesOpen,
-                          setOpen: setEntitiesOpen,
-                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
-                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
-                        })}
-
-                        {renderGroup({
                           label: "Campaigns",
                           icon: MessageSquare,
                           open: messagesOpen,
@@ -770,13 +761,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           viewAll: { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
                           items: filteredMessages,
                         })}
-
-                        {filteredAdminOnly
-                          .filter((i) => {
-                            if (i.path === "/dashboard/users") return isAdmin;
-                            return true;
-                          })
-                          .map((i) => renderLink(i))}
 
                         {isSuperAdmin && (() => {
                           const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
@@ -858,7 +842,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
                             items: filteredMam,
                           })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
 
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Co-Op Data & Settings</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
                         {(isAdmin || isClerkOrManager) && (() => {
                           const setupItems = isAdmin
                             ? filteredTenantSetup
@@ -878,6 +870,22 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             dataTour: "tenant-setup-group",
                           });
                         })()}
+
+                        {renderGroup({
+                          label: "Entities",
+                          icon: Building2,
+                          open: entitiesOpen,
+                          setOpen: setEntitiesOpen,
+                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
+                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
+                        })}
+
+                        {filteredAdminOnly
+                          .filter((i) => {
+                            if (i.path === "/dashboard/users") return isAdmin;
+                            return true;
+                          })
+                          .map((i) => renderLink(i))}
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </SidebarGroup>
