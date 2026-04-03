@@ -969,10 +969,12 @@ const LedgerEntries = () => {
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground space-y-1">
-                                {r._contraGl && (
+                                {r._contraGl ? (
                                   <p className="break-words">
                                     Contra GL: <span className="text-foreground/90 font-mono">{r._contraGl.code}</span> <span className="text-foreground/90">{r._contraGl.name}</span>
                                   </p>
+                                ) : r.legacy_transaction_id ? (
+                                  <p className="break-words text-amber-600 italic">Contra GL: Unposted</p>
                                 )}
                                 <p className="break-words">
                                   Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
