@@ -690,17 +690,32 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
               <SidebarSeparator />
 
-              <SidebarGroup>
-                <SidebarGroupLabel>Reporting</SidebarGroupLabel>
+               <SidebarGroup>
+                <SidebarGroupLabel>Reports & Communication</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {matchesQuery(statementsNavItem.label) ? renderLink(statementsNavItem) : null}
                     {(isAdmin || isClerkOrManager || isReferrerOrHouse) && matchesQuery("Reports")
                       ? renderLink({ label: "Reports", icon: FileText, path: "/dashboard/reports" })
                       : null}
+
+                    {(isAdmin || isClerkOrManager) &&
+                      renderGroup({
+                        label: "Campaigns",
+                        icon: MessageSquare,
+                        open: messagesOpen,
+                        setOpen: setMessagesOpen,
+                        viewAll: { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
+                        items: [
+                          ...filteredMessages,
+                          ...(matchesQuery("Campaign Templates")
+                            ? [{ label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" }]
+                            : []),
+                        ],
+                      })}
                   </SidebarMenu>
                 </SidebarGroupContent>
-              </SidebarGroup>
+               </SidebarGroup>
 
               {(isReferrerOrHouse || isAdmin || isClerkOrManager) && (
                 <>
@@ -753,14 +768,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           items: filteredDailyPrices,
                         })}
 
-                        {renderGroup({
-                          label: "Campaigns",
-                          icon: MessageSquare,
-                          open: messagesOpen,
-                          setOpen: setMessagesOpen,
-                          viewAll: { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
-                          items: filteredMessages,
-                        })}
 
                         {isSuperAdmin && (() => {
                           const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
