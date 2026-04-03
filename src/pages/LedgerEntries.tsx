@@ -1168,10 +1168,6 @@ const LedgerEntries = () => {
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r._txType || "—"}</TableCell>
                           <TableCell className="text-sm">
-                            <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                            {r.gl_accounts?.name}
-                          </TableCell>
-                          <TableCell className="text-sm">
                             {contraGl ? (
                               <><span className="font-mono text-xs text-muted-foreground mr-1">{contraGl.code}</span>{contraGl.name}</>
                             ) : r.legacy_transaction_id ? (
