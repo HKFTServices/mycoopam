@@ -546,7 +546,10 @@ const LedgerEntries = () => {
       if (!currentTenant || !user) throw new Error("Missing context");
       const vatAmt = isVatRegistered ? calcVat(values.amount, values.tax_type_id) : 0;
       const exclAmt = isVatRegistered ? calcExclVat(values.amount, values.tax_type_id) : values.amount;
-      const glName = glAccounts.find((g) => g.id === values.gl_account_id)?.name || null;
+      const glDr = glAccounts.find((g) => g.id === values.gl_account_debit_id);
+      const glCr = glAccounts.find((g) => g.id === values.gl_account_credit_id);
+      const glDebitName = glDr?.name || null;
+      const glCreditName = glCr?.name || null;
 
       const { data: tenantCfg } = await (supabase as any)
         .from("tenant_configuration")
