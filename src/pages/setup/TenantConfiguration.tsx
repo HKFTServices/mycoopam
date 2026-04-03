@@ -1090,6 +1090,7 @@ const TenantConfiguration = () => {
             logoUrl={form.logo_url}
             tenantEntities={tenantEntities}
             legalEntityId={form.legal_entity_id}
+            tenantSlug={currentTenant?.slug}
           />
         </TabsContent>
 
