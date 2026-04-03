@@ -17,6 +17,8 @@ import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import MyCommissionsTab from "@/components/reports/MyCommissionsTab";
 import ControlAccountsTab from "@/components/reports/ControlAccountsTab";
+import BankEntriesTab from "@/components/reports/BankEntriesTab";
+import JournalEntriesTab from "@/components/reports/JournalEntriesTab";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Reports = () => {
@@ -534,6 +536,8 @@ const Reports = () => {
             <TabsTrigger value="shares">Shares ({shareData.length})</TabsTrigger>
             <TabsTrigger value="st">Stock Txns ({stData.length})</TabsTrigger>
             <TabsTrigger value="emails">Emails ({emailLogs.length})</TabsTrigger>
+            <TabsTrigger value="bank-entries">Bank Entries</TabsTrigger>
+            <TabsTrigger value="journal-entries">Journal Entries</TabsTrigger>
             <TabsTrigger value="control-accounts">Control Accounts</TabsTrigger>
             {isReferrerOrHouse && <TabsTrigger value="my-comm">My Commissions</TabsTrigger>}
           </TabsList>
@@ -1567,6 +1571,16 @@ const Reports = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── BANK ENTRIES ── */}
+        <TabsContent value="bank-entries">
+          <BankEntriesTab fromDate={fromDate} toDate={toDate} />
+        </TabsContent>
+
+        {/* ── JOURNAL ENTRIES ── */}
+        <TabsContent value="journal-entries">
+          <JournalEntriesTab fromDate={fromDate} toDate={toDate} />
         </TabsContent>
 
         {/* ── CONTROL ACCOUNTS ── */}
