@@ -51,7 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Archive,
+  
   ArrowLeftRight,
   Banknote,
   BarChart3,
@@ -133,7 +133,6 @@ const messagesNavItems: NavItem[] = [
 
 const otherTransactionsNavItems: NavItem[] = [
   { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
-  { label: "Journal Entries", icon: Archive, path: "/dashboard/operating-journals" },
   { label: "Stock Transactions", icon: Package, path: "/dashboard/stock-transactions" },
 ];
 
@@ -242,8 +241,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       location.pathname.includes("/dashboard/debit-orders"),
   );
   const [otherTransactionsOpen, setOtherTransactionsOpen] = useState(
-    location.pathname.includes("/dashboard/ledger-entries") ||
-      location.pathname.includes("/dashboard/operating-journals"),
+    location.pathname.includes("/dashboard/ledger-entries"),
   );
   const [entitiesOpen, setEntitiesOpen] = useState(location.pathname.includes("/dashboard/entit"));
   const [dailyPricesOpen, setDailyPricesOpen] = useState(location.pathname.includes("/dashboard/daily-prices"));

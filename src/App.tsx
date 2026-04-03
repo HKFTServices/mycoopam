@@ -42,7 +42,7 @@ import Fees from "./pages/Fees";
 import TransactionTypes from "./pages/TransactionTypes";
 import Transactions from "./pages/Transactions";
 import StockTransactions from "./pages/StockTransactions";
-import OperatingJournals from "./pages/OperatingJournals";
+
 import LedgerEntries from "./pages/LedgerEntries";
 import GLAccounts from "./pages/setup/GLAccounts";
 import Permissions from "./pages/setup/Permissions";
@@ -174,7 +174,7 @@ const App = () => (
               <Route path="/dashboard/items" element={<AdminRoute><Items /></AdminRoute>} />
               <Route path="/dashboard/income-expense-items" element={<AdminRoute><IncomeExpenseItems /></AdminRoute>} />
               <Route path="/dashboard/fees" element={<AdminRoute><Fees /></AdminRoute>} />
-              <Route path="/dashboard/operating-journals" element={<StaffRoute><OperatingJournals /></StaffRoute>} />
+              
               <Route path="/dashboard/ledger-entries" element={<StaffRoute><LedgerEntries /></StaffRoute>} />
               <Route path="/dashboard/daily-prices/stock" element={<StaffRoute><DailyStockPrices /></StaffRoute>} />
               <Route path="/dashboard/stock-transactions" element={<StaffRoute><StockTransactions /></StaffRoute>} />
