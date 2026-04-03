@@ -979,7 +979,7 @@ const LedgerEntries = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="bank">
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") || "bank"}>
         <div className="max-w-full overflow-x-auto pb-1">
           <TabsList className="min-w-max whitespace-nowrap justify-start">
             <TabsTrigger value="bank">Bank Entries</TabsTrigger>
