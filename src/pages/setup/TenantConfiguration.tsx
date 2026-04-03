@@ -278,6 +278,7 @@ const EmailSignatureSection = ({
   logoUrl,
   tenantEntities,
   legalEntityId,
+  tenantSlug,
 }: {
   form: any;
   setForm: (f: any) => void;
@@ -285,6 +286,7 @@ const EmailSignatureSection = ({
   logoUrl?: string;
   tenantEntities: any[];
   legalEntityId?: string;
+  tenantSlug?: string;
 }) => {
   const [generating, setGenerating] = useState(false);
   const [previewLang, setPreviewLang] = useState<"en" | "af">("en");
