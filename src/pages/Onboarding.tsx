@@ -592,11 +592,11 @@ const Onboarding = () => {
         body: { tenant_id: currentTenant.id },
       }).catch((err) => console.error("Failed to send registration email:", err));
 
-      if (isLegacyUser || isTenantAdmin) {
-        toast.success(isTenantAdmin ? "Registration complete! Welcome to your co-operative." : "Onboarding complete! Welcome back.");
+      if (isTenantAdmin) {
+        toast.success("Registration complete! Welcome to your co-operative.");
         navigate("/dashboard");
       } else {
-        toast.success("Registration submitted for approval! You'll be notified once approved.");
+        toast.success("Registration complete!");
         setShowMembershipPrompt(true);
       }
     } catch (err: any) {
