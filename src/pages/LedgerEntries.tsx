@@ -58,6 +58,8 @@ const defaultBankForm = {
 const defaultJournalForm = {
   transaction_date: formatLocalDate(),
   gl_account_id: "",
+  gl_account_debit_id: "",
+  gl_account_credit_id: "",
   debit_control_account_id: "",
   credit_control_account_id: "",
   amount: 0,
@@ -362,8 +364,9 @@ const LedgerEntries = () => {
   };
 
   const buildJournalPreview = (form: typeof journalForm) => {
-    if (!form.gl_account_id || form.amount <= 0) return [];
-    const gl = glAccounts.find((g) => g.id === form.gl_account_id);
+    if ((!form.gl_account_debit_id && !form.gl_account_credit_id) || form.amount <= 0) return [];
+    const glDr = glAccounts.find((g) => g.id === form.gl_account_debit_id);
+    const glCr = glAccounts.find((g) => g.id === form.gl_account_credit_id);
     const debitCA = controlAccounts.find((c) => c.id === form.debit_control_account_id);
     const creditCA = controlAccounts.find((c) => c.id === form.credit_control_account_id);
     const vatAmt = isVatRegistered ? calcVat(form.amount, form.tax_type_id) : 0;
@@ -371,22 +374,26 @@ const LedgerEntries = () => {
     const lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] = [];
 
     // Debit row
-    lines.push({
-      side: "DR",
-      glCode: gl?.code || "",
-      glName: gl?.name || "",
-      controlAccount: debitCA?.name || "—",
-      amount: form.amount,
-    });
+    if (glDr) {
+      lines.push({
+        side: "DR",
+        glCode: glDr.code,
+        glName: glDr.name,
+        controlAccount: debitCA?.name || "—",
+        amount: form.amount,
+      });
+    }
 
     // Credit row
-    lines.push({
-      side: "CR",
-      glCode: gl?.code || "",
-      glName: gl?.name || "",
-      controlAccount: creditCA?.name || "—",
-      amount: form.amount,
-    });
+    if (glCr) {
+      lines.push({
+        side: "CR",
+        glCode: glCr.code,
+        glName: glCr.name,
+        controlAccount: creditCA?.name || "—",
+        amount: form.amount,
+      });
+    }
 
     // VAT rows
     if (vatAmt > 0) {
@@ -539,7 +546,10 @@ const LedgerEntries = () => {
       if (!currentTenant || !user) throw new Error("Missing context");
       const vatAmt = isVatRegistered ? calcVat(values.amount, values.tax_type_id) : 0;
       const exclAmt = isVatRegistered ? calcExclVat(values.amount, values.tax_type_id) : values.amount;
-      const glName = glAccounts.find((g) => g.id === values.gl_account_id)?.name || null;
+      const glDr = glAccounts.find((g) => g.id === values.gl_account_debit_id);
+      const glCr = glAccounts.find((g) => g.id === values.gl_account_credit_id);
+      const glDebitName = glDr?.name || null;
+      const glCreditName = glCr?.name || null;
 
       const { data: tenantCfg } = await (supabase as any)
         .from("tenant_configuration")
@@ -557,13 +567,13 @@ const LedgerEntries = () => {
         entry_type: "journal",
         is_bank: false,
         status: entryStatus,
-        gl_account_id: values.gl_account_id,
+        gl_account_id: values.gl_account_debit_id,
         control_account_id: values.debit_control_account_id || null,
         debit: values.amount,
         credit: 0,
         vat_amount: vatAmt,
         amount_excl_vat: exclAmt,
-        description: glName,
+        description: glDebitName,
         reference: values.reference || null,
         notes: JSON.stringify({
           credit_control_account_id: values.credit_control_account_id || null,
@@ -581,24 +591,23 @@ const LedgerEntries = () => {
         is_bank: false,
         status: entryStatus,
         parent_id: parent.id,
-        gl_account_id: values.gl_account_id,
+        gl_account_id: values.gl_account_credit_id,
         control_account_id: values.credit_control_account_id || null,
         debit: 0,
         credit: values.amount,
         vat_amount: 0,
         amount_excl_vat: 0,
-        description: glName,
+        description: glCreditName,
         reference: values.reference || null,
         notes: values.notes || null,
         posted_by: user.id,
       });
 
       // Save GL → control account mapping for future auto-population
-      const selectedGl = glAccounts.find((g) => g.id === values.gl_account_id);
-      if (values.gl_account_id && values.debit_control_account_id && (!selectedGl?.control_account_id)) {
+      if (values.gl_account_debit_id && values.debit_control_account_id && (!glDr?.control_account_id)) {
         await (supabase as any).from("gl_accounts")
           .update({ control_account_id: values.debit_control_account_id })
-          .eq("id", values.gl_account_id);
+          .eq("id", values.gl_account_debit_id);
       }
       if (e2) throw e2;
 
@@ -617,7 +626,7 @@ const LedgerEntries = () => {
           credit: 0,
           vat_amount: vatAmt,
           amount_excl_vat: 0,
-          description: `VAT — ${glName}`,
+          description: `VAT — ${glDebitName}`,
           reference: values.reference || null,
           notes: null,
           posted_by: user.id,
@@ -637,7 +646,7 @@ const LedgerEntries = () => {
           credit: vatAmt,
           vat_amount: vatAmt,
           amount_excl_vat: 0,
-          description: `VAT — ${glName}`,
+          description: `VAT — ${glCreditName}`,
           reference: values.reference || null,
           notes: null,
           posted_by: user.id,
@@ -786,7 +795,7 @@ const LedgerEntries = () => {
   };
 
   const canPostBank = bankForm.gl_account_id && bankForm.control_account_id && bankForm.amount > 0;
-  const canPostJournal = journalForm.gl_account_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
+  const canPostJournal = journalForm.gl_account_debit_id && journalForm.gl_account_credit_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
 
 
 
@@ -1428,21 +1437,35 @@ const LedgerEntries = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>GL Account *</Label>
-              <GlAccountSelector
-                glAccounts={glAccounts}
-                value={journalForm.gl_account_id}
-                onChange={(v, gl) => {
-                  const defaultCA = gl?.control_account_id || "";
-                  const isDebitDefault = gl?.default_entry_type === "debit";
-                  setJournalForm({
-                    ...journalForm, gl_account_id: v,
-                    debit_control_account_id: isDebitDefault ? defaultCA : journalForm.debit_control_account_id,
-                    credit_control_account_id: !isDebitDefault ? defaultCA : journalForm.credit_control_account_id,
-                  });
-                }}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label>GL Account Debit *</Label>
+                <GlAccountSelector
+                  glAccounts={glAccounts}
+                  value={journalForm.gl_account_debit_id}
+                  onChange={(v, gl) => {
+                    const defaultCA = gl?.control_account_id || "";
+                    setJournalForm({
+                      ...journalForm, gl_account_debit_id: v,
+                      debit_control_account_id: defaultCA || journalForm.debit_control_account_id,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>GL Account Credit *</Label>
+                <GlAccountSelector
+                  glAccounts={glAccounts}
+                  value={journalForm.gl_account_credit_id}
+                  onChange={(v, gl) => {
+                    const defaultCA = gl?.control_account_id || "";
+                    setJournalForm({
+                      ...journalForm, gl_account_credit_id: v,
+                      credit_control_account_id: defaultCA || journalForm.credit_control_account_id,
+                    });
+                  }}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
@@ -1476,7 +1499,7 @@ const LedgerEntries = () => {
                 <Input type="number" step="0.01" min="0.01" value={journalForm.amount || ""} onChange={(e) => setJournalForm({ ...journalForm, amount: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
             </div>
-            {isVatRegistered && journalForm.amount > 0 && journalForm.gl_account_id && (
+            {isVatRegistered && journalForm.amount > 0 && (journalForm.gl_account_debit_id || journalForm.gl_account_credit_id) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>VAT Type</Label>
@@ -1488,10 +1511,11 @@ const LedgerEntries = () => {
                   </Select>
                 </div>
                 {journalForm.tax_type_id && (() => {
-                  const { vat, isExpense } = vatDisplay(journalForm.amount, journalForm.tax_type_id, journalForm.gl_account_id);
+                  const glIdForVat = journalForm.gl_account_debit_id || journalForm.gl_account_credit_id;
+                  const { vat, isExpense } = vatDisplay(journalForm.amount, journalForm.tax_type_id, glIdForVat);
                   return (
                     <div className="space-y-2">
-                      <Label>VAT {vatLabel(journalForm.gl_account_id)}</Label>
+                      <Label>VAT {vatLabel(glIdForVat)}</Label>
                       <Input readOnly value={`${isExpense ? "-" : ""}${formatCurrency(vat)}`} className={`bg-muted ${isExpense ? "text-destructive" : ""}`} />
                     </div>
                   );
