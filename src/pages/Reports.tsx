@@ -435,21 +435,14 @@ const Reports = () => {
     return { from: r.from, to: lastFeb };
   };
 
-  // Non-admin referrer/house: only show My Commissions
-  if (!isAdmin && isReferrerOrHouse) {
+  // Non-admin referrer/house: no admin reports, redirect handled by sidebar
+  if (!isAdmin && !isReferrerOrHouse) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Reports</h1>
+          <p className="text-muted-foreground text-sm mt-1">You do not have access to reports.</p>
         </div>
-        <Tabs defaultValue="my-comm">
-          <TabsList className="w-max">
-            <TabsTrigger value="my-comm">My Commissions</TabsTrigger>
-          </TabsList>
-          <TabsContent value="my-comm">
-            <MyCommissionsTab />
-          </TabsContent>
-        </Tabs>
       </div>
     );
   }
