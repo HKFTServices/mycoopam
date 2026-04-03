@@ -51,6 +51,7 @@ import DailyStockPrices from "./pages/DailyStockPrices";
 import DailyPoolPrices from "./pages/DailyPoolPrices";
 import EntityPoolDetails from "./pages/EntityPoolDetails";
 import Reports from "./pages/Reports";
+import MyCommissions from "./pages/MyCommissions";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import TenantLanding from "./pages/TenantLanding";
