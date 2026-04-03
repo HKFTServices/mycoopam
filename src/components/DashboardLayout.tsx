@@ -728,21 +728,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           : null}
 
                         {renderGroup({
-                          label: "Entities",
-                          icon: Building2,
-                          open: entitiesOpen,
-                          setOpen: setEntitiesOpen,
-                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
-                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
-                        })}
-
-                        {renderGroup({
                           label: "Daily Prices",
                           icon: BarChart3,
                           open: dailyPricesOpen,
                           setOpen: setDailyPricesOpen,
                           viewAll: { label: "Stock Prices", icon: BarChart3, path: "/dashboard/daily-prices/stock" },
                           items: filteredDailyPrices,
+                        })}
+
+                        {renderGroup({
+                          label: "Entities",
+                          icon: Building2,
+                          open: entitiesOpen,
+                          setOpen: setEntitiesOpen,
+                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
+                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
                         })}
 
                         {renderGroup({
