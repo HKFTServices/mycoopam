@@ -364,8 +364,9 @@ const LedgerEntries = () => {
   };
 
   const buildJournalPreview = (form: typeof journalForm) => {
-    if (!form.gl_account_id || form.amount <= 0) return [];
-    const gl = glAccounts.find((g) => g.id === form.gl_account_id);
+    if ((!form.gl_account_debit_id && !form.gl_account_credit_id) || form.amount <= 0) return [];
+    const glDr = glAccounts.find((g) => g.id === form.gl_account_debit_id);
+    const glCr = glAccounts.find((g) => g.id === form.gl_account_credit_id);
     const debitCA = controlAccounts.find((c) => c.id === form.debit_control_account_id);
     const creditCA = controlAccounts.find((c) => c.id === form.credit_control_account_id);
     const vatAmt = isVatRegistered ? calcVat(form.amount, form.tax_type_id) : 0;
@@ -373,22 +374,26 @@ const LedgerEntries = () => {
     const lines: { side: "DR" | "CR"; glCode: string; glName: string; controlAccount: string; amount: number }[] = [];
 
     // Debit row
-    lines.push({
-      side: "DR",
-      glCode: gl?.code || "",
-      glName: gl?.name || "",
-      controlAccount: debitCA?.name || "—",
-      amount: form.amount,
-    });
+    if (glDr) {
+      lines.push({
+        side: "DR",
+        glCode: glDr.code,
+        glName: glDr.name,
+        controlAccount: debitCA?.name || "—",
+        amount: form.amount,
+      });
+    }
 
     // Credit row
-    lines.push({
-      side: "CR",
-      glCode: gl?.code || "",
-      glName: gl?.name || "",
-      controlAccount: creditCA?.name || "—",
-      amount: form.amount,
-    });
+    if (glCr) {
+      lines.push({
+        side: "CR",
+        glCode: glCr.code,
+        glName: glCr.name,
+        controlAccount: creditCA?.name || "—",
+        amount: form.amount,
+      });
+    }
 
     // VAT rows
     if (vatAmt > 0) {
