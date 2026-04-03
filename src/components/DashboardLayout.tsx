@@ -133,7 +133,6 @@ const messagesNavItems: NavItem[] = [
 
 const otherTransactionsNavItems: NavItem[] = [
   { label: "Bank Entries", icon: Landmark, path: "/dashboard/ledger-entries" },
-  { label: "Journal Entries", icon: Archive, path: "/dashboard/operating-journals" },
   { label: "Stock Transactions", icon: Package, path: "/dashboard/stock-transactions" },
 ];
 
