@@ -968,9 +968,27 @@ const NewTransactionDialog = ({
     overridePct?: number | null,
   ) => {
     if (!txnTypeId || txnAmount <= 0) return { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] };
+
+    // Map payment-method-specific fee codes to the method value they belong to.
+    // Only include these fees when the selected payment method matches.
+    const METHOD_FEE_CODE_MAP: Record<string, string[]> = {
+      cash_deposit: ["CASH_DEPOSIT"],
+      credit_card: ["CARD_FEE"],
+      card: ["CARD_FEE"],
+      crypto: ["CRP_FEE"],
+      debit_order: ["DEBIT_ORDER"],
+    };
+
     const applicableRules = rules.filter((r: any) => {
       if (r.transaction_type_id !== txnTypeId) return false;
-      if (r.transaction_fee_types?.code?.toUpperCase().includes("CASH_DEPOSIT") && method !== "cash_deposit") return false;
+      const code = (r.transaction_fee_types?.code ?? "").toUpperCase();
+      // Check if this fee belongs to a specific payment method
+      for (const [methodKey, patterns] of Object.entries(METHOD_FEE_CODE_MAP)) {
+        if (patterns.some((p) => code.includes(p))) {
+          // This is a method-specific fee — only include if method matches
+          return method === methodKey;
+        }
+      }
       return true;
     });
     let totalFee = 0;
