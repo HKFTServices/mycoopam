@@ -255,8 +255,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
       const details: TxDetailLine[] = [];
 
+      const processedTxIds = new Set<string>();
+
       for (const rule of rulesWithAdmin) {
-        const ruleTxns = txns.filter((tx: any) => tx.transaction_type_id === rule.transaction_type_id);
+        // Skip transactions already processed by a prior rule for the same tx type
+        const ruleTxns = txns.filter((tx: any) => tx.transaction_type_id === rule.transaction_type_id && !processedTxIds.has(tx.id));
         if (ruleTxns.length === 0) continue;
 
         const ft = rule.transaction_fee_types;
