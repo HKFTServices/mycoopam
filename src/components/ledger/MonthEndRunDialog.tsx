@@ -116,7 +116,13 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
       if (!activeTenant) throw new Error("No tenant");
 
       const lines: FeeCalcLine[] = [];
-      const monthStart = runDate.substring(0, 7) + "-01";
+      // Strict month boundaries: 1st of the run-date month → last day of that same month (capped by runDate)
+      const runYear = parseInt(runDate.substring(0, 4));
+      const runMonth = parseInt(runDate.substring(5, 7)); // 1-based
+      const monthStart = `${runYear}-${String(runMonth).padStart(2, "0")}-01`;
+      const lastDayOfMonth = new Date(runYear, runMonth, 0).getDate(); // last day of the run month
+      const monthEnd = `${runYear}-${String(runMonth).padStart(2, "0")}-${String(lastDayOfMonth).padStart(2, "0")}`;
+      const effectiveEnd = monthEnd < runDate ? monthEnd : runDate;
 
       // Pre-fetch pool units and prices (used by multiple sections)
       const { data: unitData } = await (supabase as any).rpc("get_pool_units", { p_tenant_id: activeTenant.id, p_up_to_date: runDate });
