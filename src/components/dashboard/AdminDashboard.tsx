@@ -797,10 +797,10 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
       {(isWidgetVisible("metric-primary") || isWidgetVisible("metric-secondary")) && (
         <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "lg:grid-cols-2"}`}>
           {isWidgetVisible("metric-primary") && (
-            <MetricCard title="Primary account" subtitle="Co-op AUM" value={totalAUM} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
+            <MetricCard title="Pool Values" subtitle="Co-op AUM" value={totalAUM} ringValue={ringPrimary} changePct={primaryChangePct} variant="primary" compact={isMobile} />
           )}
           {isWidgetVisible("metric-secondary") && (
-            <MetricCard title="Secondary account" subtitle="Loans outstanding" value={totalLoansOutstanding} ringValue={42} changePct={null} variant="neutral"
+            <MetricCard title="Loans" subtitle="Loans outstanding" value={totalLoansOutstanding} ringValue={42} changePct={null} variant="neutral"
               onClick={totalLoansOutstanding > 0 ? () => setLoanDialogOpen(true) : undefined} compact={isMobile} />
           )}
         </div>
