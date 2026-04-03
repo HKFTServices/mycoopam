@@ -710,7 +710,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     <SidebarGroupContent>
                       <SidebarMenu>
                         {matchesQuery("My Commissions")
-                          ? renderLink({ label: "My Commissions", icon: DollarSign, path: "/dashboard/reports?tab=commissions" })
+                          ? renderLink({ label: "My Commissions", icon: DollarSign, path: "/dashboard/my-commissions" })
                           : null}
                         {(isAdmin || isClerkOrManager) && matchesQuery("Pay Commissions")
                           ? renderLink({ label: "Pay Commissions", icon: Banknote, path: "/dashboard/ledger-entries?tab=commissions" })

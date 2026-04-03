@@ -162,6 +162,7 @@ const App = () => (
               <Route path="/dashboard/statements" element={<DashboardRoute><Statements /></DashboardRoute>} />
               <Route path="/dashboard/entity-pool-details" element={<DashboardRoute><EntityPoolDetails /></DashboardRoute>} />
               <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
+              <Route path="/dashboard/my-commissions" element={<DashboardRoute><MyCommissions /></DashboardRoute>} />
 
               {/* Staff: admin + manager + clerk */}
               <Route path="/dashboard/account-approvals" element={<StaffRoute><AccountApprovals /></StaffRoute>} />
