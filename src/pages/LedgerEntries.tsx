@@ -262,6 +262,45 @@ const LedgerEntries = () => {
         }
       }
 
+      // Resolve legacy transaction type labels from gen_type_values
+      const legacyTypeMap: Record<string, string> = {};
+      if (legacyIds.length > 0) {
+        const { data: legacyMappings } = await (supabase as any)
+          .from("legacy_id_mappings")
+          .select("legacy_id, notes")
+          .eq("table_name", "cashflow_transactions")
+          .eq("tenant_id", currentTenant.id)
+          .in("legacy_id", legacyIds);
+
+        const typeIds = new Set<string>();
+        for (const m of legacyMappings ?? []) {
+          try { const tid = JSON.parse(m.notes)?.Type_TransactionID; if (tid) typeIds.add(tid); } catch {}
+        }
+
+        if (typeIds.size > 0) {
+          const { data: typeValues } = await (supabase as any)
+            .from("legacy_id_mappings")
+            .select("legacy_id, description")
+            .eq("table_name", "gen_type_values")
+            .eq("tenant_id", currentTenant.id)
+            .in("legacy_id", Array.from(typeIds));
+
+          const tvMap: Record<string, string> = {};
+          for (const tv of typeValues ?? []) {
+            // description like "Deposit Funds | TypeID:54" → extract label
+            tvMap[tv.legacy_id] = (tv.description || "").split("|")[0].trim();
+          }
+
+          for (const m of legacyMappings ?? []) {
+            try {
+              const parsed = JSON.parse(m.notes);
+              const tid = parsed?.Type_TransactionID;
+              if (tid && tvMap[tid]) legacyTypeMap[m.legacy_id] = tvMap[tid];
+            } catch {}
+          }
+        }
+      }
+
       return rows.map((r: any) => ({
         ...r,
         _contraGl: contraMap[r.id]
@@ -269,6 +308,9 @@ const LedgerEntries = () => {
           || (r.transaction_id ? txContraMap[r.transaction_id] : null)
           || (r.reference ? refContraMap[r.reference] : null)
           || null,
+        _txType: r.legacy_transaction_id
+          ? (legacyTypeMap[r.legacy_transaction_id] || r.description || "—")
+          : (r.description || "—"),
       }));
     },
     enabled: !!currentTenant,
@@ -975,7 +1017,7 @@ const LedgerEntries = () => {
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground space-y-1">
                                 <p className="break-words">
-                                  Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span>
+                                  Type: <span className="text-foreground/90">{r._txType || "—"}</span>
                                 </p>
                                 {r._contraGl ? (
                                   <p className="break-words">
@@ -984,9 +1026,6 @@ const LedgerEntries = () => {
                                 ) : r.legacy_transaction_id ? (
                                   <p className="break-words text-amber-600 italic">Contra GL: Unposted</p>
                                 ) : null}
-                                <p className="break-words">
-                                  Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
-                                </p>
                                 {r.notes ? (
                                   <p className="break-words">
                                     Notes: <span className="text-foreground/90">{r.notes}</span>
@@ -1035,7 +1074,6 @@ const LedgerEntries = () => {
                       <TableHead>Type</TableHead>
                       <TableHead>GL Account</TableHead>
                       <TableHead>Contra GL</TableHead>
-                      <TableHead>Control Account</TableHead>
                       <TableHead>Reference</TableHead>
                       <TableHead className="text-right">Debit (+)</TableHead>
                       <TableHead className="text-right">Credit (−)</TableHead>
@@ -1046,16 +1084,16 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {bankLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 11 : 10} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : bankEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 11 : 10} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
                     ) : bankEntries.map((r: any) => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       const contraGl = r._contraGl;
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatEntryType(r.entry_type)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{r._txType || "—"}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
@@ -1067,7 +1105,6 @@ const LedgerEntries = () => {
                               <span className="text-xs italic text-amber-600">Unposted</span>
                             ) : "—"}
                           </TableCell>
-                          <TableCell className="text-sm">{r.control_accounts?.name || "—"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
                           <TableCell className="text-right text-sm font-medium">{r.debit > 0 ? formatCurrency(r.debit) : ""}</TableCell>
                           <TableCell className="text-right text-sm font-medium">{r.credit > 0 ? formatCurrency(r.credit) : ""}</TableCell>
@@ -1153,7 +1190,7 @@ const LedgerEntries = () => {
                           <AccordionContent className="pb-3">
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground">
-                                <p className="break-words">Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span></p>
+                                <p className="break-words">Type: <span className="text-foreground/90">{r.description || "—"}</span></p>
                               </div>
                               <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs">
                                 <div className="rounded-xl border bg-background/60 p-2">
@@ -1224,7 +1261,7 @@ const LedgerEntries = () => {
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatEntryType(r.entry_type)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{r.description || "—"}</TableCell>
                           <TableCell className="text-sm">
                             <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
                             {r.gl_accounts?.name}
