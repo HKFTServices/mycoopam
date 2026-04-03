@@ -793,7 +793,7 @@ const LedgerEntries = () => {
   };
 
   const canPostBank = bankForm.gl_account_id && bankForm.control_account_id && bankForm.amount > 0;
-  const canPostJournal = journalForm.gl_account_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
+  const canPostJournal = journalForm.gl_account_debit_id && journalForm.gl_account_credit_id && (journalForm.debit_control_account_id || journalForm.credit_control_account_id) && journalForm.amount > 0;
 
 
 
