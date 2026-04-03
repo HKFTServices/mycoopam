@@ -1017,7 +1017,7 @@ const LedgerEntries = () => {
                             <div className="space-y-3">
                               <div className="text-xs text-muted-foreground space-y-1">
                                 <p className="break-words">
-                                  Type: <span className="text-foreground/90">{formatEntryType(r.entry_type)}</span>
+                                  Type: <span className="text-foreground/90">{r._txType || "—"}</span>
                                 </p>
                                 {r._contraGl ? (
                                   <p className="break-words">
@@ -1026,9 +1026,6 @@ const LedgerEntries = () => {
                                 ) : r.legacy_transaction_id ? (
                                   <p className="break-words text-amber-600 italic">Contra GL: Unposted</p>
                                 ) : null}
-                                <p className="break-words">
-                                  Control: <span className="text-foreground/90">{r.control_accounts?.name || "—"}</span>
-                                </p>
                                 {r.notes ? (
                                   <p className="break-words">
                                     Notes: <span className="text-foreground/90">{r.notes}</span>
