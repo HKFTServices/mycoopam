@@ -164,7 +164,7 @@ const LedgerEntries = () => {
     queryKey: ["cft_bank_entries", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
-      // Fetch parent bank entries
+      // Fetch posted bank entries
       const { data: parents, error } = await (supabase as any)
         .from("cashflow_transactions")
         .select("*, control_accounts(name), gl_accounts(name, code, gl_type)")
@@ -178,9 +178,11 @@ const LedgerEntries = () => {
       if (error) throw error;
       const rows = parents ?? [];
 
-      // Fetch contra entries for these parents
       const parentIds = rows.map((r: any) => r.id);
-      let contraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+      const legacyIds = Array.from(new Set(rows.map((r: any) => r.legacy_transaction_id).filter(Boolean)));
+      const contraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+      const legacyContraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+
       if (parentIds.length > 0) {
         const { data: contras } = await (supabase as any)
           .from("cashflow_transactions")
@@ -188,6 +190,7 @@ const LedgerEntries = () => {
           .in("parent_id", parentIds)
           .eq("is_active", true)
           .not("gl_account_id", "is", null);
+
         for (const c of contras ?? []) {
           if (c.parent_id && c.gl_accounts) {
             contraMap[c.parent_id] = c.gl_accounts;
@@ -195,8 +198,26 @@ const LedgerEntries = () => {
         }
       }
 
-      // Attach contra GL info to each parent
-      return rows.map((r: any) => ({ ...r, _contraGl: contraMap[r.id] || null }));
+      if (legacyIds.length > 0) {
+        const { data: legacyGroupRows } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("legacy_transaction_id, is_bank, gl_accounts(name, code, gl_type)")
+          .in("legacy_transaction_id", legacyIds)
+          .eq("is_active", true)
+          .not("gl_account_id", "is", null);
+
+        for (const row of legacyGroupRows ?? []) {
+          if (!row.legacy_transaction_id || row.is_bank || !row.gl_accounts) continue;
+          if (!legacyContraMap[row.legacy_transaction_id]) {
+            legacyContraMap[row.legacy_transaction_id] = row.gl_accounts;
+          }
+        }
+      }
+
+      return rows.map((r: any) => ({
+        ...r,
+        _contraGl: contraMap[r.id] || (r.legacy_transaction_id ? legacyContraMap[r.legacy_transaction_id] || null : null),
+      }));
     },
     enabled: !!currentTenant,
   });
