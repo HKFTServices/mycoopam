@@ -42,7 +42,7 @@ import Fees from "./pages/Fees";
 import TransactionTypes from "./pages/TransactionTypes";
 import Transactions from "./pages/Transactions";
 import StockTransactions from "./pages/StockTransactions";
-import OperatingJournals from "./pages/OperatingJournals";
+
 import LedgerEntries from "./pages/LedgerEntries";
 import GLAccounts from "./pages/setup/GLAccounts";
 import Permissions from "./pages/setup/Permissions";
