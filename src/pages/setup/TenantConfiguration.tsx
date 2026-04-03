@@ -321,6 +321,8 @@ const EmailSignatureSection = ({
         ? `<img src="${logoUrl}" alt="${entityName}" style="max-height:64px;max-width:160px;width:auto;height:auto;object-fit:contain;margin-bottom:12px;" /><br/>`
         : "";
 
+      const memberAreaUrl = tenantSlug ? `https://${tenantSlug}.myco-op.co.za/dashboard` : "";
+
       const sigEn = `
 <div style="border-top:2px solid #1a1a2e;padding-top:16px;margin-top:24px;font-family:Arial,sans-serif;font-size:13px;color:#444;">
   ${logoHtml}
@@ -329,6 +331,7 @@ const EmailSignatureSection = ({
   ${phone ? `<br/>Tel: ${phone}` : ""}
   ${email ? `<br/>Email: <a href="mailto:${email}" style="color:#1a5276;">${email}</a>` : ""}
   ${website ? `<br/>Web: <a href="${website}" style="color:#1a5276;">${website}</a>` : ""}
+  ${memberAreaUrl ? `<br/>Member area: <a href="${memberAreaUrl}" style="color:#1a5276;">${memberAreaUrl}</a>` : ""}
   <br/><br/>
   <span style="font-size:11px;color:#999;">This email and any attachments are confidential. If you are not the intended recipient, please delete this message and notify the sender.</span>
 </div>`.trim();
@@ -341,6 +344,7 @@ const EmailSignatureSection = ({
   ${phone ? `<br/>Tel: ${phone}` : ""}
   ${email ? `<br/>E-pos: <a href="mailto:${email}" style="color:#1a5276;">${email}</a>` : ""}
   ${website ? `<br/>Web: <a href="${website}" style="color:#1a5276;">${website}</a>` : ""}
+  ${memberAreaUrl ? `<br/>Lede-area: <a href="${memberAreaUrl}" style="color:#1a5276;">${memberAreaUrl}</a>` : ""}
   <br/><br/>
   <span style="font-size:11px;color:#999;">Hierdie e-pos en enige aanhangsels is vertroulik. Indien u nie die beoogde ontvanger is nie, verwyder asseblief hierdie boodskap en stel die sender in kennis.</span>
 </div>`.trim();
