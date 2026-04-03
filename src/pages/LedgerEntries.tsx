@@ -646,7 +646,7 @@ const LedgerEntries = () => {
           credit: vatAmt,
           vat_amount: vatAmt,
           amount_excl_vat: 0,
-          description: `VAT — ${glName}`,
+          description: `VAT — ${glCreditName}`,
           reference: values.reference || null,
           notes: null,
           posted_by: user.id,
