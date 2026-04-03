@@ -1058,7 +1058,7 @@ const LedgerEntries = () => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       const amount = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const side = Number(r.debit || 0) > 0 ? "DR" : "CR";
-                      const glLabel = `${r.gl_accounts?.code ?? ""} ${r.gl_accounts?.name ?? ""}`.trim() || "—";
+                      
                       return (
                         <AccordionItem
                           key={r.id}
