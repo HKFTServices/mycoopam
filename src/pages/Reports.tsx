@@ -484,6 +484,17 @@ const Reports = () => {
           >
             Previous FY
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const start = tenantRegistrationDate ? new Date(tenantRegistrationDate) : new Date(2020, 0, 1);
+              setDateRange({ from: start, to: new Date() });
+            }}
+            className="text-xs sm:text-sm"
+          >
+            Full History
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button
