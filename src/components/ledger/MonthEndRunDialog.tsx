@@ -279,6 +279,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
             const tierPct = tier?.admin_percentage || 0;
             const txAdminFee = tierPct > 0 ? Math.round((txAmount * tierPct / 100) * 100) / 100 : 0;
             totalAdminFee += txAdminFee;
+            processedTxIds.add(tx.id);
 
             details.push({
               txTypeName,
