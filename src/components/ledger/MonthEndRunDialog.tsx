@@ -473,7 +473,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
           entry_type: "bank",
           is_bank: true,
           gl_account_id: gl1000Id,
-          control_account_id: adminCashControlId,
+          control_account_id: null,
           debit: 0,
           credit: bankGrandTotal,
           vat_amount: 0,
