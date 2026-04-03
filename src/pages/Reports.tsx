@@ -757,7 +757,7 @@ const Reports = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead rowSpan={2} className="w-[55px] text-xs py-1 px-2 align-bottom border-r border-border">GL Code</TableHead>
-                          <TableHead rowSpan={2} className="text-xs py-1 px-2 w-[130px] align-bottom border-r border-border">Account</TableHead>
+                          <TableHead rowSpan={2} className="text-xs py-1 px-2 w-[260px] align-bottom border-r border-border">Account</TableHead>
                           <TableHead colSpan={2} className="text-center text-xs py-1 px-2 border-b border-r border-border bg-muted/20 font-semibold">Opening ({openDate})</TableHead>
                           <TableHead colSpan={2} className="text-center text-xs py-1 px-2 border-b border-r border-border bg-muted/40 font-semibold">Movement ({periodLabel})</TableHead>
                           <TableHead colSpan={2} className="text-center text-xs py-1 px-2 border-b border-border bg-muted/20 font-semibold">Closing ({closeDate})</TableHead>
