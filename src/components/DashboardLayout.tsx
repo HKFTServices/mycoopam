@@ -725,7 +725,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 <>
                   <SidebarSeparator />
                   <SidebarGroup>
-                    <SidebarGroupLabel>Admin</SidebarGroupLabel>
+                    <SidebarGroupLabel>Co-Op Admin</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <SidebarMenu>
                         {renderGroup({
