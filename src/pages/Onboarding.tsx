@@ -581,26 +581,8 @@ const Onboarding = () => {
         });
       }
 
-      // Only create membership application for regular new users (not legacy or tenant admin)
-      if (!isLegacyUser && !isTenantAdmin) {
-        const { data: existingApp } = await (supabase as any)
-          .from("membership_applications")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("tenant_id", currentTenant.id)
-          .in("status", ["pending_review", "first_approved"])
-          .maybeSingle();
-        if (existingApp) {
-          await (supabase as any).from("membership_applications")
-            .update({ status: "pending_review" }).eq("id", existingApp.id);
-        } else {
-          await (supabase as any).from("membership_applications").insert({
-            user_id: user.id,
-            tenant_id: currentTenant.id,
-            status: "pending_review",
-          });
-        }
-      }
+      // No longer create membership application at onboarding stage.
+      // User will apply for membership separately, and admin approves documents + membership together.
 
       // Refresh the cached profile so ProtectedRoute sees updated state
       await refreshProfile();
