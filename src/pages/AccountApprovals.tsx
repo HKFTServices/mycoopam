@@ -856,7 +856,7 @@ const AccountApprovals = () => {
   const declineLedgerMutation = useMutation({
     mutationFn: async ({ entryId, reason }: { entryId: string; reason: string }) => {
       if (!currentUser || !currentTenant) throw new Error("Missing context");
-      const update = { status: "declined", declined_by: currentUser.id, declined_at: new Date().toISOString(), declined_reason: reason };
+      const update = { status: "declined", is_active: false, declined_by: currentUser.id, declined_at: new Date().toISOString(), declined_reason: reason };
       await (supabase as any).from("cashflow_transactions").update(update).eq("id", entryId).eq("tenant_id", currentTenant.id);
       await (supabase as any).from("cashflow_transactions").update(update).eq("parent_id", entryId).eq("tenant_id", currentTenant.id);
     },
