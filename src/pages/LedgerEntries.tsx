@@ -164,7 +164,8 @@ const LedgerEntries = () => {
     queryKey: ["cft_bank_entries", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
-      const { data, error } = await (supabase as any)
+      // Fetch parent bank entries
+      const { data: parents, error } = await (supabase as any)
         .from("cashflow_transactions")
         .select("*, control_accounts(name), gl_accounts(name, code, gl_type)")
         .eq("tenant_id", currentTenant.id)
@@ -175,7 +176,27 @@ const LedgerEntries = () => {
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      const rows = parents ?? [];
+
+      // Fetch contra entries for these parents
+      const parentIds = rows.map((r: any) => r.id);
+      let contraMap: Record<string, { code: string; name: string; gl_type: string }> = {};
+      if (parentIds.length > 0) {
+        const { data: contras } = await (supabase as any)
+          .from("cashflow_transactions")
+          .select("parent_id, gl_accounts(name, code, gl_type)")
+          .in("parent_id", parentIds)
+          .eq("is_active", true)
+          .eq("entry_type", "bank_contra");
+        for (const c of contras ?? []) {
+          if (c.parent_id && c.gl_accounts) {
+            contraMap[c.parent_id] = c.gl_accounts;
+          }
+        }
+      }
+
+      // Attach contra GL info to each parent
+      return rows.map((r: any) => ({ ...r, _contraGl: contraMap[r.id] || null }));
     },
     enabled: !!currentTenant,
   });
