@@ -695,7 +695,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {matchesQuery(statementsNavItem.label) ? renderLink(statementsNavItem) : null}
-                    {!isAdmin && isReferrerOrHouse && matchesQuery("Reports")
+                    {(isAdmin || isClerkOrManager || isReferrerOrHouse) && matchesQuery("Reports")
                       ? renderLink({ label: "Reports", icon: FileText, path: "/dashboard/reports" })
                       : null}
                   </SidebarMenu>
