@@ -15,6 +15,7 @@ const ASSIGNABLE_ROLES = [
   { value: "full_member", label: "Full Member", description: "Standard cooperative member" },
   { value: "associated_member", label: "Associated Member", description: "Limited membership" },
   { value: "referrer", label: "Referrer", description: "Can refer new members" },
+  { value: "referral_house", label: "Referral House", description: "View commissions for all linked referrers" },
 ] as const;
 
 interface ManageRolesDialogProps {
