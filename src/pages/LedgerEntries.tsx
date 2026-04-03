@@ -1325,8 +1325,14 @@ const LedgerEntries = () => {
                       <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 10 : 9) : (isVatRegistered ? 9 : 8)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
                     ) : journalEntries.map((r: any) => {
                       const child = r.childRow;
-                      const debitCA = r.control_accounts?.name || "—";
-                      const creditCA = child?.control_accounts?.name || "—";
+                      /* Determine display amounts: parent-child pair or single-row */
+                      const drAmt = r.debit > 0 ? r.debit : (child?.debit > 0 ? child.debit : 0);
+                      const crAmt = child?.credit > 0 ? child.credit : (r.credit > 0 ? r.credit : 0);
+                      const debitCA = r.debit > 0 ? (r.control_accounts?.name || "—")
+                        : (child?.debit > 0 ? (child.control_accounts?.name || "—")
+                        : (r.control_accounts?.name || "—"));
+                      const creditCA = child?.credit > 0 ? (child.control_accounts?.name || "—")
+                        : (r.credit > 0 ? (r.control_accounts?.name || "—") : "—");
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
@@ -1338,11 +1344,11 @@ const LedgerEntries = () => {
                           <TableCell className="text-sm text-muted-foreground">{r.reference || "—"}</TableCell>
                           <TableCell className="text-sm font-medium text-primary">{debitCA}</TableCell>
                           <TableCell className="text-right text-sm font-semibold text-primary">
-                            {r.debit > 0 ? formatCurrency(r.debit) : "—"}
+                            {drAmt > 0 ? formatCurrency(drAmt) : "—"}
                           </TableCell>
                           <TableCell className="text-sm font-medium text-destructive">{creditCA}</TableCell>
                           <TableCell className="text-right text-sm font-semibold text-destructive">
-                            {child?.credit > 0 ? formatCurrency(child.credit) : "—"}
+                            {crAmt > 0 ? formatCurrency(crAmt) : "—"}
                           </TableCell>
                           {isVatRegistered && (
                             <TableCell className={`text-right text-sm ${r.gl_accounts?.gl_type === "expense" ? "text-destructive" : "text-muted-foreground"}`}>
