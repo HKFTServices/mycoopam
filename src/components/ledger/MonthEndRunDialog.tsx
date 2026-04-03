@@ -323,6 +323,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
             totalGross += txAmount;
             const txAdminFee = Math.round((txAmount * adminPct / 100) * 100) / 100;
             totalAdminFee += txAdminFee;
+            processedTxIds.add(tx.id);
 
             details.push({
               txTypeName,
