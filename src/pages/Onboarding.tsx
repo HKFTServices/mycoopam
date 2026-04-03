@@ -552,11 +552,9 @@ const Onboarding = () => {
       const isLegacyUser = currentStatus === "registered";
       const profileUpdate: any = { needs_onboarding: false };
 
-      if (isLegacyUser || isTenantAdmin) {
-        profileUpdate.registration_status = "registered";
-      } else {
-        profileUpdate.registration_status = "pending_approval";
-      }
+      // All users get 'registered' status after onboarding completion.
+      // Document review and membership approval happen together via the admin approval flow.
+      profileUpdate.registration_status = "registered";
 
       const { error: statusErr } = await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
       if (statusErr) throw statusErr;
@@ -583,26 +581,8 @@ const Onboarding = () => {
         });
       }
 
-      // Only create membership application for regular new users (not legacy or tenant admin)
-      if (!isLegacyUser && !isTenantAdmin) {
-        const { data: existingApp } = await (supabase as any)
-          .from("membership_applications")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("tenant_id", currentTenant.id)
-          .in("status", ["pending_review", "first_approved"])
-          .maybeSingle();
-        if (existingApp) {
-          await (supabase as any).from("membership_applications")
-            .update({ status: "pending_review" }).eq("id", existingApp.id);
-        } else {
-          await (supabase as any).from("membership_applications").insert({
-            user_id: user.id,
-            tenant_id: currentTenant.id,
-            status: "pending_review",
-          });
-        }
-      }
+      // No longer create membership application at onboarding stage.
+      // User will apply for membership separately, and admin approves documents + membership together.
 
       // Refresh the cached profile so ProtectedRoute sees updated state
       await refreshProfile();
@@ -612,11 +592,11 @@ const Onboarding = () => {
         body: { tenant_id: currentTenant.id },
       }).catch((err) => console.error("Failed to send registration email:", err));
 
-      if (isLegacyUser || isTenantAdmin) {
-        toast.success(isTenantAdmin ? "Registration complete! Welcome to your co-operative." : "Onboarding complete! Welcome back.");
+      if (isTenantAdmin) {
+        toast.success("Registration complete! Welcome to your co-operative.");
         navigate("/dashboard");
       } else {
-        toast.success("Registration submitted for approval! You'll be notified once approved.");
+        toast.success("Registration complete!");
         setShowMembershipPrompt(true);
       }
     } catch (err: any) {
