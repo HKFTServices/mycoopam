@@ -17,6 +17,8 @@ import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import MyCommissionsTab from "@/components/reports/MyCommissionsTab";
 import ControlAccountsTab from "@/components/reports/ControlAccountsTab";
+import BankEntriesTab from "@/components/reports/BankEntriesTab";
+import JournalEntriesTab from "@/components/reports/JournalEntriesTab";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Reports = () => {
