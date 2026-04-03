@@ -1581,12 +1581,8 @@ const Reports = () => {
           <ControlAccountsTab fromDate={fromDate} toDate={toDate} />
         </TabsContent>
 
-        {/* ── MY COMMISSIONS (for referrer/house admins) ── */}
-        {isReferrerOrHouse && (
-          <TabsContent value="my-comm">
-            <MyCommissionsTab />
-          </TabsContent>
-        )}
+
+
       </Tabs>
     </div>
   );
