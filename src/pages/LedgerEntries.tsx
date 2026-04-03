@@ -164,6 +164,33 @@ const LedgerEntries = () => {
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [datePeriod, setDatePeriod] = useState("this_month");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    switch (datePeriod) {
+      case "7_days": return { from: format(subDays(today, 7), "yyyy-MM-dd"), to: format(today, "yyyy-MM-dd") };
+      case "30_days": return { from: format(subDays(today, 30), "yyyy-MM-dd"), to: format(today, "yyyy-MM-dd") };
+      case "this_month": return { from: format(startOfMonth(today), "yyyy-MM-dd"), to: format(endOfMonth(today), "yyyy-MM-dd") };
+      case "prev_month": {
+        const pm = subMonths(today, 1);
+        return { from: format(startOfMonth(pm), "yyyy-MM-dd"), to: format(endOfMonth(pm), "yyyy-MM-dd") };
+      }
+      case "this_year": return { from: format(startOfYear(today), "yyyy-MM-dd"), to: format(endOfYear(today), "yyyy-MM-dd") };
+      case "prev_year": {
+        const py = subYears(today, 1);
+        return { from: format(startOfYear(py), "yyyy-MM-dd"), to: format(endOfYear(py), "yyyy-MM-dd") };
+      }
+      case "custom":
+        return {
+          from: customFrom ? format(customFrom, "yyyy-MM-dd") : format(startOfMonth(today), "yyyy-MM-dd"),
+          to: customTo ? format(customTo, "yyyy-MM-dd") : format(today, "yyyy-MM-dd"),
+        };
+      default: return { from: format(startOfMonth(today), "yyyy-MM-dd"), to: format(today, "yyyy-MM-dd") };
+    }
+  }, [datePeriod, customFrom, customTo]);
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: bankEntries = [], isLoading: bankLoading } = useQuery({
