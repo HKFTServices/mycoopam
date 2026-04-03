@@ -1036,7 +1036,11 @@ const LedgerEntries = () => {
 
         {/* ── Bank Entries ── */}
         <TabsContent value="bank" className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              <Landmark className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+              Bank GL: <span className="font-mono font-medium text-foreground">{bankEntries[0]?.gl_accounts?.code ?? "1000"} {bankEntries[0]?.gl_accounts?.name ?? "Bank Account"}</span>
+            </p>
             <Button className="w-full sm:w-auto" size="sm" onClick={() => { setBankForm({ ...defaultBankForm, tax_type_id: getDefaultTaxTypeId() }); setBankDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Bank Entry
             </Button>
