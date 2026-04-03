@@ -116,7 +116,13 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
       if (!activeTenant) throw new Error("No tenant");
 
       const lines: FeeCalcLine[] = [];
-      const monthStart = runDate.substring(0, 7) + "-01";
+      // Strict month boundaries: 1st of the run-date month → last day of that same month (capped by runDate)
+      const runYear = parseInt(runDate.substring(0, 4));
+      const runMonth = parseInt(runDate.substring(5, 7)); // 1-based
+      const monthStart = `${runYear}-${String(runMonth).padStart(2, "0")}-01`;
+      const lastDayOfMonth = new Date(runYear, runMonth, 0).getDate(); // last day of the run month
+      const monthEnd = `${runYear}-${String(runMonth).padStart(2, "0")}-${String(lastDayOfMonth).padStart(2, "0")}`;
+      const effectiveEnd = monthEnd < runDate ? monthEnd : runDate;
 
       // Pre-fetch pool units and prices (used by multiple sections)
       const { data: unitData } = await (supabase as any).rpc("get_pool_units", { p_tenant_id: activeTenant.id, p_up_to_date: runDate });
@@ -197,7 +203,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
         .eq("tenant_id", activeTenant.id)
         .eq("status", "approved")
         .gte("transaction_date", monthStart)
-        .lte("transaction_date", runDate);
+        .lte("transaction_date", effectiveEnd);
 
       const txns = monthTxns ?? [];
 
@@ -249,8 +255,11 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
 
       const details: TxDetailLine[] = [];
 
+      const processedTxIds = new Set<string>();
+
       for (const rule of rulesWithAdmin) {
-        const ruleTxns = txns.filter((tx: any) => tx.transaction_type_id === rule.transaction_type_id);
+        // Skip transactions already processed by a prior rule for the same tx type
+        const ruleTxns = txns.filter((tx: any) => tx.transaction_type_id === rule.transaction_type_id && !processedTxIds.has(tx.id));
         if (ruleTxns.length === 0) continue;
 
         const ft = rule.transaction_fee_types;
@@ -270,6 +279,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
             const tierPct = tier?.admin_percentage || 0;
             const txAdminFee = tierPct > 0 ? Math.round((txAmount * tierPct / 100) * 100) / 100 : 0;
             totalAdminFee += txAdminFee;
+            processedTxIds.add(tx.id);
 
             details.push({
               txTypeName,
@@ -313,6 +323,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
             totalGross += txAmount;
             const txAdminFee = Math.round((txAmount * adminPct / 100) * 100) / 100;
             totalAdminFee += txAdminFee;
+            processedTxIds.add(tx.id);
 
             details.push({
               txTypeName,
