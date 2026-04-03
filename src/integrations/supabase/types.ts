@@ -6702,6 +6702,7 @@ export type Database = {
         | "full_member"
         | "clerk"
         | "manager"
+        | "referral_house"
       application_event:
         | "none"
         | "user_registration_completed"
@@ -6864,6 +6865,7 @@ export const Constants = {
         "full_member",
         "clerk",
         "manager",
+        "referral_house",
       ],
       application_event: [
         "none",
