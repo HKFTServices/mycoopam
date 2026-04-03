@@ -316,7 +316,7 @@ const EmailSignatureSection = ({
       const website = entityDetails?.website || "";
 
       const logoHtml = logoUrl
-        ? `<img src="${logoUrl}" alt="${entityName}" width="160" height="48" style="height:48px;max-width:160px;width:auto;object-fit:contain;margin-bottom:12px;" /><br/>`
+        ? `<img src="${logoUrl}" alt="${entityName}" style="max-height:64px;max-width:160px;width:auto;height:auto;object-fit:contain;margin-bottom:12px;" /><br/>`
         : "";
 
       const sigEn = `
