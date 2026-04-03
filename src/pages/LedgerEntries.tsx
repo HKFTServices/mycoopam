@@ -1029,6 +1029,7 @@ const LedgerEntries = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>GL Account</TableHead>
                       <TableHead>Contra GL</TableHead>
                       <TableHead>Control Account</TableHead>
