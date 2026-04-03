@@ -1499,7 +1499,7 @@ const LedgerEntries = () => {
                 <Input type="number" step="0.01" min="0.01" value={journalForm.amount || ""} onChange={(e) => setJournalForm({ ...journalForm, amount: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
             </div>
-            {isVatRegistered && journalForm.amount > 0 && journalForm.gl_account_id && (
+            {isVatRegistered && journalForm.amount > 0 && (journalForm.gl_account_debit_id || journalForm.gl_account_credit_id) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>VAT Type</Label>
