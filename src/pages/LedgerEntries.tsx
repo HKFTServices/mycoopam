@@ -1222,8 +1222,13 @@ const LedgerEntries = () => {
                   <Accordion type="single" collapsible className="space-y-2">
                     {journalEntries.map((r: any) => {
                       const child = r.childRow;
-                      const debitCA = r.control_accounts?.name || "—";
-                      const creditCA = child?.control_accounts?.name || "—";
+                      const drAmt = r.debit > 0 ? r.debit : (child?.debit > 0 ? child.debit : 0);
+                      const crAmt = child?.credit > 0 ? child.credit : (r.credit > 0 ? r.credit : 0);
+                      const debitCA = r.debit > 0 ? (r.control_accounts?.name || "—")
+                        : (child?.debit > 0 ? (child.control_accounts?.name || "—")
+                        : (r.control_accounts?.name || "—"));
+                      const creditCA = child?.credit > 0 ? (child.control_accounts?.name || "—")
+                        : (r.credit > 0 ? (r.control_accounts?.name || "—") : "—");
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       return (
                         <AccordionItem
@@ -1249,9 +1254,9 @@ const LedgerEntries = () => {
                               <div className="text-right max-w-[45%] break-words">
                                 <p className="text-[10px] text-muted-foreground">Dr / Cr</p>
                                 <p className="font-mono text-xs">
-                                  <span className="text-primary font-semibold break-all">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</span>
+                                  <span className="text-primary font-semibold break-all">{drAmt > 0 ? formatCurrency(drAmt) : "—"}</span>
                                   <span className="text-muted-foreground"> | </span>
-                                  <span className="text-destructive font-semibold break-all">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</span>
+                                  <span className="text-destructive font-semibold break-all">{crAmt > 0 ? formatCurrency(crAmt) : "—"}</span>
                                 </p>
                               </div>
                             </div>
@@ -1265,12 +1270,12 @@ const LedgerEntries = () => {
                                 <div className="rounded-xl border bg-background/60 p-2">
                                   <p className="text-[10px] text-muted-foreground">Debit</p>
                                   <p className="text-[11px] text-muted-foreground truncate">{debitCA}</p>
-                                  <p className="font-mono font-semibold text-right text-primary break-all">{r.debit > 0 ? formatCurrency(r.debit) : "—"}</p>
+                                  <p className="font-mono font-semibold text-right text-primary break-all">{drAmt > 0 ? formatCurrency(drAmt) : "—"}</p>
                                 </div>
                                 <div className="rounded-xl border bg-background/60 p-2">
                                   <p className="text-[10px] text-muted-foreground">Credit</p>
                                   <p className="text-[11px] text-muted-foreground truncate">{creditCA}</p>
-                                  <p className="font-mono font-semibold text-right text-destructive break-all">{child?.credit > 0 ? formatCurrency(child.credit) : "—"}</p>
+                                  <p className="font-mono font-semibold text-right text-destructive break-all">{crAmt > 0 ? formatCurrency(crAmt) : "—"}</p>
                                 </div>
                                 {isVatRegistered ? (
                                   <div className="rounded-xl border bg-background/60 p-2 col-span-2">
