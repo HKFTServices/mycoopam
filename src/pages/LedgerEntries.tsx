@@ -151,6 +151,8 @@ const LedgerPreview = ({ lines }: { lines: { side: "DR" | "CR"; glCode: string; 
 };
 
 const LedgerEntries = () => {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "bank";
   const { user, profile } = useAuth();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
