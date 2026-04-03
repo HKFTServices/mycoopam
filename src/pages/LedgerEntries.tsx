@@ -1211,9 +1211,9 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {journalLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 10 : 9) : (isVatRegistered ? 9 : 8)} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : journalEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 9 : 8) : (isVatRegistered ? 8 : 7)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? (isVatRegistered ? 10 : 9) : (isVatRegistered ? 9 : 8)} className="text-center py-8 text-muted-foreground">No journal entries yet</TableCell></TableRow>
                     ) : journalEntries.map((r: any) => {
                       const child = r.childRow;
                       const debitCA = r.control_accounts?.name || "—";
