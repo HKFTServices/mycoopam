@@ -1078,8 +1078,7 @@ const LedgerEntries = () => {
                                   ) : null}
                                 </div>
                                 <p className="mt-1 text-sm font-medium break-words">
-                                  <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                                  {r.gl_accounts?.name || glLabel}
+                                  {r._txType || r.description || "—"}
                                 </p>
                               </div>
                               <div className="text-right max-w-[45%] break-words">
