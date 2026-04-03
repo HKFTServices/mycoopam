@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     // Fetch tenant config
     const { data: tenantConfig } = await adminClient
       .from("tenant_configuration")
-      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id")
+      .select("smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enable_ssl, email_signature_en, email_signature_af, legal_entity_id, use_global_email_settings")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
