@@ -1003,8 +1003,8 @@ const LedgerEntries = () => {
         </div>
       )}
 
-        {/* ── Journal Entries ── */}
-        <TabsContent value="journal" className="space-y-3">
+      {activeTab === "journal" && (
+        <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => setMonthEndOpen(true)}>
               <CalendarDays className="h-4 w-4 mr-1" /> End of Month Run
@@ -1018,7 +1018,8 @@ const LedgerEntries = () => {
               Journal entries are now available in the <span className="font-medium text-foreground">Reports</span> page under the <span className="font-medium text-foreground">Journal Entries</span> tab.
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
 
 
