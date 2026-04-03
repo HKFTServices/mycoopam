@@ -347,7 +347,7 @@ const LedgerEntries = () => {
   });
 
   const { data: journalEntries = [], isLoading: journalLoading } = useQuery({
-    queryKey: ["cft_journal_entries", currentTenant?.id],
+    queryKey: ["cft_journal_entries", currentTenant?.id, dateRange.from, dateRange.to],
     queryFn: async () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
@@ -358,6 +358,8 @@ const LedgerEntries = () => {
         .eq("is_active", true)
         .eq("status", "posted")
         .eq("entry_type", "journal")
+        .gte("transaction_date", dateRange.from)
+        .lte("transaction_date", dateRange.to)
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
