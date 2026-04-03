@@ -516,7 +516,7 @@ export const MonthEndRunDialog = ({ open, onOpenChange, tenantOverride }: { open
             entry_type: "journal",
             is_bank: false,
             gl_account_id: vaultGlId,
-            control_account_id: null,
+            control_account_id: adminCashControlId,
             debit: 0,
             credit: vaultFeesTotal,
             vat_amount: 0,
