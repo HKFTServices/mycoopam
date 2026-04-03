@@ -262,6 +262,45 @@ const LedgerEntries = () => {
         }
       }
 
+      // Resolve legacy transaction type labels from gen_type_values
+      const legacyTypeMap: Record<string, string> = {};
+      if (legacyIds.length > 0) {
+        const { data: legacyMappings } = await (supabase as any)
+          .from("legacy_id_mappings")
+          .select("legacy_id, notes")
+          .eq("table_name", "cashflow_transactions")
+          .eq("tenant_id", currentTenant.id)
+          .in("legacy_id", legacyIds);
+
+        const typeIds = new Set<string>();
+        for (const m of legacyMappings ?? []) {
+          try { const tid = JSON.parse(m.notes)?.Type_TransactionID; if (tid) typeIds.add(tid); } catch {}
+        }
+
+        if (typeIds.size > 0) {
+          const { data: typeValues } = await (supabase as any)
+            .from("legacy_id_mappings")
+            .select("legacy_id, description")
+            .eq("table_name", "gen_type_values")
+            .eq("tenant_id", currentTenant.id)
+            .in("legacy_id", Array.from(typeIds));
+
+          const tvMap: Record<string, string> = {};
+          for (const tv of typeValues ?? []) {
+            // description like "Deposit Funds | TypeID:54" → extract label
+            tvMap[tv.legacy_id] = (tv.description || "").split("|")[0].trim();
+          }
+
+          for (const m of legacyMappings ?? []) {
+            try {
+              const parsed = JSON.parse(m.notes);
+              const tid = parsed?.Type_TransactionID;
+              if (tid && tvMap[tid]) legacyTypeMap[m.legacy_id] = tvMap[tid];
+            } catch {}
+          }
+        }
+      }
+
       return rows.map((r: any) => ({
         ...r,
         _contraGl: contraMap[r.id]
@@ -269,6 +308,9 @@ const LedgerEntries = () => {
           || (r.transaction_id ? txContraMap[r.transaction_id] : null)
           || (r.reference ? refContraMap[r.reference] : null)
           || null,
+        _txType: r.legacy_transaction_id
+          ? (legacyTypeMap[r.legacy_transaction_id] || r.description || "—")
+          : (r.description || "—"),
       }));
     },
     enabled: !!currentTenant,
