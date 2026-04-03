@@ -604,11 +604,10 @@ const LedgerEntries = () => {
       });
 
       // Save GL → control account mapping for future auto-population
-      const selectedGl = glAccounts.find((g) => g.id === values.gl_account_id);
-      if (values.gl_account_id && values.debit_control_account_id && (!selectedGl?.control_account_id)) {
+      if (values.gl_account_debit_id && values.debit_control_account_id && (!glDr?.control_account_id)) {
         await (supabase as any).from("gl_accounts")
           .update({ control_account_id: values.debit_control_account_id })
-          .eq("id", values.gl_account_id);
+          .eq("id", values.gl_account_debit_id);
       }
       if (e2) throw e2;
 
