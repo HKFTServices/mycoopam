@@ -456,8 +456,8 @@ const LedgerEntries = () => {
     queryFn: async () => {
       if (!currentTenant) return null;
       const { data } = await (supabase as any)
-        .from("tenant_configuration").select("is_vat_registered").eq("tenant_id", currentTenant.id).maybeSingle();
-      return data as { is_vat_registered: boolean } | null;
+        .from("tenant_configuration").select("is_vat_registered, commission_paid_gl_account_id, vat_gl_account_id").eq("tenant_id", currentTenant.id).maybeSingle();
+      return data as { is_vat_registered: boolean; commission_paid_gl_account_id: string | null; vat_gl_account_id: string | null } | null;
     },
     enabled: !!currentTenant,
   });
