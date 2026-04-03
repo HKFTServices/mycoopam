@@ -950,6 +950,7 @@ const LedgerEntries = () => {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>GL Account</TableHead>
+                      <TableHead>Contra GL</TableHead>
                       <TableHead>Control Account</TableHead>
                       <TableHead>Reference</TableHead>
                       <TableHead className="text-right">Debit (+)</TableHead>
