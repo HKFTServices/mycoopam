@@ -6727,7 +6727,12 @@ export type Database = {
         | "member_invitation"
       entity_type: "natural_person" | "legal_entity"
       gender_type: "male" | "female" | "other"
-      registration_status: "incomplete" | "pending_verification" | "registered"
+      registration_status:
+        | "incomplete"
+        | "pending_verification"
+        | "registered"
+        | "pending_approval"
+        | "approved"
       terms_condition_type: "registration" | "membership" | "pool" | "tax"
     }
     CompositeTypes: {
@@ -6892,7 +6897,13 @@ export const Constants = {
       ],
       entity_type: ["natural_person", "legal_entity"],
       gender_type: ["male", "female", "other"],
-      registration_status: ["incomplete", "pending_verification", "registered"],
+      registration_status: [
+        "incomplete",
+        "pending_verification",
+        "registered",
+        "pending_approval",
+        "approved",
+      ],
       terms_condition_type: ["registration", "membership", "pool", "tax"],
     },
   },
