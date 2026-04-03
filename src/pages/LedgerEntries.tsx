@@ -1024,8 +1024,8 @@ const LedgerEntries = () => {
 
 
 
-        {/* ── Pay Commissions ── */}
-        <TabsContent value="commissions" className="space-y-3">
+      {activeTab === "commissions" && (
+        <div className="space-y-3">
           {commLoading ? (
             <Card><CardContent className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></CardContent></Card>
           ) : pendingCommissions.length === 0 ? (
