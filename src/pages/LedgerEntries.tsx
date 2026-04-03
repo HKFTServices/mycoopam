@@ -44,6 +44,11 @@ type Commission = {
   referral_house?: { name: string; last_name: string | null; is_vat_registered: boolean };
 };
 
+const formatEntryType = (et: string | null | undefined): string => {
+  if (!et) return "—";
+  return et.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 const defaultBankForm = {
   transaction_date: formatLocalDate(),
   gl_account_id: "",
