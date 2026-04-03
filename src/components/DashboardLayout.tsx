@@ -769,7 +769,81 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                         })}
 
 
-                        {isSuperAdmin && (() => {
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Co-Op Data & Settings</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {(isAdmin || isClerkOrManager) && (() => {
+                          const setupItems = isAdmin
+                            ? filteredTenantSetup
+                            : filteredTenantSetup.filter((i) =>
+                                i.path === "/dashboard/setup/communications"
+                              );
+                          if (setupItems.length === 0) return null;
+                          return renderGroup({
+                            label: "Tenant Setup",
+                            icon: Wrench,
+                            open: tenantSetupOpen,
+                            setOpen: setTenantSetupOpen,
+                            viewAll: isAdmin
+                              ? { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" }
+                              : { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" },
+                            items: isAdmin ? setupItems : [],
+                            dataTour: "tenant-setup-group",
+                          });
+                        })()}
+
+                        {renderGroup({
+                          label: "Entities",
+                          icon: Building2,
+                          open: entitiesOpen,
+                          setOpen: setEntitiesOpen,
+                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
+                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
+                        })}
+
+                        {filteredAdminOnly
+                          .filter((i) => {
+                            if (i.path === "/dashboard/users") return isAdmin;
+                            return true;
+                          })
+                          .map((i) => renderLink(i))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
+              )}
+
+              {isSuperAdmin && (
+                <>
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Asset Manager</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {renderGroup({
+                          label: "Asset Manager",
+                          icon: ShieldPlus,
+                          open: mamOpen,
+                          setOpen: setMamOpen,
+                          viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
+                          items: filteredMam,
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Head Office</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {(() => {
                           const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
                           if (!hoShow) return null;
                           const effectiveOpen = normalizedQuery ? true : headOfficeOpen;
@@ -786,7 +860,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                                   onClick={() => setHeadOfficeOpen(!headOfficeOpen)}
                                 >
                                   <Building2 />
-                                  <span>Head Office</span>
+                                  <span>Settings</span>
                                   {effectiveOpen ? <ChevronDown className="ml-auto" /> : <ChevronRight className="ml-auto" />}
                                 </button>
                               </SidebarMenuButton>
@@ -839,60 +913,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             </SidebarMenuItem>
                           );
                         })()}
-
-                        {isSuperAdmin &&
-                          renderGroup({
-                            label: "Asset Manager",
-                            icon: ShieldPlus,
-                            open: mamOpen,
-                            setOpen: setMamOpen,
-                            viewAll: { label: "MAM Dashboard", icon: LayoutDashboard, path: "/dashboard/mam" },
-                            items: filteredMam,
-                          })}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-
-                  <SidebarSeparator />
-                  <SidebarGroup>
-                    <SidebarGroupLabel>Co-Op Data & Settings</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {(isAdmin || isClerkOrManager) && (() => {
-                          const setupItems = isAdmin
-                            ? filteredTenantSetup
-                            : filteredTenantSetup.filter((i) =>
-                                i.path === "/dashboard/setup/communications"
-                              );
-                          if (setupItems.length === 0) return null;
-                          return renderGroup({
-                            label: "Tenant Setup",
-                            icon: Wrench,
-                            open: tenantSetupOpen,
-                            setOpen: setTenantSetupOpen,
-                            viewAll: isAdmin
-                              ? { label: "Tenant Configuration", icon: Cog, path: "/dashboard/setup/tenant-configuration" }
-                              : { label: "Campaign Templates", icon: Mail, path: "/dashboard/setup/communications" },
-                            items: isAdmin ? setupItems : [],
-                            dataTour: "tenant-setup-group",
-                          });
-                        })()}
-
-                        {renderGroup({
-                          label: "Entities",
-                          icon: Building2,
-                          open: entitiesOpen,
-                          setOpen: setEntitiesOpen,
-                          viewAll: { label: "Entities", icon: Building2, path: "/dashboard/entities" },
-                          items: filteredEntities.filter((i) => i.path !== "/dashboard/entities"),
-                        })}
-
-                        {filteredAdminOnly
-                          .filter((i) => {
-                            if (i.path === "/dashboard/users") return isAdmin;
-                            return true;
-                          })
-                          .map((i) => renderLink(i))}
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </SidebarGroup>
