@@ -1036,7 +1036,11 @@ const LedgerEntries = () => {
 
         {/* ── Bank Entries ── */}
         <TabsContent value="bank" className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              <Landmark className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+              Bank GL: <span className="font-mono font-medium text-foreground">{bankEntries[0]?.gl_accounts?.code ?? "1000"} {bankEntries[0]?.gl_accounts?.name ?? "Bank Account"}</span>
+            </p>
             <Button className="w-full sm:w-auto" size="sm" onClick={() => { setBankForm({ ...defaultBankForm, tax_type_id: getDefaultTaxTypeId() }); setBankDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Bank Entry
             </Button>
@@ -1054,7 +1058,7 @@ const LedgerEntries = () => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       const amount = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const side = Number(r.debit || 0) > 0 ? "DR" : "CR";
-                      const glLabel = `${r.gl_accounts?.code ?? ""} ${r.gl_accounts?.name ?? ""}`.trim() || "—";
+                      
                       return (
                         <AccordionItem
                           key={r.id}
@@ -1074,8 +1078,7 @@ const LedgerEntries = () => {
                                   ) : null}
                                 </div>
                                 <p className="mt-1 text-sm font-medium break-words">
-                                  <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                                  {r.gl_accounts?.name || glLabel}
+                                  {r._txType || r.description || "—"}
                                 </p>
                               </div>
                               <div className="text-right max-w-[45%] break-words">
@@ -1143,7 +1146,6 @@ const LedgerEntries = () => {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>GL Account</TableHead>
                       <TableHead>Contra GL</TableHead>
                       <TableHead>Reference</TableHead>
                       <TableHead className="text-right">Debit (+)</TableHead>
@@ -1155,9 +1157,9 @@ const LedgerEntries = () => {
                   </TableHeader>
                   <TableBody>
                     {bankLoading ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                     ) : bankEntries.length === 0 ? (
-                      <TableRow><TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">No bank entries yet</TableCell></TableRow>
                     ) : bankEntries.map((r: any) => {
                       const isExpense = r.gl_accounts?.gl_type === "expense";
                       const contraGl = r._contraGl;
@@ -1165,10 +1167,6 @@ const LedgerEntries = () => {
                         <TableRow key={r.id}>
                           <TableCell className="text-sm">{r.transaction_date}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r._txType || "—"}</TableCell>
-                          <TableCell className="text-sm">
-                            <span className="font-mono text-xs text-muted-foreground mr-1">{r.gl_accounts?.code}</span>
-                            {r.gl_accounts?.name}
-                          </TableCell>
                           <TableCell className="text-sm">
                             {contraGl ? (
                               <><span className="font-mono text-xs text-muted-foreground mr-1">{contraGl.code}</span>{contraGl.name}</>
