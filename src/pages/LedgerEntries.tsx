@@ -1511,10 +1511,11 @@ const LedgerEntries = () => {
                   </Select>
                 </div>
                 {journalForm.tax_type_id && (() => {
-                  const { vat, isExpense } = vatDisplay(journalForm.amount, journalForm.tax_type_id, journalForm.gl_account_id);
+                  const glIdForVat = journalForm.gl_account_debit_id || journalForm.gl_account_credit_id;
+                  const { vat, isExpense } = vatDisplay(journalForm.amount, journalForm.tax_type_id, glIdForVat);
                   return (
                     <div className="space-y-2">
-                      <Label>VAT {vatLabel(journalForm.gl_account_id)}</Label>
+                      <Label>VAT {vatLabel(glIdForVat)}</Label>
                       <Input readOnly value={`${isExpense ? "-" : ""}${formatCurrency(vat)}`} className={`bg-muted ${isExpense ? "text-destructive" : ""}`} />
                     </div>
                   );
