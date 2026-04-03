@@ -768,14 +768,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                           items: filteredDailyPrices,
                         })}
 
-                        {renderGroup({
-                          label: "Campaigns",
-                          icon: MessageSquare,
-                          open: messagesOpen,
-                          setOpen: setMessagesOpen,
-                          viewAll: { label: "Send Campaign", icon: SendHorizontal, path: "/dashboard/send-message" },
-                          items: filteredMessages,
-                        })}
 
                         {isSuperAdmin && (() => {
                           const hoShow = sectionHasMatch("Head Office", [...headOfficeNavItems, ...globalSetupNavItems], normalizedQuery);
