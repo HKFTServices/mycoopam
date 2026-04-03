@@ -796,7 +796,7 @@ const LedgerEntries = () => {
       <div className="flex items-center gap-3 min-w-0">
         <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
         <div>
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Ledger Entries</h1>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Bank &amp; Journal Entries</h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             Post ad-hoc bank &amp; journal entries directly to the transaction ledger
           </p>
