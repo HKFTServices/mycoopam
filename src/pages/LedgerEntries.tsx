@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatLocalDate } from "@/lib/formatDate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -163,13 +164,40 @@ const LedgerEntries = () => {
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<{ id: string; type: "bank" | "journal" } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [datePeriod, setDatePeriod] = useState("this_month");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    switch (datePeriod) {
+      case "7_days": return { from: format(subDays(today, 7), "yyyy-MM-dd"), to: format(today, "yyyy-MM-dd") };
+      case "30_days": return { from: format(subDays(today, 30), "yyyy-MM-dd"), to: format(today, "yyyy-MM-dd") };
+      case "this_month": return { from: format(startOfMonth(today), "yyyy-MM-dd"), to: format(endOfMonth(today), "yyyy-MM-dd") };
+      case "prev_month": {
+        const pm = subMonths(today, 1);
+        return { from: format(startOfMonth(pm), "yyyy-MM-dd"), to: format(endOfMonth(pm), "yyyy-MM-dd") };
+      }
+      case "this_year": return { from: format(startOfYear(today), "yyyy-MM-dd"), to: format(endOfYear(today), "yyyy-MM-dd") };
+      case "prev_year": {
+        const py = subYears(today, 1);
+        return { from: format(startOfYear(py), "yyyy-MM-dd"), to: format(endOfYear(py), "yyyy-MM-dd") };
+      }
+      case "custom":
+        return {
+          from: customFrom ? format(customFrom, "yyyy-MM-dd") : format(startOfMonth(today), "yyyy-MM-dd"),
+          to: customTo ? format(customTo, "yyyy-MM-dd") : format(today, "yyyy-MM-dd"),
+        };
+      default: return { from: format(startOfMonth(today), "yyyy-MM-dd"), to: format(today, "yyyy-MM-dd") };
+    }
+  }, [datePeriod, customFrom, customTo]);
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: bankEntries = [], isLoading: bankLoading } = useQuery({
-    queryKey: ["cft_bank_entries", currentTenant?.id],
+    queryKey: ["cft_bank_entries", currentTenant?.id, dateRange.from, dateRange.to],
     queryFn: async () => {
       if (!currentTenant) return [];
-      // Fetch posted bank entries
+      // Fetch posted bank entries within date range
       const { data: parents, error } = await (supabase as any)
         .from("cashflow_transactions")
         .select("*, control_accounts(name), gl_accounts(name, code, gl_type)")
@@ -178,6 +206,8 @@ const LedgerEntries = () => {
         .eq("is_active", true)
         .eq("status", "posted")
         .not("gl_account_id", "is", null)
+        .gte("transaction_date", dateRange.from)
+        .lte("transaction_date", dateRange.to)
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -317,7 +347,7 @@ const LedgerEntries = () => {
   });
 
   const { data: journalEntries = [], isLoading: journalLoading } = useQuery({
-    queryKey: ["cft_journal_entries", currentTenant?.id],
+    queryKey: ["cft_journal_entries", currentTenant?.id, dateRange.from, dateRange.to],
     queryFn: async () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
@@ -328,6 +358,8 @@ const LedgerEntries = () => {
         .eq("is_active", true)
         .eq("status", "posted")
         .eq("entry_type", "journal")
+        .gte("transaction_date", dateRange.from)
+        .lte("transaction_date", dateRange.to)
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -935,7 +967,6 @@ const LedgerEntries = () => {
 
 
 
-
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in overflow-x-hidden min-w-0 max-w-full">
       <div className="flex items-center gap-3 min-w-0">
@@ -946,6 +977,46 @@ const LedgerEntries = () => {
             Post ad-hoc bank &amp; journal entries directly to the transaction ledger
           </p>
         </div>
+      </div>
+
+      {/* ── Date Period Filter ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+        <div className="flex-1 min-w-0">
+          <Label className="text-xs text-muted-foreground mb-1 block">Period</Label>
+          <Select value={datePeriod} onValueChange={setDatePeriod}>
+            <SelectTrigger className="h-8 text-xs w-full sm:w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7_days">Last 7 Days</SelectItem>
+              <SelectItem value="30_days">Last 30 Days</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="prev_month">Previous Month</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="prev_year">Previous Year</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {datePeriod === "custom" && (
+          <div className="flex items-end gap-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">From</Label>
+              <Input type="date" className="h-8 text-xs w-[140px]"
+                value={customFrom ? format(customFrom, "yyyy-MM-dd") : ""}
+                onChange={(e) => setCustomFrom(e.target.value ? new Date(e.target.value) : undefined)} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">To</Label>
+              <Input type="date" className="h-8 text-xs w-[140px]"
+                value={customTo ? format(customTo, "yyyy-MM-dd") : ""}
+                onChange={(e) => setCustomTo(e.target.value ? new Date(e.target.value) : undefined)} />
+            </div>
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground sm:ml-2 sm:pb-1">
+          {dateRange.from} — {dateRange.to}
+        </p>
       </div>
 
       <Tabs defaultValue="bank">
