@@ -55,6 +55,20 @@ const Reports = () => {
     enabled: !!user,
   });
 
+  // Fetch tenant registration date for "Full History" preset
+  const { data: tenantRegistrationDate } = useQuery({
+    queryKey: ["tenant_reg_date", tenantId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("tenant_configuration")
+        .select("registration_date")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      return data?.registration_date || null;
+    },
+    enabled: !!tenantId,
+  });
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
     to: new Date(),
@@ -469,6 +483,17 @@ const Reports = () => {
             className="text-xs sm:text-sm"
           >
             Previous FY
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const start = tenantRegistrationDate ? new Date(tenantRegistrationDate) : new Date(2020, 0, 1);
+              setDateRange({ from: start, to: new Date() });
+            }}
+            className="text-xs sm:text-sm"
+          >
+            Full History
           </Button>
           <Popover>
             <PopoverTrigger asChild>
