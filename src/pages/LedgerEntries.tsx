@@ -187,7 +187,7 @@ const LedgerEntries = () => {
           .select("parent_id, gl_accounts(name, code, gl_type)")
           .in("parent_id", parentIds)
           .eq("is_active", true)
-          .eq("entry_type", "bank_contra");
+          .not("gl_account_id", "is", null);
         for (const c of contras ?? []) {
           if (c.parent_id && c.gl_accounts) {
             contraMap[c.parent_id] = c.gl_accounts;
