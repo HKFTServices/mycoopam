@@ -532,7 +532,7 @@ const Reports = () => {
             <TabsTrigger value="bank-entries">Bank Entries</TabsTrigger>
             <TabsTrigger value="journal-entries">Journal Entries</TabsTrigger>
             <TabsTrigger value="control-accounts">Control Accounts</TabsTrigger>
-            {isReferrerOrHouse && <TabsTrigger value="my-comm">My Commissions</TabsTrigger>}
+            
           </TabsList>
         </div>
 
