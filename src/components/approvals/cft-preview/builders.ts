@@ -29,6 +29,7 @@ export function buildDepositPreview(params: {
   poolAllocations: { poolName: string; amount: number; unitPrice?: number; units?: number }[];
   feeBreakdown: { name: string; amount: number; vat?: number }[];
   joinShare?: { cost: number; membership_fee: number; membership_fee_vat?: number } | null;
+  loanRepayment?: { amount: number } | null;
   isStockDeposit?: boolean;
   isVatRegistered?: boolean;
   vatRate?: number;
@@ -36,7 +37,7 @@ export function buildDepositPreview(params: {
   const gl: GlLine[] = [];
   const ctrl: ControlLine[] = [];
   const ut: UnitLine[] = [];
-  const { grossAmount, poolAllocations, feeBreakdown, joinShare, isStockDeposit, isVatRegistered, vatRate = 0 } = params;
+  const { grossAmount, poolAllocations, feeBreakdown, joinShare, loanRepayment, isStockDeposit, isVatRegistered, vatRate = 0 } = params;
 
   // ── GL Entries ──
 
