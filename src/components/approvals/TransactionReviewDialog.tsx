@@ -338,13 +338,25 @@ const TransactionReviewDialog = ({
   }, [group?.primary?.id]);
   const loanPoolId = loanMeta?.loan_pool_ids?.[0] || null;
   const { data: loanPoolData } = useQuery({
-    queryKey: ["loan_pool_name", loanPoolId],
+    queryKey: ["loan_pool_name", loanPoolId, !!loanMeta],
     queryFn: async () => {
-      if (!loanPoolId) return null;
-      const { data } = await (supabase as any).from("pools").select("name").eq("id", loanPoolId).maybeSingle();
-      return data;
+      // If explicit pool ID, fetch its name
+      if (loanPoolId) {
+        const { data } = await (supabase as any).from("pools").select("name").eq("id", loanPoolId).maybeSingle();
+        return data;
+      }
+      // No explicit pool — legacy loans use "Member Account" pool
+      if (loanMeta) {
+        const { data } = await (supabase as any).from("pools").select("name")
+          .eq("tenant_id", group?.primary?.tenant_id || "")
+          .eq("is_active", true)
+          .ilike("name", "%member account%")
+          .limit(1);
+        return data?.[0] || { name: "Member Account" };
+      }
+      return null;
     },
-    enabled: !!loanPoolId,
+    enabled: !!loanMeta,
   });
 
   // Build CFT preview lines (must be before early return)
