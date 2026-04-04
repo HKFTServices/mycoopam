@@ -1168,7 +1168,7 @@ const AccountApprovals = () => {
                               <span className="font-mono">{formatCurrency(totalAmount)}</span>
                               {paymentLabel ? <span className="capitalize">• {paymentLabel}</span> : null}
                               {transferTo ? <span>• {transferTo}</span> : null}
-                              <span>• {createdDate}</span>
+                              <span>• {displayDate}</span>
                             </div>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-sm">
