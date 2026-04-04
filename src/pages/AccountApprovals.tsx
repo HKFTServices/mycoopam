@@ -1148,11 +1148,17 @@ const AccountApprovals = () => {
                         ? "Transfer of Units"
                         : (t.payment_method || "").replace(/_/g, " ");
                       const txnLabel = t.transaction_types?.name ?? (code ? code.replace(/_/g, " ") : "Transaction");
-                      const createdDate = new Date(t.created_at).toLocaleDateString();
+                      const txnDate = t.transaction_date ? new Date(t.transaction_date).toLocaleDateString("en-ZA") : null;
+                      const loadDate = new Date(t.created_at).toLocaleDateString("en-ZA");
+                      const showBothDates = txnDate && txnDate !== loadDate;
+                      const displayDate = txnDate || loadDate;
                       const transferTo = meta?.to_account_number ? `To ${meta.to_account_number}` : "";
                       return (
                         <TableRow key={t.id} className="align-top">
-                          <TableCell className="hidden md:table-cell text-sm">{createdDate}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">
+                            <div>{displayDate}</div>
+                            {showBothDates && <div className="text-[10px] text-muted-foreground">Loaded: {loadDate}</div>}
+                          </TableCell>
                           <TableCell className="text-sm font-medium">
                             {t.transaction_types?.code === "TRANSFER"
                               ? <><span className="text-muted-foreground text-xs block">Transferred from</span>{memberName}</>
