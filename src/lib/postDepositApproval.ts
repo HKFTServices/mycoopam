@@ -443,12 +443,30 @@ export async function postDepositApproval(
 
     const memberLoansGlId = findGl(["member loan", "loan receivable", "member loans"]);
 
-    // Resolve pool control accounts (use loan's pool, fallback to admin pool)
-    let loanPoolId = loanPoolIds[0] || adminPoolId;
+    // Resolve pool control accounts (use loan's pool, fallback to Member Account pool, then admin pool)
+    let loanPoolId = loanPoolIds[0] || null;
     let loanCashControlId = adminCashControlId;
     let loanControlId: string | null = null;
 
-    if (loanPoolId) {
+    // If no explicit loan pool, try "Member Account" pool first (legacy loans are member-account based)
+    if (!loanPoolId) {
+      const { data: memberAccPool } = await (supabase as any)
+        .from("pools")
+        .select("id, cash_control_account_id, loan_control_account_id")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .ilike("name", "%member account%")
+        .limit(1);
+      if (memberAccPool?.[0]) {
+        loanPoolId = memberAccPool[0].id;
+        loanCashControlId = memberAccPool[0].cash_control_account_id || adminCashControlId;
+        loanControlId = memberAccPool[0].loan_control_account_id || null;
+      } else {
+        loanPoolId = adminPoolId;
+      }
+    }
+
+    if (loanPoolId && !loanControlId) {
       const { data: loanPool } = await (supabase as any)
         .from("pools")
         .select("id, cash_control_account_id, loan_control_account_id")
