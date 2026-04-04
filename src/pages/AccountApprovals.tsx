@@ -1489,9 +1489,14 @@ const AccountApprovals = () => {
                       const cpName = cp ? [cp.name, cp.last_name].filter(Boolean).join(" ") : "—";
                       const isPurchase = stx.transaction_type_code === "STOCK_PURCHASES";
                       const txnDate = stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—";
+                      const loadDate3 = new Date(stx.created_at).toLocaleDateString("en-ZA");
+                      const showBoth3 = txnDate !== "—" && txnDate !== loadDate3;
                       return (
                         <TableRow key={stx.id}>
-                          <TableCell className="hidden md:table-cell text-sm font-mono">{txnDate}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm font-mono">
+                            {txnDate}
+                            {showBoth3 && <div className="text-[10px] text-muted-foreground font-sans">Loaded: {loadDate3}</div>}
+                          </TableCell>
                           <TableCell className="text-sm">
                             <div className="font-medium">{isPurchase ? "Stock Purchase" : "Stock Sale"}</div>
                             <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
