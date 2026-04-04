@@ -100,11 +100,12 @@ export function buildDepositPreview(params: {
   // Loan Repayment — CR Member Loans (BS) — reduce member's debt
   if (loanRepayment && Number(loanRepayment.amount) > 0) {
     const repayAmt = Number(loanRepayment.amount);
+    const loanPoolLabel = loanRepayment.poolName || "Pool";
     gl.push({ glCode: "1060", glName: "Member Loans (Receivable)", side: "Ct", amount: repayAmt, description: "Loan Repayment" });
     // Control: Loan Control Ct (pool loan asset decreases)
-    ctrl.push({ controlAccount: "Loan Control", side: "Ct", amount: repayAmt });
+    ctrl.push({ controlAccount: `${loanPoolLabel} Loan`, side: "Ct", amount: repayAmt });
     // Control: Cash Control Dt (pool cash increases from repayment)
-    ctrl.push({ controlAccount: "Cash Control", side: "Dt", amount: repayAmt });
+    ctrl.push({ controlAccount: `${loanPoolLabel} Cash`, side: "Dt", amount: repayAmt });
   }
 
   return { glLines: gl, controlLines: ctrl, unitLines: ut };
