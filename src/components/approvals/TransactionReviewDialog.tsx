@@ -350,6 +350,7 @@ const TransactionReviewDialog = ({
       poolAllocations,
       feeBreakdown: m.fee_breakdown || [],
       joinShare: m.join_share || null,
+      loanRepayment: m.loan_repayment || null,
       isStockDeposit: m.transaction_kind === "stock_deposit",
       isVatRegistered: m.is_vat_registered ?? false,
       vatRate: Number(m.vat_rate || 0),

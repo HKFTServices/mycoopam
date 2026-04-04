@@ -29,6 +29,7 @@ export function buildDepositPreview(params: {
   poolAllocations: { poolName: string; amount: number; unitPrice?: number; units?: number }[];
   feeBreakdown: { name: string; amount: number; vat?: number }[];
   joinShare?: { cost: number; membership_fee: number; membership_fee_vat?: number } | null;
+  loanRepayment?: { amount: number } | null;
   isStockDeposit?: boolean;
   isVatRegistered?: boolean;
   vatRate?: number;
@@ -36,7 +37,7 @@ export function buildDepositPreview(params: {
   const gl: GlLine[] = [];
   const ctrl: ControlLine[] = [];
   const ut: UnitLine[] = [];
-  const { grossAmount, poolAllocations, feeBreakdown, joinShare, isStockDeposit, isVatRegistered, vatRate = 0 } = params;
+  const { grossAmount, poolAllocations, feeBreakdown, joinShare, loanRepayment, isStockDeposit, isVatRegistered, vatRate = 0 } = params;
 
   // ── GL Entries ──
 
@@ -94,6 +95,16 @@ export function buildDepositPreview(params: {
       const units = alloc.units ?? alloc.amount / alloc.unitPrice;
       ut.push({ poolName: alloc.poolName, side: "Dt", units, unitPrice: alloc.unitPrice, value: alloc.amount });
     }
+  }
+
+  // Loan Repayment — CR Member Loans (BS) — reduce member's debt
+  if (loanRepayment && Number(loanRepayment.amount) > 0) {
+    const repayAmt = Number(loanRepayment.amount);
+    gl.push({ glCode: "1060", glName: "Member Loans (Receivable)", side: "Ct", amount: repayAmt, description: "Loan Repayment" });
+    // Control: Loan Control Ct (pool loan asset decreases)
+    ctrl.push({ controlAccount: "Loan Control", side: "Ct", amount: repayAmt });
+    // Control: Cash Control Dt (pool cash increases from repayment)
+    ctrl.push({ controlAccount: "Cash Control", side: "Dt", amount: repayAmt });
   }
 
   return { glLines: gl, controlLines: ctrl, unitLines: ut };
