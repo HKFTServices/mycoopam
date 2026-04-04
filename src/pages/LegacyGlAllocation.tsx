@@ -1602,6 +1602,7 @@ const LegacyGlAllocation = () => {
         .from("cashflow_transactions")
         .select("legacy_transaction_id")
         .eq("is_active", true)
+        .not("gl_account_id", "is", null)
         .in("legacy_transaction_id", legacyIds);
 
       const alreadyPosted = new Set((existing ?? []).map(e => e.legacy_transaction_id));
