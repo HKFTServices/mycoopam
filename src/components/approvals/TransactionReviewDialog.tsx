@@ -332,6 +332,21 @@ const TransactionReviewDialog = ({
   const canProceedFromReceipt = !!adminSignature && !!memberSignature;
   const canApprove = stockReceivedConfirmed;
 
+  // Resolve loan pool name for CFT preview
+  const loanMeta = useMemo(() => {
+    try { return JSON.parse(group?.primary?.notes || "{}").loan_repayment || null; } catch { return null; }
+  }, [group?.primary?.id]);
+  const loanPoolId = loanMeta?.loan_pool_ids?.[0] || null;
+  const { data: loanPoolData } = useQuery({
+    queryKey: ["loan_pool_name", loanPoolId],
+    queryFn: async () => {
+      if (!loanPoolId) return null;
+      const { data } = await (supabase as any).from("pools").select("name").eq("id", loanPoolId).maybeSingle();
+      return data;
+    },
+    enabled: !!loanPoolId,
+  });
+
   // Build CFT preview lines (must be before early return)
   const depositPreview = useMemo(() => {
     if (!group) return { glLines: [], controlLines: [], unitLines: [] };
@@ -345,17 +360,20 @@ const TransactionReviewDialog = ({
     }));
     let m: any = {};
     try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
+    const loanRepay = m.loan_repayment
+      ? { amount: Number(m.loan_repayment.amount), poolName: loanPoolData?.name || "Admin" }
+      : null;
     return buildDepositPreview({
       grossAmount: tAmount,
       poolAllocations,
       feeBreakdown: m.fee_breakdown || [],
       joinShare: m.join_share || null,
-      loanRepayment: m.loan_repayment || null,
+      loanRepayment: loanRepay,
       isStockDeposit: m.transaction_kind === "stock_deposit",
       isVatRegistered: m.is_vat_registered ?? false,
       vatRate: Number(m.vat_rate || 0),
     });
-  }, [group?.primary?.id]);
+  }, [group?.primary?.id, loanPoolData?.name]);
 
   if (!group) return null;
 
