@@ -29,7 +29,7 @@ export function buildDepositPreview(params: {
   poolAllocations: { poolName: string; amount: number; unitPrice?: number; units?: number }[];
   feeBreakdown: { name: string; amount: number; vat?: number }[];
   joinShare?: { cost: number; membership_fee: number; membership_fee_vat?: number } | null;
-  loanRepayment?: { amount: number } | null;
+  loanRepayment?: { amount: number; poolName?: string } | null;
   isStockDeposit?: boolean;
   isVatRegistered?: boolean;
   vatRate?: number;
