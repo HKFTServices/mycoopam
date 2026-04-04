@@ -1148,11 +1148,17 @@ const AccountApprovals = () => {
                         ? "Transfer of Units"
                         : (t.payment_method || "").replace(/_/g, " ");
                       const txnLabel = t.transaction_types?.name ?? (code ? code.replace(/_/g, " ") : "Transaction");
-                      const createdDate = new Date(t.created_at).toLocaleDateString();
+                      const txnDate = t.transaction_date ? new Date(t.transaction_date).toLocaleDateString("en-ZA") : null;
+                      const loadDate = new Date(t.created_at).toLocaleDateString("en-ZA");
+                      const showBothDates = txnDate && txnDate !== loadDate;
+                      const displayDate = txnDate || loadDate;
                       const transferTo = meta?.to_account_number ? `To ${meta.to_account_number}` : "";
                       return (
                         <TableRow key={t.id} className="align-top">
-                          <TableCell className="hidden md:table-cell text-sm">{createdDate}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">
+                            <div>{displayDate}</div>
+                            {showBothDates && <div className="text-[10px] text-muted-foreground">Loaded: {loadDate}</div>}
+                          </TableCell>
                           <TableCell className="text-sm font-medium">
                             {t.transaction_types?.code === "TRANSFER"
                               ? <><span className="text-muted-foreground text-xs block">Transferred from</span>{memberName}</>
@@ -1162,7 +1168,7 @@ const AccountApprovals = () => {
                               <span className="font-mono">{formatCurrency(totalAmount)}</span>
                               {paymentLabel ? <span className="capitalize">• {paymentLabel}</span> : null}
                               {transferTo ? <span>• {transferTo}</span> : null}
-                              <span>• {createdDate}</span>
+                              <span>• {displayDate}</span>
                             </div>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-sm">
@@ -1412,9 +1418,14 @@ const AccountApprovals = () => {
                       };
                       const statusCfg = statusConfig[stx.status] ?? statusConfig.pending;
                       const txnDate = stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—";
+                      const loadDate2 = new Date(stx.created_at).toLocaleDateString("en-ZA");
+                      const showBoth2 = txnDate !== "—" && txnDate !== loadDate2;
                       return (
                         <TableRow key={stx.id}>
-                          <TableCell className="hidden md:table-cell text-sm font-mono">{txnDate}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm font-mono">
+                            {txnDate}
+                            {showBoth2 && <div className="text-[10px] text-muted-foreground font-sans">Loaded: {loadDate2}</div>}
+                          </TableCell>
                           <TableCell className="text-sm">
                             <div className="font-medium">{typeLabels[stx.transaction_type_code] ?? stx.transaction_type_code}</div>
                             <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
@@ -1478,9 +1489,14 @@ const AccountApprovals = () => {
                       const cpName = cp ? [cp.name, cp.last_name].filter(Boolean).join(" ") : "—";
                       const isPurchase = stx.transaction_type_code === "STOCK_PURCHASES";
                       const txnDate = stx.transaction_date ? new Date(stx.transaction_date).toLocaleDateString("en-ZA") : "—";
+                      const loadDate3 = new Date(stx.created_at).toLocaleDateString("en-ZA");
+                      const showBoth3 = txnDate !== "—" && txnDate !== loadDate3;
                       return (
                         <TableRow key={stx.id}>
-                          <TableCell className="hidden md:table-cell text-sm font-mono">{txnDate}</TableCell>
+                          <TableCell className="hidden md:table-cell text-sm font-mono">
+                            {txnDate}
+                            {showBoth3 && <div className="text-[10px] text-muted-foreground font-sans">Loaded: {loadDate3}</div>}
+                          </TableCell>
                           <TableCell className="text-sm">
                             <div className="font-medium">{isPurchase ? "Stock Purchase" : "Stock Sale"}</div>
                             <div className="md:hidden mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
