@@ -47,6 +47,7 @@ export interface DateOverride {
   newUnitPrice: number;
   newUnits: number;
   newNetAmount: number;
+  newAmount?: number;
   changeNote: string;
 }
 
