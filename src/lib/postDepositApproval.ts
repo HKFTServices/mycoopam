@@ -708,9 +708,12 @@ export async function postDepositApproval(
     if (!pool) continue;
 
     const ov = overrideMap[txn.id];
-    // For stock deposits: adjust net by the difference between actual and estimated courier fee
+    // Use approver-overridden net amount when available (crypto amount confirmation, courier fee delta, etc.)
+    // This ensures pool allocation, unit price, and units all reflect the final confirmed amount.
     const storedNet = Number(txn.net_amount);
-    const netAmount = isStockDeposit ? Math.max(0, storedNet - courierFeeDelta) : storedNet;
+    const netAmount = ov?.newNetAmount !== undefined ? ov.newNetAmount
+                    : isStockDeposit ? Math.max(0, storedNet - courierFeeDelta)
+                    : storedNet;
     // Use approver-overridden price if provided, else original
     const unitPrice = ov ? ov.newUnitPrice : Number(txn.unit_price);
     // Recalculate units from the adjusted net amount
