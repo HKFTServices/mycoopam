@@ -1033,8 +1033,8 @@ const AccountApprovals = () => {
               <TabsTrigger value="debit-orders" className="gap-1.5">
                 <CreditCard className="h-3.5 w-3.5" />
                 Debit Orders
-                {pendingDebitOrders.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length}</Badge>
+                {(pendingDebitOrders.length + pendingBatches.length) > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length + pendingBatches.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="ledger" className="gap-1.5">
