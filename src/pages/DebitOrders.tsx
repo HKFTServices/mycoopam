@@ -274,6 +274,81 @@ const DebitOrders = () => {
     });
   }, [adminEntityAccounts, adminAccountQuery]);
 
+  // Processable debit orders = loaded + active
+  const processableOrders = useMemo(
+    () => debitOrders.filter((d: any) => d.status === "loaded" && d.is_active),
+    [debitOrders],
+  );
+
+  const toggleSelectOrder = (id: string) => {
+    setSelectedOrderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.size === processableOrders.length) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(processableOrders.map((d: any) => d.id)));
+    }
+  };
+
+  const createBatchMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentTenant || !user || !processingDate) throw new Error("Missing context");
+      const selected = debitOrders.filter((d: any) => selectedOrderIds.has(d.id));
+      if (selected.length === 0) throw new Error("No debit orders selected");
+
+      const totalAmount = selected.reduce((s: number, d: any) => s + Number(d.monthly_amount), 0);
+      const dateStr = format(processingDate, "yyyy-MM-dd");
+
+      // Create batch
+      const { data: batch, error: batchErr } = await (supabase as any)
+        .from("debit_order_batches")
+        .insert({
+          tenant_id: currentTenant.id,
+          processing_date: dateStr,
+          total_amount: totalAmount,
+          item_count: selected.length,
+          created_by: user.id,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (batchErr) throw batchErr;
+
+      // Create batch items
+      for (const d of selected) {
+        const notes = parseNotes(d.notes);
+        const { error } = await (supabase as any)
+          .from("debit_order_batch_items")
+          .insert({
+            batch_id: batch.id,
+            debit_order_id: d.id,
+            tenant_id: currentTenant.id,
+            entity_id: d.entity_id,
+            entity_account_id: d.entity_account_id,
+            monthly_amount: d.monthly_amount,
+            pool_allocations: d.pool_allocations || [],
+            fee_metadata: notes ? { admin_fees: notes.admin_fees, loan_instalment: notes.loan_instalment, net_to_pools: notes.net_to_pools } : {},
+          });
+        if (error) throw error;
+      }
+      return batch;
+    },
+    onSuccess: () => {
+      toast.success("Debit order batch created — awaiting approval");
+      setSelectedOrderIds(new Set());
+      setProcessingDate(undefined);
+      setShowProcessConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
