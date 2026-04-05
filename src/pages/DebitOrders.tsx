@@ -441,8 +441,21 @@ const DebitOrders = () => {
                   const pools = Array.isArray(d.pool_allocations) ? d.pool_allocations : [];
                   const notes = parseNotes(d.notes);
                   const isLoaded = d.status === "loaded";
+                  const isProcessable = isLoaded && d.is_active;
                   return (
                     <TableRow key={d.id} className={!d.is_active && isLoaded ? "opacity-50" : ""}>
+                      {isAdmin && (
+                        <TableCell>
+                          {isProcessable ? (
+                            <Checkbox
+                              checked={selectedOrderIds.has(d.id)}
+                              onCheckedChange={() => toggleSelectOrder(d.id)}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">
                         {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
                       </TableCell>
