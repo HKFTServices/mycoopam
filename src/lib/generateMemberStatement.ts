@@ -190,84 +190,22 @@ export function generateMemberStatement(data: StatementData): string {
 
   // Cash flow section - group by transaction_id to show deposit/withdrawal summaries
   // Columns: Date, Transaction, Gross Amount, Shares, Member Fees, Admin Fees, Nett to Pools
-  interface CashFlowGroup {
-    date: string;
-    type: string;
-    grossAmount: number;
-    shares: number;
-    memberFees: number;
-    adminFees: number;
-    nettToPools: number;
-  }
+  // Cash flow section - data comes pre-built from dialog
+  const cashFlowRows = data.cashflowTransactions;
 
-  const txGroups: Record<string, any[]> = {};
-  for (const tx of data.cashflowTransactions) {
-    const key = tx.group_key || tx.transaction_id || tx.id || `ungrouped_${Math.random()}`;
-    if (!txGroups[key]) txGroups[key] = [];
-    txGroups[key].push(tx);
-  }
-
-  const cashFlowSummaries: CashFlowGroup[] = [];
-  for (const [, entries] of Object.entries(txGroups)) {
-    const bankEntry = entries.find((e: any) => e.is_bank);
-    if (!bankEntry) continue; // Only show transactions that have a bank entry
-    const date = bankEntry.transaction_date || entries[0]?.transaction_date || "";
-    
-    // Gross amount from bank entry
-    const grossDebit = Number(bankEntry.debit || 0);
-    const grossCredit = Number(bankEntry.credit || 0);
-    const grossAmount = grossDebit > 0 ? grossDebit : grossCredit;
-    const isWithdrawal = grossCredit > 0;
-    
-    // Sum up deductions by type
-    let shares = 0;
-    let memberFees = 0;
-    let adminFees = 0;
-    let nettToPools = 0;
-    
-    for (const e of entries) {
-      if (e.is_bank) continue;
-      const et = (e.entry_type || "").toLowerCase();
-      const desc = (e.description || "").toLowerCase();
-      
-      if (et === "share" || desc.includes("joining share") || desc.includes("share capital")) {
-        shares += Number(e.credit || 0) || Number(e.debit || 0);
-      } else if (et === "membership_fee" || (desc.includes("membership fee") && !desc.includes("income"))) {
-        memberFees += Number(e.credit || 0) || Number(e.debit || 0);
-      } else if (et === "fee" || et === "fee_income" || (desc.includes("fee") && !desc.includes("membership"))) {
-        adminFees += Number(e.credit || 0) || Number(e.debit || 0);
-      } else if (et === "member_interest" || et === "pool_allocation" || et === "pool_redemption") {
-        nettToPools += Number(e.credit || 0) || Number(e.debit || 0);
-      }
-    }
-    
-    // Determine transaction type label
-    const rawLabel = bankEntry.description || bankEntry.entry_type || "";
-    const typeLabel = cleanEntryType(rawLabel, grossDebit, grossCredit);
-    
-    cashFlowSummaries.push({ date, type: typeLabel, grossAmount, shares, memberFees, adminFees, nettToPools });
-  }
-
-  // Sort by date
-  cashFlowSummaries.sort((a, b) => a.date.localeCompare(b.date));
-
-  const cashRows = cashFlowSummaries.map((row) => {
+  const cashRows = cashFlowRows.map((row: any) => {
     return `<tr>
-      <td>${fmtDate(row.date)}</td>
+      <td>${fmtDate(row.transaction_date)}</td>
       <td>${row.type}</td>
       <td class="num">${row.grossAmount > 0 ? fmtNum(row.grossAmount, sym) : ""}</td>
-      <td class="num">${row.shares > 0 ? fmtNum(row.shares, sym) : ""}</td>
-      <td class="num">${row.memberFees > 0 ? fmtNum(row.memberFees, sym) : ""}</td>
-      <td class="num">${row.adminFees > 0 ? fmtNum(row.adminFees, sym) : ""}</td>
-      <td class="num">${row.nettToPools > 0 ? fmtNum(row.nettToPools, sym) : ""}</td>
+      <td class="num">${row.feeAmount > 0 ? fmtNum(row.feeAmount, sym) : ""}</td>
+      <td class="num">${row.netAmount > 0 ? fmtNum(row.netAmount, sym) : ""}</td>
     </tr>`;
   }).join("");
 
-  const cashGrossTotal = cashFlowSummaries.reduce((s, r) => s + r.grossAmount, 0);
-  const cashSharesTotal = cashFlowSummaries.reduce((s, r) => s + r.shares, 0);
-  const cashMemberFeesTotal = cashFlowSummaries.reduce((s, r) => s + r.memberFees, 0);
-  const cashAdminFeesTotal = cashFlowSummaries.reduce((s, r) => s + r.adminFees, 0);
-  const cashNettTotal = cashFlowSummaries.reduce((s, r) => s + r.nettToPools, 0);
+  const cashGrossTotal = cashFlowRows.reduce((s: number, r: any) => s + r.grossAmount, 0);
+  const cashFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + r.feeAmount, 0);
+  const cashNettTotal = cashFlowRows.reduce((s: number, r: any) => s + r.netAmount, 0);
 
   // Stock flow section
   const stockRows = data.stockTransactions.map((tx: any) => {
