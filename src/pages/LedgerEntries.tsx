@@ -900,7 +900,7 @@ const LedgerEntries = () => {
   });
 
   const payCommissionMutation = useMutation({
-    mutationFn: async ({ commission, reference }: { commission: Commission; reference: string }) => {
+    mutationFn: async ({ commissions, reference }: { commissions: Commission[]; reference: string }) => {
       if (!currentTenant || !user) throw new Error("Missing context");
 
       const { data: tenantCfg } = await (supabase as any)
@@ -915,16 +915,19 @@ const LedgerEntries = () => {
       if (!bankGlAccountId) throw new Error("Bank GL account not configured in Tenant Setup");
       if (!commissionPaidGlAccountId) throw new Error("Commission Paid GL account not configured in Tenant Setup");
 
-      const isHouseVatRegistered = commission.referral_house?.is_vat_registered || false;
+      const isHouseVatRegistered = commissions[0]?.referral_house?.is_vat_registered || false;
       const vatRate = isHouseVatRegistered ? (taxTypes.find((t) => t.percentage > 0)?.percentage || 0) : 0;
-      const commExclVat = commission.commission_amount;
-      const commVat = isHouseVatRegistered ? Math.round(commExclVat * (vatRate / 100) * 100) / 100 : 0;
-      const commInclVat = commExclVat + commVat;
+
+      // Aggregate totals across all commissions in the batch
+      const totalExclVat = commissions.reduce((s, c) => s + Number(c.commission_amount), 0);
+      const totalVat = isHouseVatRegistered ? Math.round(totalExclVat * (vatRate / 100) * 100) / 100 : 0;
+      const totalInclVat = totalExclVat + totalVat;
 
       const { data: cashAccount } = await (supabase as any)
         .from("control_accounts").select("id").eq("tenant_id", currentTenant.id)
         .ilike("account_type", "cash").limit(1).maybeSingle();
 
+      // Create a single bank CFT entry for the full batch
       const { data: cft, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
         transaction_date: formatLocalDate(),
@@ -933,10 +936,10 @@ const LedgerEntries = () => {
         status: "posted",
         control_account_id: cashAccount?.id || null,
         debit: 0,
-        credit: commInclVat,
-        amount_excl_vat: commExclVat,
-        vat_amount: commVat,
-        description: `Commission payment${isHouseVatRegistered ? " (incl VAT)" : ""}`,
+        credit: totalInclVat,
+        amount_excl_vat: totalExclVat,
+        vat_amount: totalVat,
+        description: `Commission payment (${commissions.length} items)${isHouseVatRegistered ? " (incl VAT)" : ""}`,
         reference: reference || null,
         posted_by: user.id,
         gl_account_id: bankGlAccountId,
@@ -953,18 +956,18 @@ const LedgerEntries = () => {
         status: "posted",
         parent_id: cft.id,
         control_account_id: null,
-        debit: commExclVat,
+        debit: totalExclVat,
         credit: 0,
-        amount_excl_vat: commExclVat,
+        amount_excl_vat: totalExclVat,
         vat_amount: 0,
-        description: "Commission payment",
+        description: `Commission payment (${commissions.length} items)`,
         reference: reference || null,
         posted_by: user.id,
         gl_account_id: commissionPaidGlAccountId,
       });
       if (expenseErr) throw expenseErr;
 
-      if (commVat > 0 && vatGlAccountId) {
+      if (totalVat > 0 && vatGlAccountId) {
         await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: formatLocalDate(),
@@ -972,10 +975,10 @@ const LedgerEntries = () => {
           status: "posted",
           parent_id: cft.id,
           control_account_id: null,
-          debit: commVat,
+          debit: totalVat,
           credit: 0,
           amount_excl_vat: 0,
-          vat_amount: commVat,
+          vat_amount: totalVat,
           description: `Commission payment VAT`,
           reference: reference || null,
           posted_by: user.id,
@@ -983,22 +986,25 @@ const LedgerEntries = () => {
         });
       }
 
-      const { error: e2 } = await (supabase as any).from("commissions")
-        .update({
-          status: "paid",
-          paid_at: new Date().toISOString(),
-          paid_by: user.id,
-          payment_date: formatLocalDate(),
-          payment_reference: reference || null,
-          cashflow_transaction_id: cft.id,
-        }).eq("id", commission.id);
-      if (e2) throw e2;
+      // Mark all commissions in the batch as paid
+      for (const commission of commissions) {
+        const { error: e2 } = await (supabase as any).from("commissions")
+          .update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            paid_by: user.id,
+            payment_date: formatLocalDate(),
+            payment_reference: reference || null,
+            cashflow_transaction_id: cft.id,
+          }).eq("id", commission.id);
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending_commissions"] });
       setPayCommDialog(null);
       setPayReference("");
-      toast.success("Commission marked as paid");
+      toast.success("All commissions for this house marked as paid");
     },
     onError: (e: Error) => toast.error(e.message),
   });
