@@ -345,6 +345,32 @@ const DebitOrderSignUpDialog = ({
     enabled: !!entityAccountId && !!currentTenant && open,
   });
 
+  // Fetch referrer commission info for this entity
+  const { data: referrerCommission } = useQuery({
+    queryKey: ["debit_order_referrer_commission", entityId, currentTenant?.id],
+    queryFn: async () => {
+      if (!entityId || !currentTenant) return null;
+      const { data: ent } = await (supabase as any)
+        .from("entities")
+        .select("agent_commission_percentage, agent_house_agent_id")
+        .eq("id", entityId)
+        .single();
+      if (ent?.agent_house_agent_id && Number(ent.agent_commission_percentage) > 0) {
+        const { data: ref } = await (supabase as any)
+          .from("referrers")
+          .select("entity_id, entities!inner(name, last_name)")
+          .eq("id", ent.agent_house_agent_id)
+          .single();
+        return {
+          percentage: Number(ent.agent_commission_percentage),
+          referrerName: ref ? [ref.entities?.name, ref.entities?.last_name].filter(Boolean).join(" ") : "Referrer",
+        };
+      }
+      return null;
+    },
+    enabled: !!entityId && !!currentTenant && open,
+  });
+
   // Fee rules for deposit transaction type
   const { data: depositFeeRules = [] } = useQuery({
     queryKey: ["debit_order_fee_rules", currentTenant?.id],
