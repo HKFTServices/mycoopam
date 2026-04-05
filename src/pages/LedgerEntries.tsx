@@ -1167,10 +1167,6 @@ const LedgerEntries = () => {
                                       <p className="font-mono text-right">{c.commission_percentage}%</p>
                                     </div>
                                   </div>
-
-                                  <Button className="w-full" size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
-                                    <DollarSign className="h-4 w-4 mr-1" /> Pay
-                                  </Button>
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
@@ -1191,6 +1187,9 @@ const LedgerEntries = () => {
                           <span className="font-semibold min-w-0">Total Payable (incl VAT)</span>
                           <span className="font-mono font-bold text-primary text-right break-all max-w-[55%]">{formatCurrency(totalInclVat)}</span>
                         </div>
+                        <Button className="w-full mt-3" size="sm" variant="outline" onClick={() => { setPayCommDialog(commissions); setPayReference(""); }}>
+                          <DollarSign className="h-4 w-4 mr-1" /> Pay All ({commissions.length})
+                        </Button>
                       </div>
                     </div>
 
