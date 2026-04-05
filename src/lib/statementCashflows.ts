@@ -240,6 +240,6 @@ export const buildStatementCashflows = (approvedTransactions: any[], cashflowEnt
     .filter(Boolean);
 
   return [...modernRows, ...legacyRows]
-    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0)
+    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0 || tx!.loans > 0)
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 };
