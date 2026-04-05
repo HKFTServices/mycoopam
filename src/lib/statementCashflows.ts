@@ -18,7 +18,7 @@ const NET_TO_POOL_ENTRY_TYPES = new Set([
 ]);
 const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror", "pool_withdrawal", "pool_redemption"]);
 
-const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Instalment"]);
+const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Payout"]);
 
 const isLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
@@ -136,6 +136,7 @@ const summarizeCashflowRow = ({
   let memberFees = 0;
   let adminFees = 0;
   let nettToPools = 0;
+  let loans = 0;
 
   for (const entry of linkedEntries) {
     const entryType = normalize(entry?.entry_type);
@@ -144,9 +145,9 @@ const summarizeCashflowRow = ({
 
     if (!amount || IGNORE_ENTRY_TYPES.has(entryType)) continue;
 
-    if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
-      bankAmount += amount;
-    } else if (isLoanEntry(entry)) {
+    if (isLoanEntry(entry)) {
+      loans += amount;
+    } else if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
       bankAmount += amount;
     } else if (entryType.includes("share") || description.includes("share")) {
       shares += amount;
@@ -186,6 +187,7 @@ const summarizeCashflowRow = ({
     memberFees: memberFees,
     adminFees: fallbackAdminFees,
     nettToPools: fallbackNettToPools,
+    loans: loans,
   };
 };
 
