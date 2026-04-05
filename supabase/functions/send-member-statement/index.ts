@@ -803,6 +803,7 @@ async function generateStatementPdf(data: {
     const cashSharesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.shares || 0), 0);
     const cashMemberFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.memberFees || 0), 0);
     const cashAdminFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.adminFees || 0), 0);
+    const cashLoansTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.loans || 0)), 0);
     const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.nettToPools || 0)), 0);
     const cashRows = data.cashflowTransactions.map((tx: any) => [
       fmtDate(tx.transaction_date),
@@ -811,18 +812,20 @@ async function generateStatementPdf(data: {
       tx.shares > 0 ? fmtCurrency(tx.shares, sym) : "",
       tx.memberFees > 0 ? fmtCurrency(tx.memberFees, sym) : "",
       tx.adminFees > 0 ? fmtCurrency(tx.adminFees, sym) : "",
+      tx.loans > 0 ? fmtCurrency(tx.isOutflow ? -tx.loans : tx.loans, sym) : "",
       tx.nettToPools > 0 ? fmtCurrency(tx.isOutflow ? -tx.nettToPools : tx.nettToPools, sym) : "",
     ]);
     y = drawTable(doc, {
       startY: y,
       columns: [
-        { header: "Date", width: 20, align: "left" },
-        { header: "Transaction", width: 36, align: "left" },
-        { header: "Gross Amt", width: 26, align: "right" },
-        { header: "Shares", width: 22, align: "right" },
-        { header: "Mbr Fees", width: 24, align: "right" },
-        { header: "Admin Fees", width: 26, align: "right" },
-        { header: "Nett to/from", width: 26, align: "right" },
+        { header: "Date", width: 18, align: "left" },
+        { header: "Transaction", width: 30, align: "left" },
+        { header: "Gross Amt", width: 24, align: "right" },
+        { header: "Shares", width: 20, align: "right" },
+        { header: "Mbr Fees", width: 20, align: "right" },
+        { header: "Admin Fees", width: 22, align: "right" },
+        { header: "Loans", width: 22, align: "right" },
+        { header: "Nett to/from", width: 24, align: "right" },
       ],
       rows: cashRows,
       totalRow: [
@@ -831,6 +834,7 @@ async function generateStatementPdf(data: {
         cashSharesTotal > 0 ? fmtCurrency(cashSharesTotal, sym) : "",
         cashMemberFeesTotal > 0 ? fmtCurrency(cashMemberFeesTotal, sym) : "",
         cashAdminFeesTotal > 0 ? fmtCurrency(cashAdminFeesTotal, sym) : "",
+        cashLoansTotal !== 0 ? fmtCurrency(cashLoansTotal, sym) : "",
         fmtCurrency(cashNettTotal, sym),
       ],
     });
