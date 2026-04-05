@@ -212,8 +212,11 @@ const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: a
   const legacyRows = Array.from(groupedEntries.entries())
     .filter(([groupKey]) => !consumedGroups.has(groupKey) && groupKey.startsWith("legacy:"))
     .map(([, linkedEntries]) => {
-      const typeLabel = classifyLegacyGroup(linkedEntries);
+      let typeLabel = classifyLegacyGroup(linkedEntries);
       if (!typeLabel) return null;
+
+      // Loan Instalment is part of a deposit split — show as "Deposit Funds"
+      if (typeLabel === "Loan Instalment") typeLabel = "Deposit Funds";
 
       const transactionDate = linkedEntries
         .map((entry) => String(entry?.transaction_date || ""))
@@ -229,7 +232,7 @@ const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: a
     .filter(Boolean);
 
   return [...modernRows, ...legacyRows]
-    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0)
+    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0 || tx!.loans > 0)
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 };
 
