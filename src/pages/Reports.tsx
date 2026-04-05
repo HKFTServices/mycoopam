@@ -57,19 +57,21 @@ const Reports = () => {
     enabled: !!user,
   });
 
-  // Fetch tenant registration date for "Full History" preset
-  const { data: tenantRegistrationDate } = useQuery({
-    queryKey: ["tenant_reg_date", tenantId],
+  // Fetch tenant config for FY end month and registration date
+  const { data: tenantConfig } = useQuery({
+    queryKey: ["tenant_config_reports", tenantId],
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("tenant_configuration")
-        .select("registration_date")
+        .select("registration_date, financial_year_end_month")
         .eq("tenant_id", tenantId)
         .maybeSingle();
-      return data?.registration_date || null;
+      return data || null;
     },
     enabled: !!tenantId,
   });
+  const tenantRegistrationDate = tenantConfig?.registration_date || null;
+  const fyEndMonth: number = tenantConfig?.financial_year_end_month ?? 2; // default Feb
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
