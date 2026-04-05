@@ -91,7 +91,22 @@ export async function postDepositApproval(
   // Use override date for primary if provided, else original
   const primaryOverride = overrideMap[primaryTxn.id];
   const txnDate = primaryOverride?.newDate || primaryFull.transaction_date;
-  const grossAmount = Number(primaryFull.amount);
+  // Build effective txn data using override values when crypto amount was confirmed
+  const effectiveFullTxns = fullTxns.map((txn: any) => {
+    const ov = overrideMap[txn.id];
+    return {
+      ...txn,
+      amount: Number(ov?.newAmount ?? txn.amount ?? 0),
+      net_amount: Number(ov?.newNetAmount ?? txn.net_amount ?? 0),
+      unit_price: Number(ov?.newUnitPrice ?? txn.unit_price ?? 0),
+      units: Number(ov?.newUnits ?? txn.units ?? 0),
+      transaction_date: ov?.newDate || txn.transaction_date,
+    };
+  });
+  const storedGrossAmount = fullTxns.reduce((sum: number, txn: any) => sum + Number(txn.amount || 0), 0);
+  const grossAmount = effectiveFullTxns.reduce((sum: number, txn: any) => sum + Number(txn.amount || 0), 0);
+  // Scale fees/commissions proportionally when admin confirmed a different crypto amount
+  const amountRatio = storedGrossAmount > 0 ? grossAmount / storedGrossAmount : 1;
 
   // Fetch pool details (with cash control account IDs)
   const poolIds = [...new Set(fullTxns.map((t: any) => t.pool_id).filter(Boolean))];
@@ -367,14 +382,14 @@ export async function postDepositApproval(
   });
 
   for (const fee of feeEntries) {
-    const feeAmountInclVat = Number(fee.amount || 0);
+    const feeAmountInclVat = Number(fee.amount || 0) * amountRatio;
     if (feeAmountInclVat <= 0) continue;
     // Recompute VAT at approval time using the CURRENT tenant VAT registration status & rate.
     // The snapshot in fee.vat may reflect a stale state (e.g. VAT was activated after the txn was created).
     // fee.amount is stored inclusive of VAT, so we need to back-calculate excl-VAT then reapply current rate.
     // However, if VAT was NOT registered at creation, fee.amount == fee excl VAT.
     // Strategy: treat stored fee.vat as the "old" VAT; the excl-VAT base is always (amount - oldVat).
-    const oldFeeVat = Number(fee.vat || 0);
+    const oldFeeVat = Number(fee.vat || 0) * amountRatio;
     const feeBase = feeAmountInclVat - oldFeeVat; // excl-VAT base (always correct regardless of old status)
     const feeVat = isVatRegistered && vatRate > 0 ? Math.round(feeBase * (vatRate / 100) * 100) / 100 : 0;
     const feeAmount = feeBase + feeVat; // recalculated total incl current VAT
@@ -563,8 +578,8 @@ export async function postDepositApproval(
   // ─── 5. Commission ───
   const commissionEntry = feeBreakdown.find((f: any) => f.name.toLowerCase().includes("commission"));
   if (commissionEntry && Number(commissionEntry.amount) > 0) {
-    const commAmountInclVat = Number(commissionEntry.amount);
-    const oldCommVat = Number(commissionEntry.vat || 0);
+    const commAmountInclVat = Number(commissionEntry.amount || 0) * amountRatio;
+    const oldCommVat = Number(commissionEntry.vat || 0) * amountRatio;
     const commBase = commAmountInclVat - oldCommVat; // excl-VAT commission base
     const commVat = isVatRegistered && vatRate > 0 ? Math.round(commBase * (vatRate / 100) * 100) / 100 : 0;
     const commAmount = commBase + commVat;
@@ -702,7 +717,7 @@ export async function postDepositApproval(
   const estimatedCourierFee = isStockDeposit ? Number(meta.courier?.fee ?? 0) : 0;
   const courierFeeDelta = isStockDeposit ? (courierFeeActual - estimatedCourierFee) : 0;
 
-  for (const txn of fullTxns) {
+  for (const txn of effectiveFullTxns) {
     const poolId = txn.pool_id;
     const pool = poolMap[poolId];
     if (!pool) continue;
