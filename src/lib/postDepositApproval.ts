@@ -159,12 +159,18 @@ export async function postDepositApproval(
       updatePayload.transaction_date = ov.newDate;
       updatePayload.unit_price = ov.newUnitPrice;
       updatePayload.units = ov.newUnits;
+      if (ov.newNetAmount !== undefined) {
+        updatePayload.net_amount = ov.newNetAmount;
+      }
+      if (ov.newAmount !== undefined) {
+        updatePayload.amount = ov.newAmount;
+      }
       // Append audit change note to existing notes
       let existingMeta: any = {};
       try { existingMeta = JSON.parse(txn.notes || "{}"); } catch {}
       const auditLog = existingMeta.audit_log || [];
       auditLog.push({
-        type: "date_change",
+        type: ov.newAmount !== undefined ? "crypto_amount_confirmed" : "date_change",
         changed_by: approvedBy,
         changed_at: new Date().toISOString(),
         original_date: txn.transaction_date,
@@ -173,6 +179,7 @@ export async function postDepositApproval(
         new_unit_price: ov.newUnitPrice,
         original_units: Number(txn.units),
         new_units: ov.newUnits,
+        ...(ov.newAmount !== undefined ? { original_amount: Number(txn.amount), new_amount: ov.newAmount } : {}),
         note: ov.changeNote,
       });
       updatePayload.notes = JSON.stringify({ ...existingMeta, audit_log: auditLog });
