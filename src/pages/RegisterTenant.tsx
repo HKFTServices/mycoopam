@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,8 @@ const RegisterTenant = () => {
   // ─── Step 1: Co-op + Admin credentials ───
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const slugCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -298,9 +300,27 @@ const RegisterTenant = () => {
     return slug;
   };
 
+  const checkSlugAvailability = (s: string) => {
+    if (slugCheckTimer.current) clearTimeout(slugCheckTimer.current);
+    if (!s || s.length < 2) { setSlugStatus("idle"); return; }
+    setSlugStatus("checking");
+    slugCheckTimer.current = setTimeout(async () => {
+      const { data } = await supabase.from("tenants").select("id").eq("slug", s).maybeSingle();
+      setSlugStatus(data ? "taken" : "available");
+    }, 500);
+  };
+
   const handleNameChange = (value: string) => {
     setName(value);
-    setSlug(generateSmartSlug(value));
+    const newSlug = generateSmartSlug(value);
+    setSlug(newSlug);
+    checkSlugAvailability(newSlug);
+  };
+
+  const handleSlugChange = (value: string) => {
+    const clean = value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 6);
+    setSlug(clean);
+    checkSlugAvailability(clean);
   };
 
   const resizeImage = (file: File, maxSize: number): Promise<File> => {
@@ -754,13 +774,20 @@ const RegisterTenant = () => {
                     <Label htmlFor="name">Co-operative Name</Label>
                     <Input id="name" placeholder="e.g. Precious Metals Connect" value={name} onChange={(e) => handleNameChange(e.target.value)} required maxLength={100} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="slug">URL Slug</Label>
-                    <div className="flex items-center gap-2">
-                      <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 6))} required maxLength={6} />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">.myco-op.co.za</span>
+                   <div className="space-y-2">
+                     <Label htmlFor="slug">URL Slug</Label>
+                     <div className="flex items-center gap-2">
+                       <div className="relative flex-1">
+                         <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => handleSlugChange(e.target.value)} required maxLength={6} className={slugStatus === "taken" ? "border-destructive" : slugStatus === "available" ? "border-green-500" : ""} />
+                         {slugStatus === "checking" && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                         {slugStatus === "available" && <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />}
+                         {slugStatus === "taken" && <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />}
+                       </div>
+                       <span className="text-sm text-muted-foreground whitespace-nowrap">.myco-op.co.za</span>
+                     </div>
+                     {slugStatus === "taken" && <p className="text-xs text-destructive">This slug is already taken. Please choose another.</p>}
+                     {slugStatus === "available" && <p className="text-xs text-green-600">This slug is available!</p>}
                     </div>
-                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registrationNumber">Registration Number *</Label>
                     <Input id="registrationNumber" placeholder="e.g. 2025/624300/07" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} required maxLength={50} />
