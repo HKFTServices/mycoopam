@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Check role
     const { data: roles } = await admin
       .from("user_roles")
-      .select("role")
+      .select("role, tenant_id")
       .eq("user_id", user.id);
     const userRoles = (roles ?? [])
       .filter((r: any) => r.tenant_id === tenantId || r.tenant_id === null)
