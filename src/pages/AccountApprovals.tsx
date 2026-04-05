@@ -794,6 +794,59 @@ const AccountApprovals = () => {
   });
   const approvalSym = tenantConfigApproval?.currency_symbol ?? "R";
 
+  // ─── Debit Order Batch Approvals ───
+  const { data: pendingBatches = [], isLoading: loadingBatches } = useQuery({
+    queryKey: ["pending_debit_batches", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("debit_order_batches")
+        .select("*")
+        .eq("tenant_id", currentTenant.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      for (const batch of (data ?? [])) {
+        const { data: items } = await (supabase as any)
+          .from("debit_order_batch_items")
+          .select("*, entities(name, last_name), entity_accounts(account_number)")
+          .eq("batch_id", batch.id);
+        batch.items = items ?? [];
+      }
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const approveBatchMutation = useMutation({
+    mutationFn: async ({ batchId, action, declineReason: reason }: { batchId: string; action: "approve" | "decline"; declineReason?: string }) => {
+      if (action === "decline") {
+        const { error } = await (supabase as any)
+          .from("debit_order_batches")
+          .update({
+            status: "declined",
+            declined_by: currentUser?.id,
+            declined_at: new Date().toISOString(),
+            declined_reason: reason || "Declined",
+          })
+          .eq("id", batchId);
+        if (error) throw error;
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("process-debit-order-batch", {
+        body: { batch_id: batchId, action: "approve" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: (_, { action }) => {
+      toast.success(action === "approve" ? "Batch approved & processed — deposit transactions created" : "Batch declined");
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_batches"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   // ─── Ledger Entry Approvals ───
   const { data: pendingLedgerEntries = [], isLoading: pendingLedgerLoading } = useQuery({
     queryKey: ["cft_pending_entries", currentTenant?.id],
