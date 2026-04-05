@@ -202,7 +202,7 @@ export function generateMemberStatement(data: StatementData): string {
 
   const txGroups: Record<string, any[]> = {};
   for (const tx of data.cashflowTransactions) {
-    const key = tx.transaction_id || tx.id || `ungrouped_${Math.random()}`;
+    const key = tx.group_key || tx.transaction_id || tx.id || `ungrouped_${Math.random()}`;
     if (!txGroups[key]) txGroups[key] = [];
     txGroups[key].push(tx);
   }
@@ -210,12 +210,14 @@ export function generateMemberStatement(data: StatementData): string {
   const cashFlowSummaries: CashFlowGroup[] = [];
   for (const [, entries] of Object.entries(txGroups)) {
     const bankEntry = entries.find((e: any) => e.is_bank);
-    const date = entries[0]?.transaction_date || "";
+    if (!bankEntry) continue; // Only show transactions that have a bank entry
+    const date = bankEntry.transaction_date || entries[0]?.transaction_date || "";
     
-    // Determine gross amount from bank entry
-    const grossDebit = bankEntry ? Number(bankEntry.debit || 0) : 0;
-    const grossCredit = bankEntry ? Number(bankEntry.credit || 0) : 0;
-    const grossAmount = grossDebit > 0 ? grossDebit : grossCredit > 0 ? -grossCredit : 0;
+    // Gross amount from bank entry
+    const grossDebit = Number(bankEntry.debit || 0);
+    const grossCredit = Number(bankEntry.credit || 0);
+    const grossAmount = grossDebit > 0 ? grossDebit : grossCredit;
+    const isWithdrawal = grossCredit > 0;
     
     // Sum up deductions by type
     let shares = 0;
@@ -225,32 +227,25 @@ export function generateMemberStatement(data: StatementData): string {
     
     for (const e of entries) {
       if (e.is_bank) continue;
-      const amt = Number(e.debit || 0) + Number(e.credit || 0);
       const et = (e.entry_type || "").toLowerCase();
       const desc = (e.description || "").toLowerCase();
-      if (et === "share" || desc.includes("share")) {
-        shares += amt;
-      } else if (et === "membership_fee" || desc.includes("membership fee")) {
-        memberFees += amt;
-      } else if (et === "fee" || desc.includes("fee")) {
-        adminFees += amt;
-      } else if (et === "pool_allocation" || et === "pool_redemption") {
-        nettToPools += Number(e.debit || 0) - Number(e.credit || 0);
+      
+      if (et === "share" || desc.includes("joining share") || desc.includes("share capital")) {
+        shares += Number(e.credit || 0) || Number(e.debit || 0);
+      } else if (et === "membership_fee" || (desc.includes("membership fee") && !desc.includes("income"))) {
+        memberFees += Number(e.credit || 0) || Number(e.debit || 0);
+      } else if (et === "fee" || et === "fee_income" || (desc.includes("fee") && !desc.includes("membership"))) {
+        adminFees += Number(e.credit || 0) || Number(e.debit || 0);
+      } else if (et === "member_interest" || et === "pool_allocation" || et === "pool_redemption") {
+        nettToPools += Number(e.credit || 0) || Number(e.debit || 0);
       }
     }
     
     // Determine transaction type label
-    let typeLabel = "Transaction";
-    if (bankEntry) {
-      const rawLabel = bankEntry.description || bankEntry.entry_type || "";
-      typeLabel = cleanEntryType(rawLabel, grossDebit, grossCredit);
-    } else {
-      const firstEntry = entries[0];
-      const rawLabel = firstEntry?.description || firstEntry?.entry_type || "";
-      typeLabel = cleanEntryType(rawLabel, Number(firstEntry?.debit || 0), Number(firstEntry?.credit || 0));
-    }
+    const rawLabel = bankEntry.description || bankEntry.entry_type || "";
+    const typeLabel = cleanEntryType(rawLabel, grossDebit, grossCredit);
     
-    cashFlowSummaries.push({ date, type: typeLabel, grossAmount: Math.abs(grossAmount), shares, memberFees, adminFees, nettToPools: Math.abs(nettToPools) });
+    cashFlowSummaries.push({ date, type: typeLabel, grossAmount, shares, memberFees, adminFees, nettToPools });
   }
 
   // Sort by date
