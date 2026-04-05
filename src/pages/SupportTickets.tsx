@@ -56,21 +56,34 @@ export default function SupportTickets() {
   const isTenantAdmin = userRoles.some((r: any) => r.role === "tenant_admin" && (!r.tenant_id || r.tenant_id === tenantId));
   const isAdmin = isSuperAdmin || isTenantAdmin;
 
-  // Fetch tickets
+  // Fetch tickets – super admins see all tenants, others see current tenant only
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ["support_tickets", tenantId],
+    queryKey: ["support_tickets", tenantId, isSuperAdmin],
     queryFn: async () => {
-      if (!tenantId) return [];
-      const { data, error } = await (supabase as any)
-        .from("support_tickets")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .order("created_at", { ascending: false });
+      let q = (supabase as any).from("support_tickets").select("*").order("created_at", { ascending: false });
+      if (!isSuperAdmin) {
+        if (!tenantId) return [];
+        q = q.eq("tenant_id", tenantId);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!tenantId,
+    enabled: isSuperAdmin || !!tenantId,
   });
+
+  // Fetch tenant names for super admin view
+  const ticketTenantIds = [...new Set(tickets.map((t: any) => t.tenant_id))] as string[];
+  const { data: ticketTenants = [] } = useQuery({
+    queryKey: ["tenants_for_tickets", ticketTenantIds],
+    queryFn: async () => {
+      if (!ticketTenantIds.length) return [];
+      const { data } = await supabase.from("tenants" as any).select("id, name").in("id", ticketTenantIds);
+      return data ?? [];
+    },
+    enabled: isSuperAdmin && ticketTenantIds.length > 0,
+  });
+  const tenantMap = Object.fromEntries(ticketTenants.map((t: any) => [t.id, t.name]));
 
   // Fetch profiles for display names
   const creatorIds = [...new Set(tickets.map((t: any) => t.created_by))] as string[];
@@ -228,6 +241,9 @@ export default function SupportTickets() {
                       <div>
                         <p className="font-medium text-sm truncate">{t.subject}</p>
                         {isAdmin && <p className="text-xs text-muted-foreground">{getName(profile)}</p>}
+                        {isSuperAdmin && tenantMap[t.tenant_id] && (
+                          <p className="text-xs text-muted-foreground/60">{tenantMap[t.tenant_id]}</p>
+                        )}
                       </div>
                       <Badge variant="secondary" className={cn("text-xs shrink-0", statusColors[t.status])}>
                         {t.status.replace("_", " ")}
