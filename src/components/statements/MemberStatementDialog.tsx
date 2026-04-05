@@ -218,11 +218,13 @@ export default function MemberStatementDialog({
       }));
       const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
+        transaction_id: tx.transaction_id || tx.id || "",
         entry_type: tx.entry_type || "",
         description: tx.description || "",
         pool_name: tx.pool_name || "",
         debit: Number(tx.debit || 0),
         credit: Number(tx.credit || 0),
+        is_bank: tx.is_bank ?? false,
       }));
       const allCashflows = [...currentCft, ...legacyCft]
         .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
