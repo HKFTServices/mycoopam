@@ -75,6 +75,7 @@ import LoanApplications from "./pages/LoanApplications";
 import DebitOrders from "./pages/DebitOrders";
 import Notifications from "./pages/Notifications";
 import LegacyGlAllocation from "./pages/LegacyGlAllocation";
+import SupportTickets from "./pages/SupportTickets";
 import CookiePolicy from "./pages/CookiePolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
