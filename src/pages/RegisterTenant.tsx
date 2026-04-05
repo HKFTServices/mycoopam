@@ -934,10 +934,10 @@ const RegisterTenant = () => {
                                   </>
                                 )}
 
-                                {/* Core features */}
+                                {/* Inclusions */}
                                 <Separator />
                                 <div className="space-y-1.5">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Includes</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Inclusions</p>
                                   {[
                                     "Member administration",
                                     "Entity & account management",
@@ -950,11 +950,33 @@ const RegisterTenant = () => {
                                       "Daily pool price updates",
                                       "Deposits, withdrawals & switches",
                                       "Fee engine & sliding scales",
-                                       "Stock purchases & sales",
+                                      "Stock purchases & sales",
                                     ] : []),
                                   ].map((f) => (
                                     <div key={f} className="flex items-start gap-2 text-xs">
                                       <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                      <span>{f}</span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Exclusions */}
+                                <div className="space-y-1.5 mt-3">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Exclusions</p>
+                                  {[
+                                    ...(hasPooling ? [] : [
+                                      "Investment pools & unit pricing",
+                                      "Daily pool price updates",
+                                      "Deposits, withdrawals & switches",
+                                      "Fee engine & sliding scales",
+                                      "Stock purchases & sales",
+                                    ]),
+                                    "Custom integrations",
+                                    "Data migration from legacy systems",
+                                    "On-site training",
+                                  ].map((f) => (
+                                    <div key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                      <Minus className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                                       <span>{f}</span>
                                     </div>
                                   ))}
