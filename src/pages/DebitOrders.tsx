@@ -834,6 +834,89 @@ const DebitOrders = () => {
           accountNumber={signUpEntity.accountNumber}
         />
       )}
+
+      {/* Process Debit Orders Confirmation Dialog */}
+      <Dialog open={showProcessConfirm} onOpenChange={setShowProcessConfirm}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Play className="h-5 w-5" />
+              Process Debit Orders
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You have selected <span className="font-bold text-foreground">{selectedOrderIds.size}</span> debit order(s) for processing.
+              This will create a batch for approval. Once approved, deposit fund transactions will be created automatically.
+            </p>
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total amount</span>
+                <span className="font-mono font-bold">
+                  {formatCurrency(
+                    debitOrders
+                      .filter((d: any) => selectedOrderIds.has(d.id))
+                      .reduce((s: number, d: any) => s + Number(d.monthly_amount), 0),
+                    sym,
+                  )}
+                </span>
+              </div>
+              <Separator />
+              <div className="space-y-1">
+                {debitOrders
+                  .filter((d: any) => selectedOrderIds.has(d.id))
+                  .map((d: any) => (
+                    <div key={d.id} className="flex justify-between text-xs">
+                      <span className="truncate max-w-[200px]">
+                        {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
+                      </span>
+                      <span className="font-mono">{formatCurrency(d.monthly_amount, sym)}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Processing Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !processingDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {processingDate ? format(processingDate, "PPP") : "Select processing date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={processingDate}
+                    onSelect={setProcessingDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowProcessConfirm(false)}>Cancel</Button>
+            <Button
+              onClick={() => createBatchMutation.mutate()}
+              disabled={!processingDate || createBatchMutation.isPending}
+              className="gap-2"
+            >
+              {createBatchMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Submit for Approval
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
