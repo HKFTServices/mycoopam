@@ -130,6 +130,7 @@ export default function MemberStatementDialog({
         (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)")
           .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
           .eq("is_active", true).like("entry_type", "loan_%")
+          .is("legacy_transaction_id", null)
           .order("transaction_date", { ascending: true }),
         // Grant transactions: grant_control credit entries represent grants paid to member
         (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, credit")
@@ -222,13 +223,16 @@ export default function MemberStatementDialog({
         debit: Number(tx.debit || 0),
         credit: Number(tx.credit || 0),
       }));
-      const modernLoanTx = (loanTxCftRes.data ?? []).map((tx: any) => ({
-        transaction_date: tx.transaction_date,
-        entry_type: tx.entry_type || "",
-        entry_type_name: "",
-        debit: Number(tx.debit || 0),
-        credit: Number(tx.credit || 0),
-      }));
+      const LOAN_CONTROL_TYPES = new Set(["loan_payout_control_cr", "loan_payout_control_dr", "loan_control"]);
+      const modernLoanTx = (loanTxCftRes.data ?? [])
+        .filter((tx: any) => !LOAN_CONTROL_TYPES.has(tx.entry_type))
+        .map((tx: any) => ({
+          transaction_date: tx.transaction_date,
+          entry_type: tx.entry_type || "",
+          entry_type_name: "",
+          debit: Number(tx.debit || 0),
+          credit: Number(tx.credit || 0),
+        }));
       const allLoanTx = [...legacyLoanTx, ...modernLoanTx]
         .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
         .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
