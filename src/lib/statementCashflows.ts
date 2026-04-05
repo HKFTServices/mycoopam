@@ -178,9 +178,9 @@ const summarizeCashflowRow = ({
   const txAmount = Math.abs(Number(tx?.amount || 0));
   const txNet = Math.abs(Number(tx?.net_amount || 0));
   const txFee = Math.abs(Number(tx?.fee_amount || 0));
-  const grossAmount = txAmount || bankAmount || shares + memberFees + adminFees + nettToPools || txNet;
+  const grossAmount = txAmount || bankAmount || shares + memberFees + adminFees + nettToPools + loans || txNet;
   const fallbackAdminFees = adminFees || Math.max(0, txFee - memberFees);
-  const fallbackNettToPools = nettToPools || txNet || Math.max(0, grossAmount - shares - memberFees - fallbackAdminFees);
+  const fallbackNettToPools = nettToPools || txNet || Math.max(0, grossAmount - shares - memberFees - fallbackAdminFees - loans);
 
   return {
     transaction_date: transactionDate,
