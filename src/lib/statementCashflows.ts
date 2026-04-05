@@ -29,11 +29,9 @@ const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Payout"]);
 
 const isLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
-  const description = normalize(entry?.description);
   return (
     LOAN_ENTRY_TYPES.has(entryType) ||
-    entryType.includes("loan") ||
-    description.includes("loan")
+    entryType.startsWith("loan_")
   );
 };
 
