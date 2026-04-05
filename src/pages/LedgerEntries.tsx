@@ -1202,8 +1202,8 @@ const LedgerEntries = () => {
                             <TableHead className="text-right">Gross Deposit</TableHead>
                             <TableHead className="text-right">Rate</TableHead>
                             <TableHead className="text-right">Commission (excl VAT)</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="w-24" />
+                             <TableHead>Status</TableHead>
+                          </TableRow>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
