@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,7 +25,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { batch_id, action } = await req.json();
+    const body = await req.json();
+    const { batch_id, action, decline_reason } = body;
     if (!batch_id || !action) {
       return new Response(JSON.stringify({ error: "Missing batch_id or action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -51,7 +56,7 @@ Deno.serve(async (req) => {
     // Check role
     const { data: roles } = await admin
       .from("user_roles")
-      .select("role")
+      .select("role, tenant_id")
       .eq("user_id", user.id);
     const userRoles = (roles ?? [])
       .filter((r: any) => r.tenant_id === tenantId || r.tenant_id === null)
@@ -66,7 +71,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "decline") {
-      const { decline_reason } = await req.json().catch(() => ({}));
       await admin.from("debit_order_batches").update({
         status: "declined",
         declined_by: user.id,
