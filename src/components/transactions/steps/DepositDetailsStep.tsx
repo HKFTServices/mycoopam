@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/contexts/TenantContext";
 
 import { Bitcoin } from "lucide-react";
+import CryptoAddressSelector from "./CryptoAddressSelector";
 
 const FALLBACK_METHODS = [
   { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
