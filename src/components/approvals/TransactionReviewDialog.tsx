@@ -468,7 +468,9 @@ const TransactionReviewDialog = ({
         <div className="flex items-center gap-2 py-1">
           <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
           <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
-            I confirm the funds have been received and verified in the bank account.
+            {isCryptoDeposit
+              ? "I confirm the crypto payment has been received and converted to ZAR."
+              : "I confirm the funds have been received and verified in the bank account."}
           </label>
         </div>
       )}
