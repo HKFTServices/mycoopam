@@ -155,6 +155,39 @@ const Transactions = () => {
           .eq("tenant_id", currentTenant.id);
       }
 
+      // Roll back any commissions linked to this transaction
+      await (supabase as any)
+        .from("commissions")
+        .update({ status: "rolled_back" })
+        .eq("transaction_id", txn.id)
+        .eq("tenant_id", currentTenant.id);
+
+      // Also deactivate any commission CFT entries (bank_contra rows for commission payouts)
+      const { data: commissionRows } = await (supabase as any)
+        .from("commissions")
+        .select("cashflow_transaction_id")
+        .eq("transaction_id", txn.id)
+        .eq("tenant_id", currentTenant.id);
+
+      if (commissionRows?.length) {
+        const cftIds = commissionRows
+          .map((c: any) => c.cashflow_transaction_id)
+          .filter(Boolean);
+        if (cftIds.length) {
+          // Deactivate the commission payout CFT entries and their children
+          await (supabase as any)
+            .from("cashflow_transactions")
+            .update({ is_active: false })
+            .in("id", cftIds)
+            .eq("tenant_id", currentTenant.id);
+          await (supabase as any)
+            .from("cashflow_transactions")
+            .update({ is_active: false })
+            .in("parent_id", cftIds)
+            .eq("tenant_id", currentTenant.id);
+        }
+      }
+
       // Mark transaction as rolled_back
       const { error } = await (supabase as any)
         .from("transactions")
