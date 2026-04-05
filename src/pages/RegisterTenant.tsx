@@ -560,7 +560,7 @@ const RegisterTenant = () => {
       // 1. Check slug uniqueness
       const { data: existing } = await supabase.from("tenants").select("id").eq("slug", slug).maybeSingle();
       if (existing) {
-        toast({ title: "Slug already taken", description: "Please choose a different URL slug.", variant: "destructive" });
+        toast({ title: "Subdomain taken", description: "Please choose a different subdomain address.", variant: "destructive" });
         setStep(1); setLoading(false); return;
       }
 
@@ -775,7 +775,7 @@ const RegisterTenant = () => {
                     <Input id="name" placeholder="e.g. Precious Metals Connect" value={name} onChange={(e) => handleNameChange(e.target.value)} required maxLength={100} />
                   </div>
                    <div className="space-y-2">
-                     <Label htmlFor="slug">URL Slug</Label>
+                     <Label htmlFor="slug">Subdomain address (feel free to type your own – max 6 characters)</Label>
                      <div className="flex items-center gap-2">
                        <div className="relative flex-1">
                          <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => handleSlugChange(e.target.value)} required maxLength={6} className={slugStatus === "taken" ? "border-destructive" : slugStatus === "available" ? "border-green-500" : ""} />
