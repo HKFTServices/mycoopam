@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Wallet, Landmark, Repeat2, CreditCard, Banknote, Bitcoin } from "lucide-react";
 import { toast } from "sonner";
+import CryptoAddressesSection from "./CryptoAddressesSection";
 
 const METHOD_ICONS: Record<string, React.ElementType> = {
   eft: Landmark,
@@ -212,6 +213,11 @@ const PaymentMethodsSection = () => {
             );
           })}
         </div>
+
+        {/* Show crypto address management when crypto is enabled */}
+        {methods.some((m) => m.method_code === "crypto" && m.is_enabled) && (
+          <CryptoAddressesSection />
+        )}
       </CardContent>
     </Card>
   );

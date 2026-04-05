@@ -5604,6 +5604,53 @@ export type Database = {
           },
         ]
       }
+      tenant_crypto_addresses: {
+        Row: {
+          created_at: string
+          crypto_name: string
+          crypto_symbol: string
+          destination_tag: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          tenant_id: string
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          created_at?: string
+          crypto_name: string
+          crypto_symbol: string
+          destination_tag?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          tenant_id: string
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          created_at?: string
+          crypto_name?: string
+          crypto_symbol?: string
+          destination_tag?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          tenant_id?: string
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_crypto_addresses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_features: {
         Row: {
           created_at: string
