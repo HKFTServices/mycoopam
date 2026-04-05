@@ -122,6 +122,7 @@ const TransactionReviewDialog = ({
   const courier: { fee?: number } | null = meta.courier || null;
   const isStockDeposit = meta.transaction_kind === "stock_deposit";
   const isDebitOrderDeposit = primaryTxn?.payment_method === "debit_order";
+  const isCryptoDeposit = primaryTxn?.payment_method === "crypto";
   const useCourier = isStockDeposit && courier && (courier.fee ?? 0) > 0;
 
   // Initialize courierFeeActual from meta when group loads; restore saved courier step if applicable
