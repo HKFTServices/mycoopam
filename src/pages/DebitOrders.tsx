@@ -417,6 +417,14 @@ const DebitOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isAdmin && (
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={processableOrders.length > 0 && selectedOrderIds.size === processableOrders.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Member</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
