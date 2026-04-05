@@ -279,9 +279,28 @@ const RegisterTenant = () => {
     }
   };
 
+  const generateSmartSlug = (input: string): string => {
+    const clean = input.trim().toLowerCase();
+    if (!clean) return "";
+    // Remove noise words
+    const noise = new Set(["the", "of", "and", "for", "co-operative", "cooperative", "coop", "co-op", "pty", "ltd", "limited", "inc", "group", "holdings"]);
+    const words = clean.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w && !noise.has(w));
+    if (words.length === 0) return clean.replace(/[^a-z0-9]/g, "").slice(0, 6);
+    if (words.length === 1) return words[0].slice(0, 6);
+    // Multiple words: take first letter(s) of each word to build up to 6 chars
+    // First try: first letter of each word
+    let slug = words.map(w => w[0]).join("").slice(0, 6);
+    if (slug.length < 3 && words.length >= 2) {
+      // Use more letters from first two words
+      const per = Math.min(3, Math.floor(6 / Math.min(words.length, 3)));
+      slug = words.slice(0, 3).map(w => w.slice(0, per)).join("").slice(0, 6);
+    }
+    return slug;
+  };
+
   const handleNameChange = (value: string) => {
     setName(value);
-    setSlug(value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30));
+    setSlug(generateSmartSlug(value));
   };
 
   const resizeImage = (file: File, maxSize: number): Promise<File> => {
@@ -738,7 +757,7 @@ const RegisterTenant = () => {
                   <div className="space-y-2">
                     <Label htmlFor="slug">URL Slug</Label>
                     <div className="flex items-center gap-2">
-                      <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} required maxLength={30} />
+                      <Input id="slug" placeholder="e.g. pmc" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 6))} required maxLength={6} />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">.myco-op.co.za</span>
                     </div>
                    </div>
