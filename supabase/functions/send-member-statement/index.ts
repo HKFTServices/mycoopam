@@ -44,8 +44,9 @@ const DEPOSIT_ENTRY_TYPES = new Set(["bank_receipt", "bank_deposit"]);
 const WITHDRAWAL_ENTRY_TYPES = new Set(["bank_payment", "bank_withdrawal"]);
 const MEMBER_FEE_ENTRY_TYPES = new Set(["membership_fee", "member_fee"]);
 const ADMIN_FEE_ENTRY_TYPES = new Set(["fee", "fee_income", "commission", "admin_fee"]);
-const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "pool_redemption", "pool_withdrawal", "member_interest", "member_interest_dr"]);
-const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror"]);
+const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "member_interest", "member_interest_dr"]);
+const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror", "pool_withdrawal", "pool_redemption"]);
+const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Instalment"]);
 
 const isLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
@@ -170,6 +171,7 @@ const summarizeCashflowRow = ({
   return {
     transaction_date: transactionDate,
     type: typeLabel || getCashflowTypeLabel(tx, linkedEntries),
+    isOutflow: OUTFLOW_TYPES.has(typeLabel || getCashflowTypeLabel(tx, linkedEntries)),
     grossAmount,
     shares,
     memberFees,
@@ -223,7 +225,7 @@ const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: a
     .filter(Boolean);
 
   return [...modernRows, ...legacyRows]
-    .filter((tx) => tx.grossAmount > 0 || tx.shares > 0 || tx.memberFees > 0 || tx.adminFees > 0 || tx.nettToPools > 0)
+    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0)
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 };
 
