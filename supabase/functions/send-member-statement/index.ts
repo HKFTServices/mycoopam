@@ -608,33 +608,39 @@ async function generateStatementPdf(data: {
   // ── Cash Flows ──
   y = drawSectionTitle(doc, "Cash Flows", y);
   if (data.cashflowTransactions.length > 0) {
-    const cashDebitTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
-    const cashCreditTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
-    const cashRows = data.cashflowTransactions.map((tx: any) => {
-      const debit = Number(tx.debit || 0);
-      const credit = Number(tx.credit || 0);
-      return [
-        fmtDate(tx.transaction_date),
-        (tx.description || tx.entry_type || "").substring(0, 35),
-        tx.pool_name || "",
-        debit > 0 ? fmtCurrency(debit, sym) : "",
-        credit > 0 ? fmtCurrency(credit, sym) : "",
-      ];
-    });
+    const cashGrossTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.grossAmount || 0), 0);
+    const cashSharesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.shares || 0), 0);
+    const cashMemberFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.memberFees || 0), 0);
+    const cashAdminFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.adminFees || 0), 0);
+    const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.nettToPools || 0), 0);
+    const cashRows = data.cashflowTransactions.map((tx: any) => [
+      fmtDate(tx.transaction_date),
+      (tx.type || "Transaction").substring(0, 30),
+      tx.grossAmount > 0 ? fmtCurrency(tx.grossAmount, sym) : "",
+      tx.shares > 0 ? fmtCurrency(tx.shares, sym) : "",
+      tx.memberFees > 0 ? fmtCurrency(tx.memberFees, sym) : "",
+      tx.adminFees > 0 ? fmtCurrency(tx.adminFees, sym) : "",
+      tx.nettToPools > 0 ? fmtCurrency(tx.nettToPools, sym) : "",
+    ]);
     y = drawTable(doc, {
       startY: y,
       columns: [
-        { header: "Date", width: 22, align: "left" },
-        { header: "Type", width: 60, align: "left" },
-        { header: "Pool", width: 38, align: "left" },
-        { header: "Debit", width: 30, align: "right" },
-        { header: "Credit", width: 30, align: "right" },
+        { header: "Date", width: 20, align: "left" },
+        { header: "Transaction", width: 36, align: "left" },
+        { header: "Gross Amt", width: 26, align: "right" },
+        { header: "Shares", width: 22, align: "right" },
+        { header: "Mbr Fees", width: 24, align: "right" },
+        { header: "Admin Fees", width: 26, align: "right" },
+        { header: "Nett Pools", width: 26, align: "right" },
       ],
       rows: cashRows,
       totalRow: [
-        "Total", "", "",
-        fmtCurrency(cashDebitTotal, sym),
-        fmtCurrency(cashCreditTotal, sym),
+        "Total", "",
+        fmtCurrency(cashGrossTotal, sym),
+        cashSharesTotal > 0 ? fmtCurrency(cashSharesTotal, sym) : "",
+        cashMemberFeesTotal > 0 ? fmtCurrency(cashMemberFeesTotal, sym) : "",
+        cashAdminFeesTotal > 0 ? fmtCurrency(cashAdminFeesTotal, sym) : "",
+        fmtCurrency(cashNettTotal, sym),
       ],
     });
   } else {
@@ -755,14 +761,15 @@ async function fetchStatementData(
     const dayBeforeFromStr = dayBeforeFrom.toISOString().split("T")[0];
 
     const [
-      entityRes, accountsRes, tenantConfigRes, unitTxRes, cashflowTxRes, stockTxRes,
+      entityRes, accountsRes, tenantConfigRes, unitTxRes, approvedTxRes, cashflowTxRes, stockTxRes,
       loanRes, poolPricesStartRes, poolPricesEndRes, legacyCftRes,
     ] = await Promise.all([
       adminClient.from("entities").select("id, name, last_name, identity_number, registration_number, contact_number, email_address, entity_categories (name)").eq("id", entityId).single(),
       adminClient.from("entity_accounts").select("id, account_number, entity_account_types (name, account_type)").eq("entity_id", entityId).eq("tenant_id", tenantId),
       adminClient.from("tenant_configuration").select("logo_url, directors, vat_number, registration_date, currency_symbol, legal_entity_id, entities:legal_entity_id (name, registration_number, contact_number, email_address)").eq("tenant_id", tenantId).maybeSingle(),
       adminClient.from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
-      adminClient.from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).or("is_bank.eq.true,entry_type.in.(share,membership_fee,fee)").order("transaction_date", { ascending: true }),
+      adminClient.from("transactions").select("id, transaction_date, amount, fee_amount, net_amount, status, legacy_transaction_id, transaction_types (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).eq("status", "approved").gte("transaction_date", fromStr).lte("transaction_date", toStr).order("transaction_date", { ascending: true }),
+      adminClient.from("cashflow_transactions").select("id, transaction_id, legacy_transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
       adminClient.from("stock_transactions").select("id, transaction_date, transaction_type, stock_transaction_type, debit, credit, cost_price, total_value, notes, items (description), pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
       adminClient.rpc("get_loan_outstanding", { p_tenant_id: tenantId }),
       adminClient.from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
@@ -834,24 +841,86 @@ async function fetchStatementData(
       return debit !== 0 || credit !== 0 || value !== 0;
     });
 
-    const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({
+    // Build cash flows from approved transactions (modern)
+    const approvedCashflows = (approvedTxRes.data ?? []).map((tx: any) => ({
       transaction_date: tx.transaction_date,
-      entry_type: tx.entry_type || "",
-      description: tx.description || "",
-      pool_name: tx.pools?.name || "",
-      debit: Number(tx.debit || 0),
-      credit: Number(tx.credit || 0),
+      type: tx.transaction_types?.name || "Transaction",
+      grossAmount: Number(tx.amount || 0),
+      shares: 0,
+      memberFees: Number(tx.fee_amount || 0),
+      adminFees: 0,
+      nettToPools: Number(tx.net_amount || 0),
     }));
-    const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
-      transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
-      entry_type: tx.entry_type || "",
-      description: tx.description || "",
-      pool_name: tx.pool_name || "",
-      debit: Number(tx.debit || 0),
-      credit: Number(tx.credit || 0),
-    }));
-    const allCashflows = [...currentCft, ...legacyCft]
-      .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
+
+    // Group legacy CFT entries by date+description
+    const legacyEntries = legacyCftRes.data ?? [];
+    const legacyGroups: Record<string, any[]> = {};
+    for (const tx of legacyEntries) {
+      const date = tx.transaction_date ? tx.transaction_date.substring(0, 10) : "";
+      const key = `${date}|${tx.description || "Transaction"}`;
+      if (!legacyGroups[key]) legacyGroups[key] = [];
+      legacyGroups[key].push(tx);
+    }
+
+    const legacyCashflows = Object.entries(legacyGroups).map(([key, entries]) => {
+      const [date, type] = key.split("|");
+      let grossAmount = 0, shares = 0, memberFees = 0, adminFees = 0, nettToPools = 0;
+      for (const e of entries) {
+        const et = (e.entry_type || "").toLowerCase();
+        const amt = Number(e.debit || 0) || Number(e.credit || 0);
+        if (et.includes("bank") || et.includes("receipt") || et.includes("payment")) {
+          grossAmount += amt;
+        } else if (et.includes("share")) {
+          shares += amt;
+        } else if (et.includes("membership") || (et.includes("fee") && !et.includes("admin") && !et.includes("income"))) {
+          memberFees += amt;
+        } else if (et.includes("admin") || et.includes("fee income") || et.includes("income")) {
+          adminFees += amt;
+        } else if (et.includes("interest") || et.includes("pool") || et.includes("allocation")) {
+          nettToPools += amt;
+        }
+      }
+      if (grossAmount === 0) grossAmount = shares + memberFees + adminFees + nettToPools;
+      return { transaction_date: date, type, grossAmount, shares, memberFees, adminFees, nettToPools };
+    });
+
+    // Group modern cashflow_transactions by transaction_id
+    const modernCftEntries = cashflowTxRes.data ?? [];
+    const modernGroups: Record<string, any[]> = {};
+    for (const tx of modernCftEntries) {
+      const key = tx.transaction_id || tx.legacy_transaction_id || tx.id;
+      if (!modernGroups[key]) modernGroups[key] = [];
+      modernGroups[key].push(tx);
+    }
+
+    const modernCftCashflows = Object.entries(modernGroups)
+      .filter(([, entries]) => entries.some((e: any) => e.is_bank))
+      .map(([, entries]) => {
+        const bankEntry = entries.find((e: any) => e.is_bank);
+        const date = bankEntry?.transaction_date || entries[0]?.transaction_date || "";
+        const grossDebit = Number(bankEntry?.debit || 0);
+        const grossCredit = Number(bankEntry?.credit || 0);
+        const grossAmount = grossDebit > 0 ? grossDebit : grossCredit;
+        let shares = 0, memberFees = 0, adminFees = 0, nettToPools = 0;
+        for (const e of entries) {
+          if (e.is_bank) continue;
+          const et = (e.entry_type || "").toLowerCase();
+          const amt = Number(e.credit || 0) || Number(e.debit || 0);
+          if (et.includes("share")) shares += amt;
+          else if (et === "membership_fee") memberFees += amt;
+          else if (et === "fee" || et === "fee_income") adminFees += amt;
+          else if (et === "member_interest" || et === "pool_allocation" || et === "pool_redemption") nettToPools += amt;
+        }
+        const typeLabel = bankEntry?.description || (grossDebit > 0 ? "Deposit" : "Withdrawal");
+        return { transaction_date: date, type: typeLabel, grossAmount, shares, memberFees, adminFees, nettToPools };
+      });
+
+    const allCashflows = [
+      ...approvedCashflows,
+      ...modernCftCashflows,
+      ...legacyCashflows,
+    ]
+      .filter((tx) => tx.grossAmount > 0)
       .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 
     return {

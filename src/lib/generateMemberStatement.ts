@@ -188,24 +188,26 @@ export function generateMemberStatement(data: StatementData): string {
     </tr>`;
   }).join("");
 
-  // Cash flow section - group by transaction_id to show deposit/withdrawal summaries
-  // Columns: Date, Transaction, Gross Amount, Shares, Member Fees, Admin Fees, Nett to Pools
-  // Cash flow section - data comes pre-built from dialog
+  // Cash flow section - data comes pre-built from dialog with breakdown columns
   const cashFlowRows = data.cashflowTransactions;
 
   const cashRows = cashFlowRows.map((row: any) => {
     return `<tr>
       <td>${fmtDate(row.transaction_date)}</td>
-      <td>${row.type}</td>
+      <td>${row.type || "Transaction"}</td>
       <td class="num">${row.grossAmount > 0 ? fmtNum(row.grossAmount, sym) : ""}</td>
-      <td class="num">${row.feeAmount > 0 ? fmtNum(row.feeAmount, sym) : ""}</td>
-      <td class="num">${row.netAmount > 0 ? fmtNum(row.netAmount, sym) : ""}</td>
+      <td class="num">${row.shares > 0 ? fmtNum(row.shares, sym) : ""}</td>
+      <td class="num">${row.memberFees > 0 ? fmtNum(row.memberFees, sym) : ""}</td>
+      <td class="num">${row.adminFees > 0 ? fmtNum(row.adminFees, sym) : ""}</td>
+      <td class="num">${row.nettToPools > 0 ? fmtNum(row.nettToPools, sym) : ""}</td>
     </tr>`;
   }).join("");
 
-  const cashGrossTotal = cashFlowRows.reduce((s: number, r: any) => s + r.grossAmount, 0);
-  const cashFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + r.feeAmount, 0);
-  const cashNettTotal = cashFlowRows.reduce((s: number, r: any) => s + r.netAmount, 0);
+  const cashGrossTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.grossAmount || 0), 0);
+  const cashSharesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.shares || 0), 0);
+  const cashMemberFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.memberFees || 0), 0);
+  const cashAdminFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.adminFees || 0), 0);
+  const cashNettTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.nettToPools || 0), 0);
 
   // Stock flow section
   const stockRows = data.stockTransactions.map((tx: any) => {
@@ -467,8 +469,10 @@ export function generateMemberStatement(data: StatementData): string {
         <th>Date</th>
         <th>Transaction</th>
         <th class="num">Gross Amount</th>
-        <th class="num">Fees</th>
-        <th class="num">Nett Amount</th>
+        <th class="num">Shares</th>
+        <th class="num">Member Fees</th>
+        <th class="num">Admin Fees</th>
+        <th class="num">Nett to Pools</th>
       </tr>
     </thead>
     <tbody>
@@ -476,7 +480,9 @@ export function generateMemberStatement(data: StatementData): string {
       <tr class="total">
         <td colspan="2">Total</td>
         <td class="num">${fmtNum(cashGrossTotal, sym)}</td>
-        <td class="num">${cashFeesTotal > 0 ? fmtNum(cashFeesTotal, sym) : ""}</td>
+        <td class="num">${cashSharesTotal > 0 ? fmtNum(cashSharesTotal, sym) : ""}</td>
+        <td class="num">${cashMemberFeesTotal > 0 ? fmtNum(cashMemberFeesTotal, sym) : ""}</td>
+        <td class="num">${cashAdminFeesTotal > 0 ? fmtNum(cashAdminFeesTotal, sym) : ""}</td>
         <td class="num">${fmtNum(cashNettTotal, sym)}</td>
       </tr>
     </tbody>
