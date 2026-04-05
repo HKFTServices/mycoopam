@@ -223,8 +223,11 @@ export const buildStatementCashflows = (approvedTransactions: any[], cashflowEnt
   const legacyRows = Array.from(groupedEntries.entries())
     .filter(([groupKey]) => !consumedGroups.has(groupKey) && groupKey.startsWith("legacy:"))
     .map(([, linkedEntries]) => {
-      const typeLabel = classifyLegacyGroup(linkedEntries);
+      let typeLabel = classifyLegacyGroup(linkedEntries);
       if (!typeLabel) return null;
+
+      // Loan Instalment is part of a deposit split — show as "Deposit Funds"
+      if (typeLabel === "Loan Instalment") typeLabel = "Deposit Funds";
 
       const transactionDate = linkedEntries
         .map((entry) => String(entry?.transaction_date || ""))
