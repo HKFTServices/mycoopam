@@ -207,6 +207,15 @@ const Auth = () => {
   const tenantName = branding?.tenant_name ?? "CoopAdmin";
   const logoUrl = branding?.logo_url;
 
+  // Don't flash auth form when session already exists (redirect pending)
+  if (session && !isPasswordRecovery) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* Left panel - branding */}
