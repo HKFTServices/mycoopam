@@ -45,7 +45,14 @@ const WITHDRAWAL_ENTRY_TYPES = new Set(["bank_payment", "bank_withdrawal"]);
 const MEMBER_FEE_ENTRY_TYPES = new Set(["membership_fee", "member_fee"]);
 const ADMIN_FEE_ENTRY_TYPES = new Set(["fee", "fee_income", "commission", "admin_fee"]);
 const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "member_interest", "member_interest_dr"]);
-const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror", "pool_withdrawal", "pool_redemption"]);
+const IGNORE_ENTRY_TYPES = new Set([
+  "legacy_control_mirror",
+  "pool_withdrawal",
+  "pool_redemption",
+  "loan_payout_control_cr",
+  "loan_payout_control_dr",
+  "loan_control",
+]);
 const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Payout"]);
 
 const isLoanEntry = (entry: any) => {
