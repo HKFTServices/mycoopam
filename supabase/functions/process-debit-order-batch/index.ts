@@ -25,7 +25,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { batch_id, action } = await req.json();
+    const body = await req.json();
+    const { batch_id, action, decline_reason } = body;
     if (!batch_id || !action) {
       return new Response(JSON.stringify({ error: "Missing batch_id or action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
