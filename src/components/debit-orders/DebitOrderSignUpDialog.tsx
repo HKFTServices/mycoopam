@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import SignaturePad from "@/components/ui/signature-pad";
 import { Loader2, FileText, CreditCard, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { excludeAdminPools } from "@/lib/pools";
 
 interface DebitOrderSignUpDialogProps {
   open: boolean;
@@ -148,26 +149,47 @@ const DebitOrderSignUpDialog = ({
   const isVatRegistered = tenantConfig?.is_vat_registered ?? false;
   const vatRate = Number(tenantConfig?.vat_percentage ?? 15);
 
-  // Fetch pools — exclude admin pool
+  // Fetch pools for debit-order allocations
   const { data: allPools = [] } = useQuery({
     queryKey: ["pools_for_debit_order", currentTenant?.id],
     queryFn: async () => {
       if (!currentTenant) return [];
       const { data } = await (supabase as any)
         .from("pools")
-        .select("id, name, is_active")
+        .select("id, name, is_active, is_deleted")
         .eq("tenant_id", currentTenant.id)
         .eq("is_active", true)
+        .eq("is_deleted", false)
         .order("name");
       return data ?? [];
     },
     enabled: !!currentTenant && open,
   });
 
-  // Filter out admin pool from member-selectable pools
+  const { data: poolTxnRules = [] } = useQuery({
+    queryKey: ["pool_txn_rules_for_debit_order", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data } = await (supabase as any)
+        .from("pool_transaction_rules")
+        .select("pool_id, transaction_type_code, is_allowed")
+        .eq("tenant_id", currentTenant.id);
+      return data ?? [];
+    },
+    enabled: !!currentTenant && open,
+  });
+
   const pools = useMemo(() => {
-    return allPools.filter((p: any) => !p.name.toLowerCase().includes("admin"));
-  }, [allPools]);
+    const selectablePools = excludeAdminPools(allPools);
+    const ruleCode = "deposit_funds";
+    const rulesForType = poolTxnRules.filter((r: any) => r.transaction_type_code === ruleCode && r.is_allowed);
+    const anyRulesForType = poolTxnRules.some((r: any) => r.transaction_type_code === ruleCode);
+
+    if (!anyRulesForType) return selectablePools;
+
+    const allowedPoolIds = new Set(rulesForType.map((r: any) => r.pool_id));
+    return selectablePools.filter((pool: any) => allowedPoolIds.has(pool.id));
+  }, [allPools, poolTxnRules]);
 
   // Fetch entity details (member info for the form)
   const { data: entityDetails } = useQuery({

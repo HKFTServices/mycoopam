@@ -26,6 +26,7 @@ import type { StockLineItem } from "./steps/StockDepositDetailsStep";
 import type { StockWithdrawalLineItem } from "./steps/StockWithdrawalDetailsStep";
 import { formatLocalDate } from "@/lib/formatDate";
 import { sendApprovalNotification } from "@/lib/sendApprovalNotification";
+import { excludeAdminPools } from "@/lib/pools";
 
 const ALL_TXN_CODES = [
   "DEPOSIT_FUNDS", "DEPOSIT_STOCK", "WITHDRAW_FUNDS", "WITHDRAW_STOCK",
@@ -499,6 +500,8 @@ const NewTransactionDialog = ({
     enabled: !!currentTenant && open,
   });
 
+  const selectablePools = useMemo(() => excludeAdminPools(allPools), [allPools]);
+
   // Pool filtering moved below after isDeposit is derived
 
   // Transaction types — load all upfront; filter for display based on account holdings
@@ -841,7 +844,7 @@ const NewTransactionDialog = ({
 
   // Filter pools based on transaction rules for selected type
   const pools = useMemo(() => {
-    if (!selectedTxnTypeId || !allPools.length) return [];
+    if (!selectedTxnTypeId || !selectablePools.length) return [];
     const selectedCode = txnTypes.find((t: any) => t.id === selectedTxnTypeId)?.code || "";
     const isDepositCode = DEPOSIT_CODES.includes(selectedCode);
     const isWithdrawalCode = selectedCode === "WITHDRAW_FUNDS" || selectedCode === "WITHDRAW_STOCK";
@@ -858,9 +861,9 @@ const NewTransactionDialog = ({
     const anyRulesForType = poolTxnRules.some((r: any) => r.transaction_type_code === ruleCode);
     let filtered: any[];
     if (!anyRulesForType) {
-      filtered = (isDepositCode || isWithdrawalCode || DEPOSIT_ONLY_CODES.includes(selectedCode)) ? allPools : [];
+      filtered = (isDepositCode || isWithdrawalCode || DEPOSIT_ONLY_CODES.includes(selectedCode)) ? selectablePools : [];
     } else {
-      filtered = allPools.filter((p: any) => allowedPoolIds.has(p.id));
+      filtered = selectablePools.filter((p: any) => allowedPoolIds.has(p.id));
     }
 
     // For transfers & withdrawals: restrict to pools where account has units
@@ -869,20 +872,20 @@ const NewTransactionDialog = ({
       filtered = filtered.filter((p: any) => poolsWithUnits.has(p.id));
     }
     return filtered;
-  }, [allPools, poolTxnRules, selectedTxnTypeId, txnTypes, allHoldings, holdingsLoading]);
+  }, [selectablePools, poolTxnRules, selectedTxnTypeId, txnTypes, allHoldings, holdingsLoading]);
 
   // For switch: to-pools are all pools except the from-pool (apply allow_to rules if set)
   const switchToPools = useMemo(() => {
     if (!isSwitch || !selectedPoolId) return [];
     // For switch destination pools, check if they have 'switch' rule allowed
     const switchRules = poolTxnRules.filter((r: any) => r.transaction_type_code === "switch" && r.is_allowed);
-    let eligible = allPools.filter((p: any) => p.id !== selectedPoolId);
+    let eligible = selectablePools.filter((p: any) => p.id !== selectedPoolId);
     if (switchRules.length > 0) {
       const allowedIds = new Set(switchRules.map((r: any) => r.pool_id));
       eligible = eligible.filter((p: any) => allowedIds.has(p.id));
     }
     return eligible;
-  }, [allPools, poolTxnRules, isSwitch, selectedPoolId]);
+  }, [selectablePools, poolTxnRules, isSwitch, selectedPoolId]);
 
   // Fetch daily pool prices for the selected transaction date
   const txnDateStr = format(transactionDate, "yyyy-MM-dd");
