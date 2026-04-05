@@ -80,6 +80,7 @@ const TransactionReviewDialog = ({
   const [overrideDate, setOverrideDate] = useState<Date | null>(null);
   const [changeNote, setChangeNote] = useState("");
   const [fundsConfirmed, setFundsConfirmed] = useState(false);
+  const [cryptoFinalAmount, setCryptoFinalAmount] = useState<string>("");
 
   // Stock deposit multi-step state
   const [currentStep, setCurrentStep] = useState<StepId>("review");
