@@ -41,6 +41,80 @@ const AUDIENCE_TYPES = [
   { value: "specific_member", label: "Specific Member" },
 ];
 
+const CASHFLOW_TRANSACTION_CODES = new Set(["DEPOSIT_FUNDS", "WITHDRAW_FUNDS"]);
+
+const getCashflowEntryAmount = (entry: any) =>
+  Math.abs(Number(entry?.debit || 0) - Number(entry?.credit || 0));
+
+const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
+  const code = String(tx.transaction_types?.code || "").toUpperCase();
+  if (code === "DEPOSIT_FUNDS") return "Deposit Funds";
+  if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
+
+  const bankEntry = linkedEntries.find((entry) => entry.is_bank || ["bank_deposit", "bank_withdrawal"].includes(String(entry.entry_type || "").toLowerCase()));
+  const bankType = String(bankEntry?.entry_type || "").toLowerCase();
+  if (bankType === "bank_deposit") return "Deposit Funds";
+  if (bankType === "bank_withdrawal") return "Withdraw Funds";
+
+  return tx.transaction_types?.name || bankEntry?.description || "Cash Flow";
+};
+
+const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: any[]) => {
+  const cashflowEntriesByTransactionId = new Map<string, any[]>();
+
+  for (const entry of cashflowEntries) {
+    if (!entry?.transaction_id) continue;
+    const existing = cashflowEntriesByTransactionId.get(entry.transaction_id) ?? [];
+    existing.push(entry);
+    cashflowEntriesByTransactionId.set(entry.transaction_id, existing);
+  }
+
+  return approvedTransactions
+    .filter((tx) => CASHFLOW_TRANSACTION_CODES.has(String(tx.transaction_types?.code || "").toUpperCase()))
+    .map((tx) => {
+      const linkedEntries = cashflowEntriesByTransactionId.get(tx.id) ?? [];
+      let bankAmount = 0;
+      let shares = 0;
+      let memberFees = 0;
+      let adminFees = 0;
+      let nettToPools = 0;
+
+      for (const entry of linkedEntries) {
+        const entryType = String(entry.entry_type || "").toLowerCase();
+        const description = String(entry.description || "").toLowerCase();
+        const amount = getCashflowEntryAmount(entry);
+
+        if (entry.is_bank || entryType === "bank_deposit" || entryType === "bank_withdrawal") {
+          bankAmount += amount;
+        } else if (entryType.includes("share")) {
+          shares += amount;
+        } else if (entryType === "membership_fee" || description.includes("membership fee")) {
+          memberFees += amount;
+        } else if (entryType === "fee" || entryType === "commission" || description.includes("admin fee") || description.includes("commission")) {
+          adminFees += amount;
+        } else if (entryType === "pool_allocation" || entryType === "pool_redemption" || entryType === "member_interest" || description.includes("pool allocation")) {
+          nettToPools += amount;
+        }
+      }
+
+      const grossAmount = Math.abs(Number(tx.amount || 0)) || bankAmount || shares + memberFees + adminFees + nettToPools || Math.abs(Number(tx.net_amount || 0));
+      const fallbackAdminFees = adminFees || Math.max(0, Math.abs(Number(tx.fee_amount || 0)) - memberFees);
+      const fallbackNettToPools = nettToPools || Math.abs(Number(tx.net_amount || 0));
+
+      return {
+        transaction_date: tx.transaction_date,
+        type: getCashflowTypeLabel(tx, linkedEntries),
+        grossAmount,
+        shares,
+        memberFees,
+        adminFees: fallbackAdminFees,
+        nettToPools: fallbackNettToPools,
+      };
+    })
+    .filter((tx) => tx.grossAmount > 0 || tx.shares > 0 || tx.memberFees > 0 || tx.adminFees > 0 || tx.nettToPools > 0)
+    .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+};
+
 const getPresetDates = (key: PresetKey, inceptionDate?: string): { from: Date; to: Date } => {
   const now = new Date();
   switch (key) {
@@ -410,18 +484,18 @@ export default function Statements() {
     if (acctIds.length === 0) return "";
 
     const [
-      entityRes, tenantConfigRes, unitTxRes, cashflowTxRes, stockTxRes,
-      loanRes, poolPricesStartRes, poolPricesEndRes, legacyCftRes,
+      entityRes, tenantConfigRes, unitTxRes, approvedTxRes, cashflowTxRes, stockTxRes,
+      loanRes, poolPricesStartRes, poolPricesEndRes,
     ] = await Promise.all([
       (supabase as any).from("entities").select("id, name, last_name, identity_number, registration_number, contact_number, email_address, entity_categories (name)").eq("id", entityId).single(),
       (supabase as any).from("tenant_configuration").select("logo_url, directors, vat_number, registration_date, currency_symbol, legal_entity_id, entities:legal_entity_id (name, registration_number, contact_number, email_address)").eq("tenant_id", tenantId).maybeSingle(),
       (supabase as any).from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
-      (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).eq("is_bank", true).order("transaction_date", { ascending: true }),
+      (supabase as any).from("transactions").select("id, transaction_date, amount, fee_amount, net_amount, status, transaction_type_id, transaction_types!transactions_transaction_type_id_fkey(name, code)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).eq("status", "approved").gte("transaction_date", fromStr).lte("transaction_date", toStr).order("transaction_date", { ascending: true }),
+      (supabase as any).from("cashflow_transactions").select("id, transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
       (supabase as any).from("stock_transactions").select("id, transaction_date, transaction_type, stock_transaction_type, debit, credit, cost_price, total_value, notes, items (description), pools (name)").eq("tenant_id", tenantId).in("entity_account_id", acctIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
       (supabase as any).rpc("get_loan_outstanding", { p_tenant_id: tenantId }),
       (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
       (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
-      (supabase as any).rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: entityId, p_from_date: fromStr, p_to_date: toStr }),
     ]);
 
     const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
@@ -487,9 +561,7 @@ export default function Statements() {
     console.log("[Statement] poolUnitPrices:", poolUnitPrices.length, "stockItemPrices:", stockItemPrices.length, "termsConditionsHtml length:", termsConditionsHtml.length);
 
     const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => { const d = Number(tx.debit || 0), c = Number(tx.credit || 0), v = Number(tx.value || 0); return d !== 0 || c !== 0 || v !== 0; });
-    const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({ transaction_date: tx.transaction_date, entry_type: tx.entry_type || "", description: tx.description || "", pool_name: tx.pools?.name || "", debit: Number(tx.debit || 0), credit: Number(tx.credit || 0) }));
-    const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({ transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "", entry_type: tx.entry_type || "", description: tx.description || "", pool_name: tx.pool_name || "", debit: Number(tx.debit || 0), credit: Number(tx.credit || 0) }));
-    const allCashflows = [...currentCft, ...legacyCft].filter((tx) => tx.debit !== 0 || tx.credit !== 0).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const allCashflows = buildStatementCashflows(approvedTxRes.data ?? [], cashflowTxRes.data ?? []);
 
     const legacyLoanTx = (loanTxLegacyRes.data ?? []).map((tx: any) => ({ transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "", entry_type: tx.entry_type_id || "", entry_type_name: tx.entry_type_name || "", debit: Number(tx.debit || 0), credit: Number(tx.credit || 0) }));
     const modernLoanTx = (loanTxCftRes.data ?? []).map((tx: any) => ({ transaction_date: tx.transaction_date, entry_type: tx.entry_type || "", entry_type_name: "", debit: Number(tx.debit || 0), credit: Number(tx.credit || 0) }));
