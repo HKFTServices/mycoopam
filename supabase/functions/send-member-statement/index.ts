@@ -39,12 +39,35 @@ const GREEN = [22, 163, 74] as const;
 const TOTAL_BG = [240, 242, 245] as const;
 
 const CASHFLOW_TRANSACTION_CODES = new Set(["DEPOSIT_FUNDS", "WITHDRAW_FUNDS"]);
+const LOAN_ENTRY_TYPES = new Set(["loan_capital", "loan_loading", "loan_payout", "loan_repayment", "loan_instalment", "loan_received"]);
 const DEPOSIT_ENTRY_TYPES = new Set(["bank_receipt", "bank_deposit"]);
 const WITHDRAWAL_ENTRY_TYPES = new Set(["bank_payment", "bank_withdrawal"]);
 const MEMBER_FEE_ENTRY_TYPES = new Set(["membership_fee", "member_fee"]);
 const ADMIN_FEE_ENTRY_TYPES = new Set(["fee", "fee_income", "commission", "admin_fee"]);
 const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "pool_redemption", "pool_withdrawal", "member_interest", "member_interest_dr"]);
 const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror"]);
+
+const isLoanEntry = (entry: any) => {
+  const entryType = normalize(entry?.entry_type);
+  const description = normalize(entry?.description);
+  return LOAN_ENTRY_TYPES.has(entryType) || entryType.includes("loan") || description.includes("loan");
+};
+
+const classifyLoanCashflow = (linkedEntries: any[]): "Loan Payout" | "Loan Instalment" | null => {
+  const loanEntry = linkedEntries.find(isLoanEntry);
+  if (!loanEntry) return null;
+  const entryType = normalize(loanEntry?.entry_type);
+  const description = normalize(loanEntry?.description);
+  if (entryType.includes("payout") || entryType.includes("capital") || description.includes("payout") || description.includes("loans (payout)")) return "Loan Payout";
+  if (entryType.includes("repay") || entryType.includes("instal") || entryType.includes("received") || description.includes("repay") || description.includes("instal") || description.includes("loan received")) return "Loan Instalment";
+  return Number(loanEntry?.debit || 0) >= Number(loanEntry?.credit || 0) ? "Loan Payout" : "Loan Instalment";
+};
+
+const classifyLegacyGroup = (linkedEntries: any[]): string | null => {
+  const loanType = classifyLoanCashflow(linkedEntries);
+  if (loanType) return loanType;
+  return classifyLegacyCashflow(linkedEntries);
+};
 
 const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
 
@@ -54,16 +77,19 @@ const getGroupKey = (entry: any) => {
   return null;
 };
 
-const isBankLikeEntry = (entry: any) => {
+const isBankOrLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
-  return DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType) || entry?.is_bank === true;
+  return DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType) || entry?.is_bank === true || isLoanEntry(entry);
 };
 
 const getCashflowEntryAmount = (entry: any) =>
   Math.abs(Number(entry?.debit || 0) - Number(entry?.credit || 0));
 
 const classifyLegacyCashflow = (linkedEntries: any[]): "Deposit Funds" | "Withdraw Funds" | null => {
-  const bankEntry = linkedEntries.find(isBankLikeEntry);
+  const bankEntry = linkedEntries.find((e) => {
+    const et = normalize(e?.entry_type);
+    return DEPOSIT_ENTRY_TYPES.has(et) || WITHDRAWAL_ENTRY_TYPES.has(et) || e?.is_bank === true;
+  });
   if (!bankEntry) return null;
 
   const entryType = normalize(bankEntry?.entry_type);
@@ -82,10 +108,10 @@ const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
   if (code === "DEPOSIT_FUNDS") return "Deposit Funds";
   if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
 
-  const legacyType = classifyLegacyCashflow(linkedEntries);
+  const legacyType = classifyLegacyGroup(linkedEntries);
   if (legacyType) return legacyType;
 
-  const bankEntry = linkedEntries.find(isBankLikeEntry);
+  const bankEntry = linkedEntries.find(isBankOrLoanEntry);
   return tx?.transaction_types?.name || bankEntry?.description || "Cash Flow";
 };
 
@@ -114,6 +140,8 @@ const summarizeCashflowRow = ({
     if (!amount || IGNORE_ENTRY_TYPES.has(entryType)) continue;
 
     if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
+      bankAmount += amount;
+    } else if (isLoanEntry(entry)) {
       bankAmount += amount;
     } else if (entryType.includes("share") || description.includes("share")) {
       shares += amount;
@@ -178,7 +206,7 @@ const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: a
   const legacyRows = Array.from(groupedEntries.entries())
     .filter(([groupKey]) => !consumedGroups.has(groupKey) && groupKey.startsWith("legacy:"))
     .map(([, linkedEntries]) => {
-      const typeLabel = classifyLegacyCashflow(linkedEntries);
+      const typeLabel = classifyLegacyGroup(linkedEntries);
       if (!typeLabel) return null;
 
       const transactionDate = linkedEntries

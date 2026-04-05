@@ -1,4 +1,12 @@
 const CASHFLOW_TRANSACTION_CODES = new Set(["DEPOSIT_FUNDS", "WITHDRAW_FUNDS"]);
+const LOAN_ENTRY_TYPES = new Set([
+  "loan_capital",
+  "loan_loading",
+  "loan_payout",
+  "loan_repayment",
+  "loan_instalment",
+  "loan_received",
+]);
 const DEPOSIT_ENTRY_TYPES = new Set(["bank_receipt", "bank_deposit"]);
 const WITHDRAWAL_ENTRY_TYPES = new Set(["bank_payment", "bank_withdrawal"]);
 const MEMBER_FEE_ENTRY_TYPES = new Set(["membership_fee", "member_fee"]);
@@ -12,6 +20,51 @@ const NET_TO_POOL_ENTRY_TYPES = new Set([
 ]);
 const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror"]);
 
+const isLoanEntry = (entry: any) => {
+  const entryType = normalize(entry?.entry_type);
+  const description = normalize(entry?.description);
+  return (
+    LOAN_ENTRY_TYPES.has(entryType) ||
+    entryType.includes("loan") ||
+    description.includes("loan")
+  );
+};
+
+const classifyLoanCashflow = (linkedEntries: any[]): "Loan Payout" | "Loan Instalment" | null => {
+  const loanEntry = linkedEntries.find(isLoanEntry);
+  if (!loanEntry) return null;
+
+  const entryType = normalize(loanEntry?.entry_type);
+  const description = normalize(loanEntry?.description);
+
+  // Payout = debit to member (money going out to member)
+  if (
+    entryType.includes("payout") ||
+    entryType.includes("capital") ||
+    description.includes("payout") ||
+    description.includes("loans (payout)")
+  ) {
+    return "Loan Payout";
+  }
+
+  // Instalment = credit (repayment coming back)
+  if (
+    entryType.includes("repay") ||
+    entryType.includes("instal") ||
+    entryType.includes("received") ||
+    description.includes("repay") ||
+    description.includes("instal") ||
+    description.includes("loan received")
+  ) {
+    return "Loan Instalment";
+  }
+
+  // Fallback: debit = payout, credit = instalment
+  return Number(loanEntry?.debit || 0) >= Number(loanEntry?.credit || 0)
+    ? "Loan Payout"
+    : "Loan Instalment";
+};
+
 const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
 
 const getGroupKey = (entry: any) => {
@@ -20,16 +73,19 @@ const getGroupKey = (entry: any) => {
   return null;
 };
 
-const isBankLikeEntry = (entry: any) => {
+const isBankOrLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
-  return DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType) || entry?.is_bank === true;
+  return DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType) || entry?.is_bank === true || isLoanEntry(entry);
 };
 
 export const getCashflowEntryAmount = (entry: any) =>
   Math.abs(Number(entry?.debit || 0) - Number(entry?.credit || 0));
 
 const classifyLegacyCashflow = (linkedEntries: any[]): "Deposit Funds" | "Withdraw Funds" | null => {
-  const bankEntry = linkedEntries.find(isBankLikeEntry);
+  const bankEntry = linkedEntries.find((e) => {
+    const et = normalize(e?.entry_type);
+    return DEPOSIT_ENTRY_TYPES.has(et) || WITHDRAWAL_ENTRY_TYPES.has(et) || e?.is_bank === true;
+  });
   if (!bankEntry) return null;
 
   const entryType = normalize(bankEntry?.entry_type);
@@ -43,15 +99,24 @@ const classifyLegacyCashflow = (linkedEntries: any[]): "Deposit Funds" | "Withdr
     : "Withdraw Funds";
 };
 
+export const classifyLegacyGroup = (linkedEntries: any[]): string | null => {
+  // Check for loan first
+  const loanType = classifyLoanCashflow(linkedEntries);
+  if (loanType) return loanType;
+
+  // Then check for deposit/withdrawal
+  return classifyLegacyCashflow(linkedEntries);
+};
+
 export const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
   const code = String(tx?.transaction_types?.code || "").toUpperCase();
   if (code === "DEPOSIT_FUNDS") return "Deposit Funds";
   if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
 
-  const legacyType = classifyLegacyCashflow(linkedEntries);
+  const legacyType = classifyLegacyGroup(linkedEntries);
   if (legacyType) return legacyType;
 
-  const bankEntry = linkedEntries.find(isBankLikeEntry);
+  const bankEntry = linkedEntries.find(isBankOrLoanEntry);
   return tx?.transaction_types?.name || bankEntry?.description || "Cash Flow";
 };
 
@@ -80,6 +145,8 @@ const summarizeCashflowRow = ({
     if (!amount || IGNORE_ENTRY_TYPES.has(entryType)) continue;
 
     if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
+      bankAmount += amount;
+    } else if (isLoanEntry(entry)) {
       bankAmount += amount;
     } else if (entryType.includes("share") || description.includes("share")) {
       shares += amount;
@@ -149,7 +216,7 @@ export const buildStatementCashflows = (approvedTransactions: any[], cashflowEnt
   const legacyRows = Array.from(groupedEntries.entries())
     .filter(([groupKey]) => !consumedGroups.has(groupKey) && groupKey.startsWith("legacy:"))
     .map(([, linkedEntries]) => {
-      const typeLabel = classifyLegacyCashflow(linkedEntries);
+      const typeLabel = classifyLegacyGroup(linkedEntries);
       if (!typeLabel) return null;
 
       const transactionDate = linkedEntries
