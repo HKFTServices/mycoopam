@@ -159,7 +159,7 @@ const LedgerEntries = () => {
 
   const [bankDialogOpen, setBankDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
-  const [payCommDialog, setPayCommDialog] = useState<Commission | null>(null);
+  const [payCommDialog, setPayCommDialog] = useState<Commission[] | null>(null);
   const [payReference, setPayReference] = useState("");
   const [bankForm, setBankForm] = useState({ ...defaultBankForm });
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
