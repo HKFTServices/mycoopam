@@ -438,6 +438,8 @@ async function generateStatementPdf(data: {
   loanOutstanding: number;
   loanPayout: number;
   loanRepaid: number;
+  loanTransactions?: any[];
+  grantTransactions?: any[];
   openingUnits: any[];
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
@@ -1040,6 +1042,18 @@ async function fetchStatementData(
     const termsConditionsText = termsHtml.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
     const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
+    const legacyEntityId = loanRow?.legacy_entity_id || loanRow?.client_acct_id;
+
+    const [loanTxLegacyRes, loanTxCftRes] = await Promise.all([
+      legacyEntityId
+        ? adminClient.rpc("get_loan_transactions", { p_tenant_id: tenantId, p_legacy_entity_id: legacyEntityId })
+        : Promise.resolve({ data: [] }),
+      adminClient.from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)")
+        .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
+        .eq("is_active", true).like("entry_type", "loan_%")
+        .is("legacy_transaction_id", null)
+        .order("transaction_date", { ascending: true }),
+    ]);
 
     const filteredUnitTx = (unitTxRes.data ?? []).filter((tx: any) => {
       const debit = Number(tx.debit || 0);
@@ -1049,6 +1063,27 @@ async function fetchStatementData(
     });
 
     const allCashflows = buildStatementCashflows(approvedTxRes.data ?? [], cashflowTxRes.data ?? []);
+    const legacyLoanTx = (loanTxLegacyRes.data ?? []).map((tx: any) => ({
+      transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
+      entry_type: tx.entry_type || tx.entry_type_id || "",
+      entry_type_name: tx.entry_type_name || "",
+      debit: Number(tx.debit || 0),
+      credit: Number(tx.credit || 0),
+    }));
+    const LOAN_CONTROL_TYPES = new Set(["loan_payout_control_cr", "loan_payout_control_dr", "loan_control"]);
+    const modernLoanTx = (loanTxCftRes.data ?? [])
+      .filter((tx: any) => !LOAN_CONTROL_TYPES.has(tx.entry_type))
+      .map((tx: any) => ({
+        transaction_date: tx.transaction_date,
+        entry_type: tx.entry_type || "",
+        entry_type_name: "",
+        debit: Number(tx.debit || 0),
+        credit: Number(tx.credit || 0),
+      }));
+    const allLoanTx = [...legacyLoanTx, ...modernLoanTx]
+      .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
+      .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const periodLoanTx = allLoanTx.filter((tx) => tx.transaction_date >= fromStr && tx.transaction_date <= toStr);
 
     // Fetch grant transactions for the period
     const { data: grantTxData } = await adminClient.from("cashflow_transactions")
@@ -1079,6 +1114,7 @@ async function fetchStatementData(
       loanOutstanding: Number(loanRow?.outstanding ?? 0),
       loanPayout: Number(loanRow?.total_payout ?? 0),
       loanRepaid: Number(loanRow?.total_repaid ?? 0),
+      loanTransactions: periodLoanTx,
       grantTransactions,
       openingUnits,
       closingUnits,
