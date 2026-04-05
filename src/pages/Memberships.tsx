@@ -633,7 +633,22 @@ const Memberships = () => {
     enabled: !!currentTenant,
   });
 
-  // Calculate combined unit value per entity_account (only display_in_summary pools, matching portfolio detail)
+  // Fetch active debit orders to disable "Debit Order Sign Up" for entities that already have one
+  const { data: activeDebitOrderEntityAccountIds = [] } = useQuery<string[]>({
+    queryKey: ["active_debit_order_accounts", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data } = await (supabase as any)
+        .from("debit_orders")
+        .select("entity_account_id")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true);
+      return [...new Set((data || []).map((d: any) => d.entity_account_id))] as string[];
+    },
+    enabled: !!currentTenant,
+  });
+  const activeDebitOrderAccountSet = useMemo(() => new Set(activeDebitOrderEntityAccountIds), [activeDebitOrderEntityAccountIds]);
+
   const accountValueMap: Record<string, number> = useMemo(() => {
     const summaryPoolIds = new Set(
       poolDisplayTypes
