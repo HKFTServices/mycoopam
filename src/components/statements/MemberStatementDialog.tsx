@@ -130,6 +130,7 @@ export default function MemberStatementDialog({
         (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)")
           .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
           .eq("is_active", true).like("entry_type", "loan_%")
+          .is("legacy_transaction_id", null)
           .order("transaction_date", { ascending: true }),
         // Grant transactions: grant_control credit entries represent grants paid to member
         (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, credit")
