@@ -71,7 +71,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "decline") {
-      const { decline_reason } = await req.json().catch(() => ({}));
       await admin.from("debit_order_batches").update({
         status: "declined",
         declined_by: user.id,
