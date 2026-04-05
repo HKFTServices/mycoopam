@@ -822,7 +822,7 @@ const RegisterTenant = () => {
                       {feePlans.length > 0 && (
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Monthly base fee:</p>
-                          <p className="text-lg font-bold text-primary">{formatCurrency(computedMonthlyFee)} <span className="text-xs font-normal text-muted-foreground">+ VAT / month</span></p>
+                          <p className="text-lg font-bold text-primary">{formatCurrency(computedMonthlyFee)} <span className="text-xs font-normal text-muted-foreground">(excl. VAT) / month</span></p>
                         </div>
                       )}
                     </div>
@@ -876,7 +876,7 @@ const RegisterTenant = () => {
                                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Once-off Setup Fee</p>
                                   <p className="text-xl sm:text-2xl font-bold text-primary">
                                     {formatCurrency(plan.setup_fee_excl_vat)}
-                                    <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT</span>
+                                    <span className="text-xs font-normal text-muted-foreground ml-1">(excl. VAT)</span>
                                   </p>
                                 </div>
 
@@ -890,7 +890,7 @@ const RegisterTenant = () => {
                                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly Base Fee</p>
                                   <p className="text-lg font-bold text-primary">
                                     {formatCurrency(computedMonthlyFee)}
-                                    <span className="text-xs font-normal text-muted-foreground ml-1">+ VAT / month</span>
+                                    <span className="text-xs font-normal text-muted-foreground ml-1">(excl. VAT) / month</span>
                                   </p>
                                   <p className="text-[10px] text-muted-foreground">Based on your selected services above</p>
                                 </div>
@@ -992,8 +992,8 @@ const RegisterTenant = () => {
                           <Label htmlFor="sla-accept" className="text-sm leading-relaxed">
                             I, on behalf of <strong>{name || "the Co-operative"}</strong> (Registration: {registrationNumber || "—"}),
                             accept the <strong>{selectedPlan?.plan_label}</strong> package at a once-off fee of{" "}
-                            <strong>{formatCurrency(selectedPlan?.setup_fee_excl_vat ?? 0)} + VAT</strong> and a monthly
-                            base fee of <strong>{formatCurrency(computedMonthlyFee)} + VAT</strong>.
+                            <strong>{formatCurrency(selectedPlan?.setup_fee_excl_vat ?? 0)} (excl. VAT)</strong> and a monthly
+                            base fee of <strong>{formatCurrency(computedMonthlyFee)} (excl. VAT)</strong>.
                             I agree to the Service Level Agreement terms between HKFT Services (Pty) Ltd and {name || "the Co-operative"}.
                             The setup fee is payable within 7 days of registration.
                           </Label>
