@@ -105,7 +105,7 @@ export default function MemberStatementDialog({
         // Unit transactions in range (filter zero values)
         (supabase as any).from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
         // Cashflow transactions in range
-        (supabase as any).from("cashflow_transactions").select("id, transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).or("is_bank.eq.true,entry_type.in.(share,membership_fee,fee,pool_allocation,pool_redemption)").order("transaction_date", { ascending: true }),
+        (supabase as any).from("cashflow_transactions").select("id, transaction_id, legacy_transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).or("is_bank.eq.true,entry_type.in.(share,membership_fee,fee,fee_income,member_interest,pool_allocation,pool_redemption)").order("transaction_date", { ascending: true }),
         // Stock transactions in range
         (supabase as any).from("stock_transactions").select("id, transaction_date, transaction_type, stock_transaction_type, debit, credit, cost_price, total_value, notes, items (description), pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
         // Loan outstanding
@@ -208,7 +208,7 @@ export default function MemberStatementDialog({
       // Merge current cashflow transactions with legacy CFT data
       const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date,
-        transaction_id: tx.transaction_id || tx.id,
+        group_key: tx.transaction_id || tx.legacy_transaction_id || tx.id,
         entry_type: tx.entry_type || "",
         description: tx.description || "",
         pool_name: tx.pools?.name || "",
@@ -218,7 +218,7 @@ export default function MemberStatementDialog({
       }));
       const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
-        transaction_id: tx.transaction_id || tx.id || "",
+        group_key: tx.transaction_id || tx.legacy_transaction_id || tx.id || "",
         entry_type: tx.entry_type || "",
         description: tx.description || "",
         pool_name: tx.pool_name || "",
