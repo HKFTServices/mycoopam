@@ -82,6 +82,7 @@ import PaiaManual from "./pages/PaiaManual";
 import AcceptableUsePolicy from "./pages/AcceptableUsePolicy";
 import Disclaimer from "./pages/Disclaimer";
 import CookieConsent from "./components/CookieConsent";
+import RecoveryLinkRedirect from "./components/auth/RecoveryLinkRedirect";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
 
@@ -130,6 +131,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
+        <RecoveryLinkRedirect />
         <AuthProvider>
           <TenantProvider>
             <Routes>
