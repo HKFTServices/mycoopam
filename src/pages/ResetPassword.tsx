@@ -40,6 +40,16 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const fetchBranding = async () => {
+      if (tenantSlug) {
+        // Use slug-specific branding to match the correct tenant
+        const { data } = await supabase.rpc("get_tenant_branding_by_slug" as any, { p_slug: tenantSlug });
+        if (data && (data as any[]).length > 0) {
+          const first = (data as any[])[0];
+          setBranding({ tenant_name: first.tenant_name || first.legal_name, logo_url: first.logo_url });
+          return;
+        }
+      }
+      // Fallback to generic branding
       const { data } = await supabase.rpc("get_tenant_branding" as any);
       if (data && (data as any[]).length > 0) {
         const first = (data as any[])[0];
@@ -47,7 +57,7 @@ const ResetPassword = () => {
       }
     };
     fetchBranding();
-  }, []);
+  }, [tenantSlug]);
 
   // Handle recovery token verification (token_hash or code or access_token)
   useEffect(() => {
