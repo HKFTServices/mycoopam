@@ -798,7 +798,7 @@ const RegisterTenant = () => {
                           { key: "membership_admin", label: "Membership Administration", fee: feePlan?.membership_admin_fee ?? 250, required: true },
                           { key: "loans", label: "Loans", fee: feePlan?.loans_fee ?? 50, required: false },
                           { key: "debit_orders", label: "Debit Orders", fee: feePlan?.debit_orders_fee ?? 50, required: false },
-                          { key: "accounting", label: "Accounting", fee: feePlan?.accounting_fee ?? 50, required: false },
+                          { key: "accounting", label: "Accounting & Reports", fee: feePlan?.accounting_fee ?? 50, required: false },
                         ].map((svc) => (
                           <label
                             key={svc.key}
