@@ -890,19 +890,25 @@ async function generateStatementPdf(data: {
   y += 6;
 
   // ── Loans & Grants ──
-  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0;
+  const grantTx = data.grantTransactions ?? [];
+  const totalGrantsPaid = grantTx.reduce((s: number, g: any) => s + Number(g.amount || 0), 0);
+  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0 || totalGrantsPaid > 0;
   if (hasLoanData) {
     y = drawSectionTitle(doc, "Loans & Grants", y);
+    const lgRows: string[][] = [
+      ["Total Disbursed", fmtCurrency(data.loanPayout, sym)],
+      ["Total Repaid", fmtCurrency(data.loanRepaid, sym)],
+    ];
+    if (totalGrantsPaid > 0) {
+      lgRows.push(["Total Grants Paid", fmtCurrency(totalGrantsPaid, sym)]);
+    }
     y = drawTable(doc, {
       startY: y,
       columns: [
         { header: "Description", width: 120, align: "left" },
         { header: "Amount", width: 60, align: "right" },
       ],
-      rows: [
-        ["Total Disbursed", fmtCurrency(data.loanPayout, sym)],
-        ["Total Repaid", fmtCurrency(data.loanRepaid, sym)],
-      ],
+      rows: lgRows,
       totalRow: ["Outstanding Balance", fmtCurrency(data.loanOutstanding, sym)],
     });
   }
