@@ -795,10 +795,10 @@ const RegisterTenant = () => {
                       <p className="text-sm text-muted-foreground">Tick the modules you need. Membership Admin is always included.</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
-                          { key: "membership_admin", label: "Membership Administration", fee: selectedPlan?.membership_admin_fee ?? 250, required: true },
-                          { key: "loans", label: "Loans", fee: selectedPlan?.loans_fee ?? 50, required: false },
-                          { key: "debit_orders", label: "Debit Orders", fee: selectedPlan?.debit_orders_fee ?? 50, required: false },
-                          { key: "accounting", label: "Accounting", fee: selectedPlan?.accounting_fee ?? 50, required: false },
+                          { key: "membership_admin", label: "Membership Administration", fee: feePlan?.membership_admin_fee ?? 250, required: true },
+                          { key: "loans", label: "Loans", fee: feePlan?.loans_fee ?? 50, required: false },
+                          { key: "debit_orders", label: "Debit Orders", fee: feePlan?.debit_orders_fee ?? 50, required: false },
+                          { key: "accounting", label: "Accounting", fee: feePlan?.accounting_fee ?? 50, required: false },
                         ].map((svc) => (
                           <label
                             key={svc.key}
