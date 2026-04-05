@@ -38,8 +38,11 @@ const TermsStep = ({ data, update, tenantId }: StepProps) => {
           membershipTerms.map((term) => (
             <div key={term.id} className="space-y-3">
               <h3 className="text-sm font-semibold capitalize">{term.condition_type} Terms</h3>
-              <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-4 bg-muted/30">
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: resolveTermsMergeFields(term.content, { tenantName: currentTenant?.name, legalEntityName: branding.legalEntityName, tenantSlug: currentTenant?.slug }) }} />
+              <div className="max-h-64 overflow-y-auto border border-border rounded-lg p-5 bg-card shadow-sm">
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1.5 [&_p]:mb-3 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_em]:text-muted-foreground [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-sm [&_th]:bg-muted/50 [&_th]:font-semibold"
+                  dangerouslySetInnerHTML={{ __html: resolveTermsMergeFields(term.content, { tenantName: currentTenant?.name, legalEntityName: branding.legalEntityName, tenantSlug: currentTenant?.slug }) }}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox
