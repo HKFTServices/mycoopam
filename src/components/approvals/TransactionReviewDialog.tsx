@@ -421,11 +421,16 @@ const TransactionReviewDialog = ({
   const courierFeeDelta = actualCourierFee - estimatedCourierFee;
   const adjustedGrossAmount = hasCryptoOverride ? cryptoFinalNum : totalAmount;
   const feeScale = hasCryptoOverride && totalAmount > 0 ? adjustedGrossAmount / totalAmount : 1;
-  const adjustedFeeBreakdown = feeBreakdown.map((fee) => ({
-    ...fee,
-    amount: Number(fee.amount || 0) * feeScale,
-    vat: fee.vat !== undefined ? Number(fee.vat || 0) * feeScale : undefined,
-  }));
+  const adjustedFeeBreakdown = feeBreakdown.map((fee) => {
+    const nameLower = (fee.name || "").toLowerCase();
+    const isFixed = nameLower.includes("join share") || nameLower === "membership fee";
+    const scale = isFixed ? 1 : feeScale;
+    return {
+      ...fee,
+      amount: Number(fee.amount || 0) * scale,
+      vat: fee.vat !== undefined ? Number(fee.vat || 0) * scale : undefined,
+    };
+  });
   const adjustedTotalFees = adjustedFeeBreakdown.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
   const adjustedTotalNetBeforeCourier = Math.max(0, adjustedGrossAmount - adjustedTotalFees);
   const effectivePoolAllocations = allTxns.map((txn: any) => {
