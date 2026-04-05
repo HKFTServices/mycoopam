@@ -234,6 +234,12 @@ export default function MemberStatementDialog({
         .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
       const periodLoanTx = allLoanTx.filter((tx) => tx.transaction_date >= fromStr && tx.transaction_date <= toStr);
 
+      // Grant transactions
+      const periodGrantTx = (grantTxRes.data ?? []).map((g: any) => ({
+        transaction_date: g.transaction_date,
+        amount: Number(g.credit || 0),
+      })).filter((g: any) => g.amount > 0);
+
       const statementData: StatementData = {
         fromDate: fromStr,
         toDate: toStr,
@@ -251,6 +257,7 @@ export default function MemberStatementDialog({
         loanPayout: Number(loanRow?.total_payout ?? 0),
         loanRepaid: Number(loanRow?.total_repaid ?? 0),
         loanTransactions: periodLoanTx,
+        grantTransactions: periodGrantTx,
         openingUnits,
         closingUnits,
         poolPricesStart: dedup(poolPricesStartRes.data),
