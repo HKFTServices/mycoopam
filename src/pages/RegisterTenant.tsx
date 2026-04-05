@@ -950,8 +950,7 @@ const RegisterTenant = () => {
                                       "Daily pool price updates",
                                       "Deposits, withdrawals & switches",
                                       "Fee engine & sliding scales",
-                                      "Stock / commodity trading",
-                                      "Member Asset Manager (MAM)",
+                                       "Stock / commodity trading",
                                     ] : []),
                                   ].map((f) => (
                                     <div key={f} className="flex items-start gap-2 text-xs">

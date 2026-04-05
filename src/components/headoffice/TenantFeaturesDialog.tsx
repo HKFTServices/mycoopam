@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 const FEATURE_DEFINITIONS = [
   { key: "loans", label: "Loans", description: "Loan applications, approvals, and disbursements", icon: Banknote },
-  { key: "asset_manager", label: "Asset Manager (MAM)", description: "Member Asset Manager module", icon: Package },
+  
   { key: "debit_orders", label: "Debit Orders", description: "Recurring debit order management", icon: CreditCard },
   { key: "stock_transactions", label: "Stock Transactions", description: "Stock deposit and withdrawal transactions", icon: BarChart3 },
   { key: "referral_system", label: "Referral System", description: "Referrer and referral house management", icon: Wallet },
