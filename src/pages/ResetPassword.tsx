@@ -77,14 +77,34 @@ const ResetPassword = () => {
       const verifyRecoveryToken = async () => {
         setExchanging(true);
         try {
+          // Check if detectSessionInUrl already consumed the token and created a session.
+          // If so, skip verifyOtp — the session is valid for password update.
+          const { data: existingSession } = await supabase.auth.getSession();
+          if (existingSession?.session) {
+            console.log("[ResetPassword] Session already exists (detectSessionInUrl handled token), skipping verifyOtp");
+            setIsRecovery(true);
+            // Clear the hash to avoid re-verification
+            window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+            setExchanging(false);
+            return;
+          }
+
           const { error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: "recovery",
           });
           if (error) {
-            console.error("[ResetPassword] Token verification failed:", error.message);
-            toast({ title: "Link expired or invalid", description: error.message, variant: "destructive" });
-            setIsRecovery(false);
+            // Token may have been consumed by detectSessionInUrl between our check and now.
+            // Re-check for an active session before giving up.
+            const { data: retrySession } = await supabase.auth.getSession();
+            if (retrySession?.session) {
+              console.log("[ResetPassword] verifyOtp failed but session exists — proceeding with recovery");
+              setIsRecovery(true);
+            } else {
+              console.error("[ResetPassword] Token verification failed:", error.message);
+              toast({ title: "Link expired or invalid", description: error.message, variant: "destructive" });
+              setIsRecovery(false);
+            }
           } else {
             setIsRecovery(true);
           }
