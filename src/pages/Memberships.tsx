@@ -893,6 +893,9 @@ const Memberships = () => {
           const hasReferralHouseAcct = existingTypes.has(5);
           const hasCustomer = existingTypes.has(2);
           const hasSupplier = existingTypes.has(3);
+          const isReferrer = !!entityReferrerRecords[g.entityId];
+          const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
+          const hasActiveDebitOrder = activeAcct ? activeDebitOrderAccountSet.has(activeAcct.id) : false;
 
           return (
             <DropdownMenu>
