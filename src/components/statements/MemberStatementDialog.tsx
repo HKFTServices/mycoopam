@@ -89,6 +89,7 @@ export default function MemberStatementDialog({
         accountsRes,
         tenantConfigRes,
         unitTxRes,
+        approvedTxRes,
         cashflowTxRes,
         stockTxRes,
         loanRes,
@@ -104,8 +105,10 @@ export default function MemberStatementDialog({
         (supabase as any).from("tenant_configuration").select("logo_url, directors, vat_number, registration_date, currency_symbol, legal_entity_id, entities:legal_entity_id (name, registration_number, contact_number, email_address)").eq("tenant_id", tenantId).maybeSingle(),
         // Unit transactions in range (filter zero values)
         (supabase as any).from("unit_transactions").select("id, transaction_date, transaction_type, pool_id, debit, credit, unit_price, value, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
-        // Cashflow transactions in range
-        (supabase as any).from("cashflow_transactions").select("id, transaction_id, legacy_transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).or("is_bank.eq.true,entry_type.in.(share,membership_fee,fee,fee_income,member_interest,pool_allocation,pool_redemption)").order("transaction_date", { ascending: true }),
+        // Approved transactions (deposits/withdrawals) - primary cash flow source
+        (supabase as any).from("transactions").select("id, transaction_date, amount, fee_amount, net_amount, status, legacy_transaction_id, transaction_types (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).eq("status", "approved").gte("transaction_date", fromStr).lte("transaction_date", toStr).order("transaction_date", { ascending: true }),
+        // Cashflow transactions - for fee breakdown detail
+        (supabase as any).from("cashflow_transactions").select("id, transaction_id, legacy_transaction_id, transaction_date, entry_type, description, debit, credit, is_bank, notes, pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
         // Stock transactions in range
         (supabase as any).from("stock_transactions").select("id, transaction_date, transaction_type, stock_transaction_type, debit, credit, cost_price, total_value, notes, items (description), pools (name)").eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds).gte("transaction_date", fromStr).lte("transaction_date", toStr).eq("is_active", true).order("transaction_date", { ascending: true }),
         // Loan outstanding
@@ -114,7 +117,7 @@ export default function MemberStatementDialog({
         (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", fromStr).order("totals_date", { ascending: false }).limit(50),
         // Pool prices at end of period (nearest before toStr)
         (supabase as any).from("daily_pool_prices").select("pool_id, unit_price_sell, totals_date, pools (name, pool_statement_display_type, pool_statement_description)").eq("tenant_id", tenantId).lte("totals_date", toStr).order("totals_date", { ascending: false }).limit(50),
-        // Legacy cashflow transactions
+        // Legacy cashflow transactions (bank-level entries)
         (supabase as any).rpc("get_legacy_cft_for_entity", { p_tenant_id: tenantId, p_entity_id: entityId, p_from_date: fromStr, p_to_date: toStr }),
       ]);
 
@@ -205,29 +208,32 @@ export default function MemberStatementDialog({
         return debit !== 0 || credit !== 0 || value !== 0;
       });
 
-      // Merge current cashflow transactions with legacy CFT data
-      const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({
+      // Build cash flows from approved transactions (primary source)
+      const approvedCashflows = (approvedTxRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date,
-        group_key: tx.transaction_id || tx.legacy_transaction_id || tx.id,
-        entry_type: tx.entry_type || "",
-        description: tx.description || "",
-        pool_name: tx.pools?.name || "",
-        debit: Number(tx.debit || 0),
-        credit: Number(tx.credit || 0),
-        is_bank: tx.is_bank ?? false,
+        type: tx.transaction_types?.name || "Transaction",
+        grossAmount: Number(tx.amount || 0),
+        feeAmount: Number(tx.fee_amount || 0),
+        netAmount: Number(tx.net_amount || 0),
       }));
-      const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
-        transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
-        group_key: tx.transaction_id || tx.legacy_transaction_id || tx.id || "",
-        entry_type: tx.entry_type || "",
-        description: tx.description || "",
-        pool_name: tx.pool_name || "",
-        debit: Number(tx.debit || 0),
-        credit: Number(tx.credit || 0),
-        is_bank: tx.is_bank ?? false,
-      }));
-      const allCashflows = [...currentCft, ...legacyCft]
-        .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
+
+      // Also include legacy CFT bank-level entries not already covered by transactions
+      const legacyBankEntries = (legacyCftRes.data ?? [])
+        .filter((tx: any) => {
+          const et = (tx.entry_type || "").toLowerCase();
+          return et.includes("bank") || et.includes("receipt") || et.includes("payment") || et.includes("deposit") || et.includes("withdrawal");
+        })
+        .map((tx: any) => ({
+          transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
+          type: tx.description || tx.entry_type || "Transaction",
+          grossAmount: Number(tx.debit || 0) || Number(tx.credit || 0),
+          feeAmount: 0,
+          netAmount: Number(tx.debit || 0) || Number(tx.credit || 0),
+        }));
+
+      // Combine: approved transactions + legacy bank entries
+      const allCashflows = [...approvedCashflows, ...legacyBankEntries]
+        .filter((tx) => tx.grossAmount > 0)
         .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 
       // Merge loan transactions (legacy + modern)
