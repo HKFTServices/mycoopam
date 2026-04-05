@@ -438,6 +438,8 @@ async function generateStatementPdf(data: {
   loanOutstanding: number;
   loanPayout: number;
   loanRepaid: number;
+  loanTransactions?: any[];
+  grantTransactions?: any[];
   openingUnits: any[];
   closingUnits: any[];
   poolPricesStart: Record<string, any>;
