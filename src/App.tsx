@@ -75,6 +75,7 @@ import LoanApplications from "./pages/LoanApplications";
 import DebitOrders from "./pages/DebitOrders";
 import Notifications from "./pages/Notifications";
 import LegacyGlAllocation from "./pages/LegacyGlAllocation";
+import SupportTickets from "./pages/SupportTickets";
 import CookiePolicy from "./pages/CookiePolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -166,6 +167,7 @@ const App = () => (
               <Route path="/dashboard/entity-pool-details" element={<DashboardRoute><EntityPoolDetails /></DashboardRoute>} />
               <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
               <Route path="/dashboard/my-commissions" element={<DashboardRoute><MyCommissions /></DashboardRoute>} />
+              <Route path="/dashboard/support-tickets" element={<DashboardRoute><SupportTickets /></DashboardRoute>} />
 
               {/* Staff: admin + manager + clerk */}
               <Route path="/dashboard/account-approvals" element={<StaffRoute><AccountApprovals /></StaffRoute>} />

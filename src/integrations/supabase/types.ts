@@ -5209,6 +5209,94 @@ export type Database = {
           },
         ]
       }
+      support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin_reply: boolean
+          message: string
+          sender_id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean
+          message: string
+          sender_id: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean
+          message?: string
+          sender_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          priority: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          subject: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          subject: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          subject?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           created_at: string

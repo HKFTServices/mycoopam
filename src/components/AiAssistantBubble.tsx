@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, LifeBuoy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
@@ -8,6 +9,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
 
 export default function AiAssistantBubble() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -113,9 +115,16 @@ export default function AiAssistantBubble() {
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
             {messages.length === 0 && (
-              <div className="text-center text-muted-foreground text-xs mt-8 px-4">
+              <div className="text-center text-muted-foreground text-xs mt-6 px-4">
                 <Bot className="h-10 w-10 mx-auto mb-2 opacity-40" />
                 <p>Hi there! 👋 I'm your MyCoop assistant. Ask me anything about the platform.</p>
+                <button
+                  onClick={() => { setOpen(false); navigate("/dashboard/support-tickets"); }}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  <LifeBuoy className="h-3.5 w-3.5" />
+                  Lodge an issue or suggestion
+                </button>
               </div>
             )}
             {messages.map((m, i) => (

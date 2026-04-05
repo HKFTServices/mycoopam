@@ -77,6 +77,7 @@ import {
   Landmark,
   Layers,
   LayoutDashboard,
+  LifeBuoy,
   Link2,
   LogOut,
   Mail,
@@ -105,6 +106,7 @@ const mainNavItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Memberships", icon: Briefcase, path: "/dashboard/memberships" },
   { label: "Notifications", icon: BellRing, path: "/dashboard/notifications" },
+  { label: "Support Tickets", icon: LifeBuoy, path: "/dashboard/support-tickets" },
 ];
 
 const transactionsNavItems: NavItem[] = [
