@@ -890,19 +890,25 @@ async function generateStatementPdf(data: {
   y += 6;
 
   // ── Loans & Grants ──
-  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0;
+  const grantTx = data.grantTransactions ?? [];
+  const totalGrantsPaid = grantTx.reduce((s: number, g: any) => s + Number(g.amount || 0), 0);
+  const hasLoanData = data.loanOutstanding > 0 || data.loanPayout > 0 || totalGrantsPaid > 0;
   if (hasLoanData) {
     y = drawSectionTitle(doc, "Loans & Grants", y);
+    const lgRows: string[][] = [
+      ["Total Disbursed", fmtCurrency(data.loanPayout, sym)],
+      ["Total Repaid", fmtCurrency(data.loanRepaid, sym)],
+    ];
+    if (totalGrantsPaid > 0) {
+      lgRows.push(["Total Grants Paid", fmtCurrency(totalGrantsPaid, sym)]);
+    }
     y = drawTable(doc, {
       startY: y,
       columns: [
         { header: "Description", width: 120, align: "left" },
         { header: "Amount", width: 60, align: "right" },
       ],
-      rows: [
-        ["Total Disbursed", fmtCurrency(data.loanPayout, sym)],
-        ["Total Repaid", fmtCurrency(data.loanRepaid, sym)],
-      ],
+      rows: lgRows,
       totalRow: ["Outstanding Balance", fmtCurrency(data.loanOutstanding, sym)],
     });
   }
@@ -1041,6 +1047,19 @@ async function fetchStatementData(
 
     const allCashflows = buildStatementCashflows(approvedTxRes.data ?? [], cashflowTxRes.data ?? []);
 
+    // Fetch grant transactions for the period
+    const { data: grantTxData } = await adminClient.from("cashflow_transactions")
+      .select("id, transaction_date, entry_type, description, credit")
+      .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
+      .eq("is_active", true).eq("entry_type", "grant_control")
+      .gte("transaction_date", fromStr).lte("transaction_date", toStr)
+      .order("transaction_date", { ascending: true });
+
+    const grantTransactions = (grantTxData ?? []).map((g: any) => ({
+      transaction_date: g.transaction_date,
+      amount: Number(g.credit || 0),
+    })).filter((g: any) => g.amount > 0);
+
     return {
       fromDate: fromStr,
       toDate: toStr,
@@ -1057,6 +1076,7 @@ async function fetchStatementData(
       loanOutstanding: Number(loanRow?.outstanding ?? 0),
       loanPayout: Number(loanRow?.total_payout ?? 0),
       loanRepaid: Number(loanRow?.total_repaid ?? 0),
+      grantTransactions,
       openingUnits,
       closingUnits,
       poolPricesStart: dedup(poolPricesStartRes.data),
