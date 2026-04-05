@@ -9,19 +9,24 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CreditCard, Eye, Pencil, Plus, Landmark } from "lucide-react";
+import { Loader2, CreditCard, Eye, Pencil, Plus, Landmark, Play, CalendarIcon } from "lucide-react";
 import { MobileTableHint } from "@/components/ui/mobile-table-hint";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import DebitOrderSignUpDialog from "@/components/debit-orders/DebitOrderSignUpDialog";
@@ -45,6 +50,10 @@ const DebitOrders = () => {
   const [editOrder, setEditOrder] = useState<any>(null);
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [entitySelectOpen, setEntitySelectOpen] = useState(false);
+  // Batch processing state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [processingDate, setProcessingDate] = useState<Date | undefined>(undefined);
+  const [showProcessConfirm, setShowProcessConfirm] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [adminAccountSelectOpen, setAdminAccountSelectOpen] = useState(false);
   const [adminAccountQuery, setAdminAccountQuery] = useState("");
@@ -265,6 +274,81 @@ const DebitOrders = () => {
     });
   }, [adminEntityAccounts, adminAccountQuery]);
 
+  // Processable debit orders = loaded + active
+  const processableOrders = useMemo(
+    () => debitOrders.filter((d: any) => d.status === "loaded" && d.is_active),
+    [debitOrders],
+  );
+
+  const toggleSelectOrder = (id: string) => {
+    setSelectedOrderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.size === processableOrders.length) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(processableOrders.map((d: any) => d.id)));
+    }
+  };
+
+  const createBatchMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentTenant || !user || !processingDate) throw new Error("Missing context");
+      const selected = debitOrders.filter((d: any) => selectedOrderIds.has(d.id));
+      if (selected.length === 0) throw new Error("No debit orders selected");
+
+      const totalAmount = selected.reduce((s: number, d: any) => s + Number(d.monthly_amount), 0);
+      const dateStr = format(processingDate, "yyyy-MM-dd");
+
+      // Create batch
+      const { data: batch, error: batchErr } = await (supabase as any)
+        .from("debit_order_batches")
+        .insert({
+          tenant_id: currentTenant.id,
+          processing_date: dateStr,
+          total_amount: totalAmount,
+          item_count: selected.length,
+          created_by: user.id,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (batchErr) throw batchErr;
+
+      // Create batch items
+      for (const d of selected) {
+        const notes = parseNotes(d.notes);
+        const { error } = await (supabase as any)
+          .from("debit_order_batch_items")
+          .insert({
+            batch_id: batch.id,
+            debit_order_id: d.id,
+            tenant_id: currentTenant.id,
+            entity_id: d.entity_id,
+            entity_account_id: d.entity_account_id,
+            monthly_amount: d.monthly_amount,
+            pool_allocations: d.pool_allocations || [],
+            fee_metadata: notes ? { admin_fees: notes.admin_fees, loan_instalment: notes.loan_instalment, net_to_pools: notes.net_to_pools } : {},
+          });
+        if (error) throw error;
+      }
+      return batch;
+    },
+    onSuccess: () => {
+      toast.success("Debit order batch created — awaiting approval");
+      setSelectedOrderIds(new Set());
+      setProcessingDate(undefined);
+      setShowProcessConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ["debit_orders_list"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -281,11 +365,25 @@ const DebitOrders = () => {
           <h1 className="text-lg sm:text-2xl font-bold">Debit Orders</h1>
         </div>
         {isAdmin ? (
-          <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2" size="sm">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Create Debit Order</span>
-            <span className="sm:hidden">New</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {selectedOrderIds.size > 0 && (
+              <Button
+                onClick={() => setShowProcessConfirm(true)}
+                className="gap-2"
+                size="sm"
+                variant="default"
+              >
+                <Play className="h-4 w-4" />
+                <span className="hidden sm:inline">Process ({selectedOrderIds.size})</span>
+                <span className="sm:hidden">Process ({selectedOrderIds.size})</span>
+              </Button>
+            )}
+            <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2" size="sm" variant="outline">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Create Debit Order</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          </div>
         ) : (
           <Button onClick={handleSignUpClick} className="gap-2" size="sm">
             <Plus className="h-4 w-4" />
@@ -319,6 +417,14 @@ const DebitOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isAdmin && (
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={processableOrders.length > 0 && selectedOrderIds.size === processableOrders.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Member</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
@@ -335,8 +441,21 @@ const DebitOrders = () => {
                   const pools = Array.isArray(d.pool_allocations) ? d.pool_allocations : [];
                   const notes = parseNotes(d.notes);
                   const isLoaded = d.status === "loaded";
+                  const isProcessable = isLoaded && d.is_active;
                   return (
                     <TableRow key={d.id} className={!d.is_active && isLoaded ? "opacity-50" : ""}>
+                      {isAdmin && (
+                        <TableCell>
+                          {isProcessable ? (
+                            <Checkbox
+                              checked={selectedOrderIds.has(d.id)}
+                              onCheckedChange={() => toggleSelectOrder(d.id)}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">
                         {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
                       </TableCell>
@@ -715,6 +834,89 @@ const DebitOrders = () => {
           accountNumber={signUpEntity.accountNumber}
         />
       )}
+
+      {/* Process Debit Orders Confirmation Dialog */}
+      <Dialog open={showProcessConfirm} onOpenChange={setShowProcessConfirm}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Play className="h-5 w-5" />
+              Process Debit Orders
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You have selected <span className="font-bold text-foreground">{selectedOrderIds.size}</span> debit order(s) for processing.
+              This will create a batch for approval. Once approved, deposit fund transactions will be created automatically.
+            </p>
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total amount</span>
+                <span className="font-mono font-bold">
+                  {formatCurrency(
+                    debitOrders
+                      .filter((d: any) => selectedOrderIds.has(d.id))
+                      .reduce((s: number, d: any) => s + Number(d.monthly_amount), 0),
+                    sym,
+                  )}
+                </span>
+              </div>
+              <Separator />
+              <div className="space-y-1">
+                {debitOrders
+                  .filter((d: any) => selectedOrderIds.has(d.id))
+                  .map((d: any) => (
+                    <div key={d.id} className="flex justify-between text-xs">
+                      <span className="truncate max-w-[200px]">
+                        {[d.entities?.name, d.entities?.last_name].filter(Boolean).join(" ")}
+                      </span>
+                      <span className="font-mono">{formatCurrency(d.monthly_amount, sym)}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Processing Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !processingDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {processingDate ? format(processingDate, "PPP") : "Select processing date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={processingDate}
+                    onSelect={setProcessingDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowProcessConfirm(false)}>Cancel</Button>
+            <Button
+              onClick={() => createBatchMutation.mutate()}
+              disabled={!processingDate || createBatchMutation.isPending}
+              className="gap-2"
+            >
+              {createBatchMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Submit for Approval
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

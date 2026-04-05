@@ -1015,6 +1015,155 @@ export type Database = {
           },
         ]
       }
+      debit_order_batch_items: {
+        Row: {
+          batch_id: string
+          created_at: string
+          debit_order_id: string
+          entity_account_id: string
+          entity_id: string
+          fee_metadata: Json | null
+          id: string
+          monthly_amount: number
+          pool_allocations: Json
+          status: string
+          tenant_id: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          debit_order_id: string
+          entity_account_id: string
+          entity_id: string
+          fee_metadata?: Json | null
+          id?: string
+          monthly_amount?: number
+          pool_allocations?: Json
+          status?: string
+          tenant_id: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          debit_order_id?: string
+          entity_account_id?: string
+          entity_id?: string
+          fee_metadata?: Json | null
+          id?: string
+          monthly_amount?: number
+          pool_allocations?: Json
+          status?: string
+          tenant_id?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debit_order_batch_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "debit_order_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debit_order_batch_items_debit_order_id_fkey"
+            columns: ["debit_order_id"]
+            isOneToOne: false
+            referencedRelation: "debit_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debit_order_batch_items_entity_account_id_fkey"
+            columns: ["entity_account_id"]
+            isOneToOne: false
+            referencedRelation: "entity_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debit_order_batch_items_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debit_order_batch_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debit_order_batches: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          declined_at: string | null
+          declined_by: string | null
+          declined_reason: string | null
+          id: string
+          item_count: number
+          notes: string | null
+          processed_at: string | null
+          processing_date: string
+          status: string
+          tenant_id: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          declined_at?: string | null
+          declined_by?: string | null
+          declined_reason?: string | null
+          id?: string
+          item_count?: number
+          notes?: string | null
+          processed_at?: string | null
+          processing_date: string
+          status?: string
+          tenant_id: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          declined_at?: string | null
+          declined_by?: string | null
+          declined_reason?: string | null
+          id?: string
+          item_count?: number
+          notes?: string | null
+          processed_at?: string | null
+          processing_date?: string
+          status?: string
+          tenant_id?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debit_order_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debit_orders: {
         Row: {
           account_name: string | null

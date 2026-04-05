@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote, Send, CreditCard, BookOpen, Check, X } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Briefcase, ArrowLeftRight, Eye, UserCheck, Home, Package, FileText, Banknote, Send, CreditCard, BookOpen, Check, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import DocumentReviewDialog from "@/components/approvals/DocumentReviewDialog";
 import TransactionReviewDialog, { type DateOverride, type StockApprovalMeta } from "@/components/approvals/TransactionReviewDialog";
@@ -794,6 +794,59 @@ const AccountApprovals = () => {
   });
   const approvalSym = tenantConfigApproval?.currency_symbol ?? "R";
 
+  // ─── Debit Order Batch Approvals ───
+  const { data: pendingBatches = [], isLoading: loadingBatches } = useQuery({
+    queryKey: ["pending_debit_batches", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data, error } = await (supabase as any)
+        .from("debit_order_batches")
+        .select("*")
+        .eq("tenant_id", currentTenant.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      for (const batch of (data ?? [])) {
+        const { data: items } = await (supabase as any)
+          .from("debit_order_batch_items")
+          .select("*, entities(name, last_name), entity_accounts(account_number)")
+          .eq("batch_id", batch.id);
+        batch.items = items ?? [];
+      }
+      return data ?? [];
+    },
+    enabled: !!currentTenant,
+  });
+
+  const approveBatchMutation = useMutation({
+    mutationFn: async ({ batchId, action, declineReason: reason }: { batchId: string; action: "approve" | "decline"; declineReason?: string }) => {
+      if (action === "decline") {
+        const { error } = await (supabase as any)
+          .from("debit_order_batches")
+          .update({
+            status: "declined",
+            declined_by: currentUser?.id,
+            declined_at: new Date().toISOString(),
+            declined_reason: reason || "Declined",
+          })
+          .eq("id", batchId);
+        if (error) throw error;
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("process-debit-order-batch", {
+        body: { batch_id: batchId, action: "approve" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: (_, { action }) => {
+      toast.success(action === "approve" ? "Batch approved & processed — deposit transactions created" : "Batch declined");
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_batches"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_debit_orders"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   // ─── Ledger Entry Approvals ───
   const { data: pendingLedgerEntries = [], isLoading: pendingLedgerLoading } = useQuery({
     queryKey: ["cft_pending_entries", currentTenant?.id],
@@ -980,8 +1033,8 @@ const AccountApprovals = () => {
               <TabsTrigger value="debit-orders" className="gap-1.5">
                 <CreditCard className="h-3.5 w-3.5" />
                 Debit Orders
-                {pendingDebitOrders.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length}</Badge>
+                {(pendingDebitOrders.length + pendingBatches.length) > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center text-[10px]">{pendingDebitOrders.length + pendingBatches.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="ledger" className="gap-1.5">
@@ -1607,7 +1660,106 @@ const AccountApprovals = () => {
         </TabsContent>
 
         {/* ─── Debit Orders Approval Tab ─── */}
-        <TabsContent value="debit-orders">
+        <TabsContent value="debit-orders" className="space-y-4">
+          {/* Batch Approvals */}
+          {pendingBatches.length > 0 && (
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  <Play className="h-4 w-4" />
+                  Pending Batch Processing
+                </h3>
+                {pendingBatches.map((batch: any) => (
+                  <div key={batch.id} className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Batch of {batch.item_count} debit order(s) — Processing date: {batch.processing_date}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Total: <span className="font-mono font-bold">{formatCurrency(batch.total_amount, approvalSym)}</span>
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs gap-1"
+                          disabled={approveBatchMutation.isPending}
+                          onClick={() => approveBatchMutation.mutate({ batchId: batch.id, action: "approve" })}
+                        >
+                          {approveBatchMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                          Approve & Process
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 text-xs gap-1"
+                          disabled={approveBatchMutation.isPending}
+                          onClick={() => {
+                            const reason = prompt("Decline reason:");
+                            if (reason === null) return;
+                            approveBatchMutation.mutate({ batchId: batch.id, action: "decline", declineReason: reason });
+                          }}
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Decline
+                        </Button>
+                      </div>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Member</TableHead>
+                          <TableHead className="text-xs">Account</TableHead>
+                          <TableHead className="text-xs text-right">Amount</TableHead>
+                          <TableHead className="text-xs">Pool Allocations</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(batch.items ?? []).map((item: any) => {
+                          const pools = Array.isArray(item.pool_allocations) ? item.pool_allocations : [];
+                          const feeMeta = item.fee_metadata || {};
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell className="text-xs font-medium">
+                                {[item.entities?.name, item.entities?.last_name].filter(Boolean).join(" ")}
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">
+                                {item.entity_accounts?.account_number || "—"}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-mono">
+                                {formatCurrency(item.monthly_amount, approvalSym)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {pools.map((p: any, i: number) => (
+                                    <Badge key={i} variant="outline" className="text-[10px]">
+                                      {p.pool_name}: {p.percentage}%
+                                    </Badge>
+                                  ))}
+                                  {Number(feeMeta.admin_fees ?? 0) > 0 && (
+                                    <Badge variant="outline" className="text-[10px]">
+                                      Fees: {formatCurrency(feeMeta.admin_fees, approvalSym)}
+                                    </Badge>
+                                  )}
+                                  {Number(feeMeta.loan_instalment ?? 0) > 0 && (
+                                    <Badge variant="outline" className="text-[10px] text-destructive border-destructive">
+                                      Loan: {formatCurrency(feeMeta.loan_instalment, approvalSym)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Individual Mandate Approvals */}
           <Card>
             <CardContent className="p-0">
               <Table>
@@ -1626,7 +1778,7 @@ const AccountApprovals = () => {
                   {loadingDebitOrders ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></TableCell></TableRow>
                   ) : pendingDebitOrders.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No pending debit orders</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No pending mandate approvals</TableCell></TableRow>
                   ) : (
                     pendingDebitOrders.map((d: any) => {
                       const pools = Array.isArray(d.pool_allocations) ? d.pool_allocations : [];
