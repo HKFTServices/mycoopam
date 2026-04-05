@@ -21,6 +21,16 @@ import {
 } from "lucide-react";
 import StockReceiptPanel from "@/components/stock/StockReceiptPanel";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -92,6 +102,7 @@ const TransactionReviewDialog = ({
   const [savingCourier, setSavingCourier] = useState(false);
   const [adminSignature, setAdminSignature] = useState<string | null>(null);
   const [memberSignature, setMemberSignature] = useState<string | null>(null);
+  const [showGlImbalanceConfirm, setShowGlImbalanceConfirm] = useState(false);
 
   // Reset when dialog opens
   useEffect(() => {
@@ -109,6 +120,7 @@ const TransactionReviewDialog = ({
       setStockReceivedNotes("");
       setAdminSignature(null);
       setMemberSignature(null);
+      setShowGlImbalanceConfirm(false);
     }
   }, [open]);
 
@@ -216,7 +228,7 @@ const TransactionReviewDialog = ({
     enabled: open && !!primaryTxn?.pop_file_path,
   });
 
-  const handleApprove = () => {
+  const submitApproval = () => {
     if (!group) return;
 
     const actualCourierFee = isStockDeposit ? (parseFloat(courierFeeActual) || 0) : 0;
@@ -225,15 +237,12 @@ const TransactionReviewDialog = ({
     const storedTotalNet = allTxns.reduce((s: number, t: any) => s + Number(t.net_amount), 0);
     const storedTotalAmount = allTxns.reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-    // Crypto final amount override
-    const cryptoFinal = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
-    const hasCryptoOverride = isCryptoDeposit && cryptoFinal > 0 && Math.abs(cryptoFinal - storedTotalAmount) > 0.01;
 
     let overrides: DateOverride[] | undefined;
 
     const needsOverride = (overrideDate && overrideDateStr) || (isStockDeposit && courierFeeDelta !== 0) || hasCryptoOverride;
 
-    if (hasCryptoOverride && !cryptoFinal) {
+    if (hasCryptoOverride && !cryptoFinalNum) {
       toast.error("Please enter the final confirmed amount in Rands for this crypto deposit.");
       return;
     }
@@ -248,13 +257,6 @@ const TransactionReviewDialog = ({
         }
       }
 
-      // Calculate the ratio of new gross to old gross for crypto override
-      const amountRatio = hasCryptoOverride ? cryptoFinal / storedTotalAmount : 1;
-      // Recalculate total fees proportionally
-      const totalFees = storedTotalAmount - storedTotalNet;
-      const newTotalFees = totalFees * amountRatio;
-      const newTotalNet = (hasCryptoOverride ? cryptoFinal : storedTotalAmount) - newTotalFees;
-
       overrides = allTxns
         .filter((txn: any) => txn.pool_id)
         .map((txn: any) => {
@@ -263,13 +265,13 @@ const TransactionReviewDialog = ({
             : Number(txn.unit_price);
           const storedNet = Number(txn.net_amount);
           const txnShare = storedTotalNet > 0 ? storedNet / storedTotalNet : 1 / allTxns.length;
-          let adjustedNet = hasCryptoOverride ? newTotalNet * txnShare : storedNet;
+          let adjustedNet = hasCryptoOverride ? adjustedTotalNetBeforeCourier * txnShare : storedNet;
           adjustedNet = Math.max(0, adjustedNet - courierFeeDelta * txnShare);
           const newUnits = newUnitPrice > 0 ? adjustedNet / newUnitPrice : 0;
-          const newAmount = hasCryptoOverride ? cryptoFinal * txnShare : undefined;
+          const newAmount = hasCryptoOverride ? adjustedGrossAmount * txnShare : undefined;
           const noteFragments: string[] = [];
           if (overrideDate) noteFragments.push(`Transaction date changed to ${format(overrideDate, "dd MMM yyyy")} by approver`);
-          if (hasCryptoOverride) noteFragments.push(`Crypto deposit final amount confirmed: R${cryptoFinal.toFixed(2)} (original approximate: R${storedTotalAmount.toFixed(2)})`);
+          if (hasCryptoOverride) noteFragments.push(`Crypto deposit final amount confirmed: R${cryptoFinalNum.toFixed(2)} (original approximate: R${storedTotalAmount.toFixed(2)})`);
           if (courierFeeDelta !== 0) noteFragments.push(`Courier fee adjusted by R${courierFeeDelta.toFixed(2)}`);
           return {
             txnId: txn.id,
@@ -290,6 +292,14 @@ const TransactionReviewDialog = ({
     } : undefined;
 
     onApprove(group, overrides, stockMeta);
+  };
+
+  const handleApprove = () => {
+    if (!glIsBalanced) {
+      setShowGlImbalanceConfirm(true);
+      return;
+    }
+    submitApproval();
   };
 
   const handleNext = async () => {
@@ -384,33 +394,6 @@ const TransactionReviewDialog = ({
     enabled: !!loanMeta,
   });
 
-  // Build CFT preview lines (must be before early return)
-  const depositPreview = useMemo(() => {
-    if (!group) return { glLines: [], controlLines: [], unitLines: [] };
-    const txns = [group.primary, ...group.siblings];
-    const tAmount = txns.reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const poolAllocations = txns.filter((t: any) => t.pool_id).map((t: any) => ({
-      poolName: t.pools?.name || "Pool",
-      amount: Number(t.net_amount),
-      unitPrice: Number(t.unit_price || 0),
-      units: Number(t.units || 0),
-    }));
-    let m: any = {};
-    try { m = JSON.parse(group.primary?.notes || "{}"); } catch {}
-    const loanRepay = m.loan_repayment
-      ? { amount: Number(m.loan_repayment.amount), poolName: loanPoolData?.name || "Admin" }
-      : null;
-    return buildDepositPreview({
-      grossAmount: tAmount,
-      poolAllocations,
-      feeBreakdown: m.fee_breakdown || [],
-      joinShare: m.join_share || null,
-      loanRepayment: loanRepay,
-      isStockDeposit: m.transaction_kind === "stock_deposit",
-      isVatRegistered: m.is_vat_registered ?? false,
-      vatRate: Number(m.vat_rate || 0),
-    });
-  }, [group?.primary?.id, loanPoolData?.name]);
 
   if (!group) return null;
 
@@ -430,6 +413,69 @@ const TransactionReviewDialog = ({
   const missingPrices = dateChanged
     ? poolIds.filter((pid) => overridePrices[pid] === undefined)
     : [];
+
+  const cryptoFinalNum = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
+  const hasCryptoOverride = isCryptoDeposit && cryptoFinalNum > 0 && Math.abs(cryptoFinalNum - totalAmount) > 0.01;
+  const actualCourierFee = isStockDeposit ? (parseFloat(courierFeeActual) || 0) : 0;
+  const estimatedCourierFee = isStockDeposit ? Number(courier?.fee ?? 0) : 0;
+  const courierFeeDelta = actualCourierFee - estimatedCourierFee;
+  const adjustedGrossAmount = hasCryptoOverride ? cryptoFinalNum : totalAmount;
+  const feeScale = hasCryptoOverride && totalAmount > 0 ? adjustedGrossAmount / totalAmount : 1;
+  const adjustedFeeBreakdown = feeBreakdown.map((fee) => ({
+    ...fee,
+    amount: Number(fee.amount || 0) * feeScale,
+    vat: fee.vat !== undefined ? Number(fee.vat || 0) * feeScale : undefined,
+  }));
+  const adjustedTotalFees = adjustedFeeBreakdown.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
+  const adjustedTotalNetBeforeCourier = Math.max(0, adjustedGrossAmount - adjustedTotalFees);
+  const effectivePoolAllocations = allTxns.map((txn: any) => {
+    const poolName = txn.pools?.name || "Pool";
+    const overriddenUnitPrice = dateChanged ? overridePrices[txn.pool_id] : undefined;
+    const effectiveUnitPrice = overriddenUnitPrice ?? Number(txn.unit_price);
+    const storedNet = Number(txn.net_amount);
+    const txnShare = totalNet > 0 ? storedNet / totalNet : 1 / allTxns.length;
+    let effectiveNet = hasCryptoOverride ? adjustedTotalNetBeforeCourier * txnShare : storedNet;
+    effectiveNet = Math.max(0, effectiveNet - courierFeeDelta * txnShare);
+    const effectiveUnits = effectiveUnitPrice > 0 ? effectiveNet / effectiveUnitPrice : Number(txn.units);
+    const hasMissingPrice = dateChanged && txn.pool_id && overridePrices[txn.pool_id] === undefined;
+    return {
+      txnId: txn.id,
+      poolId: txn.pool_id,
+      poolName,
+      effectiveUnitPrice,
+      effectiveNet,
+      effectiveUnits,
+      hasMissingPrice,
+      isAdjusted: hasCryptoOverride || dateChanged || (isStockDeposit && courierFeeDelta !== 0),
+    };
+  });
+
+  let previewMeta: any = {};
+  try { previewMeta = JSON.parse(group.primary?.notes || "{}"); } catch {}
+  const loanRepay = previewMeta.loan_repayment
+    ? { amount: Number(previewMeta.loan_repayment.amount), poolName: loanPoolData?.name || "Admin" }
+    : null;
+  const depositPreview = buildDepositPreview({
+    grossAmount: adjustedGrossAmount,
+    poolAllocations: effectivePoolAllocations
+      .filter((a) => a.poolId)
+      .map((a) => ({
+        poolName: a.poolName,
+        amount: a.effectiveNet,
+        unitPrice: a.hasMissingPrice ? undefined : a.effectiveUnitPrice,
+        units: a.hasMissingPrice ? undefined : a.effectiveUnits,
+      })),
+    feeBreakdown: adjustedFeeBreakdown,
+    joinShare: previewMeta.join_share || null,
+    loanRepayment: loanRepay,
+    isStockDeposit: previewMeta.transaction_kind === "stock_deposit",
+    isVatRegistered: previewMeta.is_vat_registered ?? false,
+    vatRate: Number(previewMeta.vat_rate || 0),
+  });
+  const glDebitTotal = depositPreview.glLines.filter((l) => l.side === "Dt").reduce((s, l) => s + l.amount, 0);
+  const glCreditTotal = depositPreview.glLines.filter((l) => l.side === "Ct").reduce((s, l) => s + l.amount, 0);
+  const glImbalanceAmount = Math.abs(glDebitTotal - glCreditTotal);
+  const glIsBalanced = glImbalanceAmount < 0.01;
 
   // ─── Render Step Content ───
   const renderStepContent = () => {
@@ -825,13 +871,6 @@ const TransactionReviewDialog = ({
 
   // ─── Shared sub-renders ───
   const renderFinancialSummary = () => {
-    const cryptoFinalNum = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
-    const hasCryptoOverride = isCryptoDeposit && cryptoFinalNum > 0 && Math.abs(cryptoFinalNum - totalAmount) > 0.01;
-    const displayGross = hasCryptoOverride ? cryptoFinalNum : totalAmount;
-    const totalFees = totalAmount - totalNet;
-    const feeRatio = totalAmount > 0 ? totalFees / totalAmount : 0;
-    const displayNet = hasCryptoOverride ? cryptoFinalNum - (cryptoFinalNum * feeRatio) : totalNet;
-
     return (
       <div className="rounded-xl border-2 border-border bg-muted/20 p-4 space-y-2">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Financial Summary</p>
@@ -871,7 +910,7 @@ const TransactionReviewDialog = ({
 
         <div className="flex justify-between text-sm font-semibold">
           <span>{isCryptoDeposit ? "Gross Amount" : "Gross Amount"}{hasCryptoOverride ? " (adjusted)" : ""}</span>
-          <span>{fmt(displayGross)}</span>
+          <span>{fmt(adjustedGrossAmount)}</span>
         </div>
 
         {isStockDeposit && stockLines.length > 0 && (
@@ -889,10 +928,10 @@ const TransactionReviewDialog = ({
           </>
         )}
 
-        {feeBreakdown.map((fee, i) => (
+        {adjustedFeeBreakdown.map((fee, i) => (
           <div key={i} className="flex justify-between text-sm text-muted-foreground">
             <span>Less {fee.name}</span>
-            <span>- {fmt(hasCryptoOverride ? fee.amount * (cryptoFinalNum / totalAmount) : fee.amount)}</span>
+            <span>- {fmt(Number(fee.amount || 0))}</span>
           </div>
         ))}
 
@@ -909,7 +948,7 @@ const TransactionReviewDialog = ({
         <Separator />
         <div className="flex justify-between text-sm font-bold text-primary">
           <span>Net Available for Pools</span>
-          <span>{fmt(displayNet)}</span>
+          <span>{fmt(adjustedTotalNetBeforeCourier)}</span>
         </div>
       </div>
     );
@@ -969,23 +1008,12 @@ const TransactionReviewDialog = ({
   );
 
   const renderPoolAllocations = () => {
-    // Recalculate pool allocations when crypto override is active
-    const cryptoFinalNum = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
-    const hasCryptoOverride = isCryptoDeposit && cryptoFinalNum > 0 && Math.abs(cryptoFinalNum - totalAmount) > 0.01;
-    const storedTotalNet = allTxns.reduce((s: number, t: any) => s + Number(t.net_amount), 0);
-
-    // Apply same ratio logic as handleApprove
-    const amountRatio = hasCryptoOverride ? cryptoFinalNum / totalAmount : 1;
-    const totalFees = totalAmount - storedTotalNet;
-    const newTotalFees = totalFees * amountRatio;
-    const adjustedTotalNet = hasCryptoOverride ? cryptoFinalNum - newTotalFees : storedTotalNet;
-
     return (
       <div className="space-y-3">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <TrendingUp className="h-3 w-3" /> Pool Allocations
         </p>
-        {allTxns.map((txn: any) => {
+        {effectivePoolAllocations.map((allocation) => {
           const poolName = txn.pools?.name || "Pool";
           const overriddenUnitPrice = dateChanged ? overridePrices[txn.pool_id] : undefined;
           const effectiveUnitPrice = overriddenUnitPrice ?? Number(txn.unit_price);
@@ -996,27 +1024,27 @@ const TransactionReviewDialog = ({
           const hasMissingPrice = dateChanged && txn.pool_id && overridePrices[txn.pool_id] === undefined;
           const isAdjusted = hasCryptoOverride || dateChanged;
           return (
-            <div key={txn.id} className="rounded-lg border border-border p-3 space-y-2">
+            <div key={allocation.txnId} className="rounded-lg border border-border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">{poolName}</span>
-                <span className={cn("text-sm", isAdjusted ? "text-primary font-bold" : "text-muted-foreground")}>{fmt(effectiveNet)}</span>
+                <span className="text-sm font-semibold">{allocation.poolName}</span>
+                <span className={cn("text-sm", allocation.isAdjusted ? "text-primary font-bold" : "text-muted-foreground")}>{fmt(allocation.effectiveNet)}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                   <p className="text-muted-foreground">Unit Price (UP)</p>
-                  <p className={cn("font-mono font-bold", dateChanged && !hasMissingPrice ? "text-primary" : hasMissingPrice ? "text-destructive" : "")}>
-                    {hasMissingPrice ? (
+                  <p className={cn("font-mono font-bold", dateChanged && !allocation.hasMissingPrice ? "text-primary" : allocation.hasMissingPrice ? "text-destructive" : "")}>
+                    {allocation.hasMissingPrice ? (
                       <span className="inline-flex items-center gap-1.5 text-destructive">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         No price
                       </span>
-                    ) : fmtUP(effectiveUnitPrice)}
+                    ) : fmtUP(allocation.effectiveUnitPrice)}
                   </p>
                 </div>
                 <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
                   <p className="text-muted-foreground">Units</p>
-                  <p className={cn("font-mono font-bold", isAdjusted && !hasMissingPrice ? "text-primary" : "")}>
-                    {hasMissingPrice ? "—" : effectiveUnits.toFixed(5)}
+                  <p className={cn("font-mono font-bold", allocation.isAdjusted && !allocation.hasMissingPrice ? "text-primary" : "")}>
+                    {allocation.hasMissingPrice ? "—" : allocation.effectiveUnits.toFixed(5)}
                   </p>
                 </div>
               </div>
@@ -1163,7 +1191,8 @@ const TransactionReviewDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Review Transaction — {memberName}</DialogTitle>
@@ -1220,6 +1249,24 @@ const TransactionReviewDialog = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+      <AlertDialog open={showGlImbalanceConfirm} onOpenChange={setShowGlImbalanceConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>GL is not balancing</AlertDialogTitle>
+            <AlertDialogDescription>
+              The GL preview is out of balance by {fmt(glImbalanceAmount)}. Do you want to continue anyway? Please speak to Head Office before posting an unbalanced transaction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={submitApproval} disabled={isApproving}>
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
