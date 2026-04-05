@@ -241,7 +241,9 @@ export default function SupportTickets() {
                       <div>
                         <p className="font-medium text-sm truncate">{t.subject}</p>
                         {isAdmin && <p className="text-xs text-muted-foreground">{getName(profile)}</p>}
-                      </div>
+                        {isSuperAdmin && tenantMap[t.tenant_id] && (
+                          <p className="text-xs text-muted-foreground/60">{tenantMap[t.tenant_id]}</p>
+                        )}
                       <Badge variant="secondary" className={cn("text-xs shrink-0", statusColors[t.status])}>
                         {t.status.replace("_", " ")}
                       </Badge>
