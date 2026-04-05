@@ -1202,8 +1202,7 @@ const LedgerEntries = () => {
                             <TableHead className="text-right">Gross Deposit</TableHead>
                             <TableHead className="text-right">Rate</TableHead>
                             <TableHead className="text-right">Commission (excl VAT)</TableHead>
-                             <TableHead>Status</TableHead>
-                          </TableRow>
+                            <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1219,36 +1218,35 @@ const LedgerEntries = () => {
                               <TableCell>
                                 <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">Pending</Badge>
                               </TableCell>
-                              <TableCell>
-                                <Button size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
-                                  <DollarSign className="h-3.5 w-3.5 mr-1" /> Pay
-                                </Button>
-                              </TableCell>
                             </TableRow>
                           ))}
                           <TableRow className="bg-muted/30 border-t-2">
                             <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">House Total</TableCell>
                             <TableCell className="text-right text-sm font-bold">{formatCurrency(totalExclVat)}</TableCell>
-                            <TableCell colSpan={2} />
+                            <TableCell />
                           </TableRow>
                           {isVatRegistered && (
                             <TableRow className="bg-muted/30">
                               <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT ({vatRate}%)</TableCell>
                               <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(totalVat)}</TableCell>
-                              <TableCell colSpan={2} />
+                              <TableCell />
                             </TableRow>
                           )}
                           {!isVatRegistered && (
                             <TableRow className="bg-muted/30">
                               <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT</TableCell>
                               <TableCell className="text-right text-sm text-muted-foreground">R 0.00</TableCell>
-                              <TableCell colSpan={2} />
+                              <TableCell />
                             </TableRow>
                           )}
                           <TableRow className="bg-muted/30 border-t">
                             <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider">Total Payable (incl VAT)</TableCell>
                             <TableCell className="text-right text-sm font-bold text-primary">{formatCurrency(totalInclVat)}</TableCell>
-                            <TableCell colSpan={2} />
+                            <TableCell>
+                              <Button size="sm" variant="outline" onClick={() => { setPayCommDialog(commissions); setPayReference(""); }}>
+                                <DollarSign className="h-3.5 w-3.5 mr-1" /> Pay
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
