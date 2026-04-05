@@ -539,6 +539,7 @@ const DebitOrderSignUpDialog = ({
           admin_fees: feeCalc.totalFee,
           fee_breakdown: feeCalc.breakdown,
           net_to_pools: afterFees,
+          commission: commissionTotal > 0 ? { amount: commissionTotal, vat: commissionVatAmt, percentage: commissionPct, referrer: referrerCommission?.referrerName } : null,
           user_notes: notes,
         }),
       };
@@ -768,6 +769,14 @@ const DebitOrderSignUpDialog = ({
                         </div>
                       ))}
                     </>
+                  )}
+
+                  {/* Commission */}
+                  {commissionTotal > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Less: Commission ({commissionPct}% — {referrerCommission?.referrerName}){commissionVatAmt > 0 ? ` (incl VAT ${formatCurrency(commissionVatAmt, sym)})` : ""}</span>
+                      <span className="font-mono">- {formatCurrency(commissionTotal, sym)}</span>
+                    </div>
                   )}
 
                   <Separator />
