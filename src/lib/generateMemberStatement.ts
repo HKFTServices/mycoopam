@@ -169,44 +169,110 @@ export function generateMemberStatement(data: StatementData): string {
       </div>`
     : "";
 
-  // Unit movements section
+  // Unit movements section - wider Type column, no legacy notes
   const unitRows = data.unitTransactions.map((tx: any) => {
     const debit = Number(tx.debit || 0);
     const credit = Number(tx.credit || 0);
     const rawValue = Number(tx.value || 0);
-    // Redemptions (credit/out) show value as negative in red
     const isRedemption = credit > 0 && debit === 0;
     const displayValue = isRedemption && rawValue > 0 ? -rawValue : rawValue;
     const valueStyle = displayValue < 0 ? ' style="color:red"' : '';
     return `<tr>
       <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${tx.transaction_type || ""}</td>
+      <td style="min-width:120px">${tx.transaction_type || ""}</td>
       <td>${tx.pools?.name || ""}</td>
       <td class="num">${debit > 0 ? debit.toFixed(4) : ""}</td>
       <td class="num">${credit > 0 ? credit.toFixed(4) : ""}</td>
       <td class="num">${fmtNum(Number(tx.unit_price || 0), sym)}</td>
       <td class="num"${valueStyle}>${fmtNum(displayValue, sym)}</td>
-      <td>${tx.notes || ""}</td>
     </tr>`;
   }).join("");
 
-  // Cash flow section (already normalized with pool_name field from dialog)
-  const cashRows = data.cashflowTransactions.map((tx: any) => {
-    const debit = Number(tx.debit || 0);
-    const credit = Number(tx.credit || 0);
-    const rawLabel = tx.description || tx.entry_type || "";
-    const typeLabel = /^Entry\s+\d+$/i.test(rawLabel) ? cleanEntryType(rawLabel, debit, credit) : (rawLabel ? cleanEntryType(rawLabel, debit, credit) : "Transaction");
+  // Cash flow section - group by transaction_id to show deposit/withdrawal summaries
+  // Columns: Date, Transaction, Gross Amount, Shares, Member Fees, Admin Fees, Nett to Pools
+  interface CashFlowGroup {
+    date: string;
+    type: string;
+    grossAmount: number;
+    shares: number;
+    memberFees: number;
+    adminFees: number;
+    nettToPools: number;
+  }
+
+  const txGroups: Record<string, any[]> = {};
+  for (const tx of data.cashflowTransactions) {
+    const key = tx.transaction_id || tx.id || `ungrouped_${Math.random()}`;
+    if (!txGroups[key]) txGroups[key] = [];
+    txGroups[key].push(tx);
+  }
+
+  const cashFlowSummaries: CashFlowGroup[] = [];
+  for (const [, entries] of Object.entries(txGroups)) {
+    const bankEntry = entries.find((e: any) => e.is_bank);
+    const date = entries[0]?.transaction_date || "";
+    
+    // Determine gross amount from bank entry
+    const grossDebit = bankEntry ? Number(bankEntry.debit || 0) : 0;
+    const grossCredit = bankEntry ? Number(bankEntry.credit || 0) : 0;
+    const grossAmount = grossDebit > 0 ? grossDebit : grossCredit > 0 ? -grossCredit : 0;
+    
+    // Sum up deductions by type
+    let shares = 0;
+    let memberFees = 0;
+    let adminFees = 0;
+    let nettToPools = 0;
+    
+    for (const e of entries) {
+      if (e.is_bank) continue;
+      const amt = Number(e.debit || 0) + Number(e.credit || 0);
+      const et = (e.entry_type || "").toLowerCase();
+      const desc = (e.description || "").toLowerCase();
+      if (et === "share" || desc.includes("share")) {
+        shares += amt;
+      } else if (et === "membership_fee" || desc.includes("membership fee")) {
+        memberFees += amt;
+      } else if (et === "fee" || desc.includes("fee")) {
+        adminFees += amt;
+      } else if (et === "pool_allocation" || et === "pool_redemption") {
+        nettToPools += Number(e.debit || 0) - Number(e.credit || 0);
+      }
+    }
+    
+    // Determine transaction type label
+    let typeLabel = "Transaction";
+    if (bankEntry) {
+      const rawLabel = bankEntry.description || bankEntry.entry_type || "";
+      typeLabel = cleanEntryType(rawLabel, grossDebit, grossCredit);
+    } else {
+      const firstEntry = entries[0];
+      const rawLabel = firstEntry?.description || firstEntry?.entry_type || "";
+      typeLabel = cleanEntryType(rawLabel, Number(firstEntry?.debit || 0), Number(firstEntry?.credit || 0));
+    }
+    
+    cashFlowSummaries.push({ date, type: typeLabel, grossAmount: Math.abs(grossAmount), shares, memberFees, adminFees, nettToPools: Math.abs(nettToPools) });
+  }
+
+  // Sort by date
+  cashFlowSummaries.sort((a, b) => a.date.localeCompare(b.date));
+
+  const cashRows = cashFlowSummaries.map((row) => {
     return `<tr>
-      <td>${fmtDate(tx.transaction_date)}</td>
-      <td>${typeLabel}</td>
-      <td>${tx.pool_name || ""}</td>
-      <td class="num">${debit > 0 ? fmtNum(debit, sym) : ""}</td>
-      <td class="num">${credit > 0 ? fmtNum(credit, sym) : ""}</td>
+      <td>${fmtDate(row.date)}</td>
+      <td>${row.type}</td>
+      <td class="num">${row.grossAmount > 0 ? fmtNum(row.grossAmount, sym) : ""}</td>
+      <td class="num">${row.shares > 0 ? fmtNum(row.shares, sym) : ""}</td>
+      <td class="num">${row.memberFees > 0 ? fmtNum(row.memberFees, sym) : ""}</td>
+      <td class="num">${row.adminFees > 0 ? fmtNum(row.adminFees, sym) : ""}</td>
+      <td class="num">${row.nettToPools > 0 ? fmtNum(row.nettToPools, sym) : ""}</td>
     </tr>`;
   }).join("");
 
-  const cashDebitTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
-  const cashCreditTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
+  const cashGrossTotal = cashFlowSummaries.reduce((s, r) => s + r.grossAmount, 0);
+  const cashSharesTotal = cashFlowSummaries.reduce((s, r) => s + r.shares, 0);
+  const cashMemberFeesTotal = cashFlowSummaries.reduce((s, r) => s + r.memberFees, 0);
+  const cashAdminFeesTotal = cashFlowSummaries.reduce((s, r) => s + r.adminFees, 0);
+  const cashNettTotal = cashFlowSummaries.reduce((s, r) => s + r.nettToPools, 0);
 
   // Stock flow section
   const stockRows = data.stockTransactions.map((tx: any) => {
@@ -447,13 +513,12 @@ export function generateMemberStatement(data: StatementData): string {
     <thead>
       <tr>
         <th>Date</th>
-        <th>Type</th>
+        <th style="min-width:140px">Type</th>
         <th>Pool</th>
         <th class="num">In (Debit)</th>
         <th class="num">Out (Credit)</th>
         <th class="num">Unit Price</th>
         <th class="num">Value</th>
-        <th>Notes</th>
       </tr>
     </thead>
     <tbody>${unitRows}</tbody>
@@ -463,22 +528,27 @@ export function generateMemberStatement(data: StatementData): string {
 <!-- CASH FLOWS -->
 <div class="section">
   <div class="section-title">Cash Flows</div>
-  ${data.cashflowTransactions.length > 0 ? `<table>
+  ${cashFlowSummaries.length > 0 ? `<table>
     <thead>
       <tr>
         <th>Date</th>
-        <th>Type</th>
-        <th>Pool</th>
-        <th class="num">Debit</th>
-        <th class="num">Credit</th>
+        <th>Transaction</th>
+        <th class="num">Gross Amount</th>
+        <th class="num">Shares</th>
+        <th class="num">Member Fees</th>
+        <th class="num">Admin Fees</th>
+        <th class="num">Nett to Pools</th>
       </tr>
     </thead>
     <tbody>
       ${cashRows}
       <tr class="total">
-        <td colspan="3">Total</td>
-        <td class="num">${fmtNum(cashDebitTotal, sym)}</td>
-        <td class="num">${fmtNum(cashCreditTotal, sym)}</td>
+        <td colspan="2">Total</td>
+        <td class="num">${fmtNum(cashGrossTotal, sym)}</td>
+        <td class="num">${cashSharesTotal > 0 ? fmtNum(cashSharesTotal, sym) : ""}</td>
+        <td class="num">${cashMemberFeesTotal > 0 ? fmtNum(cashMemberFeesTotal, sym) : ""}</td>
+        <td class="num">${cashAdminFeesTotal > 0 ? fmtNum(cashAdminFeesTotal, sym) : ""}</td>
+        <td class="num">${fmtNum(cashNettTotal, sym)}</td>
       </tr>
     </tbody>
   </table>` : '<div class="empty-msg">No cash flows in this period</div>'}
