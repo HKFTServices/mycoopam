@@ -37,7 +37,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { session, isPasswordRecovery } = useAuth();
+  const { session, isPasswordRecovery, loading: authLoading } = useAuth();
   const refCode = searchParams.get("ref") || "";
 
   // Handle token_hash verification from activation links

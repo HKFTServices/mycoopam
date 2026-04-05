@@ -28,7 +28,7 @@ const TenantLanding = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const slug = pathSlug || getTenantSlugFromSubdomain();
