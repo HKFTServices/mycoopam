@@ -223,13 +223,16 @@ export default function MemberStatementDialog({
         debit: Number(tx.debit || 0),
         credit: Number(tx.credit || 0),
       }));
-      const modernLoanTx = (loanTxCftRes.data ?? []).map((tx: any) => ({
-        transaction_date: tx.transaction_date,
-        entry_type: tx.entry_type || "",
-        entry_type_name: "",
-        debit: Number(tx.debit || 0),
-        credit: Number(tx.credit || 0),
-      }));
+      const LOAN_CONTROL_TYPES = new Set(["loan_payout_control_cr", "loan_payout_control_dr", "loan_control"]);
+      const modernLoanTx = (loanTxCftRes.data ?? [])
+        .filter((tx: any) => !LOAN_CONTROL_TYPES.has(tx.entry_type))
+        .map((tx: any) => ({
+          transaction_date: tx.transaction_date,
+          entry_type: tx.entry_type || "",
+          entry_type_name: "",
+          debit: Number(tx.debit || 0),
+          credit: Number(tx.credit || 0),
+        }));
       const allLoanTx = [...legacyLoanTx, ...modernLoanTx]
         .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
         .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
