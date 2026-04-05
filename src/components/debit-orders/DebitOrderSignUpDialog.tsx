@@ -345,6 +345,32 @@ const DebitOrderSignUpDialog = ({
     enabled: !!entityAccountId && !!currentTenant && open,
   });
 
+  // Fetch referrer commission info for this entity
+  const { data: referrerCommission } = useQuery({
+    queryKey: ["debit_order_referrer_commission", entityId, currentTenant?.id],
+    queryFn: async () => {
+      if (!entityId || !currentTenant) return null;
+      const { data: ent } = await (supabase as any)
+        .from("entities")
+        .select("agent_commission_percentage, agent_house_agent_id")
+        .eq("id", entityId)
+        .single();
+      if (ent?.agent_house_agent_id && Number(ent.agent_commission_percentage) > 0) {
+        const { data: ref } = await (supabase as any)
+          .from("referrers")
+          .select("entity_id, entities!inner(name, last_name)")
+          .eq("id", ent.agent_house_agent_id)
+          .single();
+        return {
+          percentage: Number(ent.agent_commission_percentage),
+          referrerName: ref ? [ref.entities?.name, ref.entities?.last_name].filter(Boolean).join(" ") : "Referrer",
+        };
+      }
+      return null;
+    },
+    enabled: !!entityId && !!currentTenant && open,
+  });
+
   // Fee rules for deposit transaction type
   const { data: depositFeeRules = [] } = useQuery({
     queryKey: ["debit_order_fee_rules", currentTenant?.id],
@@ -461,9 +487,14 @@ const DebitOrderSignUpDialog = ({
     ? (outstandingLoanInfo.outstanding / effectiveTerm)
     : 0;
   const loanInstalment = manualLoanInstalment !== "" ? (parseFloat(manualLoanInstalment) || 0) : suggestedInstalment;
+  const commissionPct = referrerCommission?.percentage ?? 0;
+  const commissionBase = commissionPct > 0 ? totalAmount * (commissionPct / 100) : 0;
+  const commissionVatAmt = commissionBase > 0 && isVatRegistered ? Math.round(commissionBase * (vatRate / 100) * 100) / 100 : 0;
+  const commissionTotal = commissionBase + commissionVatAmt;
+
   const afterLoan = Math.max(0, totalAmount - loanInstalment);
   const feeCalc = calculateFees(afterLoan);
-  const afterFees = Math.max(0, afterLoan - feeCalc.totalFee);
+  const afterFees = Math.max(0, afterLoan - feeCalc.totalFee - commissionTotal);
   const totalPct = allocations.reduce((s, a) => s + a.percentage, 0);
 
   const updateAllocationPct = (idx: number, pct: number) => {
@@ -508,6 +539,7 @@ const DebitOrderSignUpDialog = ({
           admin_fees: feeCalc.totalFee,
           fee_breakdown: feeCalc.breakdown,
           net_to_pools: afterFees,
+          commission: commissionTotal > 0 ? { amount: commissionTotal, vat: commissionVatAmt, percentage: commissionPct, referrer: referrerCommission?.referrerName } : null,
           user_notes: notes,
         }),
       };
@@ -737,6 +769,14 @@ const DebitOrderSignUpDialog = ({
                         </div>
                       ))}
                     </>
+                  )}
+
+                  {/* Commission */}
+                  {commissionTotal > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Less: Commission ({commissionPct}% — {referrerCommission?.referrerName}){commissionVatAmt > 0 ? ` (incl VAT ${formatCurrency(commissionVatAmt, sym)})` : ""}</span>
+                      <span className="font-mono">- {formatCurrency(commissionTotal, sym)}</span>
+                    </div>
                   )}
 
                   <Separator />
