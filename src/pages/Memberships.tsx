@@ -942,19 +942,17 @@ const Memberships = () => {
                     {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
                   </DropdownMenuItem>
                 )}
-                {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation") && (
+                {activeAcct && (
                   <>
                     <DropdownMenuItem onClick={() => {
-                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                      setTxnDefaultAccountId(activeAcct?.id);
+                      setTxnDefaultAccountId(activeAcct.id);
                       setTxnDialogOpen(true);
                     }}>
                       <ArrowLeftRight className="h-4 w-4 mr-2" />
                       New Transaction
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => {
-                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                      if (activeAcct) setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
+                      setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
                     }}>
                       <Banknote className="h-4 w-4 mr-2" />
                       Apply for Loan
