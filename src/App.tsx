@@ -85,6 +85,7 @@ import CookieConsent from "./components/CookieConsent";
 import RecoveryLinkRedirect from "./components/auth/RecoveryLinkRedirect";
 import { MamEntityProvider } from "./contexts/MamEntityContext";
 import { getTenantSlugFromSubdomain } from "@/lib/tenantResolver";
+import AiAssistantBubble from "@/components/AiAssistantBubble";
 
 const queryClient = new QueryClient();
 
@@ -231,6 +232,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <CookieConsent />
+            <AiAssistantBubble />
           </TenantProvider>
         </AuthProvider>
       </BrowserRouter>
