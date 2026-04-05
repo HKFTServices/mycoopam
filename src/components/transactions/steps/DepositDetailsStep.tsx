@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2 } from "lucide-react";
+import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2, Info } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { useTenant } from "@/contexts/TenantContext";
 
 import { Bitcoin } from "lucide-react";
 import CryptoAddressSelector from "./CryptoAddressSelector";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const FALLBACK_METHODS = [
   { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
