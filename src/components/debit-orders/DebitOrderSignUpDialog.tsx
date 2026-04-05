@@ -394,13 +394,35 @@ const DebitOrderSignUpDialog = ({
     }
   }, [pools]);
 
-  // ── Fee calculation (same logic as NewTransactionDialog) ──
+  // ── Fee calculation (same logic as NewTransactionDialog, filtered for debit_order method) ──
   const calculateFees = (amount: number) => {
     if (amount <= 0) return { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number }[] };
+
+    // Map payment-method-specific fee codes to the method value they belong to.
+    const METHOD_FEE_CODE_MAP: Record<string, string[]> = {
+      cash_deposit: ["CASH_DEPOSIT"],
+      credit_card: ["CARD_FEE"],
+      card: ["CARD_FEE"],
+      crypto: ["CRP_FEE"],
+      debit_order: ["DEBIT_ORDER"],
+    };
+
+    // Filter rules: include general fees + debit_order-specific fees, exclude other method-specific fees
+    const applicableRules = depositFeeRules.filter((rule: any) => {
+      const code = (rule.transaction_fee_types?.code ?? "").toUpperCase();
+      for (const [methodKey, patterns] of Object.entries(METHOD_FEE_CODE_MAP)) {
+        if (patterns.some((p) => code.includes(p))) {
+          // This is a method-specific fee — only include if it's for debit_order
+          return methodKey === "debit_order";
+        }
+      }
+      return true; // General fee — always include
+    });
+
     const breakdown: { name: string; amount: number; vat: number }[] = [];
     let totalFee = 0;
     let totalVatAmt = 0;
-    for (const rule of depositFeeRules) {
+    for (const rule of applicableRules) {
       let fee = 0;
       let appliedPct: number | null = null;
       if (rule.calculation_method === "percentage") {
@@ -418,8 +440,6 @@ const DebitOrderSignUpDialog = ({
           }
         }
       }
-      // Only apply debit order fees (exclude cash_deposit specific fees)
-      if (rule.transaction_fee_types?.code?.toUpperCase().includes("CASH_DEPOSIT")) continue;
       const feeVat = isVatRegistered ? fee * (vatRate / 100) : 0;
       const feeInclVat = fee + feeVat;
       totalFee += feeInclVat;
