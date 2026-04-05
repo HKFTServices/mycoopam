@@ -799,19 +799,19 @@ async function generateStatementPdf(data: {
   // ── Cash Flows ──
   y = drawSectionTitle(doc, "Cash Flows", y);
   if (data.cashflowTransactions.length > 0) {
-    const cashGrossTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.grossAmount || 0), 0);
+    const cashGrossTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.grossAmount || 0)), 0);
     const cashSharesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.shares || 0), 0);
     const cashMemberFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.memberFees || 0), 0);
     const cashAdminFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.adminFees || 0), 0);
-    const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.nettToPools || 0), 0);
+    const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.nettToPools || 0)), 0);
     const cashRows = data.cashflowTransactions.map((tx: any) => [
       fmtDate(tx.transaction_date),
       (tx.type || "Transaction").substring(0, 30),
-      tx.grossAmount > 0 ? fmtCurrency(tx.grossAmount, sym) : "",
+      tx.grossAmount > 0 ? fmtCurrency(tx.isOutflow ? -tx.grossAmount : tx.grossAmount, sym) : "",
       tx.shares > 0 ? fmtCurrency(tx.shares, sym) : "",
       tx.memberFees > 0 ? fmtCurrency(tx.memberFees, sym) : "",
       tx.adminFees > 0 ? fmtCurrency(tx.adminFees, sym) : "",
-      tx.nettToPools > 0 ? fmtCurrency(tx.nettToPools, sym) : "",
+      tx.nettToPools > 0 ? fmtCurrency(tx.isOutflow ? -tx.nettToPools : tx.nettToPools, sym) : "",
     ]);
     y = drawTable(doc, {
       startY: y,
@@ -822,7 +822,7 @@ async function generateStatementPdf(data: {
         { header: "Shares", width: 22, align: "right" },
         { header: "Mbr Fees", width: 24, align: "right" },
         { header: "Admin Fees", width: 26, align: "right" },
-        { header: "Nett Pools", width: 26, align: "right" },
+        { header: "Nett to/from", width: 26, align: "right" },
       ],
       rows: cashRows,
       totalRow: [
