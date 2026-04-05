@@ -43,6 +43,19 @@ const CASHFLOW_TRANSACTION_CODES = new Set(["DEPOSIT_FUNDS", "WITHDRAW_FUNDS"]);
 const getCashflowEntryAmount = (entry: any) =>
   Math.abs(Number(entry?.debit || 0) - Number(entry?.credit || 0));
 
+const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
+  const code = String(tx.transaction_types?.code || "").toUpperCase();
+  if (code === "DEPOSIT_FUNDS") return "Deposit Funds";
+  if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
+
+  const bankEntry = linkedEntries.find((entry) => entry.is_bank || ["bank_deposit", "bank_withdrawal"].includes(String(entry.entry_type || "").toLowerCase()));
+  const bankType = String(bankEntry?.entry_type || "").toLowerCase();
+  if (bankType === "bank_deposit") return "Deposit Funds";
+  if (bankType === "bank_withdrawal") return "Withdraw Funds";
+
+  return tx.transaction_types?.name || bankEntry?.description || "Cash Flow";
+};
+
 const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: any[]) => {
   const cashflowEntriesByTransactionId = new Map<string, any[]>();
 
@@ -87,7 +100,7 @@ const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: a
 
       return {
         transaction_date: tx.transaction_date,
-        type: tx.transaction_types?.name || "Transaction",
+        type: getCashflowTypeLabel(tx, linkedEntries),
         grossAmount,
         shares,
         memberFees,
