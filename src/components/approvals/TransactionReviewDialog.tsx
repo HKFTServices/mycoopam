@@ -130,7 +130,7 @@ const TransactionReviewDialog = ({
   // Parse metadata from primary notes
   let meta: any = {};
   try { meta = JSON.parse(primaryTxn?.notes || "{}"); } catch {}
-  const feeBreakdown: { name: string; amount: number }[] = meta.fee_breakdown || [];
+  const feeBreakdown: { name: string; amount: number; vat?: number; gl_account_id?: string }[] = meta.fee_breakdown || [];
   const stockLines: { description: string; item_code: string; quantity: number; costPrice: number; lineValue: number }[] = meta.stock_lines || [];
   const courier: { fee?: number } | null = meta.courier || null;
   const isStockDeposit = meta.transaction_kind === "stock_deposit";
@@ -1014,15 +1014,6 @@ const TransactionReviewDialog = ({
           <TrendingUp className="h-3 w-3" /> Pool Allocations
         </p>
         {effectivePoolAllocations.map((allocation) => {
-          const poolName = txn.pools?.name || "Pool";
-          const overriddenUnitPrice = dateChanged ? overridePrices[txn.pool_id] : undefined;
-          const effectiveUnitPrice = overriddenUnitPrice ?? Number(txn.unit_price);
-          const storedNet = Number(txn.net_amount);
-          const txnShare = storedTotalNet > 0 ? storedNet / storedTotalNet : 1 / allTxns.length;
-          const effectiveNet = hasCryptoOverride ? adjustedTotalNet * txnShare : storedNet;
-          const effectiveUnits = effectiveUnitPrice > 0 ? effectiveNet / effectiveUnitPrice : Number(txn.units);
-          const hasMissingPrice = dateChanged && txn.pool_id && overridePrices[txn.pool_id] === undefined;
-          const isAdjusted = hasCryptoOverride || dateChanged;
           return (
             <div key={allocation.txnId} className="rounded-lg border border-border p-3 space-y-2">
               <div className="flex items-center justify-between">
