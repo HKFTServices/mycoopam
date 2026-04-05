@@ -500,7 +500,7 @@ const NewTransactionDialog = ({
     enabled: !!currentTenant && open,
   });
 
-  const selectablePools = useMemo(() => excludeAdminPools(allPools), [allPools]);
+  const selectablePools = useMemo(() => excludeAdminPools(allPools) as typeof allPools, [allPools]);
 
   // Pool filtering moved below after isDeposit is derived
 
