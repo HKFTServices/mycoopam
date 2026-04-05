@@ -487,9 +487,14 @@ const DebitOrderSignUpDialog = ({
     ? (outstandingLoanInfo.outstanding / effectiveTerm)
     : 0;
   const loanInstalment = manualLoanInstalment !== "" ? (parseFloat(manualLoanInstalment) || 0) : suggestedInstalment;
+  const commissionPct = referrerCommission?.percentage ?? 0;
+  const commissionBase = commissionPct > 0 ? totalAmount * (commissionPct / 100) : 0;
+  const commissionVatAmt = commissionBase > 0 && isVatRegistered ? Math.round(commissionBase * (vatRate / 100) * 100) / 100 : 0;
+  const commissionTotal = commissionBase + commissionVatAmt;
+
   const afterLoan = Math.max(0, totalAmount - loanInstalment);
   const feeCalc = calculateFees(afterLoan);
-  const afterFees = Math.max(0, afterLoan - feeCalc.totalFee);
+  const afterFees = Math.max(0, afterLoan - feeCalc.totalFee - commissionTotal);
   const totalPct = allocations.reduce((s, a) => s + a.percentage, 0);
 
   const updateAllocationPct = (idx: number, pct: number) => {
