@@ -379,6 +379,7 @@ const DepositDetailsStep = ({
               : " (deducted from deposit)"}
           </div>
         )}
+        {paymentMethod === "crypto" && <CryptoAddressSelector tenantId={currentTenant?.id} />}
       </div>
 
       {/* Admin Fee Override — staff only */}
