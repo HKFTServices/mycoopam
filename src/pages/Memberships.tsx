@@ -922,7 +922,7 @@ const Memberships = () => {
                     Apply for Referral House
                   </DropdownMenuItem>
                 )}
-                {g.entityType === "natural_person" && (
+                {g.entityType === "natural_person" && !isReferrer && (
                   <DropdownMenuItem onClick={() => setReferrerDialogEntity({ id: g.entityId, name: g.entityName })}>
                     <UserCheck className="h-4 w-4 mr-2" />
                     Apply as Referrer
