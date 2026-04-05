@@ -100,6 +100,7 @@ const TransactionReviewDialog = ({
       setDeclineReason("");
       setShowDecline(false);
       setFundsConfirmed(false);
+      setCryptoFinalAmount("");
       setCurrentStep("review");
       setCourierFeeActual("");
       setCourierNotes("");
