@@ -1080,7 +1080,7 @@ const TransactionReviewDialog = ({
           <Button
             onClick={handleApprove}
             disabled={
-              isApproving || !debitOrderOrFundsOk ||
+              isApproving || !debitOrderOrFundsOk || !cryptoAmountOk ||
               (dateChanged && !changeNote.trim()) ||
               (dateChanged && missingPrices.length > 0)
             }
