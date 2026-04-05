@@ -208,29 +208,32 @@ export default function MemberStatementDialog({
         return debit !== 0 || credit !== 0 || value !== 0;
       });
 
-      // Merge current cashflow transactions with legacy CFT data
-      const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({
+      // Build cash flows from approved transactions (primary source)
+      const approvedCashflows = (approvedTxRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date,
-        group_key: tx.transaction_id || tx.legacy_transaction_id || tx.id,
-        entry_type: tx.entry_type || "",
-        description: tx.description || "",
-        pool_name: tx.pools?.name || "",
-        debit: Number(tx.debit || 0),
-        credit: Number(tx.credit || 0),
-        is_bank: tx.is_bank ?? false,
+        type: tx.transaction_types?.name || "Transaction",
+        grossAmount: Number(tx.amount || 0),
+        feeAmount: Number(tx.fee_amount || 0),
+        netAmount: Number(tx.net_amount || 0),
       }));
-      const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
-        transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
-        group_key: tx.transaction_id || tx.legacy_transaction_id || tx.id || "",
-        entry_type: tx.entry_type || "",
-        description: tx.description || "",
-        pool_name: tx.pool_name || "",
-        debit: Number(tx.debit || 0),
-        credit: Number(tx.credit || 0),
-        is_bank: tx.is_bank ?? false,
-      }));
-      const allCashflows = [...currentCft, ...legacyCft]
-        .filter((tx) => tx.debit !== 0 || tx.credit !== 0)
+
+      // Also include legacy CFT bank-level entries not already covered by transactions
+      const legacyBankEntries = (legacyCftRes.data ?? [])
+        .filter((tx: any) => {
+          const et = (tx.entry_type || "").toLowerCase();
+          return et.includes("bank") || et.includes("receipt") || et.includes("payment") || et.includes("deposit") || et.includes("withdrawal");
+        })
+        .map((tx: any) => ({
+          transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
+          type: tx.description || tx.entry_type || "Transaction",
+          grossAmount: Number(tx.debit || 0) || Number(tx.credit || 0),
+          feeAmount: 0,
+          netAmount: Number(tx.debit || 0) || Number(tx.credit || 0),
+        }));
+
+      // Combine: approved transactions + legacy bank entries
+      const allCashflows = [...approvedCashflows, ...legacyBankEntries]
+        .filter((tx) => tx.grossAmount > 0)
         .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 
       // Merge loan transactions (legacy + modern)
