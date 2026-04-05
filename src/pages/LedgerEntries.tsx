@@ -159,7 +159,7 @@ const LedgerEntries = () => {
 
   const [bankDialogOpen, setBankDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
-  const [payCommDialog, setPayCommDialog] = useState<Commission | null>(null);
+  const [payCommDialog, setPayCommDialog] = useState<Commission[] | null>(null);
   const [payReference, setPayReference] = useState("");
   const [bankForm, setBankForm] = useState({ ...defaultBankForm });
   const [journalForm, setJournalForm] = useState({ ...defaultJournalForm });
@@ -900,7 +900,7 @@ const LedgerEntries = () => {
   });
 
   const payCommissionMutation = useMutation({
-    mutationFn: async ({ commission, reference }: { commission: Commission; reference: string }) => {
+    mutationFn: async ({ commissions, reference }: { commissions: Commission[]; reference: string }) => {
       if (!currentTenant || !user) throw new Error("Missing context");
 
       const { data: tenantCfg } = await (supabase as any)
@@ -915,16 +915,19 @@ const LedgerEntries = () => {
       if (!bankGlAccountId) throw new Error("Bank GL account not configured in Tenant Setup");
       if (!commissionPaidGlAccountId) throw new Error("Commission Paid GL account not configured in Tenant Setup");
 
-      const isHouseVatRegistered = commission.referral_house?.is_vat_registered || false;
+      const isHouseVatRegistered = commissions[0]?.referral_house?.is_vat_registered || false;
       const vatRate = isHouseVatRegistered ? (taxTypes.find((t) => t.percentage > 0)?.percentage || 0) : 0;
-      const commExclVat = commission.commission_amount;
-      const commVat = isHouseVatRegistered ? Math.round(commExclVat * (vatRate / 100) * 100) / 100 : 0;
-      const commInclVat = commExclVat + commVat;
+
+      // Aggregate totals across all commissions in the batch
+      const totalExclVat = commissions.reduce((s, c) => s + Number(c.commission_amount), 0);
+      const totalVat = isHouseVatRegistered ? Math.round(totalExclVat * (vatRate / 100) * 100) / 100 : 0;
+      const totalInclVat = totalExclVat + totalVat;
 
       const { data: cashAccount } = await (supabase as any)
         .from("control_accounts").select("id").eq("tenant_id", currentTenant.id)
         .ilike("account_type", "cash").limit(1).maybeSingle();
 
+      // Create a single bank CFT entry for the full batch
       const { data: cft, error: e1 } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
         transaction_date: formatLocalDate(),
@@ -933,10 +936,10 @@ const LedgerEntries = () => {
         status: "posted",
         control_account_id: cashAccount?.id || null,
         debit: 0,
-        credit: commInclVat,
-        amount_excl_vat: commExclVat,
-        vat_amount: commVat,
-        description: `Commission payment${isHouseVatRegistered ? " (incl VAT)" : ""}`,
+        credit: totalInclVat,
+        amount_excl_vat: totalExclVat,
+        vat_amount: totalVat,
+        description: `Commission payment (${commissions.length} items)${isHouseVatRegistered ? " (incl VAT)" : ""}`,
         reference: reference || null,
         posted_by: user.id,
         gl_account_id: bankGlAccountId,
@@ -953,18 +956,18 @@ const LedgerEntries = () => {
         status: "posted",
         parent_id: cft.id,
         control_account_id: null,
-        debit: commExclVat,
+        debit: totalExclVat,
         credit: 0,
-        amount_excl_vat: commExclVat,
+        amount_excl_vat: totalExclVat,
         vat_amount: 0,
-        description: "Commission payment",
+        description: `Commission payment (${commissions.length} items)`,
         reference: reference || null,
         posted_by: user.id,
         gl_account_id: commissionPaidGlAccountId,
       });
       if (expenseErr) throw expenseErr;
 
-      if (commVat > 0 && vatGlAccountId) {
+      if (totalVat > 0 && vatGlAccountId) {
         await (supabase as any).from("cashflow_transactions").insert({
           tenant_id: currentTenant.id,
           transaction_date: formatLocalDate(),
@@ -972,10 +975,10 @@ const LedgerEntries = () => {
           status: "posted",
           parent_id: cft.id,
           control_account_id: null,
-          debit: commVat,
+          debit: totalVat,
           credit: 0,
           amount_excl_vat: 0,
-          vat_amount: commVat,
+          vat_amount: totalVat,
           description: `Commission payment VAT`,
           reference: reference || null,
           posted_by: user.id,
@@ -983,22 +986,25 @@ const LedgerEntries = () => {
         });
       }
 
-      const { error: e2 } = await (supabase as any).from("commissions")
-        .update({
-          status: "paid",
-          paid_at: new Date().toISOString(),
-          paid_by: user.id,
-          payment_date: formatLocalDate(),
-          payment_reference: reference || null,
-          cashflow_transaction_id: cft.id,
-        }).eq("id", commission.id);
-      if (e2) throw e2;
+      // Mark all commissions in the batch as paid
+      for (const commission of commissions) {
+        const { error: e2 } = await (supabase as any).from("commissions")
+          .update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            paid_by: user.id,
+            payment_date: formatLocalDate(),
+            payment_reference: reference || null,
+            cashflow_transaction_id: cft.id,
+          }).eq("id", commission.id);
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending_commissions"] });
       setPayCommDialog(null);
       setPayReference("");
-      toast.success("Commission marked as paid");
+      toast.success("All commissions for this house marked as paid");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1161,10 +1167,6 @@ const LedgerEntries = () => {
                                       <p className="font-mono text-right">{c.commission_percentage}%</p>
                                     </div>
                                   </div>
-
-                                  <Button className="w-full" size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
-                                    <DollarSign className="h-4 w-4 mr-1" /> Pay
-                                  </Button>
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
@@ -1185,6 +1187,9 @@ const LedgerEntries = () => {
                           <span className="font-semibold min-w-0">Total Payable (incl VAT)</span>
                           <span className="font-mono font-bold text-primary text-right break-all max-w-[55%]">{formatCurrency(totalInclVat)}</span>
                         </div>
+                        <Button className="w-full mt-3" size="sm" variant="outline" onClick={() => { setPayCommDialog(commissions); setPayReference(""); }}>
+                          <DollarSign className="h-4 w-4 mr-1" /> Pay All ({commissions.length})
+                        </Button>
                       </div>
                     </div>
 
@@ -1198,7 +1203,6 @@ const LedgerEntries = () => {
                             <TableHead className="text-right">Rate</TableHead>
                             <TableHead className="text-right">Commission (excl VAT)</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="w-24" />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1214,36 +1218,35 @@ const LedgerEntries = () => {
                               <TableCell>
                                 <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">Pending</Badge>
                               </TableCell>
-                              <TableCell>
-                                <Button size="sm" variant="outline" onClick={() => { setPayCommDialog(c); setPayReference(""); }}>
-                                  <DollarSign className="h-3.5 w-3.5 mr-1" /> Pay
-                                </Button>
-                              </TableCell>
                             </TableRow>
                           ))}
                           <TableRow className="bg-muted/30 border-t-2">
                             <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">House Total</TableCell>
                             <TableCell className="text-right text-sm font-bold">{formatCurrency(totalExclVat)}</TableCell>
-                            <TableCell colSpan={2} />
+                            <TableCell />
                           </TableRow>
                           {isVatRegistered && (
                             <TableRow className="bg-muted/30">
                               <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT ({vatRate}%)</TableCell>
                               <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(totalVat)}</TableCell>
-                              <TableCell colSpan={2} />
+                              <TableCell />
                             </TableRow>
                           )}
                           {!isVatRegistered && (
                             <TableRow className="bg-muted/30">
                               <TableCell colSpan={4} className="text-right text-xs text-muted-foreground">VAT</TableCell>
                               <TableCell className="text-right text-sm text-muted-foreground">R 0.00</TableCell>
-                              <TableCell colSpan={2} />
+                              <TableCell />
                             </TableRow>
                           )}
                           <TableRow className="bg-muted/30 border-t">
                             <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-wider">Total Payable (incl VAT)</TableCell>
                             <TableCell className="text-right text-sm font-bold text-primary">{formatCurrency(totalInclVat)}</TableCell>
-                            <TableCell colSpan={2} />
+                            <TableCell>
+                              <Button size="sm" variant="outline" onClick={() => { setPayCommDialog(commissions); setPayReference(""); }}>
+                                <DollarSign className="h-3.5 w-3.5 mr-1" /> Pay
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
@@ -1481,35 +1484,29 @@ const LedgerEntries = () => {
 
 
 
-      {/* ── Pay Commission Dialog ── */}
-      <AlertDialog open={!!payCommDialog} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
+      {/* ── Pay Commission Dialog (batch — all pending for a house) ── */}
+      <AlertDialog open={!!payCommDialog && payCommDialog.length > 0} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
         <AlertDialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>Pay Commission</AlertDialogTitle>
+            <AlertDialogTitle>Pay All Commissions</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                {payCommDialog && (() => {
-                  const house = (payCommDialog as any).referral_house;
+                {payCommDialog && payCommDialog.length > 0 && (() => {
+                  const house = payCommDialog[0].referral_house;
                   const houseName = house ? `${house.name}${house.last_name ? " " + house.last_name : ""}`.trim() : "Unknown House";
                   const isHouseVat = house?.is_vat_registered || false;
                   const vr = taxTypes.find((t) => t.percentage > 0)?.percentage || 0;
-                  const commExcl = payCommDialog.commission_amount;
+                  const commExcl = payCommDialog.reduce((s, c) => s + Number(c.commission_amount), 0);
                   const commVat = isHouseVat ? Math.round(commExcl * (vr / 100) * 100) / 100 : 0;
                   const commIncl = commExcl + commVat;
-                  const bd = payCommDialog.house_bank_details;
+                  const bd = payCommDialog[0].house_bank_details;
 
-                  // Build GL preview lines
                   const commGlName = glAccounts.find((g) => g.id === tenantConfig?.commission_paid_gl_account_id)?.name;
                   const commGlCode = glAccounts.find((g) => g.id === tenantConfig?.commission_paid_gl_account_id)?.code;
                   const vatGlName = glAccounts.find((g) => g.id === tenantConfig?.vat_gl_account_id)?.name;
                   const vatGlCode = glAccounts.find((g) => g.id === tenantConfig?.vat_gl_account_id)?.code;
                   const cashCtrl = controlAccounts.find((c) => c.account_type?.toLowerCase() === "cash");
 
-                  const glDt = commVat > 0 && vatGlName ? commExcl + commVat : commExcl;
-                  const glCt = commExcl + (commVat > 0 ? commVat : 0);
-                  const glBalanced = Math.abs(glDt - glCt) < 0.01 || (commVat > 0 && vatGlName);
-                  // Actually: Commission GL Dt = commExcl, VAT GL Dt = commVat => total Dt = commIncl
-                  // Bank (cash control) Ct = commIncl => balanced
                   const totalGlDt = commExcl + commVat;
                   const totalGlCt = commIncl;
                   const isBalanced = Math.abs(totalGlDt - totalGlCt) < 0.01;
@@ -1529,14 +1526,12 @@ const LedgerEntries = () => {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Referrer</span>
-                          <span className="font-medium">
-                            {(payCommDialog as any).referrer ? `${(payCommDialog as any).referrer.name} ${(payCommDialog as any).referrer.last_name || ""}`.trim() : "—"}
-                          </span>
+                          <span className="text-muted-foreground">Commission Items</span>
+                          <span className="font-medium">{payCommDialog.length}</span>
                         </div>
                         <div className="border-t border-border my-1" />
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Commission ({payCommDialog.commission_percentage}%) excl VAT</span>
+                          <span className="text-muted-foreground">Total Commission excl VAT</span>
                           <span className="font-semibold text-foreground">{formatCurrency(commExcl)}</span>
                         </div>
                         <div className="flex justify-between">
@@ -1594,7 +1589,6 @@ const LedgerEntries = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {/* Commission expense GL - Debit */}
                             <TableRow className="text-xs">
                               <TableCell className="py-1">
                                 {commGlCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{commGlCode}</span>}
@@ -1603,7 +1597,6 @@ const LedgerEntries = () => {
                               <TableCell className="py-1 text-right font-medium">{formatCurrency(commExcl)}</TableCell>
                               <TableCell className="py-1 text-right">—</TableCell>
                             </TableRow>
-                            {/* VAT GL - Debit */}
                             {commVat > 0 && (
                               <TableRow className="text-xs">
                                 <TableCell className="py-1">
@@ -1614,7 +1607,6 @@ const LedgerEntries = () => {
                                 <TableCell className="py-1 text-right">—</TableCell>
                               </TableRow>
                             )}
-                            {/* Bank / Cash - Credit */}
                             <TableRow className="text-xs">
                               <TableCell className="py-1">
                                 <span className="text-muted-foreground">Bank / Cash</span>
@@ -1622,7 +1614,6 @@ const LedgerEntries = () => {
                               <TableCell className="py-1 text-right">—</TableCell>
                               <TableCell className="py-1 text-right font-medium">{formatCurrency(commIncl)}</TableCell>
                             </TableRow>
-                            {/* Totals */}
                             <TableRow className="border-t-2 bg-muted/30 font-bold text-xs">
                               <TableCell className="py-1 text-[10px]">Totals</TableCell>
                               <TableCell className="py-1 text-right">{formatCurrency(totalGlDt)}</TableCell>
@@ -1649,7 +1640,7 @@ const LedgerEntries = () => {
                             <TableRow className="text-xs">
                               <TableCell className="py-1">
                                 <span>{cashCtrl?.name || "Cash Control"}</span>
-                                <span className="ml-1.5 font-mono text-[10px] font-bold text-rose-600 dark:text-rose-400">(Ct)</span>
+                                <span className="ml-1.5 font-mono text-[10px] font-bold text-destructive">(Ct)</span>
                               </TableCell>
                               <TableCell className="py-1 text-right font-medium">{formatCurrency(commIncl)}</TableCell>
                             </TableRow>
@@ -1669,8 +1660,8 @@ const LedgerEntries = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={payCommissionMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction disabled={payCommissionMutation.isPending}
-              onClick={(e) => { e.preventDefault(); if (payCommDialog) payCommissionMutation.mutate({ commission: payCommDialog, reference: payReference }); }}>
-              {payCommissionMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</> : "Confirm Payment"}
+              onClick={(e) => { e.preventDefault(); if (payCommDialog) payCommissionMutation.mutate({ commissions: payCommDialog, reference: payReference }); }}>
+              {payCommissionMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</> : `Confirm Payment (${payCommDialog?.length || 0} items)`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
