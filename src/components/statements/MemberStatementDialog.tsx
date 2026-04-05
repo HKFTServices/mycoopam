@@ -208,11 +208,13 @@ export default function MemberStatementDialog({
       // Merge current cashflow transactions with legacy CFT data
       const currentCft = (cashflowTxRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date,
+        transaction_id: tx.transaction_id || tx.id,
         entry_type: tx.entry_type || "",
         description: tx.description || "",
         pool_name: tx.pools?.name || "",
         debit: Number(tx.debit || 0),
         credit: Number(tx.credit || 0),
+        is_bank: tx.is_bank ?? false,
       }));
       const legacyCft = (legacyCftRes.data ?? []).map((tx: any) => ({
         transaction_date: tx.transaction_date ? tx.transaction_date.substring(0, 10) : "",
