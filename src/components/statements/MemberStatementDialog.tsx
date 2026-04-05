@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears, startOfQuarter, endOfQuarter, subQuarters } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { generateMemberStatement, type StatementData } from "@/lib/generateMemberStatement";
+import { buildStatementCashflows } from "@/lib/statementCashflows";
 import { toast } from "@/hooks/use-toast";
 
 interface MemberStatementDialogProps {
@@ -31,80 +32,6 @@ const PRESETS: { value: PresetKey; label: string }[] = [
   { value: "last_year", label: "Last Year" },
   { value: "custom", label: "Custom Range" },
 ];
-
-const CASHFLOW_TRANSACTION_CODES = new Set(["DEPOSIT_FUNDS", "WITHDRAW_FUNDS"]);
-
-const getCashflowEntryAmount = (entry: any) =>
-  Math.abs(Number(entry?.debit || 0) - Number(entry?.credit || 0));
-
-const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
-  const code = String(tx.transaction_types?.code || "").toUpperCase();
-  if (code === "DEPOSIT_FUNDS") return "Deposit Funds";
-  if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
-
-  const bankEntry = linkedEntries.find((entry) => entry.is_bank || ["bank_deposit", "bank_withdrawal"].includes(String(entry.entry_type || "").toLowerCase()));
-  const bankType = String(bankEntry?.entry_type || "").toLowerCase();
-  if (bankType === "bank_deposit") return "Deposit Funds";
-  if (bankType === "bank_withdrawal") return "Withdraw Funds";
-
-  return tx.transaction_types?.name || bankEntry?.description || "Cash Flow";
-};
-
-const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: any[]) => {
-  const cashflowEntriesByTransactionId = new Map<string, any[]>();
-
-  for (const entry of cashflowEntries) {
-    if (!entry?.transaction_id) continue;
-    const existing = cashflowEntriesByTransactionId.get(entry.transaction_id) ?? [];
-    existing.push(entry);
-    cashflowEntriesByTransactionId.set(entry.transaction_id, existing);
-  }
-
-  return approvedTransactions
-    .filter((tx) => CASHFLOW_TRANSACTION_CODES.has(String(tx.transaction_types?.code || "").toUpperCase()))
-    .map((tx) => {
-      const linkedEntries = cashflowEntriesByTransactionId.get(tx.id) ?? [];
-      let bankAmount = 0;
-      let shares = 0;
-      let memberFees = 0;
-      let adminFees = 0;
-      let nettToPools = 0;
-
-      for (const entry of linkedEntries) {
-        const entryType = String(entry.entry_type || "").toLowerCase();
-        const description = String(entry.description || "").toLowerCase();
-        const amount = getCashflowEntryAmount(entry);
-
-        if (entry.is_bank || entryType === "bank_deposit" || entryType === "bank_withdrawal") {
-          bankAmount += amount;
-        } else if (entryType.includes("share")) {
-          shares += amount;
-        } else if (entryType === "membership_fee" || description.includes("membership fee")) {
-          memberFees += amount;
-        } else if (entryType === "fee" || entryType === "commission" || description.includes("admin fee") || description.includes("commission")) {
-          adminFees += amount;
-        } else if (entryType === "pool_allocation" || entryType === "pool_redemption" || entryType === "member_interest" || description.includes("pool allocation")) {
-          nettToPools += amount;
-        }
-      }
-
-      const grossAmount = Math.abs(Number(tx.amount || 0)) || bankAmount || shares + memberFees + adminFees + nettToPools || Math.abs(Number(tx.net_amount || 0));
-      const fallbackAdminFees = adminFees || Math.max(0, Math.abs(Number(tx.fee_amount || 0)) - memberFees);
-      const fallbackNettToPools = nettToPools || Math.abs(Number(tx.net_amount || 0));
-
-      return {
-        transaction_date: tx.transaction_date,
-        type: getCashflowTypeLabel(tx, linkedEntries),
-        grossAmount,
-        shares,
-        memberFees,
-        adminFees: fallbackAdminFees,
-        nettToPools: fallbackNettToPools,
-      };
-    })
-    .filter((tx) => tx.grossAmount > 0 || tx.shares > 0 || tx.memberFees > 0 || tx.adminFees > 0 || tx.nettToPools > 0)
-    .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
-};
 
 const getPresetDates = (key: PresetKey): { from: Date; to: Date } => {
   const now = new Date();
