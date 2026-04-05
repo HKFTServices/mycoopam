@@ -172,7 +172,7 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setSelectedEntity(null); }}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-4">
+       <DialogContent className="max-w-[99vw] w-[99vw] h-[95vh] flex flex-col p-4">
         <DialogHeader>
           <DialogTitle>
             {selectedEntity ? `Loan Detail — ${entityName(selectedEntity)}` : "Loans Outstanding"}
@@ -259,16 +259,16 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
             </button>
 
             {/* Transaction table */}
-            <div className="flex-1 min-h-0 overflow-auto border rounded-md">
-              <Table>
+            <div className="flex-1 min-h-0 overflow-y-auto border rounded-md">
+              <Table className="table-fixed w-full">
                  <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    <TableHead className="w-[90px] text-[11px]">Date</TableHead>
-                    <TableHead className="text-[11px]">Type</TableHead>
+                    <TableHead className="w-[100px] text-[11px]">Date</TableHead>
+                    <TableHead className="w-[160px] text-[11px]">Type</TableHead>
                     <TableHead className="text-[11px]">Description</TableHead>
-                    <TableHead className="text-right text-[11px]">Debit</TableHead>
-                    <TableHead className="text-right text-[11px]">Credit</TableHead>
-                    <TableHead className="text-right text-[11px]">Balance</TableHead>
+                    <TableHead className="w-[120px] text-right text-[11px]">Debit</TableHead>
+                    <TableHead className="w-[120px] text-right text-[11px]">Credit</TableHead>
+                    <TableHead className="w-[130px] text-right text-[11px]">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -293,7 +293,7 @@ const LoanDetailsDialog = ({ open, onOpenChange, loanSummaries, totalOutstanding
                             {txn.entry_type_name}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground max-w-[200px] truncate py-1.5">
+                        <TableCell className="text-muted-foreground truncate py-1.5">
                           {txn.description || txn.pool_name || "-"}
                         </TableCell>
                         <TableCell className="text-right py-1.5">
