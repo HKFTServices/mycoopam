@@ -461,16 +461,14 @@ export function generateMemberStatement(data: StatementData): string {
 <!-- CASH FLOWS -->
 <div class="section">
   <div class="section-title">Cash Flows</div>
-  ${cashFlowSummaries.length > 0 ? `<table>
+  ${cashFlowRows.length > 0 ? `<table>
     <thead>
       <tr>
         <th>Date</th>
         <th>Transaction</th>
         <th class="num">Gross Amount</th>
-        <th class="num">Shares</th>
-        <th class="num">Member Fees</th>
-        <th class="num">Admin Fees</th>
-        <th class="num">Nett to Pools</th>
+        <th class="num">Fees</th>
+        <th class="num">Nett Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -478,9 +476,7 @@ export function generateMemberStatement(data: StatementData): string {
       <tr class="total">
         <td colspan="2">Total</td>
         <td class="num">${fmtNum(cashGrossTotal, sym)}</td>
-        <td class="num">${cashSharesTotal > 0 ? fmtNum(cashSharesTotal, sym) : ""}</td>
-        <td class="num">${cashMemberFeesTotal > 0 ? fmtNum(cashMemberFeesTotal, sym) : ""}</td>
-        <td class="num">${cashAdminFeesTotal > 0 ? fmtNum(cashAdminFeesTotal, sym) : ""}</td>
+        <td class="num">${cashFeesTotal > 0 ? fmtNum(cashFeesTotal, sym) : ""}</td>
         <td class="num">${fmtNum(cashNettTotal, sym)}</td>
       </tr>
     </tbody>
