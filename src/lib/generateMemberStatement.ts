@@ -192,22 +192,26 @@ export function generateMemberStatement(data: StatementData): string {
   const cashFlowRows = data.cashflowTransactions;
 
   const cashRows = cashFlowRows.map((row: any) => {
+    const isOut = row.isOutflow;
+    const negStyle = isOut ? ' style="color:#dc2626"' : '';
+    const signedGross = isOut ? -row.grossAmount : row.grossAmount;
+    const signedNett = isOut ? -row.nettToPools : row.nettToPools;
     return `<tr>
       <td>${fmtDate(row.transaction_date)}</td>
       <td>${row.type || "Transaction"}</td>
-      <td class="num">${row.grossAmount > 0 ? fmtNum(row.grossAmount, sym) : ""}</td>
+      <td class="num"${negStyle}>${row.grossAmount > 0 ? fmtNum(signedGross, sym) : ""}</td>
       <td class="num">${row.shares > 0 ? fmtNum(row.shares, sym) : ""}</td>
       <td class="num">${row.memberFees > 0 ? fmtNum(row.memberFees, sym) : ""}</td>
       <td class="num">${row.adminFees > 0 ? fmtNum(row.adminFees, sym) : ""}</td>
-      <td class="num">${row.nettToPools > 0 ? fmtNum(row.nettToPools, sym) : ""}</td>
+      <td class="num"${negStyle}>${row.nettToPools > 0 ? fmtNum(signedNett, sym) : ""}</td>
     </tr>`;
   }).join("");
 
-  const cashGrossTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.grossAmount || 0), 0);
+  const cashGrossTotal = cashFlowRows.reduce((s: number, r: any) => s + ((r.isOutflow ? -1 : 1) * (r.grossAmount || 0)), 0);
   const cashSharesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.shares || 0), 0);
   const cashMemberFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.memberFees || 0), 0);
   const cashAdminFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.adminFees || 0), 0);
-  const cashNettTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.nettToPools || 0), 0);
+  const cashNettTotal = cashFlowRows.reduce((s: number, r: any) => s + ((r.isOutflow ? -1 : 1) * (r.nettToPools || 0)), 0);
 
   // Stock flow section
   const stockRows = data.stockTransactions.map((tx: any) => {
@@ -472,7 +476,7 @@ export function generateMemberStatement(data: StatementData): string {
         <th class="num">Shares</th>
         <th class="num">Member Fees</th>
         <th class="num">Admin Fees</th>
-        <th class="num">Nett to Pools</th>
+        <th class="num">Nett to/from Pools</th>
       </tr>
     </thead>
     <tbody>
