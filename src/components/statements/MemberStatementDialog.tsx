@@ -122,14 +122,20 @@ export default function MemberStatementDialog({
       const loanRow = (loanRes.data ?? []).find((r: any) => r.entity_id === entityId);
       const legacyEntityId = loanRow?.legacy_entity_id || loanRow?.client_acct_id;
 
-      // Fetch loan transactions (legacy + modern CFT) in parallel
-      const [loanTxLegacyRes, loanTxCftRes] = await Promise.all([
+      // Fetch loan transactions (legacy + modern CFT) and grant transactions in parallel
+      const [loanTxLegacyRes, loanTxCftRes, grantTxRes] = await Promise.all([
         legacyEntityId
           ? (supabase as any).rpc("get_loan_transactions", { p_tenant_id: tenantId, p_legacy_entity_id: legacyEntityId })
           : Promise.resolve({ data: [] }),
         (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, debit, credit, notes, pools (name)")
           .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
           .eq("is_active", true).like("entry_type", "loan_%")
+          .order("transaction_date", { ascending: true }),
+        // Grant transactions: grant_control credit entries represent grants paid to member
+        (supabase as any).from("cashflow_transactions").select("id, transaction_date, entry_type, description, credit")
+          .eq("tenant_id", tenantId).in("entity_account_id", entityAccountIds)
+          .eq("is_active", true).eq("entry_type", "grant_control")
+          .gte("transaction_date", fromStr).lte("transaction_date", toStr)
           .order("transaction_date", { ascending: true }),
       ]);
 
