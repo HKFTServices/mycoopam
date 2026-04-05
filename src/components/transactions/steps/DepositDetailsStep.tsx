@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2 } from "lucide-react";
+import { Upload, FileText, X, AlertTriangle, Award, CreditCard, TrendingUp, Minus, Wallet, Ban, CalendarIcon, Landmark, Banknote, Repeat2, Info } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { useTenant } from "@/contexts/TenantContext";
 
 import { Bitcoin } from "lucide-react";
 import CryptoAddressSelector from "./CryptoAddressSelector";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const FALLBACK_METHODS = [
   { value: "eft", label: "EFT (Bank Transfer)", icon: Landmark },
@@ -284,7 +285,17 @@ const DepositDetailsStep = ({
       <div className="space-y-1.5">
         <Label className="flex items-center gap-1.5">
           <Wallet className="h-3.5 w-3.5 text-primary" />
-          Gross Deposit Amount (R)
+          {paymentMethod === "crypto" ? "Approximate Deposit Amount (R)" : "Gross Deposit Amount (R)"}
+          {paymentMethod === "crypto" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px] text-xs">
+                Enter the approximate deposit amount in South African Rands (ZAR). The admin will confirm the final converted amount upon approval.
+              </TooltipContent>
+            </Tooltip>
+          )}
         </Label>
         <Input
           type="text"
@@ -296,7 +307,13 @@ const DepositDetailsStep = ({
           onBlur={handleBlur}
           className="text-base font-bold h-10"
         />
-        {!isFocused && !amount && (
+        {paymentMethod === "crypto" && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            This is an approximate amount. The final ZAR amount will be confirmed by admin.
+          </p>
+        )}
+        {!isFocused && !amount && paymentMethod !== "crypto" && (
           <p className="text-[10px] text-muted-foreground">Use <span className="font-semibold">.</span> as the decimal separator (e.g. 1 500.50)</p>
         )}
         {isWithdrawal && currentHolding > 0 && (

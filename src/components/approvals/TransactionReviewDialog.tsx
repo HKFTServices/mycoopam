@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Loader2, CheckCircle, XCircle, CalendarIcon, AlertTriangle, TrendingUp,
   FileText, Eye, Banknote, Package, Truck, Building2, ChevronRight, ChevronLeft,
-  ClipboardCheck, BoxSelect, Save, PenTool,
+  ClipboardCheck, BoxSelect, Save, PenTool, Bitcoin,
 } from "lucide-react";
 import StockReceiptPanel from "@/components/stock/StockReceiptPanel";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +47,7 @@ export interface DateOverride {
   newUnitPrice: number;
   newUnits: number;
   newNetAmount: number;
+  newAmount?: number;
   changeNote: string;
 }
 
@@ -80,6 +81,7 @@ const TransactionReviewDialog = ({
   const [overrideDate, setOverrideDate] = useState<Date | null>(null);
   const [changeNote, setChangeNote] = useState("");
   const [fundsConfirmed, setFundsConfirmed] = useState(false);
+  const [cryptoFinalAmount, setCryptoFinalAmount] = useState<string>("");
 
   // Stock deposit multi-step state
   const [currentStep, setCurrentStep] = useState<StepId>("review");
@@ -99,6 +101,7 @@ const TransactionReviewDialog = ({
       setDeclineReason("");
       setShowDecline(false);
       setFundsConfirmed(false);
+      setCryptoFinalAmount("");
       setCurrentStep("review");
       setCourierFeeActual("");
       setCourierNotes("");
@@ -120,6 +123,7 @@ const TransactionReviewDialog = ({
   const courier: { fee?: number } | null = meta.courier || null;
   const isStockDeposit = meta.transaction_kind === "stock_deposit";
   const isDebitOrderDeposit = primaryTxn?.payment_method === "debit_order";
+  const isCryptoDeposit = primaryTxn?.payment_method === "crypto";
   const useCourier = isStockDeposit && courier && (courier.fee ?? 0) > 0;
 
   // Initialize courierFeeActual from meta when group loads; restore saved courier step if applicable
@@ -219,10 +223,20 @@ const TransactionReviewDialog = ({
     const estimatedCourierFee = isStockDeposit ? (courier?.fee ?? 0) : 0;
     const courierFeeDelta = actualCourierFee - estimatedCourierFee;
     const storedTotalNet = allTxns.reduce((s: number, t: any) => s + Number(t.net_amount), 0);
+    const storedTotalAmount = allTxns.reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+    // Crypto final amount override
+    const cryptoFinal = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
+    const hasCryptoOverride = isCryptoDeposit && cryptoFinal > 0 && Math.abs(cryptoFinal - storedTotalAmount) > 0.01;
 
     let overrides: DateOverride[] | undefined;
 
-    const needsOverride = (overrideDate && overrideDateStr) || (isStockDeposit && courierFeeDelta !== 0);
+    const needsOverride = (overrideDate && overrideDateStr) || (isStockDeposit && courierFeeDelta !== 0) || hasCryptoOverride;
+
+    if (hasCryptoOverride && !cryptoFinal) {
+      toast.error("Please enter the final confirmed amount in Rands for this crypto deposit.");
+      return;
+    }
 
     if (needsOverride) {
       if (overrideDate && overrideDateStr) {
@@ -234,6 +248,13 @@ const TransactionReviewDialog = ({
         }
       }
 
+      // Calculate the ratio of new gross to old gross for crypto override
+      const amountRatio = hasCryptoOverride ? cryptoFinal / storedTotalAmount : 1;
+      // Recalculate total fees proportionally
+      const totalFees = storedTotalAmount - storedTotalNet;
+      const newTotalFees = totalFees * amountRatio;
+      const newTotalNet = (hasCryptoOverride ? cryptoFinal : storedTotalAmount) - newTotalFees;
+
       overrides = allTxns
         .filter((txn: any) => txn.pool_id)
         .map((txn: any) => {
@@ -242,18 +263,22 @@ const TransactionReviewDialog = ({
             : Number(txn.unit_price);
           const storedNet = Number(txn.net_amount);
           const txnShare = storedTotalNet > 0 ? storedNet / storedTotalNet : 1 / allTxns.length;
-          const adjustedNet = Math.max(0, storedNet - courierFeeDelta * txnShare);
+          let adjustedNet = hasCryptoOverride ? newTotalNet * txnShare : storedNet;
+          adjustedNet = Math.max(0, adjustedNet - courierFeeDelta * txnShare);
           const newUnits = newUnitPrice > 0 ? adjustedNet / newUnitPrice : 0;
-          const note = overrideDate
-            ? `Transaction date changed to ${format(overrideDate, "dd MMM yyyy")} by approver${courierFeeDelta !== 0 ? `; courier fee adjusted by R${courierFeeDelta.toFixed(2)}` : ""}`
-            : `Courier fee adjusted from R${estimatedCourierFee.toFixed(2)} to R${actualCourierFee.toFixed(2)} by approver`;
+          const newAmount = hasCryptoOverride ? cryptoFinal * txnShare : undefined;
+          const noteFragments: string[] = [];
+          if (overrideDate) noteFragments.push(`Transaction date changed to ${format(overrideDate, "dd MMM yyyy")} by approver`);
+          if (hasCryptoOverride) noteFragments.push(`Crypto deposit final amount confirmed: R${cryptoFinal.toFixed(2)} (original approximate: R${storedTotalAmount.toFixed(2)})`);
+          if (courierFeeDelta !== 0) noteFragments.push(`Courier fee adjusted by R${courierFeeDelta.toFixed(2)}`);
           return {
             txnId: txn.id,
             newDate: overrideDateStr || format(originalDateObj, "yyyy-MM-dd"),
             newUnitPrice,
             newUnits,
             newNetAmount: adjustedNet,
-            changeNote: changeNote || note,
+            newAmount,
+            changeNote: changeNote || noteFragments.join("; "),
           };
         });
     }
@@ -443,7 +468,9 @@ const TransactionReviewDialog = ({
         <div className="flex items-center gap-2 py-1">
           <Checkbox id="funds-confirmed" checked={fundsConfirmed} onCheckedChange={(v) => setFundsConfirmed(!!v)} />
           <label htmlFor="funds-confirmed" className="text-xs text-muted-foreground cursor-pointer select-none">
-            I confirm the funds have been received and verified in the bank account.
+            {isCryptoDeposit
+              ? "I confirm the crypto payment has been received and converted to ZAR."
+              : "I confirm the funds have been received and verified in the bank account."}
           </label>
         </div>
       )}
@@ -797,53 +824,96 @@ const TransactionReviewDialog = ({
   );
 
   // ─── Shared sub-renders ───
-  const renderFinancialSummary = () => (
-    <div className="rounded-xl border-2 border-border bg-muted/20 p-4 space-y-2">
-      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Financial Summary</p>
-      <div className="flex justify-between text-sm font-semibold">
-        <span>Gross Amount</span>
-        <span>{fmt(totalAmount)}</span>
-      </div>
+  const renderFinancialSummary = () => {
+    const cryptoFinalNum = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
+    const hasCryptoOverride = isCryptoDeposit && cryptoFinalNum > 0 && Math.abs(cryptoFinalNum - totalAmount) > 0.01;
+    const displayGross = hasCryptoOverride ? cryptoFinalNum : totalAmount;
+    const totalFees = totalAmount - totalNet;
+    const feeRatio = totalAmount > 0 ? totalFees / totalAmount : 0;
+    const displayNet = hasCryptoOverride ? cryptoFinalNum - (cryptoFinalNum * feeRatio) : totalNet;
 
-      {isStockDeposit && stockLines.length > 0 && (
-        <>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground pt-1">
-            <Package className="h-3 w-3" /> Stock Items
-          </div>
-          {stockLines.map((line, i) => (
-            <div key={i} className="flex justify-between text-xs text-muted-foreground pl-2">
-              <span>{line.quantity} × {line.description} <span className="font-mono bg-muted px-1 rounded text-[10px]">{line.item_code}</span></span>
-              <span>{fmt(line.lineValue)}</span>
+    return (
+      <div className="rounded-xl border-2 border-border bg-muted/20 p-4 space-y-2">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Financial Summary</p>
+
+        {/* Crypto amount override section */}
+        {isCryptoDeposit && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Bitcoin className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                Crypto Deposit — Confirm Final Amount
+              </p>
             </div>
-          ))}
-          <Separator />
-        </>
-      )}
+            <p className="text-[10px] text-muted-foreground">
+              The member submitted an approximate amount of <strong>{fmt(totalAmount)}</strong>. Enter the final ZAR amount received after conversion.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Final Confirmed Amount (R)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={cryptoFinalAmount}
+                onChange={(e) => setCryptoFinalAmount(e.target.value)}
+                placeholder={totalAmount.toFixed(2)}
+                className="font-mono"
+              />
+              {hasCryptoOverride && (
+                <p className="text-[10px] text-primary flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Amount adjusted from {fmt(totalAmount)} to {fmt(cryptoFinalNum)}. Fees and pool allocations will be recalculated proportionally.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
-      {feeBreakdown.map((fee, i) => (
-        <div key={i} className="flex justify-between text-sm text-muted-foreground">
-          <span>Less {fee.name}</span>
-          <span>- {fmt(fee.amount)}</span>
+        <div className="flex justify-between text-sm font-semibold">
+          <span>{isCryptoDeposit ? "Gross Amount" : "Gross Amount"}{hasCryptoOverride ? " (adjusted)" : ""}</span>
+          <span>{fmt(displayGross)}</span>
         </div>
-      ))}
 
-      {isStockDeposit && (
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            {useCourier ? <Truck className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
-            {useCourier ? "Courier Delivery" : "Collect at Office"}
-          </span>
-          <span>{useCourier ? `- ${fmt(courier!.fee!)}` : "No fee"}</span>
+        {isStockDeposit && stockLines.length > 0 && (
+          <>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground pt-1">
+              <Package className="h-3 w-3" /> Stock Items
+            </div>
+            {stockLines.map((line, i) => (
+              <div key={i} className="flex justify-between text-xs text-muted-foreground pl-2">
+                <span>{line.quantity} × {line.description} <span className="font-mono bg-muted px-1 rounded text-[10px]">{line.item_code}</span></span>
+                <span>{fmt(line.lineValue)}</span>
+              </div>
+            ))}
+            <Separator />
+          </>
+        )}
+
+        {feeBreakdown.map((fee, i) => (
+          <div key={i} className="flex justify-between text-sm text-muted-foreground">
+            <span>Less {fee.name}</span>
+            <span>- {fmt(hasCryptoOverride ? fee.amount * (cryptoFinalNum / totalAmount) : fee.amount)}</span>
+          </div>
+        ))}
+
+        {isStockDeposit && (
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              {useCourier ? <Truck className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
+              {useCourier ? "Courier Delivery" : "Collect at Office"}
+            </span>
+            <span>{useCourier ? `- ${fmt(courier!.fee!)}` : "No fee"}</span>
+          </div>
+        )}
+
+        <Separator />
+        <div className="flex justify-between text-sm font-bold text-primary">
+          <span>Net Available for Pools</span>
+          <span>{fmt(displayNet)}</span>
         </div>
-      )}
-
-      <Separator />
-      <div className="flex justify-between text-sm font-bold text-primary">
-        <span>Net Available for Pools</span>
-        <span>{fmt(totalNet)}</span>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderDateOverride = () => (
     <div className="rounded-xl border-2 border-border p-4 space-y-3">
@@ -1001,6 +1071,7 @@ const TransactionReviewDialog = ({
     if (!isStockDeposit) {
       // Original single-page footer
       const debitOrderOrFundsOk = isDebitOrderDeposit || fundsConfirmed;
+      const cryptoAmountOk = !isCryptoDeposit || (cryptoFinalAmount.trim() !== "" && !isNaN(parseFloat(cryptoFinalAmount)) && parseFloat(cryptoFinalAmount) > 0);
       return (
         <>
           <Button variant="destructive" onClick={() => setShowDecline(true)}>
@@ -1009,7 +1080,7 @@ const TransactionReviewDialog = ({
           <Button
             onClick={handleApprove}
             disabled={
-              isApproving || !debitOrderOrFundsOk ||
+              isApproving || !debitOrderOrFundsOk || !cryptoAmountOk ||
               (dateChanged && !changeNote.trim()) ||
               (dateChanged && missingPrices.length > 0)
             }
