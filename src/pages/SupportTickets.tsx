@@ -73,7 +73,7 @@ export default function SupportTickets() {
   });
 
   // Fetch profiles for display names
-  const creatorIds = [...new Set(tickets.map((t: any) => t.created_by))];
+  const creatorIds = [...new Set(tickets.map((t: any) => t.created_by))] as string[];
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_for_tickets", creatorIds],
     queryFn: async () => {
@@ -114,7 +114,7 @@ export default function SupportTickets() {
   }, [selectedTicket?.id]);
 
   // Fetch message sender profiles
-  const msgSenderIds = [...new Set(ticketMessages.map((m: any) => m.sender_id))];
+  const msgSenderIds = [...new Set(ticketMessages.map((m: any) => m.sender_id))] as string[];
   const { data: msgProfiles = [] } = useQuery({
     queryKey: ["profiles_msg_senders", msgSenderIds],
     queryFn: async () => {
