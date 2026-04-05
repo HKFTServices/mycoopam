@@ -919,7 +919,7 @@ const RegisterTenant = () => {
 
                                 {/* ── BLOCK 1: Once-off Setup Fee ── */}
                                 <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Once-off Setup Fee</p>
+                                  <p className="text-xs font-bold text-foreground uppercase tracking-wider">Once-off Setup Fee</p>
                                   <p className="text-xl sm:text-2xl font-bold text-primary">
                                     {formatCurrency(plan.setup_fee_excl_vat)}
                                     <span className="text-xs font-normal text-muted-foreground ml-1">(excl. VAT)</span>
@@ -933,7 +933,7 @@ const RegisterTenant = () => {
 
                                 {/* ── BLOCK 2: Monthly Base Fee (live) ── */}
                                 <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Monthly Base Fee</p>
+                                  <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Base Fee</p>
                                   <p className="text-lg font-bold text-primary">
                                     {formatCurrency(computedMonthlyFee)}
                                     <span className="text-xs font-normal text-muted-foreground ml-1">(excl. VAT) / month</span>
@@ -960,7 +960,7 @@ const RegisterTenant = () => {
 
                                     {/* ── BLOCK 3: Transaction Fees ── */}
                                     <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
-                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Transaction Fees</p>
+                                      <p className="text-xs font-bold text-foreground uppercase tracking-wider">Transaction Fees</p>
                                       <p className="text-xs"><span className="font-medium">{plan.deposit_fee_pct}%</span> on deposits</p>
                                       <p className="text-xs"><span className="font-medium">{plan.switch_transfer_withdrawal_fee_pct}%</span> on switches/transfers/withdrawals</p>
                                     </div>
@@ -972,7 +972,7 @@ const RegisterTenant = () => {
 
                                     {/* ── BLOCK 4: Recurring TPV Fees ── */}
                                     <div className="border rounded-lg p-3 bg-muted/20 space-y-1">
-                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Recurring (% of TPV p.a. — payable monthly)</p>
+                                      <p className="text-xs font-bold text-foreground uppercase tracking-wider">Recurring (% of TPV p.a. — payable monthly)</p>
                                       <p className="text-xs">{plan.tpv_tier1_pct_pa}% — TPV &lt; {formatCurrency(plan.tpv_tier1_threshold)}</p>
                                       <p className="text-xs">{plan.tpv_tier2_pct_pa}% — TPV {formatCurrency(plan.tpv_tier1_threshold)} – {formatCurrency(plan.tpv_tier2_threshold)}</p>
                                       <p className="text-xs">{plan.tpv_tier3_pct_pa}% — TPV &gt; {formatCurrency(plan.tpv_tier2_threshold)}</p>
@@ -983,7 +983,7 @@ const RegisterTenant = () => {
                                 {/* Inclusions */}
                                 <Separator />
                                 <div className="space-y-1.5">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Inclusions</p>
+                                  <p className="text-xs font-bold text-foreground uppercase tracking-wider">Inclusions</p>
                                   {[
                                     "Member administration",
                                     "Entity & account management",
@@ -1008,7 +1008,7 @@ const RegisterTenant = () => {
 
                                 {/* Exclusions */}
                                 <div className="space-y-1.5 mt-3">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Exclusions</p>
+                                  <p className="text-xs font-bold text-foreground uppercase tracking-wider">Exclusions</p>
                                   {[
                                     ...(hasPooling ? [] : [
                                       "Investment pools & unit pricing",
