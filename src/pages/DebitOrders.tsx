@@ -50,6 +50,10 @@ const DebitOrders = () => {
   const [editOrder, setEditOrder] = useState<any>(null);
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [entitySelectOpen, setEntitySelectOpen] = useState(false);
+  // Batch processing state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [processingDate, setProcessingDate] = useState<Date | undefined>(undefined);
+  const [showProcessConfirm, setShowProcessConfirm] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [adminAccountSelectOpen, setAdminAccountSelectOpen] = useState(false);
   const [adminAccountQuery, setAdminAccountQuery] = useState("");
