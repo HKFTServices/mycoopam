@@ -114,6 +114,10 @@ export const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
   if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
 
   const legacyType = classifyLegacyGroup(linkedEntries);
+  // Loan Instalment should stay as "Deposit Funds" (it's part of the deposit split)
+  if (legacyType === "Loan Instalment") return "Deposit Funds";
+  // Loan Payout becomes "Loans"
+  if (legacyType === "Loan Payout") return "Loan Payout";
   if (legacyType) return legacyType;
 
   const bankEntry = linkedEntries.find(isBankOrLoanEntry);
