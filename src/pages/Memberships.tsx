@@ -633,7 +633,22 @@ const Memberships = () => {
     enabled: !!currentTenant,
   });
 
-  // Calculate combined unit value per entity_account (only display_in_summary pools, matching portfolio detail)
+  // Fetch active debit orders to disable "Debit Order Sign Up" for entities that already have one
+  const { data: activeDebitOrderEntityAccountIds = [] } = useQuery<string[]>({
+    queryKey: ["active_debit_order_accounts", currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
+      const { data } = await (supabase as any)
+        .from("debit_orders")
+        .select("entity_account_id")
+        .eq("tenant_id", currentTenant.id)
+        .eq("is_active", true);
+      return [...new Set((data || []).map((d: any) => d.entity_account_id))] as string[];
+    },
+    enabled: !!currentTenant,
+  });
+  const activeDebitOrderAccountSet = useMemo(() => new Set(activeDebitOrderEntityAccountIds), [activeDebitOrderEntityAccountIds]);
+
   const accountValueMap: Record<string, number> = useMemo(() => {
     const summaryPoolIds = new Set(
       poolDisplayTypes
@@ -878,6 +893,9 @@ const Memberships = () => {
           const hasReferralHouseAcct = existingTypes.has(5);
           const hasCustomer = existingTypes.has(2);
           const hasSupplier = existingTypes.has(3);
+          const isReferrer = !!entityReferrerRecords[g.entityId];
+          const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
+          const hasActiveDebitOrder = activeAcct ? activeDebitOrderAccountSet.has(activeAcct.id) : false;
 
           return (
             <DropdownMenu>
@@ -904,7 +922,7 @@ const Memberships = () => {
                     Apply for Referral House
                   </DropdownMenuItem>
                 )}
-                {g.entityType === "natural_person" && (
+                {g.entityType === "natural_person" && !isReferrer && (
                   <DropdownMenuItem onClick={() => setReferrerDialogEntity({ id: g.entityId, name: g.entityName })}>
                     <UserCheck className="h-4 w-4 mr-2" />
                     Apply as Referrer
@@ -924,26 +942,23 @@ const Memberships = () => {
                     {!isTenantAdmin && <span className="ml-auto text-[10px] text-muted-foreground">Admin only</span>}
                   </DropdownMenuItem>
                 )}
-                {g.accounts.some((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation") && (
+                {activeAcct && (
                   <>
                     <DropdownMenuItem onClick={() => {
-                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                      setTxnDefaultAccountId(activeAcct?.id);
+                      setTxnDefaultAccountId(activeAcct.id);
                       setTxnDialogOpen(true);
                     }}>
                       <ArrowLeftRight className="h-4 w-4 mr-2" />
                       New Transaction
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => {
-                      const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
-                      if (activeAcct) setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
+                      setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
                     }}>
                       <Banknote className="h-4 w-4 mr-2" />
                       Apply for Loan
                     </DropdownMenuItem>
-                    {isDebitOrderEnabled && (
+                    {isDebitOrderEnabled && !hasActiveDebitOrder && (
                       <DropdownMenuItem onClick={() => {
-                        const activeAcct = g.accounts.find((a: AccountRow) => a.status === "active" || a.status === "approved" || a.status === "pending_activation");
                         if (activeAcct) setDebitOrderEntity({ entityId: g.entityId, entityName: g.entityName, entityAccountId: activeAcct.id, accountNumber: activeAcct.accountNumber });
                       }}>
                         <CreditCard className="h-4 w-4 mr-2" />
