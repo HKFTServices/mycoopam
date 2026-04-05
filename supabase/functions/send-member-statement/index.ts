@@ -608,33 +608,39 @@ async function generateStatementPdf(data: {
   // ── Cash Flows ──
   y = drawSectionTitle(doc, "Cash Flows", y);
   if (data.cashflowTransactions.length > 0) {
-    const cashDebitTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.debit || 0), 0);
-    const cashCreditTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + Number(tx.credit || 0), 0);
-    const cashRows = data.cashflowTransactions.map((tx: any) => {
-      const debit = Number(tx.debit || 0);
-      const credit = Number(tx.credit || 0);
-      return [
-        fmtDate(tx.transaction_date),
-        (tx.description || tx.entry_type || "").substring(0, 35),
-        tx.pool_name || "",
-        debit > 0 ? fmtCurrency(debit, sym) : "",
-        credit > 0 ? fmtCurrency(credit, sym) : "",
-      ];
-    });
+    const cashGrossTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.grossAmount || 0), 0);
+    const cashSharesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.shares || 0), 0);
+    const cashMemberFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.memberFees || 0), 0);
+    const cashAdminFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.adminFees || 0), 0);
+    const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.nettToPools || 0), 0);
+    const cashRows = data.cashflowTransactions.map((tx: any) => [
+      fmtDate(tx.transaction_date),
+      (tx.type || "Transaction").substring(0, 30),
+      tx.grossAmount > 0 ? fmtCurrency(tx.grossAmount, sym) : "",
+      tx.shares > 0 ? fmtCurrency(tx.shares, sym) : "",
+      tx.memberFees > 0 ? fmtCurrency(tx.memberFees, sym) : "",
+      tx.adminFees > 0 ? fmtCurrency(tx.adminFees, sym) : "",
+      tx.nettToPools > 0 ? fmtCurrency(tx.nettToPools, sym) : "",
+    ]);
     y = drawTable(doc, {
       startY: y,
       columns: [
-        { header: "Date", width: 22, align: "left" },
-        { header: "Type", width: 60, align: "left" },
-        { header: "Pool", width: 38, align: "left" },
-        { header: "Debit", width: 30, align: "right" },
-        { header: "Credit", width: 30, align: "right" },
+        { header: "Date", width: 20, align: "left" },
+        { header: "Transaction", width: 36, align: "left" },
+        { header: "Gross Amt", width: 26, align: "right" },
+        { header: "Shares", width: 22, align: "right" },
+        { header: "Mbr Fees", width: 24, align: "right" },
+        { header: "Admin Fees", width: 26, align: "right" },
+        { header: "Nett Pools", width: 26, align: "right" },
       ],
       rows: cashRows,
       totalRow: [
-        "Total", "", "",
-        fmtCurrency(cashDebitTotal, sym),
-        fmtCurrency(cashCreditTotal, sym),
+        "Total", "",
+        fmtCurrency(cashGrossTotal, sym),
+        cashSharesTotal > 0 ? fmtCurrency(cashSharesTotal, sym) : "",
+        cashMemberFeesTotal > 0 ? fmtCurrency(cashMemberFeesTotal, sym) : "",
+        cashAdminFeesTotal > 0 ? fmtCurrency(cashAdminFeesTotal, sym) : "",
+        fmtCurrency(cashNettTotal, sym),
       ],
     });
   } else {
