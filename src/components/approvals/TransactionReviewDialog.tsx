@@ -1071,6 +1071,7 @@ const TransactionReviewDialog = ({
     if (!isStockDeposit) {
       // Original single-page footer
       const debitOrderOrFundsOk = isDebitOrderDeposit || fundsConfirmed;
+      const cryptoAmountOk = !isCryptoDeposit || (cryptoFinalAmount.trim() !== "" && !isNaN(parseFloat(cryptoFinalAmount)) && parseFloat(cryptoFinalAmount) > 0);
       return (
         <>
           <Button variant="destructive" onClick={() => setShowDecline(true)}>
