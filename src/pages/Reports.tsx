@@ -57,19 +57,21 @@ const Reports = () => {
     enabled: !!user,
   });
 
-  // Fetch tenant registration date for "Full History" preset
-  const { data: tenantRegistrationDate } = useQuery({
-    queryKey: ["tenant_reg_date", tenantId],
+  // Fetch tenant config for FY end month and registration date
+  const { data: tenantConfig } = useQuery({
+    queryKey: ["tenant_config_reports", tenantId],
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("tenant_configuration")
-        .select("registration_date")
+        .select("registration_date, financial_year_end_month")
         .eq("tenant_id", tenantId)
         .maybeSingle();
-      return data?.registration_date || null;
+      return data || null;
     },
     enabled: !!tenantId,
   });
+  const tenantRegistrationDate = tenantConfig?.registration_date || null;
+  const fyEndMonth: number = tenantConfig?.financial_year_end_month ?? 2; // default Feb
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
@@ -416,23 +418,22 @@ const Reports = () => {
     { label: "Last 90 days", days: 90 },
   ];
 
-  // Financial year helpers (Mar–Feb)
-  const getFYRange = (offset: number): { from: Date; to: Date } => {
-    const now = new Date();
-    // FY starts in March. If current month < March, we're still in the FY that started last year.
-    const currentFYStartYear = now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
-    const startYear = currentFYStartYear + offset;
-    return {
-      from: new Date(startYear, 2, 1),       // 1 March
-      to: new Date(startYear + 1, 1, 28),    // 28 Feb (safe end)
-    };
-  };
-  // Use last day of Feb properly
+  // Financial year helpers – dynamic based on tenant's financial_year_end_month
+  // fyEndMonth=2 means FY ends in Feb, so FY starts in March (month index 2).
+  // fyEndMonth=6 means FY ends in June, so FY starts in July (month index 6).
+  const fyStartMonthIndex = fyEndMonth % 12; // month after FY end (0-indexed)
   const getFYRangeProper = (offset: number): { from: Date; to: Date } => {
-    const r = getFYRange(offset);
-    // Set to last day of February
-    const lastFeb = new Date(r.to.getFullYear(), 2, 0); // day 0 of March = last day of Feb
-    return { from: r.from, to: lastFeb };
+    const now = new Date();
+    // Determine which FY we're currently in
+    const currentFYStartYear = now.getMonth() < fyStartMonthIndex
+      ? now.getFullYear() - 1
+      : now.getFullYear();
+    const startYear = currentFYStartYear + offset;
+    const from = new Date(startYear, fyStartMonthIndex, 1);
+    // End = last day of fyEndMonth in the following year (or same year if FY doesn't cross Jan)
+    const endYear = fyStartMonthIndex === 0 ? startYear : startYear + 1;
+    const to = new Date(endYear, fyEndMonth, 0); // day 0 of next month = last day of fyEndMonth
+    return { from, to };
   };
 
   // Non-admin referrer/house: no admin reports, redirect handled by sidebar
