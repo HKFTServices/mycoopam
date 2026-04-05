@@ -822,53 +822,96 @@ const TransactionReviewDialog = ({
   );
 
   // ─── Shared sub-renders ───
-  const renderFinancialSummary = () => (
-    <div className="rounded-xl border-2 border-border bg-muted/20 p-4 space-y-2">
-      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Financial Summary</p>
-      <div className="flex justify-between text-sm font-semibold">
-        <span>Gross Amount</span>
-        <span>{fmt(totalAmount)}</span>
-      </div>
+  const renderFinancialSummary = () => {
+    const cryptoFinalNum = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
+    const hasCryptoOverride = isCryptoDeposit && cryptoFinalNum > 0 && Math.abs(cryptoFinalNum - totalAmount) > 0.01;
+    const displayGross = hasCryptoOverride ? cryptoFinalNum : totalAmount;
+    const totalFees = totalAmount - totalNet;
+    const feeRatio = totalAmount > 0 ? totalFees / totalAmount : 0;
+    const displayNet = hasCryptoOverride ? cryptoFinalNum - (cryptoFinalNum * feeRatio) : totalNet;
 
-      {isStockDeposit && stockLines.length > 0 && (
-        <>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground pt-1">
-            <Package className="h-3 w-3" /> Stock Items
-          </div>
-          {stockLines.map((line, i) => (
-            <div key={i} className="flex justify-between text-xs text-muted-foreground pl-2">
-              <span>{line.quantity} × {line.description} <span className="font-mono bg-muted px-1 rounded text-[10px]">{line.item_code}</span></span>
-              <span>{fmt(line.lineValue)}</span>
+    return (
+      <div className="rounded-xl border-2 border-border bg-muted/20 p-4 space-y-2">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Financial Summary</p>
+
+        {/* Crypto amount override section */}
+        {isCryptoDeposit && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Bitcoin className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                Crypto Deposit — Confirm Final Amount
+              </p>
             </div>
-          ))}
-          <Separator />
-        </>
-      )}
+            <p className="text-[10px] text-muted-foreground">
+              The member submitted an approximate amount of <strong>{fmt(totalAmount)}</strong>. Enter the final ZAR amount received after conversion.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Final Confirmed Amount (R)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={cryptoFinalAmount}
+                onChange={(e) => setCryptoFinalAmount(e.target.value)}
+                placeholder={totalAmount.toFixed(2)}
+                className="font-mono"
+              />
+              {hasCryptoOverride && (
+                <p className="text-[10px] text-primary flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Amount adjusted from {fmt(totalAmount)} to {fmt(cryptoFinalNum)}. Fees and pool allocations will be recalculated proportionally.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
-      {feeBreakdown.map((fee, i) => (
-        <div key={i} className="flex justify-between text-sm text-muted-foreground">
-          <span>Less {fee.name}</span>
-          <span>- {fmt(fee.amount)}</span>
+        <div className="flex justify-between text-sm font-semibold">
+          <span>{isCryptoDeposit ? "Gross Amount" : "Gross Amount"}{hasCryptoOverride ? " (adjusted)" : ""}</span>
+          <span>{fmt(displayGross)}</span>
         </div>
-      ))}
 
-      {isStockDeposit && (
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            {useCourier ? <Truck className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
-            {useCourier ? "Courier Delivery" : "Collect at Office"}
-          </span>
-          <span>{useCourier ? `- ${fmt(courier!.fee!)}` : "No fee"}</span>
+        {isStockDeposit && stockLines.length > 0 && (
+          <>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground pt-1">
+              <Package className="h-3 w-3" /> Stock Items
+            </div>
+            {stockLines.map((line, i) => (
+              <div key={i} className="flex justify-between text-xs text-muted-foreground pl-2">
+                <span>{line.quantity} × {line.description} <span className="font-mono bg-muted px-1 rounded text-[10px]">{line.item_code}</span></span>
+                <span>{fmt(line.lineValue)}</span>
+              </div>
+            ))}
+            <Separator />
+          </>
+        )}
+
+        {feeBreakdown.map((fee, i) => (
+          <div key={i} className="flex justify-between text-sm text-muted-foreground">
+            <span>Less {fee.name}</span>
+            <span>- {fmt(hasCryptoOverride ? fee.amount * (cryptoFinalNum / totalAmount) : fee.amount)}</span>
+          </div>
+        ))}
+
+        {isStockDeposit && (
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              {useCourier ? <Truck className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
+              {useCourier ? "Courier Delivery" : "Collect at Office"}
+            </span>
+            <span>{useCourier ? `- ${fmt(courier!.fee!)}` : "No fee"}</span>
+          </div>
+        )}
+
+        <Separator />
+        <div className="flex justify-between text-sm font-bold text-primary">
+          <span>Net Available for Pools</span>
+          <span>{fmt(displayNet)}</span>
         </div>
-      )}
-
-      <Separator />
-      <div className="flex justify-between text-sm font-bold text-primary">
-        <span>Net Available for Pools</span>
-        <span>{fmt(totalNet)}</span>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderDateOverride = () => (
     <div className="rounded-xl border-2 border-border p-4 space-y-3">
