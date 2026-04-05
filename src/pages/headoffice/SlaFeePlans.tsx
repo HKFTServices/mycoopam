@@ -232,7 +232,7 @@ const SlaFeePlans = () => {
                       { key: "membership_admin_fee", label: "Membership Admin" },
                       { key: "loans_fee", label: "Loans" },
                       { key: "debit_orders_fee", label: "Debit Orders" },
-                      { key: "accounting_fee", label: "Accounting" },
+                      { key: "accounting_fee", label: "Accounting & Reports" },
                     ].map(({ key, label }) => (
                       <div key={key} className="space-y-1">
                         <Label className="text-xs">{label}</Label>
