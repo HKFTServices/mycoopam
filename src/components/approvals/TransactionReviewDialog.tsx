@@ -968,47 +968,64 @@ const TransactionReviewDialog = ({
     </div>
   );
 
-  const renderPoolAllocations = () => (
-    <div className="space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-        <TrendingUp className="h-3 w-3" /> Pool Allocations
-      </p>
-      {allTxns.map((txn: any) => {
-        const poolName = txn.pools?.name || "Pool";
-        const overriddenUnitPrice = dateChanged ? overridePrices[txn.pool_id] : undefined;
-        const effectiveUnitPrice = overriddenUnitPrice ?? Number(txn.unit_price);
-        const effectiveUnits = effectiveUnitPrice > 0 ? Number(txn.net_amount) / effectiveUnitPrice : Number(txn.units);
-        const hasMissingPrice = dateChanged && txn.pool_id && overridePrices[txn.pool_id] === undefined;
-        return (
-          <div key={txn.id} className="rounded-lg border border-border p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold">{poolName}</span>
-              <span className="text-sm text-muted-foreground">{fmt(Number(txn.net_amount))}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
-                <p className="text-muted-foreground">Unit Price (UP)</p>
-                <p className={cn("font-mono font-bold", dateChanged && !hasMissingPrice ? "text-primary" : hasMissingPrice ? "text-destructive" : "")}>
-                  {hasMissingPrice ? (
-                    <span className="inline-flex items-center gap-1.5 text-destructive">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      No price
-                    </span>
-                  ) : fmtUP(effectiveUnitPrice)}
-                </p>
+  const renderPoolAllocations = () => {
+    // Recalculate pool allocations when crypto override is active
+    const cryptoFinalNum = isCryptoDeposit && cryptoFinalAmount.trim() ? parseFloat(cryptoFinalAmount) : 0;
+    const hasCryptoOverride = isCryptoDeposit && cryptoFinalNum > 0 && Math.abs(cryptoFinalNum - totalAmount) > 0.01;
+    const storedTotalNet = allTxns.reduce((s: number, t: any) => s + Number(t.net_amount), 0);
+
+    // Apply same ratio logic as handleApprove
+    const amountRatio = hasCryptoOverride ? cryptoFinalNum / totalAmount : 1;
+    const totalFees = totalAmount - storedTotalNet;
+    const newTotalFees = totalFees * amountRatio;
+    const adjustedTotalNet = hasCryptoOverride ? cryptoFinalNum - newTotalFees : storedTotalNet;
+
+    return (
+      <div className="space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <TrendingUp className="h-3 w-3" /> Pool Allocations
+        </p>
+        {allTxns.map((txn: any) => {
+          const poolName = txn.pools?.name || "Pool";
+          const overriddenUnitPrice = dateChanged ? overridePrices[txn.pool_id] : undefined;
+          const effectiveUnitPrice = overriddenUnitPrice ?? Number(txn.unit_price);
+          const storedNet = Number(txn.net_amount);
+          const txnShare = storedTotalNet > 0 ? storedNet / storedTotalNet : 1 / allTxns.length;
+          const effectiveNet = hasCryptoOverride ? adjustedTotalNet * txnShare : storedNet;
+          const effectiveUnits = effectiveUnitPrice > 0 ? effectiveNet / effectiveUnitPrice : Number(txn.units);
+          const hasMissingPrice = dateChanged && txn.pool_id && overridePrices[txn.pool_id] === undefined;
+          const isAdjusted = hasCryptoOverride || dateChanged;
+          return (
+            <div key={txn.id} className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">{poolName}</span>
+                <span className={cn("text-sm", isAdjusted ? "text-primary font-bold" : "text-muted-foreground")}>{fmt(effectiveNet)}</span>
               </div>
-              <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
-                <p className="text-muted-foreground">Units</p>
-                <p className={cn("font-mono font-bold", dateChanged && !hasMissingPrice ? "text-primary" : "")}>
-                  {hasMissingPrice ? "—" : effectiveUnits.toFixed(5)}
-                </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
+                  <p className="text-muted-foreground">Unit Price (UP)</p>
+                  <p className={cn("font-mono font-bold", dateChanged && !hasMissingPrice ? "text-primary" : hasMissingPrice ? "text-destructive" : "")}>
+                    {hasMissingPrice ? (
+                      <span className="inline-flex items-center gap-1.5 text-destructive">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        No price
+                      </span>
+                    ) : fmtUP(effectiveUnitPrice)}
+                  </p>
+                </div>
+                <div className="rounded bg-muted/40 px-2 py-1.5 space-y-0.5">
+                  <p className="text-muted-foreground">Units</p>
+                  <p className={cn("font-mono font-bold", isAdjusted && !hasMissingPrice ? "text-primary" : "")}>
+                    {hasMissingPrice ? "—" : effectiveUnits.toFixed(5)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderDateChangeNote = () => dateChanged ? (
     <div className="rounded-xl border-2 border-border bg-muted/30 p-3 space-y-2">
