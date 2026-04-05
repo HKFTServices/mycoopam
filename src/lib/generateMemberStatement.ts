@@ -513,13 +513,12 @@ export function generateMemberStatement(data: StatementData): string {
     <thead>
       <tr>
         <th>Date</th>
-        <th>Type</th>
+        <th style="min-width:140px">Type</th>
         <th>Pool</th>
         <th class="num">In (Debit)</th>
         <th class="num">Out (Credit)</th>
         <th class="num">Unit Price</th>
         <th class="num">Value</th>
-        <th>Notes</th>
       </tr>
     </thead>
     <tbody>${unitRows}</tbody>
@@ -529,22 +528,27 @@ export function generateMemberStatement(data: StatementData): string {
 <!-- CASH FLOWS -->
 <div class="section">
   <div class="section-title">Cash Flows</div>
-  ${data.cashflowTransactions.length > 0 ? `<table>
+  ${cashFlowSummaries.length > 0 ? `<table>
     <thead>
       <tr>
         <th>Date</th>
-        <th>Type</th>
-        <th>Pool</th>
-        <th class="num">Debit</th>
-        <th class="num">Credit</th>
+        <th>Transaction</th>
+        <th class="num">Gross Amount</th>
+        <th class="num">Shares</th>
+        <th class="num">Member Fees</th>
+        <th class="num">Admin Fees</th>
+        <th class="num">Nett to Pools</th>
       </tr>
     </thead>
     <tbody>
       ${cashRows}
       <tr class="total">
-        <td colspan="3">Total</td>
-        <td class="num">${fmtNum(cashDebitTotal, sym)}</td>
-        <td class="num">${fmtNum(cashCreditTotal, sym)}</td>
+        <td colspan="2">Total</td>
+        <td class="num">${fmtNum(cashGrossTotal, sym)}</td>
+        <td class="num">${cashSharesTotal > 0 ? fmtNum(cashSharesTotal, sym) : ""}</td>
+        <td class="num">${cashMemberFeesTotal > 0 ? fmtNum(cashMemberFeesTotal, sym) : ""}</td>
+        <td class="num">${cashAdminFeesTotal > 0 ? fmtNum(cashAdminFeesTotal, sym) : ""}</td>
+        <td class="num">${fmtNum(cashNettTotal, sym)}</td>
       </tr>
     </tbody>
   </table>` : '<div class="empty-msg">No cash flows in this period</div>'}
