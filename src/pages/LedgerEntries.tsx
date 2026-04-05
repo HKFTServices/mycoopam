@@ -1484,35 +1484,29 @@ const LedgerEntries = () => {
 
 
 
-      {/* ── Pay Commission Dialog ── */}
-      <AlertDialog open={!!payCommDialog} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
+      {/* ── Pay Commission Dialog (batch — all pending for a house) ── */}
+      <AlertDialog open={!!payCommDialog && payCommDialog.length > 0} onOpenChange={(o) => { if (!o) setPayCommDialog(null); }}>
         <AlertDialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>Pay Commission</AlertDialogTitle>
+            <AlertDialogTitle>Pay All Commissions</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                {payCommDialog && (() => {
-                  const house = (payCommDialog as any).referral_house;
+                {payCommDialog && payCommDialog.length > 0 && (() => {
+                  const house = payCommDialog[0].referral_house;
                   const houseName = house ? `${house.name}${house.last_name ? " " + house.last_name : ""}`.trim() : "Unknown House";
                   const isHouseVat = house?.is_vat_registered || false;
                   const vr = taxTypes.find((t) => t.percentage > 0)?.percentage || 0;
-                  const commExcl = payCommDialog.commission_amount;
+                  const commExcl = payCommDialog.reduce((s, c) => s + Number(c.commission_amount), 0);
                   const commVat = isHouseVat ? Math.round(commExcl * (vr / 100) * 100) / 100 : 0;
                   const commIncl = commExcl + commVat;
-                  const bd = payCommDialog.house_bank_details;
+                  const bd = payCommDialog[0].house_bank_details;
 
-                  // Build GL preview lines
                   const commGlName = glAccounts.find((g) => g.id === tenantConfig?.commission_paid_gl_account_id)?.name;
                   const commGlCode = glAccounts.find((g) => g.id === tenantConfig?.commission_paid_gl_account_id)?.code;
                   const vatGlName = glAccounts.find((g) => g.id === tenantConfig?.vat_gl_account_id)?.name;
                   const vatGlCode = glAccounts.find((g) => g.id === tenantConfig?.vat_gl_account_id)?.code;
                   const cashCtrl = controlAccounts.find((c) => c.account_type?.toLowerCase() === "cash");
 
-                  const glDt = commVat > 0 && vatGlName ? commExcl + commVat : commExcl;
-                  const glCt = commExcl + (commVat > 0 ? commVat : 0);
-                  const glBalanced = Math.abs(glDt - glCt) < 0.01 || (commVat > 0 && vatGlName);
-                  // Actually: Commission GL Dt = commExcl, VAT GL Dt = commVat => total Dt = commIncl
-                  // Bank (cash control) Ct = commIncl => balanced
                   const totalGlDt = commExcl + commVat;
                   const totalGlCt = commIncl;
                   const isBalanced = Math.abs(totalGlDt - totalGlCt) < 0.01;
@@ -1532,14 +1526,12 @@ const LedgerEntries = () => {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Referrer</span>
-                          <span className="font-medium">
-                            {(payCommDialog as any).referrer ? `${(payCommDialog as any).referrer.name} ${(payCommDialog as any).referrer.last_name || ""}`.trim() : "—"}
-                          </span>
+                          <span className="text-muted-foreground">Commission Items</span>
+                          <span className="font-medium">{payCommDialog.length}</span>
                         </div>
                         <div className="border-t border-border my-1" />
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Commission ({payCommDialog.commission_percentage}%) excl VAT</span>
+                          <span className="text-muted-foreground">Total Commission excl VAT</span>
                           <span className="font-semibold text-foreground">{formatCurrency(commExcl)}</span>
                         </div>
                         <div className="flex justify-between">
@@ -1597,7 +1589,6 @@ const LedgerEntries = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {/* Commission expense GL - Debit */}
                             <TableRow className="text-xs">
                               <TableCell className="py-1">
                                 {commGlCode && <span className="font-mono text-[10px] text-muted-foreground mr-1">{commGlCode}</span>}
@@ -1606,7 +1597,6 @@ const LedgerEntries = () => {
                               <TableCell className="py-1 text-right font-medium">{formatCurrency(commExcl)}</TableCell>
                               <TableCell className="py-1 text-right">—</TableCell>
                             </TableRow>
-                            {/* VAT GL - Debit */}
                             {commVat > 0 && (
                               <TableRow className="text-xs">
                                 <TableCell className="py-1">
@@ -1617,7 +1607,6 @@ const LedgerEntries = () => {
                                 <TableCell className="py-1 text-right">—</TableCell>
                               </TableRow>
                             )}
-                            {/* Bank / Cash - Credit */}
                             <TableRow className="text-xs">
                               <TableCell className="py-1">
                                 <span className="text-muted-foreground">Bank / Cash</span>
@@ -1625,7 +1614,6 @@ const LedgerEntries = () => {
                               <TableCell className="py-1 text-right">—</TableCell>
                               <TableCell className="py-1 text-right font-medium">{formatCurrency(commIncl)}</TableCell>
                             </TableRow>
-                            {/* Totals */}
                             <TableRow className="border-t-2 bg-muted/30 font-bold text-xs">
                               <TableCell className="py-1 text-[10px]">Totals</TableCell>
                               <TableCell className="py-1 text-right">{formatCurrency(totalGlDt)}</TableCell>
@@ -1652,7 +1640,7 @@ const LedgerEntries = () => {
                             <TableRow className="text-xs">
                               <TableCell className="py-1">
                                 <span>{cashCtrl?.name || "Cash Control"}</span>
-                                <span className="ml-1.5 font-mono text-[10px] font-bold text-rose-600 dark:text-rose-400">(Ct)</span>
+                                <span className="ml-1.5 font-mono text-[10px] font-bold text-destructive">(Ct)</span>
                               </TableCell>
                               <TableCell className="py-1 text-right font-medium">{formatCurrency(commIncl)}</TableCell>
                             </TableRow>
@@ -1672,8 +1660,8 @@ const LedgerEntries = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={payCommissionMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction disabled={payCommissionMutation.isPending}
-              onClick={(e) => { e.preventDefault(); if (payCommDialog) payCommissionMutation.mutate({ commission: payCommDialog, reference: payReference }); }}>
-              {payCommissionMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</> : "Confirm Payment"}
+              onClick={(e) => { e.preventDefault(); if (payCommDialog) payCommissionMutation.mutate({ commissions: payCommDialog, reference: payReference }); }}>
+              {payCommissionMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</> : `Confirm Payment (${payCommDialog?.length || 0} items)`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
