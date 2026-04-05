@@ -905,11 +905,15 @@ const LedgerEntries = () => {
 
       const { data: tenantCfg } = await (supabase as any)
         .from("tenant_configuration")
-        .select("commission_paid_gl_account_id, vat_gl_account_id")
+        .select("bank_gl_account_id, commission_paid_gl_account_id, vat_gl_account_id")
         .eq("tenant_id", currentTenant.id)
         .maybeSingle();
+      const bankGlAccountId = tenantCfg?.bank_gl_account_id || null;
       const commissionPaidGlAccountId = tenantCfg?.commission_paid_gl_account_id || null;
       const vatGlAccountId = tenantCfg?.vat_gl_account_id || null;
+
+      if (!bankGlAccountId) throw new Error("Bank GL account not configured in Tenant Setup");
+      if (!commissionPaidGlAccountId) throw new Error("Commission Paid GL account not configured in Tenant Setup");
 
       const isHouseVatRegistered = commission.referral_house?.is_vat_registered || false;
       const vatRate = isHouseVatRegistered ? (taxTypes.find((t) => t.percentage > 0)?.percentage || 0) : 0;
@@ -935,11 +939,30 @@ const LedgerEntries = () => {
         description: `Commission payment${isHouseVatRegistered ? " (incl VAT)" : ""}`,
         reference: reference || null,
         posted_by: user.id,
-        gl_account_id: commissionPaidGlAccountId,
+        gl_account_id: bankGlAccountId,
         approved_by: user.id,
         approved_at: new Date().toISOString(),
       }).select("id").single();
       if (e1) throw e1;
+
+      const { error: expenseErr } = await (supabase as any).from("cashflow_transactions").insert({
+        tenant_id: currentTenant.id,
+        transaction_date: formatLocalDate(),
+        entry_type: "bank_contra",
+        is_bank: false,
+        status: "posted",
+        parent_id: cft.id,
+        control_account_id: null,
+        debit: commExclVat,
+        credit: 0,
+        amount_excl_vat: commExclVat,
+        vat_amount: 0,
+        description: "Commission payment",
+        reference: reference || null,
+        posted_by: user.id,
+        gl_account_id: commissionPaidGlAccountId,
+      });
+      if (expenseErr) throw expenseErr;
 
       if (commVat > 0 && vatGlAccountId) {
         await (supabase as any).from("cashflow_transactions").insert({
