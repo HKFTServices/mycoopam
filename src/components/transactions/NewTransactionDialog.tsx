@@ -1057,7 +1057,13 @@ const NewTransactionDialog = ({
     [selectedTxnTypeId, amountNum, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
 
-  const commissionBase = isDeposit && commissionPct > 0 && !isMembershipOnlyDeposit && !noPoolAllocation ? amountAfterMembership * (commissionPct / 100) : 0;
+  // Commission: for membership-only deposits, calculate on the membership fee (deducted from fee income).
+  // For normal deposits, calculate on the amount after membership deductions.
+  const commissionBase = isDeposit && commissionPct > 0
+    ? (isMembershipOnlyDeposit
+      ? joinShareInfo.membershipFee * (commissionPct / 100)   // Option 2: deduct from membership fee
+      : (!noPoolAllocation ? amountAfterMembership * (commissionPct / 100) : 0))
+    : 0;
   const commissionVat = isVatRegistered && commissionBase > 0 ? commissionBase * (vatRate / 100) : 0;
   const commissionAmount = commissionBase + commissionVat;
   const depositTotalDeductions = effectiveLoanRepayment + membershipDeductions + depositFees.totalFee + commissionAmount;
