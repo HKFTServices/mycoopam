@@ -91,10 +91,11 @@ const DebitOrders = () => {
         if (!rel.entities) continue;
         const { data: accounts } = await (supabase as any)
           .from("entity_accounts")
-          .select("id, account_number")
+          .select("id, account_number, entity_account_types!inner(account_type)")
           .eq("entity_id", rel.entities.id)
           .eq("tenant_id", currentTenant.id)
           .eq("is_active", true)
+          .eq("entity_account_types.account_type", 1)
           .limit(1);
         if (accounts?.[0]) {
           results.push({
@@ -252,10 +253,11 @@ const DebitOrders = () => {
       if (!currentTenant) return [];
       const { data, error } = await (supabase as any)
         .from("entity_accounts")
-        .select("id, account_number, entity_id, entities(name, last_name)")
+        .select("id, account_number, entity_id, entity_account_types!inner(account_type), entities(name, last_name)")
         .eq("tenant_id", currentTenant.id)
         .eq("is_active", true)
         .eq("is_approved", true)
+        .eq("entity_account_types.account_type", 1)
         .order("account_number", { ascending: true })
         .limit(300);
       if (error) throw error;
