@@ -44,8 +44,9 @@ const DEPOSIT_ENTRY_TYPES = new Set(["bank_receipt", "bank_deposit"]);
 const WITHDRAWAL_ENTRY_TYPES = new Set(["bank_payment", "bank_withdrawal"]);
 const MEMBER_FEE_ENTRY_TYPES = new Set(["membership_fee", "member_fee"]);
 const ADMIN_FEE_ENTRY_TYPES = new Set(["fee", "fee_income", "commission", "admin_fee"]);
-const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "pool_redemption", "pool_withdrawal", "member_interest", "member_interest_dr"]);
-const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror"]);
+const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "member_interest", "member_interest_dr"]);
+const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror", "pool_withdrawal", "pool_redemption"]);
+const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Instalment"]);
 
 const isLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
@@ -170,6 +171,7 @@ const summarizeCashflowRow = ({
   return {
     transaction_date: transactionDate,
     type: typeLabel || getCashflowTypeLabel(tx, linkedEntries),
+    isOutflow: OUTFLOW_TYPES.has(typeLabel || getCashflowTypeLabel(tx, linkedEntries)),
     grossAmount,
     shares,
     memberFees,
@@ -223,7 +225,7 @@ const buildStatementCashflows = (approvedTransactions: any[], cashflowEntries: a
     .filter(Boolean);
 
   return [...modernRows, ...legacyRows]
-    .filter((tx) => tx.grossAmount > 0 || tx.shares > 0 || tx.memberFees > 0 || tx.adminFees > 0 || tx.nettToPools > 0)
+    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0)
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 };
 
@@ -797,19 +799,19 @@ async function generateStatementPdf(data: {
   // ── Cash Flows ──
   y = drawSectionTitle(doc, "Cash Flows", y);
   if (data.cashflowTransactions.length > 0) {
-    const cashGrossTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.grossAmount || 0), 0);
+    const cashGrossTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.grossAmount || 0)), 0);
     const cashSharesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.shares || 0), 0);
     const cashMemberFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.memberFees || 0), 0);
     const cashAdminFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.adminFees || 0), 0);
-    const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.nettToPools || 0), 0);
+    const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.nettToPools || 0)), 0);
     const cashRows = data.cashflowTransactions.map((tx: any) => [
       fmtDate(tx.transaction_date),
       (tx.type || "Transaction").substring(0, 30),
-      tx.grossAmount > 0 ? fmtCurrency(tx.grossAmount, sym) : "",
+      tx.grossAmount > 0 ? fmtCurrency(tx.isOutflow ? -tx.grossAmount : tx.grossAmount, sym) : "",
       tx.shares > 0 ? fmtCurrency(tx.shares, sym) : "",
       tx.memberFees > 0 ? fmtCurrency(tx.memberFees, sym) : "",
       tx.adminFees > 0 ? fmtCurrency(tx.adminFees, sym) : "",
-      tx.nettToPools > 0 ? fmtCurrency(tx.nettToPools, sym) : "",
+      tx.nettToPools > 0 ? fmtCurrency(tx.isOutflow ? -tx.nettToPools : tx.nettToPools, sym) : "",
     ]);
     y = drawTable(doc, {
       startY: y,
@@ -820,7 +822,7 @@ async function generateStatementPdf(data: {
         { header: "Shares", width: 22, align: "right" },
         { header: "Mbr Fees", width: 24, align: "right" },
         { header: "Admin Fees", width: 26, align: "right" },
-        { header: "Nett Pools", width: 26, align: "right" },
+        { header: "Nett to/from", width: 26, align: "right" },
       ],
       rows: cashRows,
       totalRow: [
