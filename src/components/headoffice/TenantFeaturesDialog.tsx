@@ -6,12 +6,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Banknote, Package, CreditCard, BarChart3, Wallet } from "lucide-react";
+import { Loader2, Banknote, CreditCard, BarChart3, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 const FEATURE_DEFINITIONS = [
   { key: "loans", label: "Loans", description: "Loan applications, approvals, and disbursements", icon: Banknote },
-  { key: "asset_manager", label: "Asset Manager (MAM)", description: "Member Asset Manager module", icon: Package },
+  
   { key: "debit_orders", label: "Debit Orders", description: "Recurring debit order management", icon: CreditCard },
   { key: "stock_transactions", label: "Stock Transactions", description: "Stock deposit and withdrawal transactions", icon: BarChart3 },
   { key: "referral_system", label: "Referral System", description: "Referrer and referral house management", icon: Wallet },
