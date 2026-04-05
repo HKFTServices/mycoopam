@@ -18,7 +18,7 @@ const NET_TO_POOL_ENTRY_TYPES = new Set([
 ]);
 const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror", "pool_withdrawal", "pool_redemption"]);
 
-const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Instalment"]);
+const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Payout"]);
 
 const isLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
@@ -114,6 +114,10 @@ export const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
   if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
 
   const legacyType = classifyLegacyGroup(linkedEntries);
+  // Loan Instalment should stay as "Deposit Funds" (it's part of the deposit split)
+  if (legacyType === "Loan Instalment") return "Deposit Funds";
+  // Loan Payout becomes "Loans"
+  if (legacyType === "Loan Payout") return "Loan Payout";
   if (legacyType) return legacyType;
 
   const bankEntry = linkedEntries.find(isBankOrLoanEntry);
@@ -136,6 +140,7 @@ const summarizeCashflowRow = ({
   let memberFees = 0;
   let adminFees = 0;
   let nettToPools = 0;
+  let loans = 0;
 
   for (const entry of linkedEntries) {
     const entryType = normalize(entry?.entry_type);
@@ -144,9 +149,9 @@ const summarizeCashflowRow = ({
 
     if (!amount || IGNORE_ENTRY_TYPES.has(entryType)) continue;
 
-    if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
-      bankAmount += amount;
-    } else if (isLoanEntry(entry)) {
+    if (isLoanEntry(entry)) {
+      loans += amount;
+    } else if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
       bankAmount += amount;
     } else if (entryType.includes("share") || description.includes("share")) {
       shares += amount;
@@ -173,9 +178,9 @@ const summarizeCashflowRow = ({
   const txAmount = Math.abs(Number(tx?.amount || 0));
   const txNet = Math.abs(Number(tx?.net_amount || 0));
   const txFee = Math.abs(Number(tx?.fee_amount || 0));
-  const grossAmount = txAmount || bankAmount || shares + memberFees + adminFees + nettToPools || txNet;
+  const grossAmount = txAmount || bankAmount || shares + memberFees + adminFees + nettToPools + loans || txNet;
   const fallbackAdminFees = adminFees || Math.max(0, txFee - memberFees);
-  const fallbackNettToPools = nettToPools || txNet || Math.max(0, grossAmount - shares - memberFees - fallbackAdminFees);
+  const fallbackNettToPools = nettToPools || txNet || Math.max(0, grossAmount - shares - memberFees - fallbackAdminFees - loans);
 
   return {
     transaction_date: transactionDate,
@@ -186,6 +191,7 @@ const summarizeCashflowRow = ({
     memberFees: memberFees,
     adminFees: fallbackAdminFees,
     nettToPools: fallbackNettToPools,
+    loans: loans,
   };
 };
 
@@ -234,6 +240,6 @@ export const buildStatementCashflows = (approvedTransactions: any[], cashflowEnt
     .filter(Boolean);
 
   return [...modernRows, ...legacyRows]
-    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0)
+    .filter((tx) => tx!.grossAmount > 0 || tx!.shares > 0 || tx!.memberFees > 0 || tx!.adminFees > 0 || tx!.nettToPools > 0 || tx!.loans > 0)
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
 };

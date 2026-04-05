@@ -46,7 +46,7 @@ const MEMBER_FEE_ENTRY_TYPES = new Set(["membership_fee", "member_fee"]);
 const ADMIN_FEE_ENTRY_TYPES = new Set(["fee", "fee_income", "commission", "admin_fee"]);
 const NET_TO_POOL_ENTRY_TYPES = new Set(["pool_allocation", "member_interest", "member_interest_dr"]);
 const IGNORE_ENTRY_TYPES = new Set(["legacy_control_mirror", "pool_withdrawal", "pool_redemption"]);
-const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Instalment"]);
+const OUTFLOW_TYPES = new Set(["Withdraw Funds", "Loan Payout"]);
 
 const isLoanEntry = (entry: any) => {
   const entryType = normalize(entry?.entry_type);
@@ -110,6 +110,8 @@ const getCashflowTypeLabel = (tx: any, linkedEntries: any[]) => {
   if (code === "WITHDRAW_FUNDS") return "Withdraw Funds";
 
   const legacyType = classifyLegacyGroup(linkedEntries);
+  if (legacyType === "Loan Instalment") return "Deposit Funds";
+  if (legacyType === "Loan Payout") return "Loan Payout";
   if (legacyType) return legacyType;
 
   const bankEntry = linkedEntries.find(isBankOrLoanEntry);
@@ -132,6 +134,7 @@ const summarizeCashflowRow = ({
   let memberFees = 0;
   let adminFees = 0;
   let nettToPools = 0;
+  let loans = 0;
 
   for (const entry of linkedEntries) {
     const entryType = normalize(entry?.entry_type);
@@ -140,9 +143,9 @@ const summarizeCashflowRow = ({
 
     if (!amount || IGNORE_ENTRY_TYPES.has(entryType)) continue;
 
-    if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
-      bankAmount += amount;
-    } else if (isLoanEntry(entry)) {
+    if (isLoanEntry(entry)) {
+      loans += amount;
+    } else if ((DEPOSIT_ENTRY_TYPES.has(entryType) || WITHDRAWAL_ENTRY_TYPES.has(entryType)) || (entry?.is_bank === true && entryType !== "journal")) {
       bankAmount += amount;
     } else if (entryType.includes("share") || description.includes("share")) {
       shares += amount;
@@ -164,9 +167,9 @@ const summarizeCashflowRow = ({
   const txAmount = Math.abs(Number(tx?.amount || 0));
   const txNet = Math.abs(Number(tx?.net_amount || 0));
   const txFee = Math.abs(Number(tx?.fee_amount || 0));
-  const grossAmount = txAmount || bankAmount || shares + memberFees + adminFees + nettToPools || txNet;
+  const grossAmount = txAmount || bankAmount || shares + memberFees + adminFees + nettToPools + loans || txNet;
   const fallbackAdminFees = adminFees || Math.max(0, txFee - memberFees);
-  const fallbackNettToPools = nettToPools || txNet || Math.max(0, grossAmount - shares - memberFees - fallbackAdminFees);
+  const fallbackNettToPools = nettToPools || txNet || Math.max(0, grossAmount - shares - memberFees - fallbackAdminFees - loans);
 
   return {
     transaction_date: transactionDate,
@@ -177,6 +180,7 @@ const summarizeCashflowRow = ({
     memberFees,
     adminFees: fallbackAdminFees,
     nettToPools: fallbackNettToPools,
+    loans,
   };
 };
 
@@ -803,6 +807,7 @@ async function generateStatementPdf(data: {
     const cashSharesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.shares || 0), 0);
     const cashMemberFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.memberFees || 0), 0);
     const cashAdminFeesTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + (tx.adminFees || 0), 0);
+    const cashLoansTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.loans || 0)), 0);
     const cashNettTotal = data.cashflowTransactions.reduce((s: number, tx: any) => s + ((tx.isOutflow ? -1 : 1) * (tx.nettToPools || 0)), 0);
     const cashRows = data.cashflowTransactions.map((tx: any) => [
       fmtDate(tx.transaction_date),
@@ -811,18 +816,20 @@ async function generateStatementPdf(data: {
       tx.shares > 0 ? fmtCurrency(tx.shares, sym) : "",
       tx.memberFees > 0 ? fmtCurrency(tx.memberFees, sym) : "",
       tx.adminFees > 0 ? fmtCurrency(tx.adminFees, sym) : "",
+      tx.loans > 0 ? fmtCurrency(tx.isOutflow ? -tx.loans : tx.loans, sym) : "",
       tx.nettToPools > 0 ? fmtCurrency(tx.isOutflow ? -tx.nettToPools : tx.nettToPools, sym) : "",
     ]);
     y = drawTable(doc, {
       startY: y,
       columns: [
-        { header: "Date", width: 20, align: "left" },
-        { header: "Transaction", width: 36, align: "left" },
-        { header: "Gross Amt", width: 26, align: "right" },
-        { header: "Shares", width: 22, align: "right" },
-        { header: "Mbr Fees", width: 24, align: "right" },
-        { header: "Admin Fees", width: 26, align: "right" },
-        { header: "Nett to/from", width: 26, align: "right" },
+        { header: "Date", width: 18, align: "left" },
+        { header: "Transaction", width: 30, align: "left" },
+        { header: "Gross Amt", width: 24, align: "right" },
+        { header: "Shares", width: 20, align: "right" },
+        { header: "Mbr Fees", width: 20, align: "right" },
+        { header: "Admin Fees", width: 22, align: "right" },
+        { header: "Loans", width: 22, align: "right" },
+        { header: "Nett to/from", width: 24, align: "right" },
       ],
       rows: cashRows,
       totalRow: [
@@ -831,6 +838,7 @@ async function generateStatementPdf(data: {
         cashSharesTotal > 0 ? fmtCurrency(cashSharesTotal, sym) : "",
         cashMemberFeesTotal > 0 ? fmtCurrency(cashMemberFeesTotal, sym) : "",
         cashAdminFeesTotal > 0 ? fmtCurrency(cashAdminFeesTotal, sym) : "",
+        cashLoansTotal !== 0 ? fmtCurrency(cashLoansTotal, sym) : "",
         fmtCurrency(cashNettTotal, sym),
       ],
     });

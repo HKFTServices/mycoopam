@@ -196,6 +196,9 @@ export function generateMemberStatement(data: StatementData): string {
     const negStyle = isOut ? ' style="color:#dc2626"' : '';
     const signedGross = isOut ? -row.grossAmount : row.grossAmount;
     const signedNett = isOut ? -row.nettToPools : row.nettToPools;
+    // Loans: payout (isOutflow) = negative red, instalment = positive
+    const signedLoans = isOut ? -row.loans : row.loans;
+    const loanStyle = isOut ? ' style="color:#dc2626"' : '';
     return `<tr>
       <td>${fmtDate(row.transaction_date)}</td>
       <td>${row.type || "Transaction"}</td>
@@ -203,6 +206,7 @@ export function generateMemberStatement(data: StatementData): string {
       <td class="num">${row.shares > 0 ? fmtNum(row.shares, sym) : ""}</td>
       <td class="num">${row.memberFees > 0 ? fmtNum(row.memberFees, sym) : ""}</td>
       <td class="num">${row.adminFees > 0 ? fmtNum(row.adminFees, sym) : ""}</td>
+      <td class="num"${row.loans > 0 ? loanStyle : ''}>${row.loans > 0 ? fmtNum(signedLoans, sym) : ""}</td>
       <td class="num"${negStyle}>${row.nettToPools > 0 ? fmtNum(signedNett, sym) : ""}</td>
     </tr>`;
   }).join("");
@@ -211,6 +215,7 @@ export function generateMemberStatement(data: StatementData): string {
   const cashSharesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.shares || 0), 0);
   const cashMemberFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.memberFees || 0), 0);
   const cashAdminFeesTotal = cashFlowRows.reduce((s: number, r: any) => s + (r.adminFees || 0), 0);
+  const cashLoansTotal = cashFlowRows.reduce((s: number, r: any) => s + ((r.isOutflow ? -1 : 1) * (r.loans || 0)), 0);
   const cashNettTotal = cashFlowRows.reduce((s: number, r: any) => s + ((r.isOutflow ? -1 : 1) * (r.nettToPools || 0)), 0);
 
   // Stock flow section
@@ -476,6 +481,7 @@ export function generateMemberStatement(data: StatementData): string {
         <th class="num">Shares</th>
         <th class="num">Member Fees</th>
         <th class="num">Admin Fees</th>
+        <th class="num">Loans</th>
         <th class="num">Nett to/from Pools</th>
       </tr>
     </thead>
@@ -487,6 +493,7 @@ export function generateMemberStatement(data: StatementData): string {
         <td class="num">${cashSharesTotal > 0 ? fmtNum(cashSharesTotal, sym) : ""}</td>
         <td class="num">${cashMemberFeesTotal > 0 ? fmtNum(cashMemberFeesTotal, sym) : ""}</td>
         <td class="num">${cashAdminFeesTotal > 0 ? fmtNum(cashAdminFeesTotal, sym) : ""}</td>
+        <td class="num"${cashLoansTotal < 0 ? ' style="color:#dc2626"' : ''}>${cashLoansTotal !== 0 ? fmtNum(cashLoansTotal, sym) : ""}</td>
         <td class="num">${fmtNum(cashNettTotal, sym)}</td>
       </tr>
     </tbody>
