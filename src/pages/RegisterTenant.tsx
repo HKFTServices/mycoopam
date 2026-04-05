@@ -950,7 +950,7 @@ const RegisterTenant = () => {
                                       "Daily pool price updates",
                                       "Deposits, withdrawals & switches",
                                       "Fee engine & sliding scales",
-                                       "Stock / commodity trading",
+                                       "Stock purchases & sales",
                                     ] : []),
                                   ].map((f) => (
                                     <div key={f} className="flex items-start gap-2 text-xs">
