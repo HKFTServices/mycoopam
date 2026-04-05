@@ -948,7 +948,7 @@ const LedgerEntries = () => {
       const { error: expenseErr } = await (supabase as any).from("cashflow_transactions").insert({
         tenant_id: currentTenant.id,
         transaction_date: formatLocalDate(),
-        entry_type: "commission_payment_expense",
+        entry_type: "bank_contra",
         is_bank: false,
         status: "posted",
         parent_id: cft.id,
