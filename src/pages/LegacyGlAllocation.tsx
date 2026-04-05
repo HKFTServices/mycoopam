@@ -118,7 +118,7 @@ const LegacyGlAllocation = () => {
   const { user } = useAuth();
   const [selectedTxType, setSelectedTxType] = useState("1912");
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
-  const [dateFrom, setDateFrom] = useState<Date>(new Date("2025-03-01"));
+  const [dateFrom, setDateFrom] = useState<Date>(new Date("2024-03-01"));
   const [dateTo, setDateTo] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [cftEntries, setCftEntries] = useState<LegacyCftEntry[]>([]);
