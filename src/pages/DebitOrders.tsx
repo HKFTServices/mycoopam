@@ -365,11 +365,25 @@ const DebitOrders = () => {
           <h1 className="text-lg sm:text-2xl font-bold">Debit Orders</h1>
         </div>
         {isAdmin ? (
-          <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2" size="sm">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Create Debit Order</span>
-            <span className="sm:hidden">New</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {selectedOrderIds.size > 0 && (
+              <Button
+                onClick={() => setShowProcessConfirm(true)}
+                className="gap-2"
+                size="sm"
+                variant="default"
+              >
+                <Play className="h-4 w-4" />
+                <span className="hidden sm:inline">Process ({selectedOrderIds.size})</span>
+                <span className="sm:hidden">Process ({selectedOrderIds.size})</span>
+              </Button>
+            )}
+            <Button onClick={() => setAdminAccountSelectOpen(true)} className="gap-2" size="sm" variant="outline">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Create Debit Order</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          </div>
         ) : (
           <Button onClick={handleSignUpClick} className="gap-2" size="sm">
             <Plus className="h-4 w-4" />
