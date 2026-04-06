@@ -104,6 +104,9 @@ const ControlAccountsTab = ({ fromDate, toDate, searchTerm = "" }: ControlAccoun
     return e ? `${e.name}${e.last_name ? " " + e.last_name : ""} (${ea.account_number || "—"})` : ea.account_number || "—";
   };
 
+  const sl = searchTerm.toLowerCase().trim();
+  const filteredRows = sl ? rows.filter((r: any) => JSON.stringify(r).toLowerCase().includes(sl)) : rows;
+
   return (
     <Card>
       <CardHeader>
@@ -124,11 +127,6 @@ const ControlAccountsTab = ({ fromDate, toDate, searchTerm = "" }: ControlAccoun
           </Select>
         </div>
         <div className="flex flex-wrap gap-3 mt-2">
-        {(() => {
-          const sl = searchTerm.toLowerCase().trim();
-          const filteredRows = sl ? rows.filter((r: any) => JSON.stringify(r).toLowerCase().includes(sl)) : rows;
-          return (
-            <>
           <Badge variant="outline">Entries: {filteredRows.length}</Badge>
           <Badge variant="outline">Total Dr: {fmt(totalDebit)}</Badge>
           <Badge variant="outline">Total Cr: {fmt(totalCredit)}</Badge>
