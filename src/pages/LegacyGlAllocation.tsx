@@ -463,6 +463,8 @@ const LegacyGlAllocation = () => {
 
       for (const row of allRows) {
         try {
+          // Skip rows already marked as posted in legacy_id_mappings
+          if ((row as any).is_posted) continue;
           const n = JSON.parse(row.notes ?? "{}");
           const legacyCftId = String(n.ID ?? row.legacy_id ?? "");
           if (!legacyCftId || postedLegacyIds.has(legacyCftId)) continue;
