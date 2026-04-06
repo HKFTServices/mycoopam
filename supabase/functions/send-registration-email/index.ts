@@ -129,12 +129,15 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenant_id)
       .maybeSingle();
 
-    // Fetch communication template (skip for invite emails - they use hardcoded content)
+    // Fetch communication template
+    // Skip DB template for: invite emails (hardcoded) and self-registrations (new users)
+    // The DB template is often seeded with invite/migration content which is wrong for new signups
     const userLang = profile.language_code || "en";
+    const isSelfRegister = !!self_register_email;
 
     let finalTemplate: { subject: string; body_html: string } | null = null;
 
-    if (!is_invite) {
+    if (!is_invite && !isSelfRegister) {
       // For tenant creators, use a dedicated template event; fallback to the standard one
       const templateEvent = is_tenant_creator
         ? "tenant_registration_completed"
