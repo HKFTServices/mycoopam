@@ -409,9 +409,37 @@ const LegacyGlAllocation = () => {
     if (!currentTenant) return;
     setLoading(true);
     try {
+      const PAGE_SIZE = 1000;
+
+      // Load posted legacy transaction IDs from live cashflow rows.
+      // This is the source of truth when legacy_id_mappings.is_posted is stale.
+      const postedLegacyIds = new Set<string>();
+      let postedFrom = 0;
+      let hasMorePosted = true;
+
+      while (hasMorePosted) {
+        const { data: postedPage, error: postedError } = await supabase
+          .from("cashflow_transactions")
+          .select("legacy_transaction_id")
+          .eq("tenant_id", currentTenant.id)
+          .eq("is_active", true)
+          .not("legacy_transaction_id", "is", null)
+          .range(postedFrom, postedFrom + PAGE_SIZE - 1);
+
+        if (postedError) throw postedError;
+
+        for (const row of postedPage ?? []) {
+          if (row.legacy_transaction_id) {
+            postedLegacyIds.add(String(row.legacy_transaction_id));
+          }
+        }
+
+        hasMorePosted = (postedPage?.length ?? 0) === PAGE_SIZE;
+        postedFrom += PAGE_SIZE;
+      }
+
       // Load ALL CFT entries in a single pass (no type filter)
       let allRows: { legacy_id: string; notes: string | null }[] = [];
-      const PAGE_SIZE = 1000;
       let from = 0;
       let hasMore = true;
 
@@ -421,7 +449,6 @@ const LegacyGlAllocation = () => {
           .select("legacy_id, notes, is_posted")
           .eq("table_name", "cashflow_transactions")
           .eq("tenant_id", currentTenant.id)
-          .eq("is_posted", false)
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -437,13 +464,16 @@ const LegacyGlAllocation = () => {
       for (const row of allRows) {
         try {
           const n = JSON.parse(row.notes ?? "{}");
+          const legacyCftId = String(n.ID ?? row.legacy_id ?? "");
+          if (!legacyCftId || postedLegacyIds.has(legacyCftId)) continue;
+
           const txDate = new Date(n.TransactionDate);
           if (txDate < filterFrom || txDate > filterTo) continue;
 
           allParsed.push({
             entry: {
               id: row.legacy_id,
-              cft_id: n.ID,
+              cft_id: legacyCftId,
               parent_id: n.ParentID ?? "0",
               entry_type_id: n.Type_TransactionEntryID ?? "0",
               tx_type_id: n.Type_TransactionID ?? "0",
@@ -1698,7 +1728,6 @@ const LegacyGlAllocation = () => {
         .from("cashflow_transactions")
         .select("legacy_transaction_id")
         .eq("is_active", true)
-        .not("gl_account_id", "is", null)
         .in("legacy_transaction_id", legacyIds);
 
       const alreadyPosted = new Set((existing ?? []).map(e => e.legacy_transaction_id));
