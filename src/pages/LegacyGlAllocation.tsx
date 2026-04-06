@@ -640,6 +640,7 @@ const LegacyGlAllocation = () => {
     const isStockSale = rootEntry.tx_type_id === "1954";
     const isGrant = rootEntry.tx_type_id === "1960";
     const isLoanPayout = rootEntry.tx_type_id === "1959";
+    const isLoanWriteOff = rootEntry.tx_type_id === "2000";
     // Check if this transaction includes a Share entry (1922) — determines fee treatment
     const hasShareEntry = allEntries.some(e => e.entry_type_id === "1922");
 
@@ -1314,6 +1315,53 @@ const LegacyGlAllocation = () => {
             control_account_label: memberAcctCashControl.name ?? "Member Account Cash",
             pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
             transaction_date: txDate, entry_type: "loan_payout_control_cr",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        }
+      }
+      // ── Loan Write-Off root (2002, parent=0) — skip, child handles the entries ──
+      else if (isLoanWriteOff && entry.entry_type_id === "2002" && entry.parent_id === "0") {
+        // Root container — no bank entry needed for write-offs
+      }
+      // ── Loan Write-Off child (2002) — DR Expense GL + CR Member Loans GL + CR Loan Control ──
+      else if (isLoanWriteOff && entry.entry_type_id === "2002" && entry.parent_id !== "0") {
+        const writeOffAmount = entry.debit > 0 ? entry.debit : entry.credit;
+        const poolId = memberAcctCashControl?.pool_id ?? null;
+
+        // 1. DR Loan Write-Off Expense GL (5090 Sundry Expenses)
+        proposed.push({
+          description: `Loan Write-Off Expense`,
+          debit: writeOffAmount, credit: 0,
+          gl_account_id: "17c543fd-f998-43c7-9caf-29ee7f42eb54",
+          gl_account_label: "5090 Sundry Expenses",
+          control_account_id: null, control_account_label: "",
+          pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_writeoff_expense",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+
+        // 2. CR Member Loans GL (1025) — reduce the loan asset
+        proposed.push({
+          description: `Member Loans — Write-Off`,
+          debit: 0, credit: writeOffAmount,
+          gl_account_id: "a5d5b2af-7ee3-4fe3-a8c0-a3aacde7709f",
+          gl_account_label: "1025 Member Loans",
+          control_account_id: null, control_account_label: "",
+          pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+          transaction_date: txDate, entry_type: "loan_writeoff_gl",
+          reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+        });
+
+        // 3. CR Member Account Loans Control — reduce loan control balance
+        if (memberAcctLoanControl) {
+          proposed.push({
+            description: `Loan Control — Write-Off`,
+            debit: 0, credit: writeOffAmount,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: memberAcctLoanControl.id,
+            control_account_label: memberAcctLoanControl.name ?? "Member Account Loans",
+            pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "loan_writeoff_control",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         }
