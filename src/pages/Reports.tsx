@@ -1307,7 +1307,7 @@ const Reports = () => {
               {shareLoading ? <p>Loading…</p> : (
                 isMobile ? (
                   <div className="space-y-3">
-	                    {shareData.map((r: any) => (
+ 	                    {filteredShareData.map((r: any) => (
 	                      <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
 	                        <div className="flex items-start justify-between gap-3">
 	                          <div className="min-w-0">
@@ -1354,7 +1354,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {shareData.map((r: any) => (
+                      {filteredShareData.map((r: any) => (
                         <TableRow key={r.id}>
                           <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
                           <TableCell>{r.transaction_date}</TableCell>
@@ -1381,7 +1381,7 @@ const Reports = () => {
               {stLoading ? <p>Loading…</p> : (
                 isMobile ? (
                   <div className="space-y-3">
-                    {stData.map((r: any) => {
+                    {filteredStData.map((r: any) => {
                       const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const isIn = Number(r.debit || 0) > 0;
                       const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
@@ -1454,7 +1454,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {stData.map((r: any) => {
+                      {filteredStData.map((r: any) => {
                         const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                         const isIn = Number(r.debit || 0) > 0;
                         const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
@@ -1501,7 +1501,7 @@ const Reports = () => {
               ) : (
                 isMobile ? (
                   <div className="space-y-3">
-                    {emailLogs.map((log: any) => (
+                    {filteredEmailLogs.map((log: any) => (
                       <div key={log.id} className="rounded-2xl border border-border bg-card/60 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -1566,7 +1566,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {emailLogs.map((log: any) => (
+                      {filteredEmailLogs.map((log: any) => (
                         <TableRow key={log.id}>
                           <TableCell className="text-xs whitespace-nowrap">
                             {log.created_at ? format(new Date(log.created_at), "dd MMM yyyy HH:mm") : "—"}
