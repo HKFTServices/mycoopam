@@ -103,7 +103,7 @@ export default function AiAssistantBubble() {
     <>
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-20 right-4 z-[60] w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden"
+        <div className="fixed bottom-36 sm:bottom-20 right-4 z-[60] w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden"
           style={{ height: "min(520px, calc(100vh - 7rem))" }}>
           {/* Header */}
           <div className="flex items-center gap-2 px-4 py-3 border-b bg-primary text-primary-foreground">
@@ -193,7 +193,7 @@ export default function AiAssistantBubble() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "fixed bottom-4 right-4 z-[60] h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform",
+          "fixed bottom-20 sm:bottom-4 right-4 z-[60] h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform",
           open && "bg-muted text-muted-foreground"
         )}
         aria-label={open ? "Close assistant" : "Open assistant"}
