@@ -151,12 +151,15 @@ Deno.serve(async (req) => {
         const b = bankRows[0] as any;
         const bankName = b.banks?.name || "";
         const branchCode = b.banks?.branch_code || "";
-        legalEntityBankDetails = [
-          bankName ? `Bank: ${bankName}` : "",
-          branchCode ? `Branch Code: ${branchCode}` : "",
-          b.account_holder ? `Account Holder: ${b.account_holder}` : "",
-          b.account_number ? `Account Number: ${b.account_number}` : "",
-        ].filter(Boolean).join(", ");
+        const details = [
+          bankName ? `<strong>Bank:</strong> ${bankName}` : "",
+          branchCode ? `<strong>Branch Code:</strong> ${branchCode}` : "",
+          b.account_holder ? `<strong>Account Holder:</strong> ${b.account_holder}` : "",
+          b.account_number ? `<strong>Account Number:</strong> ${b.account_number}` : "",
+        ].filter(Boolean);
+        legalEntityBankDetails = `<table cellpadding="4" cellspacing="0" border="0" style="font-size:14px;color:#333;">` +
+          details.map(d => `<tr><td style="padding:2px 0;">${d}</td></tr>`).join("") +
+          `</table>`;
       }
     }
 
@@ -175,16 +178,20 @@ Deno.serve(async (req) => {
     const tenantName = await resolveTenantDisplayName(adminClient, tenant_id, tenantConfig);
     const emailSignature = resolveEmailSignature(tenantConfig, userLang);
 
-    let subject = template?.subject || `Welcome to ${tenantName} – Membership Application Received!`;
+    const depositRef = [recipientFirstName, recipientLastName].filter(Boolean).join(" ") || firstName;
+    let subject = template?.subject || `${tenantName} : Application for membership : ${depositRef}`;
     let body = template?.body_html ||
       `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-        <h2 style="color:#1a1a2e;">Membership Application Received!</h2>
-        <p>Dear ${firstName},</p>
-        <p>Thank you for applying for membership with <strong>${tenantName}</strong>.</p>
-        <p>Your application has been received and is pending activation. Your membership account will be activated once your first deposit is received.</p>
-        <p>You will receive a confirmation once your account is fully active.</p>
-        <br/>
-        <p>Best regards,<br/><strong>${tenantName}</strong></p>
+        <h2 style="color:#1a1a2e;">Membership Application Received</h2>
+        <p style="margin:0 0 16px;">Dear ${firstName},</p>
+        <p style="margin:0 0 16px;">We have received your application for membership with <strong>${tenantName}</strong> in the name of <strong>${depositRef}</strong>.</p>
+        <p style="margin:0 0 16px;">To activate your membership, please make your first deposit into our bank account, as follows:</p>
+        ${legalEntityBankDetails ? `<div style="margin:0 0 16px;padding:12px 16px;background:#f8f9fa;border-left:4px solid #1a1a2e;border-radius:4px;">${legalEntityBankDetails}</div>` : ""}
+        <p style="margin:0 0 16px;">Use <strong>Deposit Reference:</strong> ${depositRef}</p>
+        <p style="margin:0 0 16px;">Your membership will be provisionally accepted. But, if for any reason, your membership is rejected, your full deposit will be refunded within 48 hours.</p>
+        <p style="margin:0 0 16px;">On the receipt of your first deposit, your membership number will be assigned.</p>
+        <p style="margin:0 0 16px;"><strong>Other payment methods:</strong><br/>If you want to pay with Debit Order, please download the Debit Order form and send the completed form to us by email.</p>
+        <p style="margin:0 0 16px;">For more information, feel free to visit our website or call us.</p>
       </div>`;
 
     const replacements: Record<string, string> = {
