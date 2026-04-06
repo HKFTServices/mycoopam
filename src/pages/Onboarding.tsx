@@ -119,14 +119,6 @@ const Onboarding = () => {
     }
   }, [profile]);
 
-  // If resuming at a later step but entity was never created, force back to step 0
-  useEffect(() => {
-    if (existingEntity === null && step > 0 && !entityId) {
-      setStep(0);
-      toast.error("Please complete your personal details first.");
-    }
-  }, [existingEntity, step, entityId]);
-
   // Fetch existing entity for this user (for resume)
   const { data: existingEntity } = useQuery({
     queryKey: ["my_entity", user?.id, currentTenant?.id],
@@ -147,6 +139,14 @@ const Onboarding = () => {
   useEffect(() => {
     if (existingEntity) setEntityId(existingEntity);
   }, [existingEntity]);
+
+  // If resuming at a later step but entity was never created, force back to step 0
+  useEffect(() => {
+    if (existingEntity === null && step > 0 && !entityId) {
+      setStep(0);
+      toast.error("Please complete your personal details first.");
+    }
+  }, [existingEntity, step, entityId]);
 
   // Fetch entity details for resume (populate form from entity, not profile)
   const { data: entityDetails } = useQuery({
