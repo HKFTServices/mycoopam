@@ -11,9 +11,10 @@ import { formatCurrency } from "@/lib/formatCurrency";
 interface JournalEntriesTabProps {
   fromDate?: string;
   toDate?: string;
+  searchTerm?: string;
 }
 
-const JournalEntriesTab = ({ fromDate, toDate }: JournalEntriesTabProps) => {
+const JournalEntriesTab = ({ fromDate, toDate, searchTerm = "" }: JournalEntriesTabProps) => {
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const isMobile = useIsMobile();
@@ -50,13 +51,16 @@ const JournalEntriesTab = ({ fromDate, toDate }: JournalEntriesTabProps) => {
     enabled: !!tenantId,
   });
 
-  const totalDebit = journalEntries.reduce((s: number, r: any) => {
+  const sl = searchTerm.toLowerCase().trim();
+  const filtered = sl ? journalEntries.filter((r: any) => JSON.stringify(r).toLowerCase().includes(sl)) : journalEntries;
+
+  const totalDebit = filtered.reduce((s: number, r: any) => {
     const child = r.childRow;
     const drAmt = r.debit > 0 ? r.debit : (child?.debit > 0 ? child.debit : 0);
     return s + Number(drAmt);
   }, 0);
 
-  const totalCredit = journalEntries.reduce((s: number, r: any) => {
+  const totalCredit = filtered.reduce((s: number, r: any) => {
     const child = r.childRow;
     const crAmt = child?.credit > 0 ? child.credit : (r.credit > 0 ? r.credit : 0);
     return s + Number(crAmt);
@@ -68,7 +72,7 @@ const JournalEntriesTab = ({ fromDate, toDate }: JournalEntriesTabProps) => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle>Journal Entries</CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">Entries: {journalEntries.length}</Badge>
+            <Badge variant="outline">Entries: {filtered.length}</Badge>
             <Badge variant="outline">Dr: {formatCurrency(totalDebit)}</Badge>
             <Badge variant="outline">Cr: {formatCurrency(totalCredit)}</Badge>
           </div>
@@ -77,11 +81,11 @@ const JournalEntriesTab = ({ fromDate, toDate }: JournalEntriesTabProps) => {
       <CardContent>
         {isLoading ? (
           <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
-        ) : journalEntries.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">No journal entries found for the selected period.</p>
         ) : isMobile ? (
           <div className="space-y-2">
-            {journalEntries.map((r: any) => {
+            {filtered.map((r: any) => {
               const child = r.childRow;
               const drAmt = r.debit > 0 ? r.debit : (child?.debit > 0 ? child.debit : 0);
               const crAmt = child?.credit > 0 ? child.credit : (r.credit > 0 ? r.credit : 0);
@@ -133,7 +137,7 @@ const JournalEntriesTab = ({ fromDate, toDate }: JournalEntriesTabProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {journalEntries.map((r: any) => {
+                {filtered.map((r: any) => {
                   const child = r.childRow;
                   const drAmt = r.debit > 0 ? r.debit : (child?.debit > 0 ? child.debit : 0);
                   const crAmt = child?.credit > 0 ? child.credit : (r.credit > 0 ? r.credit : 0);

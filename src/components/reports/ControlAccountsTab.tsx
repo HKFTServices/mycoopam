@@ -12,9 +12,10 @@ import { cn } from "@/lib/utils";
 interface ControlAccountsTabProps {
   fromDate?: string;
   toDate?: string;
+  searchTerm?: string;
 }
 
-const ControlAccountsTab = ({ fromDate, toDate }: ControlAccountsTabProps) => {
+const ControlAccountsTab = ({ fromDate, toDate, searchTerm = "" }: ControlAccountsTabProps) => {
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const isMobile = useIsMobile();
@@ -103,6 +104,9 @@ const ControlAccountsTab = ({ fromDate, toDate }: ControlAccountsTabProps) => {
     return e ? `${e.name}${e.last_name ? " " + e.last_name : ""} (${ea.account_number || "—"})` : ea.account_number || "—";
   };
 
+  const sl = searchTerm.toLowerCase().trim();
+  const filteredRows = sl ? rows.filter((r: any) => JSON.stringify(r).toLowerCase().includes(sl)) : rows;
+
   return (
     <Card>
       <CardHeader>
@@ -123,7 +127,7 @@ const ControlAccountsTab = ({ fromDate, toDate }: ControlAccountsTabProps) => {
           </Select>
         </div>
         <div className="flex flex-wrap gap-3 mt-2">
-          <Badge variant="outline">Entries: {rows.length}</Badge>
+          <Badge variant="outline">Entries: {filteredRows.length}</Badge>
           <Badge variant="outline">Total Dr: {fmt(totalDebit)}</Badge>
           <Badge variant="outline">Total Cr: {fmt(totalCredit)}</Badge>
           <Badge variant={balance === 0 ? "default" : "destructive"}>Balance: {fmt(balance)}</Badge>
@@ -132,11 +136,11 @@ const ControlAccountsTab = ({ fromDate, toDate }: ControlAccountsTabProps) => {
       <CardContent>
         {isLoading ? (
           <p className="text-sm text-muted-foreground py-4">Loading…</p>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No entries found for the selected period.</p>
         ) : isMobile ? (
           <div className="space-y-2">
-            {rows.map((r: any) => (
+            {filteredRows.map((r: any) => (
               <div key={r.id} className="rounded-xl border border-border p-3 space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="font-medium">{r.transaction_date}</span>
@@ -172,7 +176,7 @@ const ControlAccountsTab = ({ fromDate, toDate }: ControlAccountsTabProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r: any) => (
+                {filteredRows.map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-xs whitespace-nowrap">{r.transaction_date}</TableCell>
                     <TableCell className="text-xs max-w-[200px] truncate">{r.description || "—"}</TableCell>

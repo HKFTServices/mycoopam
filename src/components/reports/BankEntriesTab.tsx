@@ -11,9 +11,10 @@ import { formatCurrency } from "@/lib/formatCurrency";
 interface BankEntriesTabProps {
   fromDate?: string;
   toDate?: string;
+  searchTerm?: string;
 }
 
-const BankEntriesTab = ({ fromDate, toDate }: BankEntriesTabProps) => {
+const BankEntriesTab = ({ fromDate, toDate, searchTerm = "" }: BankEntriesTabProps) => {
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const isMobile = useIsMobile();
@@ -155,8 +156,11 @@ const BankEntriesTab = ({ fromDate, toDate }: BankEntriesTabProps) => {
     enabled: !!tenantId,
   });
 
-  const totalDebit = bankEntries.reduce((s: number, r: any) => s + Number(r.debit || 0), 0);
-  const totalCredit = bankEntries.reduce((s: number, r: any) => s + Number(r.credit || 0), 0);
+  const sl = searchTerm.toLowerCase().trim();
+  const filtered = sl ? bankEntries.filter((r: any) => JSON.stringify(r).toLowerCase().includes(sl)) : bankEntries;
+
+  const totalDebit = filtered.reduce((s: number, r: any) => s + Number(r.debit || 0), 0);
+  const totalCredit = filtered.reduce((s: number, r: any) => s + Number(r.credit || 0), 0);
   const balance = totalDebit - totalCredit;
 
   return (
@@ -173,7 +177,7 @@ const BankEntriesTab = ({ fromDate, toDate }: BankEntriesTabProps) => {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">Entries: {bankEntries.length}</Badge>
+            <Badge variant="outline">Entries: {filtered.length}</Badge>
             <Badge variant="outline">Dr: {formatCurrency(totalDebit)}</Badge>
             <Badge variant="outline">Cr: {formatCurrency(totalCredit)}</Badge>
             <Badge variant={balance === 0 ? "default" : "destructive"}>Balance: {formatCurrency(balance)}</Badge>
@@ -183,11 +187,11 @@ const BankEntriesTab = ({ fromDate, toDate }: BankEntriesTabProps) => {
       <CardContent>
         {isLoading ? (
           <div className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
-        ) : bankEntries.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">No bank entries found for the selected period.</p>
         ) : isMobile ? (
           <div className="space-y-2">
-            {bankEntries.map((r: any) => {
+            {filtered.map((r: any) => {
               const amount = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
               const side = Number(r.debit || 0) > 0 ? "DR" : "CR";
               return (
@@ -228,7 +232,7 @@ const BankEntriesTab = ({ fromDate, toDate }: BankEntriesTabProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bankEntries.map((r: any) => {
+                {filtered.map((r: any) => {
                   const isExpense = r.gl_accounts?.gl_type === "expense";
                   const contraGl = r._contraGl;
                   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, RotateCcw } from "lucide-react";
+import { CalendarIcon, RotateCcw, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
@@ -72,6 +73,16 @@ const Reports = () => {
   });
   const tenantRegistrationDate = tenantConfig?.registration_date || null;
   const fyEndMonth: number = tenantConfig?.financial_year_end_month ?? 2; // default Feb
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchLower = searchTerm.toLowerCase().trim();
+
+  // Generic row text matcher — stringify all text fields and check
+  const matchesSearch = (row: any): boolean => {
+    if (!searchLower) return true;
+    const text = JSON.stringify(row).toLowerCase();
+    return text.includes(searchLower);
+  };
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
@@ -436,6 +447,11 @@ const Reports = () => {
     return { from, to };
   };
 
+  // Filtered datasets for tabs that don't use IIFEs
+  const filteredShareData = searchLower ? shareData.filter(matchesSearch) : shareData;
+  const filteredStData = searchLower ? stData.filter(matchesSearch) : stData;
+  const filteredEmailLogs = searchLower ? emailLogs.filter(matchesSearch) : emailLogs;
+
   // Non-admin referrer/house: no admin reports, redirect handled by sidebar
   if (!isAdmin && !isReferrerOrHouse) {
     return (
@@ -535,6 +551,25 @@ const Reports = () => {
             <TabsTrigger value="control-accounts">Control Accounts</TabsTrigger>
             
           </TabsList>
+        </div>
+
+        {/* Search bar */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search transactions…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-9 h-9"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* ── INCOME STATEMENT ── */}
@@ -958,9 +993,12 @@ const Reports = () => {
                   return undefined;
                 };
 
+                // Apply search filter
+                const filteredData = searchLower ? orderedData.filter(matchesSearch) : orderedData;
+
                 return isMobile ? (
                   <div className="space-y-3">
-                    {orderedData.map((r: any) => {
+                    {filteredData.map((r: any) => {
                       const isChild = !!r.parent_id;
                       const bgColor = getGroupColor(r);
                       const accountName = r.entity_accounts
@@ -1060,7 +1098,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orderedData.map((r: any) => {
+                      {filteredData.map((r: any) => {
                         const isChild = !!r.parent_id;
                         const bgColor = getGroupColor(r);
                         const accountName = r.entity_accounts
@@ -1147,9 +1185,11 @@ const Reports = () => {
                   }
                 }
 
+                const filteredUt = searchLower ? (utData as any[]).filter(matchesSearch) : (utData as any[]);
+
                 return isMobile ? (
                   <div className="space-y-3">
-                    {(utData as any[]).map((r: any) => {
+                    {filteredUt.map((r: any) => {
                       const txnId = r.legacy_transaction_id;
                       const hasGroup = txnId && utTxnCounts[txnId] > 1;
                       const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
@@ -1226,7 +1266,7 @@ const Reports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(utData as any[]).map((r: any) => {
+                    {filteredUt.map((r: any) => {
                       const txnId = r.legacy_transaction_id;
                       const hasGroup = txnId && utTxnCounts[txnId] > 1;
                       const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
@@ -1267,7 +1307,7 @@ const Reports = () => {
               {shareLoading ? <p>Loading…</p> : (
                 isMobile ? (
                   <div className="space-y-3">
-	                    {shareData.map((r: any) => (
+ 	                    {filteredShareData.map((r: any) => (
 	                      <div key={r.id} className="rounded-2xl border border-border bg-card/60 p-3">
 	                        <div className="flex items-start justify-between gap-3">
 	                          <div className="min-w-0">
@@ -1314,7 +1354,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {shareData.map((r: any) => (
+                      {filteredShareData.map((r: any) => (
                         <TableRow key={r.id}>
                           <TableCell className="font-mono text-xs">{shortId(r.id)}</TableCell>
                           <TableCell>{r.transaction_date}</TableCell>
@@ -1341,7 +1381,7 @@ const Reports = () => {
               {stLoading ? <p>Loading…</p> : (
                 isMobile ? (
                   <div className="space-y-3">
-                    {stData.map((r: any) => {
+                    {filteredStData.map((r: any) => {
                       const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                       const isIn = Number(r.debit || 0) > 0;
                       const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
@@ -1414,7 +1454,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {stData.map((r: any) => {
+                      {filteredStData.map((r: any) => {
                         const qty = Number(r.debit || 0) > 0 ? Number(r.debit) : Number(r.credit || 0);
                         const isIn = Number(r.debit || 0) > 0;
                         const lineValue = r.total_value != null ? Number(r.total_value) : qty * Number(r.cost_price || 0);
@@ -1461,7 +1501,7 @@ const Reports = () => {
               ) : (
                 isMobile ? (
                   <div className="space-y-3">
-                    {emailLogs.map((log: any) => (
+                    {filteredEmailLogs.map((log: any) => (
                       <div key={log.id} className="rounded-2xl border border-border bg-card/60 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -1526,7 +1566,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {emailLogs.map((log: any) => (
+                      {filteredEmailLogs.map((log: any) => (
                         <TableRow key={log.id}>
                           <TableCell className="text-xs whitespace-nowrap">
                             {log.created_at ? format(new Date(log.created_at), "dd MMM yyyy HH:mm") : "—"}
@@ -1569,17 +1609,17 @@ const Reports = () => {
 
         {/* ── BANK ENTRIES ── */}
         <TabsContent value="bank-entries">
-          <BankEntriesTab fromDate={fromDate} toDate={toDate} />
+          <BankEntriesTab fromDate={fromDate} toDate={toDate} searchTerm={searchTerm} />
         </TabsContent>
 
         {/* ── JOURNAL ENTRIES ── */}
         <TabsContent value="journal-entries">
-          <JournalEntriesTab fromDate={fromDate} toDate={toDate} />
+          <JournalEntriesTab fromDate={fromDate} toDate={toDate} searchTerm={searchTerm} />
         </TabsContent>
 
         {/* ── CONTROL ACCOUNTS ── */}
         <TabsContent value="control-accounts">
-          <ControlAccountsTab fromDate={fromDate} toDate={toDate} />
+          <ControlAccountsTab fromDate={fromDate} toDate={toDate} searchTerm={searchTerm} />
         </TabsContent>
 
 
