@@ -447,6 +447,11 @@ const Reports = () => {
     return { from, to };
   };
 
+  // Filtered datasets for tabs that don't use IIFEs
+  const filteredShareData = searchLower ? shareData.filter(matchesSearch) : shareData;
+  const filteredStData = searchLower ? stData.filter(matchesSearch) : stData;
+  const filteredEmailLogs = searchLower ? emailLogs.filter(matchesSearch) : emailLogs;
+
   // Non-admin referrer/house: no admin reports, redirect handled by sidebar
   if (!isAdmin && !isReferrerOrHouse) {
     return (
