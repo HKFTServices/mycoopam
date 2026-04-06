@@ -176,7 +176,7 @@ const ControlAccountsTab = ({ fromDate, toDate, searchTerm = "" }: ControlAccoun
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r: any) => (
+                {filteredRows.map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-xs whitespace-nowrap">{r.transaction_date}</TableCell>
                     <TableCell className="text-xs max-w-[200px] truncate">{r.description || "—"}</TableCell>
