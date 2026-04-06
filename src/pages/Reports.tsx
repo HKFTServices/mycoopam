@@ -978,9 +978,7 @@ const Reports = () => {
                   }
                 }
 
-                // Apply search filter
-                const filteredData = searchLower ? orderedData.filter(matchesSearch) : orderedData;
-
+                const getGroupColor = (r: any): string | undefined => {
                   if (parentGroupMap[r.id] !== undefined) {
                     return groupColors[parentGroupMap[r.id] % groupColors.length];
                   }
@@ -990,9 +988,12 @@ const Reports = () => {
                   return undefined;
                 };
 
+                // Apply search filter
+                const filteredData = searchLower ? orderedData.filter(matchesSearch) : orderedData;
+
                 return isMobile ? (
                   <div className="space-y-3">
-                    {orderedData.map((r: any) => {
+                    {filteredData.map((r: any) => {
                       const isChild = !!r.parent_id;
                       const bgColor = getGroupColor(r);
                       const accountName = r.entity_accounts
