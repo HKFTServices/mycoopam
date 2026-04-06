@@ -794,6 +794,11 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
         )
       )}
 
+      {/* Admin Pool Control Account Balances */}
+      {isWidgetVisible("pool-summaries") && (
+        <AdminPoolControlBalances tenantId={tenantId} />
+      )}
+
       {/* Metric cards */}
       {(isWidgetVisible("metric-primary") || isWidgetVisible("metric-secondary")) && (
         <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "lg:grid-cols-2"}`}>
