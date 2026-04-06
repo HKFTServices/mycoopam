@@ -1619,7 +1619,7 @@ const Reports = () => {
 
         {/* ── CONTROL ACCOUNTS ── */}
         <TabsContent value="control-accounts">
-          <ControlAccountsTab fromDate={fromDate} toDate={toDate} />
+          <ControlAccountsTab fromDate={fromDate} toDate={toDate} searchTerm={searchTerm} />
         </TabsContent>
 
 
