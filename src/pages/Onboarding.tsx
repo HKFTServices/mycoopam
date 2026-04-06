@@ -111,13 +111,21 @@ const Onboarding = () => {
       if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
       // Restore phone verified status from profile
       if ((profile as any).phone_verified) setPhoneVerified(true);
-      // Restore saved onboarding step
+      // Restore saved onboarding step (handled separately to allow entity check)
       const savedStep = (profile as any).onboarding_step;
       if (typeof savedStep === "number" && savedStep > 0 && savedStep < STEPS.length) {
         setStep(savedStep);
       }
     }
   }, [profile]);
+
+  // If resuming at a later step but entity was never created, force back to step 0
+  useEffect(() => {
+    if (existingEntity === null && step > 0 && !entityId) {
+      setStep(0);
+      toast.error("Please complete your personal details first.");
+    }
+  }, [existingEntity, step, entityId]);
 
   // Fetch existing entity for this user (for resume)
   const { data: existingEntity } = useQuery({
@@ -523,7 +531,12 @@ const Onboarding = () => {
   };
 
   const saveAll = async () => {
-    if (!user || !currentTenant || !entityId) return;
+    if (!user || !currentTenant) return;
+    if (!entityId) {
+      toast.error("Your personal details were not saved correctly. Please go back to Step 1 and save again.");
+      setStep(0);
+      return;
+    }
     setSaving(true);
     try {
       // Save T&C acceptances (only if there are terms)
