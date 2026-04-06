@@ -1180,9 +1180,11 @@ const Reports = () => {
                   }
                 }
 
+                const filteredUt = searchLower ? (utData as any[]).filter(matchesSearch) : (utData as any[]);
+
                 return isMobile ? (
                   <div className="space-y-3">
-                    {(utData as any[]).map((r: any) => {
+                    {filteredUt.map((r: any) => {
                       const txnId = r.legacy_transaction_id;
                       const hasGroup = txnId && utTxnCounts[txnId] > 1;
                       const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
@@ -1259,7 +1261,7 @@ const Reports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(utData as any[]).map((r: any) => {
+                    {filteredUt.map((r: any) => {
                       const txnId = r.legacy_transaction_id;
                       const hasGroup = txnId && utTxnCounts[txnId] > 1;
                       const bgColor = hasGroup ? utGroupColors[utGroupMap[txnId] % utGroupColors.length] : undefined;
