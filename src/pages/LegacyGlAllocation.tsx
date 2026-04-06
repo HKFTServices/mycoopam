@@ -1320,10 +1320,8 @@ const LegacyGlAllocation = () => {
         }
       }
       // ── Loan Write-Off (2002) — DR Expense GL + CR Member Loans GL + CR Loan Control ──
-      // For standalone root entries (no children), process the root itself.
-      // For parent+child pairs, skip the root and process only the child.
-      else if (isLoanWriteOff && entry.entry_type_id === "2002" &&
-        (entry.parent_id !== "0" || !group.children.length)) {
+      // Always process the ROOT entry only; skip children to avoid duplication.
+      else if (isLoanWriteOff && entry.entry_type_id === "2002" && entry.parent_id === "0") {
         const writeOffAmount = entry.debit > 0 ? entry.debit : entry.credit;
         const poolId = memberAcctCashControl?.pool_id ?? null;
 
@@ -1364,6 +1362,10 @@ const LegacyGlAllocation = () => {
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
         }
+      }
+      // Skip child entries in loan write-off groups (already handled via root)
+      else if (isLoanWriteOff && entry.parent_id !== "0") {
+        // intentionally skip
       }
       // ── Fallback for non-deposit or unmapped entries ──
       else {
