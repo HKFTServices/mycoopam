@@ -150,6 +150,38 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
         list = data ?? [];
       }
 
+      // Fallback: if no memberships found yet but we have a saved tenant ID
+      // (e.g. race condition during signup — membership created after this query ran),
+      // fetch that tenant directly so the user isn't left with a null context.
+      const savedId = localStorage.getItem("currentTenantId");
+      if (list.length === 0 && savedId && !isSuperAdmin) {
+        const { data: fallbackTenant } = await supabase
+          .from("tenants")
+          .select("*")
+          .eq("id", savedId)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (fallbackTenant) {
+          list = [fallbackTenant];
+        }
+      }
+
+      // Also check tenantSlug fallback (subdomain/path-based signup)
+      const tenantSlug = localStorage.getItem("tenantSlug");
+      if (list.length === 0 && tenantSlug && !isSuperAdmin) {
+        const { data: slugTenant } = await supabase
+          .from("tenants")
+          .select("*")
+          .eq("slug", tenantSlug)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (slugTenant) {
+          list = [slugTenant];
+          localStorage.setItem("currentTenantId", slugTenant.id);
+        }
+      }
+
+      if (cancelled) return;
       setTenants(list);
 
       // If on a tenant subdomain, force that tenant regardless of localStorage
@@ -178,8 +210,8 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // restore saved tenant or pick first
-      const savedId = localStorage.getItem("currentTenantId");
-      const saved = list.find((t) => t.id === savedId);
+      const restoredId = localStorage.getItem("currentTenantId");
+      const saved = list.find((t) => t.id === restoredId);
       setCurrentTenant(saved ?? list[0] ?? null);
       setLoading(false);
     };
