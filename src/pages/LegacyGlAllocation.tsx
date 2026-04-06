@@ -1161,6 +1161,51 @@ const LegacyGlAllocation = () => {
               reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
             });
           }
+        } else if (!entry.is_bank && incExpItem?.credit_control_account_id && !incExpItem?.debit_control_account_id) {
+          // ── NON-BANK EXPENSE (credit CA only): 3-leg bank outflow pattern ──
+          // These are bank-paid expenses where IsBank wasn't set in legacy data.
+          // DR Expense GL, CR Bank GL, CR Pool Cash control
+          const crCa = allControlAccounts?.find((c: any) => c.id === incExpItem.credit_control_account_id);
+          const crPoolName = (crCa as any)?.pools?.name ?? crCa?.name ?? "Pool Cash";
+          const expGl = incExpItem.gl_account_id
+            ? allGlAccounts?.find((g: any) => g.id === incExpItem.gl_account_id)
+            : null;
+          const isIncome = entry.credit > 0;
+          // 1. Expense/Income GL entry
+          proposed.push({
+            description: `${itemDesc} — ${crPoolName}`,
+            debit: isIncome ? 0 : amount,
+            credit: isIncome ? amount : 0,
+            gl_account_id: incExpItem.gl_account_id ?? null,
+            gl_account_label: expGl ? `${expGl.code} ${expGl.name}` : `No GL mapped (${itemDesc})`,
+            control_account_id: null, control_account_label: "",
+            pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense_gl",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 2. Bank GL entry (opposite side)
+          proposed.push({
+            description: `Bank — ${itemDesc}`,
+            debit: isIncome ? amount : 0,
+            credit: isIncome ? 0 : amount,
+            gl_account_id: tenantGlConfig?.bankGlId ?? null,
+            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "bank_payment",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 3. Cash control entry (pool cash movement)
+          proposed.push({
+            description: `${itemDesc} — ${crPoolName} Cash`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: incExpItem.credit_control_account_id,
+            control_account_label: `${crCa?.name ?? "Credit"} (${crPoolName})`,
+            pool_id: crCa?.pool_id ?? null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
         }
       }
       // ── Stock Purchase (1948) — Stock Control DR (stock in) ──
