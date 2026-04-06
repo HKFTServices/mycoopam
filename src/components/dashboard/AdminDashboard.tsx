@@ -23,6 +23,7 @@ import MiniStatCard from "@/components/dashboard/MiniStatCard";
 import MetricCard from "@/components/dashboard/MetricCard";
 import AdminChartsCard from "@/components/dashboard/AdminChartsCard";
 import RecentAdminTransactions from "@/components/dashboard/RecentAdminTransactions";
+import AdminPoolControlBalances from "@/components/dashboard/AdminPoolControlBalances";
 import { PoolSummaryMiniCard } from "@/components/dashboard/PoolSummaryMiniCard";
 import { isoDate, monthKeyFromIsoDate, monthLabelFromKey, clamp } from "@/components/dashboard/dashboardUtils";
 import { Users, Wallet, TrendingUp, CreditCard, Building2, ChevronDown, MoreHorizontal, Plus, Landmark, Loader2, Eye } from "lucide-react";
