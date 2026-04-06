@@ -1319,7 +1319,11 @@ const LegacyGlAllocation = () => {
           });
         }
       }
-      // ── Loan Write-Off (2002) — DR Expense GL + CR Member Loans GL + CR Loan Control ──
+      // ── Loan Write-Off root (2002, parent=0) — skip, child handles the entries ──
+      else if (isLoanWriteOff && entry.entry_type_id === "2002" && entry.parent_id === "0") {
+        // Root container — no bank entry needed for write-offs
+      }
+      // ── Loan Write-Off child (2002) — DR Expense GL + CR Member Loans GL + CR Loan Control ──
       else if (isLoanWriteOff && entry.entry_type_id === "2002" && entry.parent_id !== "0") {
         const writeOffAmount = entry.debit > 0 ? entry.debit : entry.credit;
         const poolId = memberAcctCashControl?.pool_id ?? null;
