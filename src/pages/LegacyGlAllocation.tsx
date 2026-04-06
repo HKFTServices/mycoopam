@@ -1363,6 +1363,10 @@ const LegacyGlAllocation = () => {
           });
         }
       }
+      // Skip child entries in loan write-off groups (already handled via root)
+      else if (isLoanWriteOff && entry.parent_id !== "0") {
+        // intentionally skip
+      }
       // ── Fallback for non-deposit or unmapped entries ──
       else {
         const ca = controlAccounts?.find(c => c.legacy_id === entry.cash_account_id);
