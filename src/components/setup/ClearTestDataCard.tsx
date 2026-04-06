@@ -158,6 +158,21 @@ const ClearTestDataCard = () => {
       steps.push("✓ transactions");
       setProgress([...steps]);
 
+      // Debit order batch items → batches → orders (FK order matters)
+      let dobiQ = (supabase as any).from("debit_order_batch_items").delete().eq("tenant_id", tenantId);
+      if (dateStr) dobiQ = dobiQ.gte("created_at", dateStr);
+      const { error: dobiErr } = await dobiQ;
+      if (dobiErr) throw new Error(`debit_order_batch_items: ${dobiErr.message}`);
+      steps.push("✓ debit_order_batch_items");
+      setProgress([...steps]);
+
+      let dobQ = (supabase as any).from("debit_order_batches").delete().eq("tenant_id", tenantId);
+      if (dateStr) dobQ = dobQ.gte("created_at", dateStr);
+      const { error: dobErr } = await dobQ;
+      if (dobErr) throw new Error(`debit_order_batches: ${dobErr.message}`);
+      steps.push("✓ debit_order_batches");
+      setProgress([...steps]);
+
       let doQ = (supabase as any).from("debit_orders").delete().eq("tenant_id", tenantId);
       if (dateStr) doQ = doQ.gte("created_at", dateStr);
       const { error: doErr } = await doQ;
