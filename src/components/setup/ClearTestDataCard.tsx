@@ -31,6 +31,8 @@ const TABLES_TO_CLEAR = [
   { key: "stock_transactions", label: "Stock Transactions", dateCol: "transaction_date" },
   { key: "cashflow_transactions", label: "Cashflow Transactions", dateCol: "transaction_date" },
   { key: "transactions", label: "Transactions", dateCol: "created_at" },
+  { key: "debit_order_batch_items", label: "Debit Order Batch Items", dateCol: "created_at" },
+  { key: "debit_order_batches", label: "Debit Order Batches", dateCol: "created_at" },
   { key: "debit_orders", label: "Debit Orders", dateCol: "created_at" },
 ];
 
