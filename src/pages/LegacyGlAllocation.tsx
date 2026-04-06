@@ -1032,7 +1032,44 @@ const LegacyGlAllocation = () => {
             `isCorr=${incExpItem?.description?.toLowerCase().startsWith("corr")}`);
         }
 
-        if (entry.is_bank) {
+        // ── TEMP LOAN / FAULTY CORRECTION: 2-leg Bank + Cash Control only ──
+        const isTempLoanOrFaulty = incExpItem && !incExpItem.gl_account_id &&
+          (itemDesc.toLowerCase().includes("temp loan") || itemDesc.toLowerCase().includes("faulty"));
+
+        if (entry.is_bank && isTempLoanOrFaulty) {
+          // Simple 2-leg pattern: Bank GL DR/CR + Cash Control DR/CR (matching original direction)
+          // No expense/income GL line — these are balance-sheet-only movements.
+          // 1. Bank GL entry
+          proposed.push({
+            description: `Bank — ${itemDesc}`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: tenantGlConfig?.bankGlId ?? null,
+            gl_account_label: tenantGlConfig?.bankGlLabel ?? "Bank Account",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "bank_payment",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 2. Cash Control entry (same direction as bank — money in/out of pool cash)
+          const tempCaId = entry.debit > 0
+            ? (incExpItem.debit_control_account_id ?? ca?.new_id)
+            : (incExpItem.credit_control_account_id ?? ca?.new_id);
+          const tempCaObj = allControlAccounts?.find((c: any) => c.id === tempCaId);
+          const tempCaLabel = tempCaObj
+            ? `${tempCaObj.name} (${(tempCaObj as any)?.pools?.name ?? ""})`
+            : (ca ? `${ca.name} (${ca.pool_name})` : `CA#${entry.cash_account_id}`);
+          proposed.push({
+            description: `${itemDesc} — ${poolName} Cash`,
+            debit: entry.debit, credit: entry.credit,
+            gl_account_id: null, gl_account_label: "",
+            control_account_id: tempCaId ?? null,
+            control_account_label: tempCaLabel,
+            pool_id: tempCaObj?.pool_id ?? (ca as any)?.pool_id ?? null,
+            entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+        } else if (entry.is_bank) {
           // ── BANK TRANSACTION ──
           // Expense paid from bank: DR Expense GL, CR Bank GL
           // Income received to bank: DR Bank GL, CR Income GL
