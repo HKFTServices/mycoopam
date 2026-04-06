@@ -298,15 +298,24 @@ Deno.serve(async (req) => {
         <p style="font-size:13px;color:#666;">Best regards,<br/><strong>The MyCo-Op Team</strong></p>
       </div>`;
     } else {
-      subject = `Welcome to ${tenantName}`;
-      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#ffffff;">
-        <p>Dear ${firstName},</p>
-        <p>Your account at <strong>${tenantName}</strong> has been set up.</p>
-        <p>Click the link below to set your password and log in:</p>
-        <div style="margin:24px 0;text-align:center;">
-          <a href="${activationLink}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">Set My Password</a>
+      subject = `Welcome to ${tenantName} – Your Account Has Been Created`;
+      body = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#ffffff;">
+        <div style="background:#1a1a2e;padding:24px 32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">Welcome to ${tenantName}</h1>
         </div>
-        <p style="font-size:13px;color:#888;">If the button does not work, copy and paste this link: ${activationLink}</p>
+        <div style="padding:32px;">
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">Dear ${firstName},</p>
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">Your account at <strong>${tenantName}</strong> has been successfully created.</p>
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">To get started, please click the button below to set your password and log in:</p>
+          <div style="margin:28px 0;text-align:center;">
+            <a href="${activationLink}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;font-size:15px;">Set My Password &amp; Log In</a>
+          </div>
+          <p style="font-size:15px;color:#333;margin:0 0 16px;">Once logged in, you can complete your profile, upload any required documents, and accept the terms and conditions.</p>
+          <p style="font-size:13px;color:#888;margin:0 0 8px;">If the button does not work, copy and paste this link into your browser:</p>
+          <p style="font-size:13px;word-break:break-all;color:#1a1a2e;margin:0 0 24px;">${activationLink}</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+          <p style="font-size:14px;color:#333;margin:0;">Best regards,<br/><strong>${tenantName}</strong></p>
+        </div>
       </div>`;
     }
 
