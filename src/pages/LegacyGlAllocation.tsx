@@ -1332,8 +1332,8 @@ const LegacyGlAllocation = () => {
         proposed.push({
           description: `Loan Write-Off Expense`,
           debit: writeOffAmount, credit: 0,
-          gl_account_id: "17c543fd-f998-43c7-9caf-29ee7f42eb54",
-          gl_account_label: "5090 Sundry Expenses",
+          gl_account_id: "8dc99978-96eb-48c5-92a3-c37db90cc55f",
+          gl_account_label: "5085 Loan Write-Offs",
           control_account_id: null, control_account_label: "",
           pool_id: poolId, entity_account_id: eaInfo?.id ?? null,
           transaction_date: txDate, entry_type: "loan_writeoff_expense",
