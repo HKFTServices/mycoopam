@@ -1093,7 +1093,7 @@ const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orderedData.map((r: any) => {
+                      {filteredData.map((r: any) => {
                         const isChild = !!r.parent_id;
                         const bgColor = getGroupColor(r);
                         const accountName = r.entity_accounts
