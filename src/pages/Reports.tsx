@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, RotateCcw } from "lucide-react";
+import { CalendarIcon, RotateCcw, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
@@ -72,6 +73,16 @@ const Reports = () => {
   });
   const tenantRegistrationDate = tenantConfig?.registration_date || null;
   const fyEndMonth: number = tenantConfig?.financial_year_end_month ?? 2; // default Feb
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchLower = searchTerm.toLowerCase().trim();
+
+  // Generic row text matcher — stringify all text fields and check
+  const matchesSearch = (row: any): boolean => {
+    if (!searchLower) return true;
+    const text = JSON.stringify(row).toLowerCase();
+    return text.includes(searchLower);
+  };
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
@@ -535,6 +546,25 @@ const Reports = () => {
             <TabsTrigger value="control-accounts">Control Accounts</TabsTrigger>
             
           </TabsList>
+        </div>
+
+        {/* Search bar */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search transactions…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-9 h-9"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* ── INCOME STATEMENT ── */}
