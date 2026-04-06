@@ -978,7 +978,9 @@ const Reports = () => {
                   }
                 }
 
-                const getGroupColor = (r: any): string | undefined => {
+                // Apply search filter
+                const filteredData = searchLower ? orderedData.filter(matchesSearch) : orderedData;
+
                   if (parentGroupMap[r.id] !== undefined) {
                     return groupColors[parentGroupMap[r.id] % groupColors.length];
                   }
