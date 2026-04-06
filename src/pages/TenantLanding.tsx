@@ -191,8 +191,12 @@ const TenantLanding = () => {
           return;
         }
 
-        // Send branded activation email via tenant SMTP (fire-and-forget)
+        // Ensure tenant membership exists right after signup so TenantContext resolves correctly
         if (data.user && tenant?.tenant_id) {
+          await ensureTenantMembership(data.user.id, tenant.tenant_id);
+          localStorage.setItem("currentTenantId", tenant.tenant_id);
+
+          // Send branded activation email via tenant SMTP (fire-and-forget)
           supabase.functions.invoke("send-registration-email", {
             body: { tenant_id: tenant.tenant_id, self_register_email: email },
           }).catch((err: any) => console.warn("[TenantLanding] Registration email failed:", err.message));
