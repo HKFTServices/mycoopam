@@ -1037,8 +1037,10 @@ const LegacyGlAllocation = () => {
           (itemDesc.toLowerCase().includes("temp loan") || itemDesc.toLowerCase().includes("faulty"));
 
         if (entry.is_bank && isTempLoanOrFaulty) {
-          // Simple 2-leg pattern: Bank GL DR/CR + Cash Control DR/CR (matching original direction)
+          // 3-leg pattern: Bank GL DR/CR + Contra GL (1050 Temporary Loans) + Cash Control
           // No expense/income GL line — these are balance-sheet-only movements.
+          const tempLoansGl = allGlAccounts?.find((g: any) => g.code === "1050");
+
           // 1. Bank GL entry
           proposed.push({
             description: `Bank — ${itemDesc}`,
@@ -1050,7 +1052,18 @@ const LegacyGlAllocation = () => {
             transaction_date: txDate, entry_type: "bank_payment",
             reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
           });
-          // 2. Cash Control entry (same direction as bank — money in/out of pool cash)
+          // 2. Contra GL entry (1050 Temporary Loans — opposite side to Bank)
+          proposed.push({
+            description: `${itemDesc} — Temporary Loans`,
+            debit: entry.credit, credit: entry.debit,
+            gl_account_id: tempLoansGl?.id ?? null,
+            gl_account_label: tempLoansGl ? `${tempLoansGl.code} ${tempLoansGl.name}` : "1050 Temporary Loans",
+            control_account_id: null, control_account_label: "",
+            pool_id: null, entity_account_id: eaInfo?.id ?? null,
+            transaction_date: txDate, entry_type: "income_expense_gl",
+            reference: `Legacy CFT ${rootCftId}`, legacy_transaction_id: rootCftId,
+          });
+          // 3. Cash Control entry (same direction as bank — money in/out of pool cash)
           const tempCaId = entry.debit > 0
             ? (incExpItem.debit_control_account_id ?? ca?.new_id)
             : (incExpItem.credit_control_account_id ?? ca?.new_id);
