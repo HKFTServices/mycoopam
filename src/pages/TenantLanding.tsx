@@ -56,10 +56,17 @@ const TenantLanding = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  // Redirect authenticated users
+  // Redirect authenticated users — ensure tenant membership first
   useEffect(() => {
-    if (session) navigate("/dashboard", { replace: true });
-  }, [session, navigate]);
+    if (!session || !tenant) return;
+    const tenantId = tenant.tenant_id || tenant.id;
+    if (!tenantId) { navigate("/dashboard", { replace: true }); return; }
+    // Ensure membership exists (e.g., user returned after email verification)
+    ensureTenantMembership(session.user.id, tenantId).then(() => {
+      localStorage.setItem("currentTenantId", tenantId);
+      navigate("/dashboard", { replace: true });
+    });
+  }, [session, tenant, navigate]);
 
   useEffect(() => {
     if (searchParams.get("reset") !== "success") return;
