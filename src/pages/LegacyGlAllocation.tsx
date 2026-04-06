@@ -457,7 +457,9 @@ const LegacyGlAllocation = () => {
               inc_exp_id: n.IncExpID ?? "0",
               fee_id: n.FeeID ?? "0",
             },
-            txTypeId: n.Type_TransactionID ?? "0",
+            txTypeId: n.Type_TransactionID
+              ? n.Type_TransactionID
+              : (n.TransactionType === "Income Expense" ? "1952" : "0"),
           });
         } catch {}
       }
