@@ -83,14 +83,17 @@ Deno.serve(async (req) => {
       const callerUserId = userData.user.id;
 
       if (explicitUserId) {
-        const { data: roleCheck } = await adminClient
+        // Allow super_admin OR tenant_admin for the given tenant
+        const { data: roleChecks } = await adminClient
           .from("user_roles")
-          .select("role")
+          .select("role, tenant_id")
           .eq("user_id", callerUserId)
-          .eq("role", "super_admin")
-          .maybeSingle();
-        if (!roleCheck) {
-          return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
+          .in("role", ["super_admin", "tenant_admin"]);
+        const hasAccess = (roleChecks ?? []).some(
+          (r: any) => r.role === "super_admin" || (r.role === "tenant_admin" && r.tenant_id === tenant_id)
+        );
+        if (!hasAccess) {
+          return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
             status: 403,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
