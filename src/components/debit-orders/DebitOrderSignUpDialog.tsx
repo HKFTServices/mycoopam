@@ -640,38 +640,18 @@ const DebitOrderSignUpDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Bank details missing guard */}
+        {/* Bank details info when none found */}
         {!isEditMode && !bankLoading && existingBank === null && !bankAccountNumber && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">Banking details required</p>
-                <p className="text-sm text-muted-foreground">
-                  Your banking details must be completed before you can set up a debit order.
-                  Please update your profile with your bank account information first.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => {
-                  onOpenChange(false);
-                  navigate("/dashboard/memberships");
-                }}
-              >
-                Go to My Profile
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-            </div>
+          <div className="rounded-lg border border-amber-300/50 bg-amber-50/50 dark:bg-amber-950/20 p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              No saved banking details found for this member. Please enter the bank details manually below.
+            </p>
           </div>
         )}
 
-        {/* Only show the form when bank details exist or user is editing */}
-        {(isEditMode || existingBank !== null || bankAccountNumber) && step === "details" && (
+        {/* Show form for details step */}
+        {step === "details" && (
           <div className="space-y-6">
             {/* Amount & Frequency */}
             <div>
