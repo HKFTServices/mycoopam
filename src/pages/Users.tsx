@@ -213,7 +213,7 @@ const Users = () => {
             disabled={sendInviteMutation.isPending}
             onClick={() => {
               const uninvited = filtered.filter(
-                (u) => u.registration_status !== "registered" && u.email
+                (u) => u.registration_status !== "registered" && u.email && !u.roles.includes("super_admin")
               );
               if (uninvited.length === 0) {
                 toast({ title: "No pending users", description: "All users are already registered." });
@@ -273,12 +273,14 @@ const Users = () => {
                             <DropdownMenuItem onClick={() => setRoleDialogUser({ userId: u.user_id, name })}>
                               <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Manage Roles
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={sendInviteMutation.isPending}
-                              onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
-                            >
-                              <Mail className="h-3.5 w-3.5 mr-2" /> Send Invite Email
-                            </DropdownMenuItem>
+                            {!u.roles.includes("super_admin") && (
+                              <DropdownMenuItem
+                                disabled={sendInviteMutation.isPending}
+                                onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
+                              >
+                                <Mail className="h-3.5 w-3.5 mr-2" /> Send Invite Email
+                              </DropdownMenuItem>
+                            )}
                             {u.user_id !== currentUser?.id && (
                               <DropdownMenuItem onClick={() => impersonateMutation.mutate(u.user_id)}>
                                 <LogIn className="h-3.5 w-3.5 mr-2" /> Login as
@@ -378,16 +380,18 @@ const Users = () => {
                             <ShieldCheck className="h-3.5 w-3.5" />
                             Roles
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5"
-                            disabled={sendInviteMutation.isPending}
-                            onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
-                          >
-                            {sendInviteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                            Invite
-                          </Button>
+                          {!u.roles.includes("super_admin") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5"
+                              disabled={sendInviteMutation.isPending}
+                              onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
+                            >
+                              {sendInviteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                              Invite
+                            </Button>
+                          )}
                           {u.user_id !== currentUser?.id && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
