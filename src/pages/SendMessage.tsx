@@ -133,10 +133,10 @@ export default function SendMessage() {
       if (titleIds.length > 0) {
         const { data: titles } = await (supabase as any)
           .from("titles")
-          .select("id, name")
+          .select("id, description")
           .in("id", titleIds);
         if (titles) {
-          titleMap = Object.fromEntries(titles.map((t: any) => [t.id, t.name]));
+          titleMap = Object.fromEntries(titles.map((t: any) => [t.id, t.description]));
         }
       }
       // Attach title name to each entity
