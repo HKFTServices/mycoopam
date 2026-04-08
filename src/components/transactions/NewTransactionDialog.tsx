@@ -796,10 +796,7 @@ const NewTransactionDialog = ({
         ? txnTypes.filter((t: any) => DEPOSIT_ONLY_CODES.includes(t.code))
         : txnTypes;
 
-  // Admin dashboard: remove "Send Funds" (TRANSFER) option from the transaction type chooser.
-  const filteredTxnTypes = isStaff
-    ? filteredTxnTypesBase.filter((t: any) => t.code !== "TRANSFER")
-    : filteredTxnTypesBase;
+  const filteredTxnTypes = filteredTxnTypesBase;
 
   // Preselect a transaction type by code (when provided by caller, e.g., dashboard quick-actions)
   useEffect(() => {
