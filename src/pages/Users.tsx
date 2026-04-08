@@ -380,16 +380,18 @@ const Users = () => {
                             <ShieldCheck className="h-3.5 w-3.5" />
                             Roles
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5"
-                            disabled={sendInviteMutation.isPending}
-                            onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
-                          >
-                            {sendInviteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                            Invite
-                          </Button>
+                          {!u.roles.includes("super_admin") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5"
+                              disabled={sendInviteMutation.isPending}
+                              onClick={() => sendInviteMutation.mutate({ userId: u.user_id, email: u.email ?? "" })}
+                            >
+                              {sendInviteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                              Invite
+                            </Button>
+                          )}
                           {u.user_id !== currentUser?.id && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
