@@ -1,0 +1,1 @@
+UPDATE public.gl_accounts SET gl_type = 'asset' WHERE id = '8102440d-a269-4725-afe3-02a5cad7458c' AND gl_type = 'Balance Sheet';
