@@ -17,8 +17,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Check, X, Send, AlertTriangle, HandCoins } from "lucide-react";
+import { Loader2, Check, X, Send, AlertTriangle, HandCoins, Info, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/ui/signature-pad";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { postLoanDisbursement } from "@/lib/postLoanDisbursement";
 
 interface Props {
