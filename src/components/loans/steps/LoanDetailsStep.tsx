@@ -116,17 +116,18 @@ const LoanDetailsStep = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Loan Date</Label>
+          <Label>Loan Date <span className="text-destructive">*</span></Label>
           <Input
             type="date"
             value={form.loan_date}
             onChange={(e) => update({ loan_date: e.target.value })}
+            className="bg-accent/40 border-accent"
           />
         </div>
         <div className="space-y-2">
-          <Label>Pool (Source of Loan)</Label>
+          <Label>Pool (Source of Loan) <span className="text-destructive">*</span></Label>
           <Select value={form.pool_id} onValueChange={(v) => update({ pool_id: v })}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-accent/40 border-accent">
               <SelectValue placeholder="Select pool..." />
             </SelectTrigger>
             <SelectContent>
@@ -150,7 +151,7 @@ const LoanDetailsStep = ({
           )}
         </div>
         <div className="space-y-2">
-          <Label>Loan Amount Requested (R)</Label>
+          <Label>Loan Amount Requested (R) <span className="text-destructive">*</span></Label>
           <Input
             type="number"
             min={0}
@@ -158,7 +159,7 @@ const LoanDetailsStep = ({
             value={form.amount_requested || ""}
             placeholder="0"
             onChange={(e) => update({ amount_requested: parseFloat(e.target.value) || 0 })}
-            className={exceedsLimit ? "border-destructive" : ""}
+            className={exceedsLimit ? "border-destructive bg-accent/40" : "bg-accent/40 border-accent"}
           />
           {exceedsLimit && (
             <p className="text-xs text-destructive flex items-center gap-1">
@@ -173,18 +174,19 @@ const LoanDetailsStep = ({
           )}
         </div>
         <div className="space-y-2">
-          <Label>Repayment Term (Months)</Label>
+          <Label>Repayment Term (Months) <span className="text-destructive">*</span></Label>
           <Input
             type="number"
             min={1}
             max={maxTermMonths}
             value={form.term_months_requested}
             onChange={(e) => update({ term_months_requested: parseInt(e.target.value) || 12 })}
+            className="bg-accent/40 border-accent"
           />
           <p className="text-xs text-muted-foreground">Maximum: {maxTermMonths} months. You may request a longer period, but approval is at the board's discretion.</p>
         </div>
         <div className="space-y-2">
-          <Label>Monthly Amount Available to Repay (R)</Label>
+          <Label>Monthly Amount Available to Repay (R) <span className="text-destructive">*</span></Label>
           <Input
             type="number"
             min={0}
@@ -192,6 +194,7 @@ const LoanDetailsStep = ({
             value={form.monthly_available_repayment || ""}
             placeholder="0"
             onChange={(e) => update({ monthly_available_repayment: parseFloat(e.target.value) || 0 })}
+            className="bg-accent/40 border-accent"
           />
           {monthlyInstalment > 0 && (
             <p className={`text-xs ${form.monthly_available_repayment > 0 && form.monthly_available_repayment < monthlyInstalment ? "text-destructive font-medium" : "text-muted-foreground"}`}>
@@ -242,12 +245,13 @@ const LoanDetailsStep = ({
       )}
 
       <div className="space-y-2">
-        <Label>Reason for Loan</Label>
+        <Label>Reason for Loan <span className="text-destructive">*</span></Label>
         <Textarea
           value={form.reason}
           onChange={(e) => update({ reason: e.target.value })}
           placeholder="Briefly describe the purpose of the loan..."
           rows={3}
+          className="bg-accent/40 border-accent"
         />
       </div>
 
@@ -258,8 +262,11 @@ const LoanDetailsStep = ({
           onChange={(e) => update({ security_assets: e.target.value })}
           placeholder="List any assets pledged as security (e.g. gold holdings, pool units)..."
           rows={3}
+          className="bg-accent/40 border-accent"
         />
       </div>
+
+      <p className="text-xs text-muted-foreground"><span className="text-destructive">*</span> Required fields</p>
     </div>
   );
 };
