@@ -48,7 +48,10 @@ const statusBadge = (status: string | null): "default" | "secondary" | "outline"
   return "outline";
 };
 
-const linkForCategory = (category: string) => {
+const linkForCategory = (category: string, relatedTable?: string | null) => {
+  if (category === "approval" || relatedTable === "loan_applications" || relatedTable === "cashflow_transactions" || relatedTable === "transactions") {
+    return "/dashboard/account-approvals";
+  }
   switch (category) {
     case "transaction":
       return "/dashboard/transactions";
@@ -56,6 +59,8 @@ const linkForCategory = (category: string) => {
       return "/dashboard/debit-orders";
     case "loan_application":
       return "/dashboard/loan-applications";
+    case "support":
+      return "/dashboard/support-tickets";
     default:
       return "/dashboard";
   }
@@ -156,9 +161,14 @@ const Notifications = () => {
   });
 
   const handleOpen = (n: NotificationRow) => {
-    const to = linkForCategory(n.category);
+    const to = linkForCategory(n.category, n.related_table);
     dismissMutation.mutate({ id: n.id });
     navigate(to);
+  };
+
+  const isActionable = (n: NotificationRow) => {
+    const s = String(n.status || "unread").toLowerCase();
+    return !["approved", "accepted", "disbursed", "declined", "rejected", "cancelled", "completed", "loaded", "paid"].includes(s);
   };
 
   return (
@@ -193,6 +203,7 @@ const Notifications = () => {
         isFetching={isFetching}
         onDismiss={(id) => dismissMutation.mutate({ id })}
         onOpen={handleOpen}
+        isActionable={isActionable}
       />
     </div>
   );
@@ -204,12 +215,14 @@ const NotificationList = ({
   isFetching,
   onDismiss,
   onOpen,
+  isActionable,
 }: {
   items: NotificationRow[];
   isLoading: boolean;
   isFetching: boolean;
   onDismiss: (id: string) => void;
   onOpen: (n: NotificationRow) => void;
+  isActionable: (n: NotificationRow) => boolean;
 }) => {
   if (isLoading || (isFetching && items.length === 0)) {
     return (
@@ -257,10 +270,12 @@ const NotificationList = ({
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onOpen(n)}>
-                    <ExternalLink className="h-3 w-3" />
-                    Open
-                  </Button>
+                  {isActionable(n) ? (
+                    <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onOpen(n)}>
+                      <ExternalLink className="h-3 w-3" />
+                      Open
+                    </Button>
+                  ) : null}
                   <Button variant="secondary" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onDismiss(n.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
