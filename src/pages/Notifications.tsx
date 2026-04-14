@@ -161,9 +161,14 @@ const Notifications = () => {
   });
 
   const handleOpen = (n: NotificationRow) => {
-    const to = linkForCategory(n.category);
+    const to = linkForCategory(n.category, n.related_table);
     dismissMutation.mutate({ id: n.id });
     navigate(to);
+  };
+
+  const isActionable = (n: NotificationRow) => {
+    const s = String(n.status || "unread").toLowerCase();
+    return !["approved", "accepted", "disbursed", "declined", "rejected", "cancelled", "completed", "loaded", "paid"].includes(s);
   };
 
   return (
