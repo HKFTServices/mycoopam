@@ -1196,12 +1196,14 @@ const NewTransactionDialog = ({
   // Fees are covered by redeeming ADDITIONAL units on top of the payout units.
   // grossAmount = amount + fees (total units redeemed from pool)
   // netPayoutAmount = amount (what member actually receives)
+  // For deposits: use depositFees (calculated on excess after loan repayment) not feeCalculation (on gross)
+  const effectiveDepositFee = isDeposit ? depositFees.totalFee : feeCalculation.totalFee;
   const withdrawalGrossAmount = amountNum + feeCalculation.totalFee;
-  const netAmount = isWithdrawal ? amountNum : amountNum - (isMembershipOnlyDeposit || noPoolAllocation ? 0 : feeCalculation.totalFee);
+  const netAmount = isWithdrawal ? amountNum : amountNum - effectiveLoanRepayment - membershipDeductions - effectiveDepositFee - commissionAmount;
   const withdrawalTotalUnits = currentUnitPrice > 0 ? withdrawalGrossAmount / currentUnitPrice : 0;
   const unitsToTransact = isWithdrawal
     ? withdrawalTotalUnits
-    : currentUnitPrice > 0 ? netAmount / currentUnitPrice : 0;
+    : currentUnitPrice > 0 && netAmount > 0 ? netAmount / currentUnitPrice : 0;
 
   // ─── Switch calculations ───
   // Switch: redeem from selectedPoolId (UP Sell), invest into switchToPoolId (UP Buy)
