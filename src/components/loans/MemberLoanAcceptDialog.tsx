@@ -41,7 +41,9 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
   const loanFee = Number(app?.loan_fee ?? 0);
   const totalInterest = capital * term * (interestRate / 100) / 12;
   const totalLoan = Number(app?.total_loan ?? capital + totalInterest + loanFee);
-  const monthlyInstalment = Number(app?.monthly_instalment ?? (term > 0 ? totalLoan / term : 0));
+  const existingOutstanding = Number(app?.existing_outstanding ?? 0);
+  const combinedDebt = existingOutstanding + totalLoan;
+  const monthlyInstalment = Number(app?.monthly_instalment ?? (term > 0 ? combinedDebt / term : 0));
 
   const isApproved = app?.status === "approved";
 
@@ -161,6 +163,7 @@ const MemberLoanAcceptDialog = ({ open, onOpenChange, application: app }: Props)
             totalInterest={totalInterest}
             totalLoan={totalLoan}
             monthlyInstalment={monthlyInstalment}
+            existingOutstanding={existingOutstanding}
           />
 
           {schedule.length > 0 && <LoanRepaymentSchedule schedule={schedule} />}
