@@ -483,6 +483,39 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                   Member has accepted the loan terms. Enter payment details and sign to complete disbursement.
                 </p>
 
+                {/* Payout Summary */}
+                <div className="bg-accent/40 rounded-lg p-3 border border-accent space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payout Summary</p>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                    <span className="text-muted-foreground">New Loan Capital:</span>
+                    <span className="font-mono">{formatCurrency(amountApproved)}</span>
+                    <span className="text-muted-foreground">Interest + Fee:</span>
+                    <span className="font-mono">{formatCurrency(totalInterest + loanFee)}</span>
+                    <span className="font-semibold border-t pt-1 mt-1">New Loan Total:</span>
+                    <span className="font-mono font-bold border-t pt-1 mt-1">{formatCurrency(totalLoan)}</span>
+                    {existingOutstanding > 0 && (
+                      <>
+                        <span className="text-muted-foreground">Existing Outstanding:</span>
+                        <span className="font-mono text-destructive">{formatCurrency(existingOutstanding)}</span>
+                        <span className="font-bold">Combined Total Debt:</span>
+                        <span className="font-mono font-bold text-destructive">{formatCurrency(combinedOutstanding)}</span>
+                      </>
+                    )}
+                    <span className="text-muted-foreground border-t pt-1 mt-1">New Monthly Instalment ({termApproved}mo):</span>
+                    <span className="font-mono font-semibold text-primary border-t pt-1 mt-1">{formatCurrency(monthlyInstalment)}</span>
+                  </div>
+                  <div className="bg-primary/10 rounded-md p-2 mt-2 border border-primary/20">
+                    <p className="text-sm font-bold text-primary flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Amount to Pay Out: {formatCurrency(amountApproved)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Only the new loan capital of {formatCurrency(amountApproved)} must be released to the member.
+                      {existingOutstanding > 0 && ` The existing balance of ${formatCurrency(existingOutstanding)} is already on their account.`}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Payment Reference</Label>
@@ -495,6 +528,9 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                   <div className="space-y-2">
                     <Label className="text-xs">Amount Paid (R)</Label>
                     <Input type="number" min={0} value={disbursementAmount} onChange={(e) => setDisbursementAmount(parseFloat(e.target.value) || 0)} />
+                    {disbursementAmount > 0 && disbursementAmount !== amountApproved && (
+                      <p className="text-xs text-orange-600">Expected payout: {formatCurrency(amountApproved)}</p>
+                    )}
                   </div>
                 </div>
 
