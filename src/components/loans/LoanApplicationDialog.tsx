@@ -202,6 +202,18 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
     onSuccess: () => {
       toast.success("Loan application submitted successfully");
       queryClient.invalidateQueries({ queryKey: ["loan_applications"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      // Fire-and-forget approval notification email
+      if (currentTenant) {
+        sendApprovalNotification({
+          tenantId: currentTenant.id,
+          transactionType: "Loan Application",
+          memberName: entityName,
+          accountNumber: entityAccountId,
+          amount: loanForm.amount_requested,
+          transactionDate: loanForm.loan_date,
+        });
+      }
       onOpenChange(false);
       setStep("budget");
     },
