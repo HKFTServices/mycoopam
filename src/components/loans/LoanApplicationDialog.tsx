@@ -171,11 +171,12 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
       if (!loanForm.reason.trim()) throw new Error("Reason is required");
       if (!loanForm.pool_id) throw new Error("Please select a pool");
 
-      // Validate against pool value limit
+      // Validate against pool value limit (includes existing outstanding)
       const selectedPoolValue = getPoolValue(loanForm.pool_id);
       const maxAllowed = selectedPoolValue * poolValueMultiple;
-      if (maxAllowed > 0 && loanForm.amount_requested > maxAllowed) {
-        throw new Error(`Loan amount exceeds maximum allowed (${formatCurrency(maxAllowed)}) based on your pool value of ${formatCurrency(selectedPoolValue)} × ${poolValueMultiple}`);
+      const availableForNew = Math.max(0, maxAllowed - existingOutstanding);
+      if (maxAllowed > 0 && loanForm.amount_requested > availableForNew) {
+        throw new Error(`Loan amount exceeds available limit (${formatCurrency(availableForNew)}). Max exposure ${formatCurrency(maxAllowed)} minus existing outstanding ${formatCurrency(existingOutstanding)}.`);
       }
 
       const { error } = await (supabase as any)
