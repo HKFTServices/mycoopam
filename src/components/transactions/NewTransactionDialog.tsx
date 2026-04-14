@@ -1762,6 +1762,8 @@ const NewTransactionDialog = ({
     && !anyWithdrawalSplitOverHolding;
   const stockDepositValid = isStockDeposit && stockDepositLines.length > 0 && stockDepositNetForPool > 0;
   const stockWithdrawalValid = isStockWithdrawal && stockWithdrawalLines.length > 0 && !stockWithdrawalOverHolding && currentHolding > 0;
+  // Block review if deposit has excess funds after loan repayment but no pools selected
+  const hasUnallocatedExcess = isDeposit && loanRepaymentOnly && depositNetAvailable > 0.005 && poolSplits.length === 0;
   const canProceedToReview = isSwitch
     ? switchValid
     : isTransfer
@@ -1772,7 +1774,7 @@ const NewTransactionDialog = ({
     ? stockDepositValid
     : isStockWithdrawal
     ? stockWithdrawalValid
-    : (amountNum >= minimumDeposit && !!selectedAccountId);
+    : (amountNum >= minimumDeposit && !!selectedAccountId && !hasUnallocatedExcess);
 
   // Dynamic steps based on whether debit order payment method is selected for a deposit
   const isDebitOrderDeposit = isDeposit && paymentMethod === "debit_order";
