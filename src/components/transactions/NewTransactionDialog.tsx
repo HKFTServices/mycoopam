@@ -1196,12 +1196,14 @@ const NewTransactionDialog = ({
   // Fees are covered by redeeming ADDITIONAL units on top of the payout units.
   // grossAmount = amount + fees (total units redeemed from pool)
   // netPayoutAmount = amount (what member actually receives)
+  // For deposits: use depositFees (calculated on excess after loan repayment) not feeCalculation (on gross)
+  const effectiveDepositFee = isDeposit ? depositFees.totalFee : feeCalculation.totalFee;
   const withdrawalGrossAmount = amountNum + feeCalculation.totalFee;
-  const netAmount = isWithdrawal ? amountNum : amountNum - (isMembershipOnlyDeposit || noPoolAllocation ? 0 : feeCalculation.totalFee);
+  const netAmount = isWithdrawal ? amountNum : amountNum - effectiveLoanRepayment - membershipDeductions - effectiveDepositFee - commissionAmount;
   const withdrawalTotalUnits = currentUnitPrice > 0 ? withdrawalGrossAmount / currentUnitPrice : 0;
   const unitsToTransact = isWithdrawal
     ? withdrawalTotalUnits
-    : currentUnitPrice > 0 ? netAmount / currentUnitPrice : 0;
+    : currentUnitPrice > 0 && netAmount > 0 ? netAmount / currentUnitPrice : 0;
 
   // ─── Switch calculations ───
   // Switch: redeem from selectedPoolId (UP Sell), invest into switchToPoolId (UP Buy)
@@ -1369,7 +1371,9 @@ const NewTransactionDialog = ({
       });
 
       if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation)) {
-        if (loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation) {
+        // If all funds are consumed by loan repayment / membership, treat as no-pool transaction
+        const allConsumed = depositNetAvailable <= 0 || splitSummaries.length === 0;
+        if (loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation || allConsumed) {
           // Loan repayment only — single transaction row, no pool
           const { error } = await (supabase as any).from("transactions").insert({
             tenant_id: currentTenant.id,
@@ -2159,7 +2163,7 @@ const NewTransactionDialog = ({
               unitsToTransact={unitsToTransact}
               currentHolding={currentHolding}
               isWithdrawal={false}
-              totalFee={(isMembershipOnlyDeposit || noPoolAllocation) ? 0 : feeCalculation.totalFee}
+              totalFee={effectiveDepositFee}
               transactionDate={transactionDate}
               onTransactionDateChange={setTransactionDate}
               loanRepaymentAmount={effectiveLoanRepayment}
@@ -2244,7 +2248,7 @@ const NewTransactionDialog = ({
               netAmount={isStockDeposit ? stockDepositNetForPool : isStockWithdrawal ? stockWithdrawalTotalValue : netAmount}
               currentUnitPrice={isStockDeposit ? currentUnitPriceBuy : isStockWithdrawal ? currentUnitPriceSell : currentUnitPrice}
               unitsToTransact={isStockDeposit ? stockDepositUnitsAcquired : isStockWithdrawal ? stockWithdrawalGrossUnits : unitsToTransact}
-              totalFee={isSwitch ? switchFeeCalc.totalFee : isStockDeposit ? (stockDepositFees.totalFee + effectiveCourierFeeDeposit) : isStockWithdrawal ? (stockWithdrawalFees.totalFee + effectiveCourierFeeWithdrawal) : (isMembershipOnlyDeposit || noPoolAllocation) ? 0 : feeCalculation.totalFee}
+              totalFee={isSwitch ? switchFeeCalc.totalFee : isStockDeposit ? (stockDepositFees.totalFee + effectiveCourierFeeDeposit) : isStockWithdrawal ? (stockWithdrawalFees.totalFee + effectiveCourierFeeWithdrawal) : effectiveDepositFee}
               transactionDate={transactionDate}
               switchFromPoolName={selectedPool?.name}
               switchToPoolName={switchToPool?.name}
