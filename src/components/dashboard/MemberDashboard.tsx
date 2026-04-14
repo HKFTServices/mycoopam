@@ -160,19 +160,21 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
     enabled: !!user,
   });
 
-  // Deposits over time
+  // Deposits over time (using cashflow_transactions bank_receipt entries for gross deposit amounts)
   const { data: memberDepositsOverTime = [], isLoading: memberDepositsOverTimeLoading } = useQuery({
     queryKey: ["dashboard_member_deposits_over_time", tenantId, memberAccountIds, fromDateStr],
     queryFn: async () => {
       if (!memberAccountIds.length) return [];
       const { data, error } = await (supabase as any)
-        .from("unit_transactions").select("transaction_date, credit, value")
-        .eq("tenant_id", tenantId).in("entity_account_id", memberAccountIds).gte("transaction_date", fromDateStr).eq("is_active", true).gt("credit", 0);
+        .from("cashflow_transactions").select("transaction_date, debit")
+        .eq("tenant_id", tenantId).in("entity_account_id", memberAccountIds)
+        .gte("transaction_date", fromDateStr).eq("is_active", true)
+        .in("entry_type", ["bank_receipt", "bank_deposit"]).gt("debit", 0);
       if (error) throw error;
       const monthTotals = new Map<string, number>();
       for (const row of data ?? []) {
         const mk = monthKeyFromIsoDate(row.transaction_date);
-        monthTotals.set(mk, (monthTotals.get(mk) ?? 0) + (Number(row.value ?? 0) || Number(row.credit ?? 0)));
+        monthTotals.set(mk, (monthTotals.get(mk) ?? 0) + Number(row.debit ?? 0));
       }
       const months: string[] = [];
       const now = new Date(); const start = new Date(); start.setDate(start.getDate() - rangeDays);
@@ -184,16 +186,84 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
     enabled: memberAccountIds.length > 0,
   });
 
-  // Recent deposits
+  // Recent deposits with breakdown (gross, pools, fees, loans)
   const { data: memberRecentDeposits = [], isLoading: memberRecentDepositsLoading } = useQuery({
     queryKey: ["dashboard_member_recent_deposits", tenantId, memberAccountIds],
     queryFn: async () => {
       if (!memberAccountIds.length) return [];
-      const { data, error } = await (supabase as any)
-        .from("unit_transactions").select("id, transaction_date, credit, value, notes, pools(name)")
-        .eq("tenant_id", tenantId).in("entity_account_id", memberAccountIds).eq("is_active", true).gt("credit", 0).order("transaction_date", { ascending: false }).limit(8);
+      // Get recent bank_receipt entries (these are the gross deposit records)
+      const { data: bankEntries, error } = await (supabase as any)
+        .from("cashflow_transactions").select("id, transaction_date, debit, transaction_id, legacy_transaction_id")
+        .eq("tenant_id", tenantId).in("entity_account_id", memberAccountIds)
+        .eq("is_active", true).in("entry_type", ["bank_receipt", "bank_deposit"]).gt("debit", 0)
+        .order("transaction_date", { ascending: false }).limit(8);
       if (error) throw error;
-      return data ?? [];
+      if (!bankEntries?.length) return [];
+
+      // Collect all group keys to fetch sibling entries
+      const txIds = bankEntries.map((e: any) => e.transaction_id).filter(Boolean);
+      const legacyIds = bankEntries.map((e: any) => e.legacy_transaction_id).filter(Boolean);
+
+      let siblings: any[] = [];
+      if (txIds.length) {
+        const { data: s1 } = await (supabase as any)
+          .from("cashflow_transactions").select("transaction_id, legacy_transaction_id, entry_type, description, debit, credit, pools(name)")
+          .eq("tenant_id", tenantId).in("entity_account_id", memberAccountIds)
+          .eq("is_active", true).in("transaction_id", txIds);
+        siblings = siblings.concat(s1 ?? []);
+      }
+      if (legacyIds.length) {
+        const { data: s2 } = await (supabase as any)
+          .from("cashflow_transactions").select("transaction_id, legacy_transaction_id, entry_type, description, debit, credit, pools(name)")
+          .eq("tenant_id", tenantId).in("entity_account_id", memberAccountIds)
+          .eq("is_active", true).in("legacy_transaction_id", legacyIds);
+        siblings = siblings.concat(s2 ?? []);
+      }
+
+      // Group siblings by transaction group key
+      const siblingMap = new Map<string, any[]>();
+      for (const s of siblings) {
+        const key = s.transaction_id ? `tx:${s.transaction_id}` : s.legacy_transaction_id ? `legacy:${s.legacy_transaction_id}` : null;
+        if (!key) continue;
+        if (!siblingMap.has(key)) siblingMap.set(key, []);
+        siblingMap.get(key)!.push(s);
+      }
+
+      // Build deposit rows with breakdown
+      return bankEntries.map((be: any) => {
+        const key = be.transaction_id ? `tx:${be.transaction_id}` : be.legacy_transaction_id ? `legacy:${be.legacy_transaction_id}` : null;
+        const group = key ? (siblingMap.get(key) ?? []) : [];
+        const grossAmount = Number(be.debit ?? 0);
+
+        let poolAllocation = 0;
+        let fees = 0;
+        let loanRepayment = 0;
+        const poolNames: string[] = [];
+
+        for (const entry of group) {
+          const et = String(entry.entry_type || "").toLowerCase();
+          const amount = Math.abs(Number(entry.debit || 0) - Number(entry.credit || 0));
+          if (et === "bank_receipt" || et === "bank_deposit" || et === "legacy_control_mirror") continue;
+          if (et.startsWith("loan_") || et === "loan_repayment") {
+            loanRepayment += amount;
+          } else if (et === "fee_income" || et === "fee" || et === "commission" || et === "admin_fee" || et === "membership_fee" || et === "member_fee") {
+            fees += amount;
+          } else if (et === "member_interest" || et === "pool_allocation" || et === "member_interest_dr") {
+            poolAllocation += amount;
+            if (entry.pools?.name && !poolNames.includes(entry.pools.name)) poolNames.push(entry.pools.name);
+          }
+        }
+
+        return {
+          id: be.id,
+          transaction_date: be.transaction_date,
+          grossAmount,
+          poolAllocation,
+          fees,
+          loanRepayment,
+          poolNames,
+        };
+      });
     },
     enabled: memberAccountIds.length > 0,
   });
