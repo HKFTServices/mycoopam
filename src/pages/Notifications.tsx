@@ -48,7 +48,10 @@ const statusBadge = (status: string | null): "default" | "secondary" | "outline"
   return "outline";
 };
 
-const linkForCategory = (category: string) => {
+const linkForCategory = (category: string, relatedTable?: string | null) => {
+  if (category === "approval" || relatedTable === "loan_applications" || relatedTable === "cashflow_transactions" || relatedTable === "transactions") {
+    return "/dashboard/account-approvals";
+  }
   switch (category) {
     case "transaction":
       return "/dashboard/transactions";
@@ -56,6 +59,8 @@ const linkForCategory = (category: string) => {
       return "/dashboard/debit-orders";
     case "loan_application":
       return "/dashboard/loan-applications";
+    case "support":
+      return "/dashboard/support-tickets";
     default:
       return "/dashboard";
   }
