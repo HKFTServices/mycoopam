@@ -181,7 +181,7 @@ const LoanDetailsStep = ({
             value={form.term_months_requested}
             onChange={(e) => update({ term_months_requested: parseInt(e.target.value) || 12 })}
           />
-          <p className="text-xs text-muted-foreground">Maximum: {maxTermMonths} months</p>
+          <p className="text-xs text-muted-foreground">Maximum: {maxTermMonths} months. You may request a longer period, but approval is at the board's discretion.</p>
         </div>
         <div className="space-y-2">
           <Label>Monthly Amount Available to Repay (R)</Label>
@@ -190,7 +190,7 @@ const LoanDetailsStep = ({
             min={0}
             step={100}
             value={form.monthly_available_repayment || ""}
-            placeholder={monthlyInstalment > 0 ? monthlyInstalment.toFixed(2) : "0"}
+            placeholder="0"
             onChange={(e) => update({ monthly_available_repayment: parseFloat(e.target.value) || 0 })}
           />
           {monthlyInstalment > 0 && (
