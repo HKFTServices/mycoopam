@@ -251,7 +251,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       const accountIds = accounts.map((a: any) => a.id);
 
       const { data: unitData } = await (supabase as any).rpc("get_account_pool_units", { p_tenant_id: tenantId });
-      const { data: pools } = await (supabase as any).from("pools").select("id, name, fixed_unit_price").eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false);
+      const { data: pools } = await (supabase as any).from("pools").select("id, name, fixed_unit_price, pool_statement_display_type").eq("tenant_id", tenantId).eq("is_active", true).eq("is_deleted", false);
 
       const { data: latestDateRow } = await (supabase as any)
         .from("daily_pool_prices").select("totals_date").eq("tenant_id", tenantId).gt("unit_price_buy", 0).order("totals_date", { ascending: false }).limit(1);
@@ -267,15 +267,16 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       const poolMap: Record<string, any> = {};
       for (const p of (pools ?? [])) poolMap[p.id] = p;
 
-      const poolTotals: Record<string, { poolName: string; poolId: string; units: number; value: number; unitPrice: number }> = {};
+      const poolTotals: Record<string, { poolName: string; poolId: string; units: number; value: number; unitPrice: number; displayType: string }> = {};
       for (const u of (unitData ?? [])) {
         if (!accountIds.includes(u.entity_account_id)) continue;
         const units = Number(u.total_units);
         if (units === 0) continue;
         const pool = poolMap[u.pool_id];
         if (!pool) continue;
+        if (pool.pool_statement_display_type === "do_not_display") continue;
         const price = latestPrice[u.pool_id] ?? Number(pool.fixed_unit_price || 0);
-        if (!poolTotals[u.pool_id]) poolTotals[u.pool_id] = { poolName: pool.name, poolId: pool.id, units: 0, value: 0, unitPrice: price };
+        if (!poolTotals[u.pool_id]) poolTotals[u.pool_id] = { poolName: pool.name, poolId: pool.id, units: 0, value: 0, unitPrice: price, displayType: pool.pool_statement_display_type ?? "display_in_summary" };
         poolTotals[u.pool_id].units += units;
         poolTotals[u.pool_id].value += units * price;
       }
