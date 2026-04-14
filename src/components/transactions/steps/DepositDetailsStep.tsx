@@ -562,10 +562,21 @@ const DepositDetailsStep = ({
               <Separator />
 
               {loanRepaymentOnly ? (
-                <div className="flex justify-between text-sm font-bold text-amber-700 dark:text-amber-400">
-                  <span>Total Applied to Loan</span>
-                  <span>{formatCurrency(loanRepaymentAmount)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between text-sm font-bold text-amber-700 dark:text-amber-400">
+                    <span>Total Applied to Loan</span>
+                    <span>{formatCurrency(loanRepaymentAmount)}</span>
+                  </div>
+                  {depositNetAvailable > 0.005 && splitSummaries.length === 0 && (
+                    <div className="flex items-center gap-2 mt-2 rounded-lg bg-destructive/10 border border-destructive/30 px-3 py-2 text-destructive text-xs">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>
+                        There is <strong>{formatCurrency(depositNetAvailable)}</strong> remaining after the loan repayment.
+                        Please go back and select the pools where these excess funds should be deposited.
+                      </span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   <div className="flex justify-between text-sm font-bold text-primary">
