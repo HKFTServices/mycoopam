@@ -577,36 +577,70 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
           )}
 
           {/* Pool holdings breakdown */}
-          {memberHoldings.length > 0 && isWidgetVisible("metric-primary") && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">My Pool Holdings</CardTitle>
-                <CardDescription className="text-xs">Value breakdown by pool</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {memberHoldings.map((h: any) => (
-                    <div key={h.poolId} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <PoolIcon name={h.poolName} size="sm" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{h.poolName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {h.units.toLocaleString(undefined, { maximumFractionDigits: 2 })} units @ {formatCurrency(h.unitPrice, "R", 5)}/unit
-                          </p>
+          {memberHoldings.length > 0 && isWidgetVisible("metric-primary") && (() => {
+            const summaryPools = memberHoldings.filter((h: any) => h.displayType === "display_in_summary");
+            const belowPools = memberHoldings.filter((h: any) => h.displayType === "display_below_summary");
+            const summaryTotal = summaryPools.reduce((s: number, h: any) => s + h.value, 0);
+            return (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">My Pool Holdings</CardTitle>
+                  <CardDescription className="text-xs">Value breakdown by pool</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {summaryPools.map((h: any) => (
+                      <div key={h.poolId} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <PoolIcon name={h.poolName} size="sm" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{h.poolName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {h.units.toLocaleString(undefined, { maximumFractionDigits: 2 })} units @ {formatCurrency(h.unitPrice, "R", 5)}/unit
+                            </p>
+                          </div>
                         </div>
+                        <p className="text-sm font-semibold tabular-nums shrink-0 ml-3">{formatCurrency(h.value, "R")}</p>
                       </div>
-                      <p className="text-sm font-semibold tabular-nums shrink-0 ml-3">{formatCurrency(h.value, "R")}</p>
+                    ))}
+                    {summaryPools.length > 0 && (
+                      <div className="flex items-center justify-between pt-2 border-t mt-2">
+                        <p className="text-sm font-medium text-muted-foreground">Summary Total</p>
+                        <p className="text-sm font-bold tabular-nums">{formatCurrency(summaryTotal, "R")}</p>
+                      </div>
+                    )}
+
+                    {belowPools.length > 0 && (
+                      <>
+                        <div className="pt-3 pb-1">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Additional Pools</p>
+                        </div>
+                        {belowPools.map((h: any) => (
+                          <div key={h.poolId} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <PoolIcon name={h.poolName} size="sm" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{h.poolName}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {h.units.toLocaleString(undefined, { maximumFractionDigits: 2 })} units @ {formatCurrency(h.unitPrice, "R", 5)}/unit
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-sm font-semibold tabular-nums shrink-0 ml-3">{formatCurrency(h.value, "R")}</p>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t mt-2">
+                      <p className="text-sm font-medium text-muted-foreground">Total Portfolio</p>
+                      <p className="text-sm font-bold tabular-nums">{formatCurrency(memberTotalValue, "R")}</p>
                     </div>
-                  ))}
-                  <div className="flex items-center justify-between pt-2 border-t mt-2">
-                    <p className="text-sm font-medium text-muted-foreground">Total Portfolio</p>
-                    <p className="text-sm font-bold tabular-nums">{formatCurrency(memberTotalValue, "R")}</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Member-specific widgets */}
           <div className="space-y-4">
