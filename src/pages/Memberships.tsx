@@ -951,12 +951,17 @@ const Memberships = () => {
                       <ArrowLeftRight className="h-4 w-4 mr-2" />
                       New Transaction
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      setLoanApplyEntity({ entityAccountId: activeAcct.id, entityId: g.entityId, entityName: g.entityName });
-                    }}>
-                      <Banknote className="h-4 w-4 mr-2" />
-                      Apply for Loan
-                    </DropdownMenuItem>
+                    {(() => {
+                      const membershipAcct = g.accounts.find((a: AccountRow) => a.accountTypeInt === 1 && (a.status === "active" || a.status === "approved"));
+                      return membershipAcct ? (
+                        <DropdownMenuItem onClick={() => {
+                          setLoanApplyEntity({ entityAccountId: membershipAcct.id, entityId: g.entityId, entityName: g.entityName });
+                        }}>
+                          <Banknote className="h-4 w-4 mr-2" />
+                          Apply for Loan
+                        </DropdownMenuItem>
+                      ) : null;
+                    })()}
                     {isDebitOrderEnabled && !hasActiveDebitOrder && (
                       <DropdownMenuItem onClick={() => {
                         if (activeAcct) setDebitOrderEntity({ entityId: g.entityId, entityName: g.entityName, entityAccountId: activeAcct.id, accountNumber: activeAcct.accountNumber });
