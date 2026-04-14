@@ -203,6 +203,7 @@ const Notifications = () => {
         isFetching={isFetching}
         onDismiss={(id) => dismissMutation.mutate({ id })}
         onOpen={handleOpen}
+        isActionable={isActionable}
       />
     </div>
   );
@@ -214,12 +215,14 @@ const NotificationList = ({
   isFetching,
   onDismiss,
   onOpen,
+  isActionable,
 }: {
   items: NotificationRow[];
   isLoading: boolean;
   isFetching: boolean;
   onDismiss: (id: string) => void;
   onOpen: (n: NotificationRow) => void;
+  isActionable: (n: NotificationRow) => boolean;
 }) => {
   if (isLoading || (isFetching && items.length === 0)) {
     return (
