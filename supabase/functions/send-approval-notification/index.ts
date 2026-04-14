@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
             ? `${member_name || "Onbekend"} het 'n ${transaction_type || "transaksie"} ingedien${formattedAmount ? ` van ${formattedAmount}` : ""}.`
             : `${member_name || "Unknown"} submitted a ${transaction_type || "transaction"}${formattedAmount ? ` of ${formattedAmount}` : ""}.`,
           status: "unread",
-          related_table: "cashflow_transactions",
+          related_table: (transaction_type || "").toLowerCase().includes("loan") ? "loan_applications" : "cashflow_transactions",
           related_id: null,
         });
       } catch (notifErr: any) {
