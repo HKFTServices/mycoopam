@@ -1058,12 +1058,14 @@ const NewTransactionDialog = ({
   // Detect "membership only" deposit: entire amount consumed by join share + membership fee
   const isMembershipOnlyDeposit = isDeposit && joinShareInfo.needed && amountNum > 0 && amountAfterMembership <= 0;
 
-  // Suppress admin fees when deposit is fully consumed by membership deductions or no pool allocation chosen
+  // Suppress admin fees when deposit is fully consumed by membership deductions, loan repayment only, or no pool allocation chosen
+  // Fees should only apply to amounts that go towards pool allocations
+  const isLoanRepaymentOnlyDeposit = isDeposit && loanRepaymentOnly && amountAfterMembership <= 0;
   const depositFees = useMemo(
-    () => (isDeposit && !isMembershipOnlyDeposit && !noPoolAllocation)
+    () => (isDeposit && !isMembershipOnlyDeposit && !noPoolAllocation && !isLoanRepaymentOnlyDeposit && amountAfterMembership > 0)
       ? calculateFees(selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct)
       : { totalFee: 0, totalVat: 0, breakdown: [] as { name: string; amount: number; vat: number; gl_account_id?: string | null }[] },
-    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, selectedTxnTypeId, amountAfterMembership, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
+    [isDeposit, isMembershipOnlyDeposit, noPoolAllocation, isLoanRepaymentOnlyDeposit, amountAfterMembership, selectedTxnTypeId, paymentMethod, feeRules, isVatRegistered, vatRate, adminFeeOverridePct]
   );
 
   const feeCalculation = useMemo(
