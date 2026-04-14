@@ -237,18 +237,32 @@ const NewTransactionDialog = ({
   // We use a separate derived value once allHoldings is loaded instead of a duplicate query
   // (defined here as a placeholder; actual value computed after allHoldings is available)
 
-  // Check if account has existing join share
+  // Check if account has existing join share OR is already an active/activated member
   const { data: hasJoinShare = false } = useQuery({
     queryKey: ["join_share_check", selectedAccountId, currentTenant?.id],
     queryFn: async () => {
       if (!selectedAccountId || !currentTenant) return false;
+
+      // 1. Check member_shares table
       const { count } = await (supabase as any)
         .from("member_shares")
         .select("id", { count: "exact", head: true })
         .eq("entity_account_id", selectedAccountId)
         .eq("tenant_id", currentTenant.id)
         .eq("is_deleted", false);
-      return (count ?? 0) > 0;
+      if ((count ?? 0) > 0) return true;
+
+      // 2. Fallback: if the account already has an account_number or is active/approved,
+      //    the member has already been activated (e.g. imported data) — skip first-deposit fees
+      const { data: acct } = await (supabase as any)
+        .from("entity_accounts")
+        .select("account_number, status")
+        .eq("id", selectedAccountId)
+        .single();
+      if (acct?.account_number) return true;
+      if (["active", "approved"].includes(acct?.status)) return true;
+
+      return false;
     },
     enabled: !!selectedAccountId && !!currentTenant && open,
   });
