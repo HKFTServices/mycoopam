@@ -270,10 +270,12 @@ const NotificationList = ({
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onOpen(n)}>
-                    <ExternalLink className="h-3 w-3" />
-                    Open
-                  </Button>
+                  {isActionable(n) ? (
+                    <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onOpen(n)}>
+                      <ExternalLink className="h-3 w-3" />
+                      Open
+                    </Button>
+                  ) : null}
                   <Button variant="secondary" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => onDismiss(n.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
