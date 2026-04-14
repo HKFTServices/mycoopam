@@ -347,6 +347,39 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
             </Card>
           )}
 
+          {/* Co-op Loan Conditions */}
+          <Collapsible open={rulesOpen} onOpenChange={setRulesOpen}>
+            <Card className="border-blue-200 bg-blue-50/60 dark:border-blue-900 dark:bg-blue-950/30">
+              <CollapsibleTrigger asChild>
+                <button className="w-full text-left px-4 py-3 flex items-start gap-2 cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/30 rounded-t-lg transition-colors">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <span className="text-sm font-semibold text-blue-800 dark:text-blue-300 flex-1">
+                    Co-op Loan Conditions
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 transition-transform ${rulesOpen ? "rotate-180" : ""}`} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0 pb-3 px-4">
+                  <ul className="text-xs text-blue-800 dark:text-blue-300 space-y-1.5 list-disc list-inside">
+                    <li>All loans — existing plus new — must be fully repaid within <strong>{maxTermMonths} month{maxTermMonths !== 1 ? "s" : ""}</strong>.</li>
+                    <li>Maximum total loan exposure is <strong>{poolValueMultiple}× pool value</strong>
+                      {selectedPoolId && maxAllowedLoan > 0 && <> (currently <strong>{formatCurrency(maxAllowedLoan)}</strong>)</>}.
+                      This includes any existing outstanding loans.
+                    </li>
+                    {existingOutstanding > 0 && (
+                      <li className="text-orange-700 dark:text-orange-400 font-medium">
+                        Existing outstanding: {formatCurrency(existingOutstanding)} — available for new loan: <strong>{formatCurrency(availableForNewLoan)}</strong>.
+                      </li>
+                    )}
+                    <li>Interest: <strong>{interestTypeLabel}</strong> at {loanSettings?.interest_rate_low ?? 5}%–{loanSettings?.interest_rate_high ?? 12}% p.a. depending on risk.</li>
+                    <li>Loan fee: {formatCurrency(loanSettings?.loan_fee_low ?? 150)}–{formatCurrency(loanSettings?.loan_fee_high ?? 300)}.</li>
+                  </ul>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
           {/* Manager's Assessment */}
           <Card className="border-primary/30">
             <CardContent className="py-4 space-y-4">
@@ -375,23 +408,30 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                   </Select>
                   {selectedPoolId && (
                     <p className="text-xs text-muted-foreground">
-                      Pool value: {formatCurrency(getPoolValue(selectedPoolId))} — Max loan: {formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)} ({poolValueMultiple}×)
+                      Pool value: {formatCurrency(getPoolValue(selectedPoolId))} — Max loan: {formatCurrency(maxAllowedLoan)} ({poolValueMultiple}×)
+                      {existingOutstanding > 0 && (
+                        <span className="block">Available for new loan: <strong>{formatCurrency(availableForNewLoan)}</strong></span>
+                      )}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Amount (R)</Label>
                   <Input type="number" min={0} value={amountApproved} onChange={(e) => setAmountApproved(parseFloat(e.target.value) || 0)} disabled={isReadOnly} />
-                  {selectedPoolId && getPoolValue(selectedPoolId) > 0 && amountApproved > getPoolValue(selectedPoolId) * poolValueMultiple && (
+                  {selectedPoolId && maxAllowedLoan > 0 && amountApproved > availableForNewLoan && (
                     <p className="text-xs text-destructive flex items-center gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      Exceeds pool value limit ({formatCurrency(getPoolValue(selectedPoolId) * poolValueMultiple)})
+                      Exceeds available limit ({formatCurrency(availableForNewLoan)})
+                      {existingOutstanding > 0 && (
+                        <span className="ml-1">(Max {formatCurrency(maxAllowedLoan)} minus existing {formatCurrency(existingOutstanding)})</span>
+                      )}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Approved Term (Months)</Label>
-                  <Input type="number" min={1} max={loanSettings?.max_term_months ?? 120} value={termApproved} onChange={(e) => setTermApproved(parseInt(e.target.value) || 12)} disabled={isReadOnly} />
+                  <Input type="number" min={1} max={maxTermMonths} value={termApproved} onChange={(e) => setTermApproved(parseInt(e.target.value) || 12)} disabled={isReadOnly} />
+                  <p className="text-xs text-muted-foreground">Standard max: {maxTermMonths} months. Board discretion for longer terms.</p>
                 </div>
               </div>
 
@@ -403,10 +443,18 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
                   <span className="text-right font-mono">{formatCurrency(totalInterest)}</span>
                   <span className="text-muted-foreground">Loan Fee:</span>
                   <span className="text-right font-mono">{formatCurrency(loanFee)}</span>
-                  <span className="font-semibold border-t pt-1 mt-1">Total Loan:</span>
+                  <span className="font-semibold border-t pt-1 mt-1">New Loan Total:</span>
                   <span className="text-right font-mono font-bold border-t pt-1 mt-1">{formatCurrency(totalLoan)}</span>
-                  <span className="text-muted-foreground">Monthly Instalment:</span>
-                  <span className="text-right font-mono font-semibold text-primary">{formatCurrency(monthlyInstalment)}</span>
+                  {existingOutstanding > 0 && (
+                    <>
+                      <span className="text-muted-foreground">Existing Outstanding:</span>
+                      <span className="text-right font-mono text-destructive">{formatCurrency(existingOutstanding)}</span>
+                      <span className="font-semibold border-t pt-1 mt-1">Combined Outstanding:</span>
+                      <span className="text-right font-mono font-bold border-t pt-1 mt-1 text-destructive">{formatCurrency(combinedOutstanding)}</span>
+                    </>
+                  )}
+                  <span className="text-muted-foreground border-t pt-1 mt-1">Monthly Instalment ({termApproved} months):</span>
+                  <span className="text-right font-mono font-semibold text-primary border-t pt-1 mt-1">{formatCurrency(monthlyInstalment)}</span>
                 </div>
                 {monthlyInstalment > app.monthly_available_repayment && (
                   <p className="text-xs text-destructive mt-2 flex items-center gap-1.5">
