@@ -1371,7 +1371,9 @@ const NewTransactionDialog = ({
       });
 
       if (isDeposit && (poolSplits.length > 0 || loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation)) {
-        if (loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation) {
+        // If all funds are consumed by loan repayment / membership, treat as no-pool transaction
+        const allConsumed = depositNetAvailable <= 0 || splitSummaries.length === 0;
+        if (loanRepaymentOnly || isMembershipOnlyDeposit || noPoolAllocation || allConsumed) {
           // Loan repayment only — single transaction row, no pool
           const { error } = await (supabase as any).from("transactions").insert({
             tenant_id: currentTenant.id,
