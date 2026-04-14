@@ -101,9 +101,10 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
       const entityIds = (rels ?? []).map((r: any) => r.entity_id).filter(Boolean);
       if (!entityIds.length) return null;
       const { data: accounts } = await (supabase as any)
-        .from("entity_accounts").select("id, entity_id, account_number")
-        .eq("tenant_id", tenantId).in("entity_id", entityIds).eq("is_active", true).eq("is_approved", true).limit(1);
-      const a = accounts?.[0];
+        .from("entity_accounts").select("id, entity_id, account_number, entity_account_types(account_type)")
+        .eq("tenant_id", tenantId).in("entity_id", entityIds).eq("is_active", true).eq("is_approved", true);
+      const membershipAccounts = (accounts ?? []).filter((a: any) => a.entity_account_types?.account_type === 1);
+      const a = membershipAccounts[0];
       if (!a) return null;
       const rel = (rels ?? []).find((r: any) => r.entity_id === a.entity_id);
       const e = rel?.entities;
