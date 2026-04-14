@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { sendApprovalNotification } from "@/lib/sendApprovalNotification";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -201,6 +202,18 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
     onSuccess: () => {
       toast.success("Loan application submitted successfully");
       queryClient.invalidateQueries({ queryKey: ["loan_applications"] });
+      queryClient.invalidateQueries({ queryKey: ["pending_approvals_count"] });
+      // Fire-and-forget approval notification email
+      if (currentTenant) {
+        sendApprovalNotification({
+          tenantId: currentTenant.id,
+          transactionType: "Loan Application",
+          memberName: entityName,
+          accountNumber: entityAccountId,
+          amount: loanForm.amount_requested,
+          transactionDate: loanForm.loan_date,
+        });
+      }
       onOpenChange(false);
       setStep("budget");
     },
