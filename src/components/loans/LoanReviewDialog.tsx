@@ -146,7 +146,13 @@ const LoanReviewDialog = ({ open, onOpenChange, application: app }: Props) => {
   const loanFee = loanSettings ? Number(loanSettings[`loan_fee_${riskLevel}`] ?? 150) : 150;
   const totalInterest = amountApproved * termApproved * (interestRate / 100) / 12;
   const totalLoan = amountApproved + totalInterest + loanFee;
-  const monthlyInstalment = termApproved > 0 ? totalLoan / termApproved : 0;
+  const existingOutstanding = Number(app?.existing_outstanding ?? 0);
+  const combinedOutstanding = existingOutstanding + totalLoan;
+  const monthlyInstalment = termApproved > 0 ? combinedOutstanding / termApproved : 0;
+  const maxAllowedLoan = getPoolValue(selectedPoolId) * poolValueMultiple;
+  const availableForNewLoan = Math.max(0, maxAllowedLoan - existingOutstanding);
+  const interestTypeLabel = loanSettings?.interest_type === "compound" ? "Compound" : "Simple";
+  const maxTermMonths = loanSettings?.max_term_months ?? 12;
 
   const incomeEntries = budgetEntries.filter((b: any) => b.budget_categories?.category_type === "income");
   const expenseEntries = budgetEntries.filter((b: any) => b.budget_categories?.category_type === "expense");
