@@ -190,7 +190,7 @@ const LoanDetailsStep = ({
             min={0}
             step={100}
             value={form.monthly_available_repayment || ""}
-            placeholder={monthlyInstalment > 0 ? monthlyInstalment.toFixed(2) : "0"}
+            placeholder="0"
             onChange={(e) => update({ monthly_available_repayment: parseFloat(e.target.value) || 0 })}
           />
           {monthlyInstalment > 0 && (
