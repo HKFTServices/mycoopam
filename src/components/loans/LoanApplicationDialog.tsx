@@ -95,16 +95,31 @@ const LoanApplicationDialog = ({ open, onOpenChange, entityAccountId, entityId, 
     enabled: !!currentTenant?.id && open,
   });
 
-  // Fetch member's pool units for this entity account
+  // Fetch all entity accounts for this entity (to find holdings across all accounts)
+  const { data: entityAccountIds = [] } = useQuery({
+    queryKey: ["entity_accounts_for_loan", currentTenant?.id, entityId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("entity_accounts")
+        .select("id")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("entity_id", entityId);
+      if (error) throw error;
+      return (data ?? []).map((d: any) => d.id);
+    },
+    enabled: !!currentTenant?.id && !!entityId && open,
+  });
+
+  // Fetch member's pool units across ALL entity accounts
   const { data: accountPoolUnits = [] } = useQuery({
-    queryKey: ["account_pool_units_loan", currentTenant?.id],
+    queryKey: ["account_pool_units_loan", currentTenant?.id, entityId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .rpc("get_account_pool_units", { p_tenant_id: currentTenant!.id });
       if (error) throw error;
-      return (data ?? []).filter((d: any) => d.entity_account_id === entityAccountId);
+      return (data ?? []).filter((d: any) => entityAccountIds.includes(d.entity_account_id));
     },
-    enabled: !!currentTenant?.id && !!entityAccountId && open,
+    enabled: !!currentTenant?.id && entityAccountIds.length > 0 && open,
   });
 
   // Fetch latest pool prices
