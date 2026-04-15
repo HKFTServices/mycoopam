@@ -15,6 +15,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2, Zap } from "lucide-react";
@@ -176,6 +180,58 @@ const Items = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState<string | null>(null);
+  const [deleteChecking, setDeleteChecking] = useState(false);
+
+  const confirmDelete = async (item: Item) => {
+    setDeleteTarget(item);
+    setDeleteBlocked(null);
+    setDeleteChecking(true);
+    try {
+      // Check for stock quantity on hand
+      const { data: stockQty } = await (supabase as any)
+        .from("stock_transactions")
+        .select("id")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("item_id", item.id)
+        .eq("is_active", true)
+        .limit(1);
+      if (stockQty && stockQty.length > 0) {
+        setDeleteBlocked("This item has stock transaction history. You can deactivate it instead of deleting.");
+        setDeleteChecking(false);
+        return;
+      }
+      // Check for admin stock transaction lines
+      const { data: adminLines } = await (supabase as any)
+        .from("admin_stock_transaction_lines")
+        .select("id")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("item_id", item.id)
+        .limit(1);
+      if (adminLines && adminLines.length > 0) {
+        setDeleteBlocked("This item has stock transaction history. You can deactivate it instead of deleting.");
+        setDeleteChecking(false);
+        return;
+      }
+      // Check daily stock prices
+      const { data: prices } = await (supabase as any)
+        .from("daily_stock_prices")
+        .select("id")
+        .eq("tenant_id", currentTenant!.id)
+        .eq("item_id", item.id)
+        .limit(1);
+      if (prices && prices.length > 0) {
+        setDeleteBlocked("This item has price history. You can deactivate it instead of deleting.");
+        setDeleteChecking(false);
+        return;
+      }
+    } catch {
+      // Allow deletion if checks fail
+    }
+    setDeleteChecking(false);
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from("items")
@@ -184,6 +240,7 @@ const Items = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
+      setDeleteTarget(null);
       toast.success("Item deleted");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -358,7 +415,7 @@ const Items = () => {
                             </Button>
                           )}
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}><Pencil className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => confirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -525,6 +582,35 @@ const Items = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteBlocked ? "Cannot Delete Item" : "Delete Item"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteChecking
+                ? "Checking for related transactions…"
+                : deleteBlocked
+                  ? deleteBlocked
+                  : `Are you sure you want to delete "${deleteTarget?.description}" (${deleteTarget?.item_code})? This action can be undone by an administrator.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {!deleteBlocked && !deleteChecking && (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              >
+                Delete
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
