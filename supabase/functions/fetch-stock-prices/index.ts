@@ -45,6 +45,16 @@ function evaluateExpression(expr: string): number {
       while (i < s.length && ((s[i] >= "0" && s[i] <= "9") || s[i] === ".")) {
         num += s[i++];
       }
+      // Handle scientific notation e.g. 8.27e-7
+      if (i < s.length && (s[i] === "e" || s[i] === "E")) {
+        num += s[i++];
+        if (i < s.length && (s[i] === "+" || s[i] === "-")) {
+          num += s[i++];
+        }
+        while (i < s.length && s[i] >= "0" && s[i] <= "9") {
+          num += s[i++];
+        }
+      }
       tokens.push(num);
     } else if ("+-*/()".includes(s[i])) {
       tokens.push(s[i++]);
@@ -94,10 +104,15 @@ function evaluateExpression(expr: string): number {
 
 function evalFormula(formula: string, apiPrices: Record<string, number>): number | null {
   let expr = formula;
-  for (const [code, price] of Object.entries(apiPrices)) {
-    expr = expr.replace(new RegExp(`\\b${code}\\b`, "g"), price.toString());
+  // Sort codes by length descending to avoid partial replacements (e.g. USDZAR before USD)
+  const sortedCodes = Object.keys(apiPrices).sort((a, b) => b.length - a.length);
+  for (const code of sortedCodes) {
+    expr = expr.replace(new RegExp(`\\b${code}\\b`, "g"), apiPrices[code].toString());
   }
-  if (/[a-zA-Z]/.test(expr)) {
+  // After substitution, remove scientific notation 'e' from the alpha check
+  // by stripping valid numeric patterns first, then checking for leftover letters
+  const stripped = expr.replace(/[0-9]+\.?[0-9]*([eE][+-]?[0-9]+)?/g, "");
+  if (/[a-zA-Z]/.test(stripped)) {
     console.error(`Unresolved variables in formula: ${formula} -> ${expr}`);
     return null;
   }
