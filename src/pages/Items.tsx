@@ -582,6 +582,35 @@ const Items = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteBlocked ? "Cannot Delete Item" : "Delete Item"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteChecking
+                ? "Checking for related transactions…"
+                : deleteBlocked
+                  ? deleteBlocked
+                  : `Are you sure you want to delete "${deleteTarget?.description}" (${deleteTarget?.item_code})? This action can be undone by an administrator.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {!deleteBlocked && !deleteChecking && (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              >
+                Delete
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
