@@ -45,6 +45,16 @@ function evaluateExpression(expr: string): number {
       while (i < s.length && ((s[i] >= "0" && s[i] <= "9") || s[i] === ".")) {
         num += s[i++];
       }
+      // Handle scientific notation e.g. 8.27e-7
+      if (i < s.length && (s[i] === "e" || s[i] === "E")) {
+        num += s[i++];
+        if (i < s.length && (s[i] === "+" || s[i] === "-")) {
+          num += s[i++];
+        }
+        while (i < s.length && s[i] >= "0" && s[i] <= "9") {
+          num += s[i++];
+        }
+      }
       tokens.push(num);
     } else if ("+-*/()".includes(s[i])) {
       tokens.push(s[i++]);
