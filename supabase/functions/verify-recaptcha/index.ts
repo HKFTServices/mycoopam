@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const RECAPTCHA_SECRET_KEY = (Deno.env.get("6LfgbsEsAAAAADBslhiSBUJAzl1BFkne5W5335r4") ?? "").trim();
+const RECAPTCHA_SECRET_KEY = (Deno.env.get("RECAPTCHA_SECRET_KEY") ?? "").trim();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
