@@ -1,5 +1,24 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<tenant>(?!www$)[a-z0-9-]+)\\.(?:myco-op|mycoop)\\.co\\.za"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i)(facebookexternalhit|facebot|twitterbot|xbot|slackbot|linkedinbot|whatsapp|telegrambot|discordbot|skypeuripreview|googlebot)"
+        }
+      ],
+      "destination": "https://yhzajyegudbecyjpznjr.supabase.co/functions/v1/tenant-og?slug=:tenant"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
