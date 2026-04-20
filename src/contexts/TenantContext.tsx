@@ -345,6 +345,30 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     logoUrl: branding.logoUrl ?? (currentTenant as any)?.logo_url ?? null,
   };
 
+  // Dynamically swap the browser favicon to the tenant logo (falls back to default)
+  useEffect(() => {
+    const DEFAULT_FAVICON = "/favicon.png";
+    const tenantLogo = company.logoUrl;
+
+    const setIconHref = (href: string, type?: string) => {
+      const head = document.head;
+      // Remove all existing icon links to avoid the browser preferring the static one
+      head.querySelectorAll("link[rel~='icon']").forEach((el) => el.parentNode?.removeChild(el));
+      const link = document.createElement("link");
+      link.rel = "icon";
+      if (type) link.type = type;
+      link.href = href;
+      head.appendChild(link);
+    };
+
+    if (tenantLogo) {
+      // Most tenant logos are PNG; let the browser sniff if not.
+      setIconHref(tenantLogo);
+    } else {
+      setIconHref(DEFAULT_FAVICON, "image/png");
+    }
+  }, [company.logoUrl]);
+
   return (
     <TenantContext.Provider
       value={{ tenants, currentTenant, setCurrentTenant: handleSetTenant, loading, branding, company }}
