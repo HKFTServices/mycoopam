@@ -1,15 +1,12 @@
-// Verifies a reCAPTCHA Enterprise token against Google's Assessment API.
-// Returns { success, score, action, reasons } or { success: false, error }.
+// Verifies a "normal" reCAPTCHA token (v2 checkbox / invisible) via
+// Google's siteverify endpoint.
+// Returns { success, hostname, challenge_ts, error_codes? } or { success: false, error }.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const RECAPTCHA_API_KEY = Deno.env.get("RECAPTCHA_API_KEY") ?? "";
-const RECAPTCHA_PROJECT_ID = Deno.env.get("RECAPTCHA_PROJECT_ID") ?? "";
-const SITE_KEY = (Deno.env.get("RECAPTCHA_SITE_KEY") ?? "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ").trim();
-// Block requests scoring below this threshold (0.0 = bot, 1.0 = human).
-const MIN_SCORE = 0.5;
+const RECAPTCHA_SECRET_KEY = (Deno.env.get("6LfoasEsAAAAAIyovxylqQ9-uwQG_BxTki2UBtwq") ?? "").trim();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -17,63 +14,49 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!RECAPTCHA_API_KEY || !RECAPTCHA_PROJECT_ID) {
+    if (!RECAPTCHA_SECRET_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: "reCAPTCHA not configured on server" }),
+        JSON.stringify({ success: false, error: "reCAPTCHA not configured on server (missing secret)" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const body = await req.json().catch(() => ({}));
     const token = typeof body?.token === "string" ? body.token : "";
-    const action = typeof body?.action === "string" ? body.action : "";
 
-    if (!token || !action) {
+    if (!token) {
       return new Response(
-        JSON.stringify({ success: false, error: "Missing token or action" }),
+        JSON.stringify({ success: false, error: "Missing token" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${RECAPTCHA_PROJECT_ID}/assessments?key=${RECAPTCHA_API_KEY}`;
-    const assessRes = await fetch(url, {
+    const params = new URLSearchParams();
+    params.set("secret", RECAPTCHA_SECRET_KEY);
+    params.set("response", token);
+
+    const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event: { token, siteKey: SITE_KEY, expectedAction: action },
-      }),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
     });
 
-    const data = await assessRes.json();
-    if (!assessRes.ok) {
-      console.error("[verify-recaptcha] Google API error:", data);
+    const data = await verifyRes.json();
+    if (!verifyRes.ok) {
+      console.error("[verify-recaptcha] Google siteverify error:", data);
       return new Response(
-        JSON.stringify({ success: false, error: data?.error?.message ?? "Assessment failed" }),
+        JSON.stringify({ success: false, error: "Verification failed" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const tokenProps = data?.tokenProperties ?? {};
-    if (!tokenProps.valid) {
-      return new Response(
-        JSON.stringify({ success: false, error: `Invalid token: ${tokenProps.invalidReason ?? "unknown"}` }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    if (tokenProps.action && tokenProps.action !== action) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Action mismatch" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const score = data?.riskAnalysis?.score ?? 0;
-    const reasons = data?.riskAnalysis?.reasons ?? [];
-    const success = score >= MIN_SCORE;
-
     return new Response(
-      JSON.stringify({ success, score, action: tokenProps.action, reasons }),
+      JSON.stringify({
+        success: !!data?.success,
+        hostname: data?.hostname ?? null,
+        challenge_ts: data?.challenge_ts ?? null,
+        error_codes: data?.["error-codes"] ?? [],
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {

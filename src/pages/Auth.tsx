@@ -11,7 +11,8 @@ import { Loader2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { getSiteUrl, navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
-import { runRecaptcha } from "@/lib/recaptcha";
+import { verifyRecaptchaToken } from "@/lib/recaptcha";
+import { RecaptchaV2 } from "@/components/auth/RecaptchaV2";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -30,6 +31,8 @@ const Auth = () => {
   const [activateOpen, setActivateOpen] = useState(false);
   const [activateEmail, setActivateEmail] = useState("");
   const [activateLoading, setActivateLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaNonce, setRecaptchaNonce] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -147,15 +150,15 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      // reCAPTCHA Enterprise risk check
-      const action = isLogin ? "LOGIN" : "SIGNUP";
-      const recaptchaOk = await runRecaptcha(action);
+      const recaptchaOk = await verifyRecaptchaToken(recaptchaToken);
       if (!recaptchaOk) {
         toast({
           title: "Verification failed",
           description: "We couldn't verify this request. Please try again.",
           variant: "destructive",
         });
+        setRecaptchaToken(null);
+        setRecaptchaNonce((n) => n + 1);
         return;
       }
 
@@ -186,6 +189,8 @@ const Auth = () => {
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+      setRecaptchaToken(null);
+      setRecaptchaNonce((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -337,6 +342,11 @@ const Auth = () => {
                   </div>
                 </div>
               )}
+              <RecaptchaV2
+                key={`${isLogin ? "login" : "signup"}-${recaptchaNonce}`}
+                onToken={setRecaptchaToken}
+                className="pt-1"
+              />
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLogin ? "Sign in" : "Register as User"}
@@ -516,7 +526,11 @@ const Auth = () => {
               {isLogin ? "Not registered yet?" : "Already registered?"}{" "}
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setRecaptchaToken(null);
+                  setRecaptchaNonce((n) => n + 1);
+                }}
                 className="text-primary hover:underline font-medium"
               >
                 {isLogin ? "Sign up" : "Sign in"}

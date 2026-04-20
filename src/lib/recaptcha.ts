@@ -1,91 +1,58 @@
-// reCAPTCHA Enterprise helper: executes the client-side challenge and
-// verifies the resulting token via our edge function. Returns true if the
-// request looks human (score >= server threshold), false otherwise.
+// "Normal" reCAPTCHA helper (v2 checkbox) for a React + Supabase Edge Function app.
+// - Frontend renders the checkbox and obtains a token.
+// - Backend verifies token via https://www.google.com/recaptcha/api/siteverify.
 import { supabase } from "@/integrations/supabase/client";
 
-const DEFAULT_SITE_KEY = "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ";
-export const RECAPTCHA_SITE_KEY = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || DEFAULT_SITE_KEY).trim();
+export const RECAPTCHA_SITE_KEY = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || "").trim();
 
-const FAIL_OPEN =
+export const RECAPTCHA_FAIL_OPEN =
   import.meta.env.DEV || String(import.meta.env.VITE_RECAPTCHA_FAIL_OPEN || "").toLowerCase() === "true";
 
-declare global {
-  interface Window {
-    grecaptcha?: {
-      enterprise: {
-        ready: (cb: () => void) => void;
-        execute: (siteKey: string, opts: { action: string }) => Promise<string>;
-      };
-    };
-  }
-}
-
-/** Inject the grecaptcha enterprise script if not already present. */
-const ensureScriptInjected = () => {
+/** Inject the reCAPTCHA v2 script if not already present. */
+const ensureV2ScriptInjected = () => {
   if (typeof document === "undefined") return;
-  const existing = document.querySelector<HTMLScriptElement>('script[data-recaptcha="enterprise"]');
-  const anyEnterpriseScript = document.querySelector<HTMLScriptElement>('script[src*="recaptcha/enterprise.js"]');
-  if (existing || anyEnterpriseScript) return;
+  const existing = document.querySelector<HTMLScriptElement>('script[data-recaptcha="v2"]');
+  const anyV2 = document.querySelector<HTMLScriptElement>('script[src*="google.com/recaptcha/api.js"]');
+  if (existing || anyV2) return;
   const s = document.createElement("script");
-  s.src = `https://www.google.com/recaptcha/enterprise.js?render=${RECAPTCHA_SITE_KEY}`;
+  s.src = "https://www.google.com/recaptcha/api.js?render=explicit";
   s.async = true;
   s.defer = true;
-  s.dataset.recaptcha = "enterprise";
+  s.dataset.recaptcha = "v2";
   document.head.appendChild(s);
 };
 
-/** Wait for the grecaptcha enterprise script to finish loading. */
-const waitForGrecaptcha = (timeoutMs = 15000): Promise<void> =>
+/** Wait for the v2 grecaptcha script to load. */
+export const waitForGrecaptchaV2 = (timeoutMs = 15000): Promise<void> =>
   new Promise((resolve, reject) => {
-    ensureScriptInjected();
+    ensureV2ScriptInjected();
     const start = Date.now();
     const tick = () => {
-      if (window.grecaptcha?.enterprise?.execute) return resolve();
+      if (window.grecaptcha?.render) return resolve();
       if (Date.now() - start > timeoutMs) return reject(new Error("reCAPTCHA failed to load"));
       setTimeout(tick, 100);
     };
     tick();
   });
 
-/**
- * Run reCAPTCHA Enterprise for an action.
- * Returns `true` when the server-side assessment succeeds (score >= threshold),
- * otherwise returns `false`.
- *
- * For local dev and explicit overrides, set `VITE_RECAPTCHA_FAIL_OPEN="true"`
- * to avoid blocking flows when reCAPTCHA isn't configured.
- */
-export const runRecaptcha = async (action: string): Promise<boolean> => {
+/** Verify a client token via the `verify-recaptcha` edge function. */
+export async function verifyRecaptchaToken(token: string | null): Promise<boolean> {
+  if (!token) return RECAPTCHA_FAIL_OPEN;
   try {
-    if (!RECAPTCHA_SITE_KEY) {
-      console.warn("[recaptcha] missing site key");
-      return FAIL_OPEN;
-    }
-
-    await waitForGrecaptcha();
-    const token = await new Promise<string>((resolve, reject) => {
-      window.grecaptcha!.enterprise.ready(() => {
-        window.grecaptcha!.enterprise
-          .execute(RECAPTCHA_SITE_KEY, { action })
-          .then(resolve)
-          .catch(reject);
-      });
-    });
-
     const { data, error } = await supabase.functions.invoke("verify-recaptcha", {
-      body: { token, action },
+      body: { token },
     });
     if (error) {
       console.warn("[recaptcha] verify error:", error.message);
-      return FAIL_OPEN;
+      return RECAPTCHA_FAIL_OPEN;
     }
     if (!data?.success) {
-      console.warn("[recaptcha] low score / failed:", data);
+      console.warn("[recaptcha] verify failed:", data);
       return false;
     }
     return true;
   } catch (err: any) {
     console.warn("[recaptcha] exception:", err?.message ?? err);
-    return FAIL_OPEN;
+    return RECAPTCHA_FAIL_OPEN;
   }
-};
+}

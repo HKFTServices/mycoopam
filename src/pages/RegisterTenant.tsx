@@ -19,7 +19,8 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import { getTenantUrl } from "@/lib/getSiteUrl";
 import { validateRsaId } from "@/lib/rsaIdValidation";
-import { runRecaptcha } from "@/lib/recaptcha";
+import { verifyRecaptchaToken } from "@/lib/recaptcha";
+import { RecaptchaV2 } from "@/components/auth/RecaptchaV2";
 
 const ADMIN_POOL_NAME = "Admin";
 
@@ -76,6 +77,8 @@ const RegisterTenant = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaNonce, setRecaptchaNonce] = useState(0);
 
   // ─── Step 1: Co-op + Admin credentials ───
   const [name, setName] = useState("");
@@ -558,15 +561,15 @@ const RegisterTenant = () => {
     if (!validateStep(step)) return;
     setLoading(true);
     try {
-      // reCAPTCHA Enterprise risk check
-      const recaptchaOk = await runRecaptcha("REGISTER_TENANT");
+      const recaptchaOk = await verifyRecaptchaToken(recaptchaToken);
       if (!recaptchaOk) {
         toast({
           title: "Verification failed",
           description: "We couldn't verify this request. Please try again.",
           variant: "destructive",
         });
-        setLoading(false);
+        setRecaptchaToken(null);
+        setRecaptchaNonce((n) => n + 1);
         return;
       }
       // 1. Check slug uniqueness
@@ -717,6 +720,8 @@ const RegisterTenant = () => {
       window.location.href = tenantUrl;
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+      setRecaptchaToken(null);
+      setRecaptchaNonce((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -1711,6 +1716,11 @@ const RegisterTenant = () => {
                     </div>
                   ))
                 )}
+                <RecaptchaV2
+                  key={`register-tenant-${recaptchaNonce}`}
+                  onToken={setRecaptchaToken}
+                  className="pt-1"
+                />
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
                   <Button className="flex-1" onClick={handleSubmit} disabled={loading}>

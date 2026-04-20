@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { getPublicSiteUrl, getSiteUrl } from "@/lib/getSiteUrl";
 import { MarketingPanel } from "@/components/auth/MarketingPanel";
+import { RecaptchaV2 } from "@/components/auth/RecaptchaV2";
 
 import {
   clearRememberMeIssuedAt,
@@ -20,9 +21,7 @@ import {
   markRememberMeIssuedAt,
   setAuthStorageMode,
 } from "@/lib/supabaseAuthStorage";
-import { runRecaptcha } from "@/lib/recaptcha";
-
-
+import { verifyRecaptchaToken } from "@/lib/recaptcha";
 
 const TenantLanding = () => {
   const { slug: pathSlug } = useParams<{ slug: string }>();
@@ -52,6 +51,8 @@ const TenantLanding = () => {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaNonce, setRecaptchaNonce] = useState(0);
 
   // Redirect authenticated users — ensure tenant membership first
   useEffect(() => {
@@ -154,15 +155,15 @@ const TenantLanding = () => {
 
     setLoading(true);
     try {
-      // reCAPTCHA Enterprise risk check
-      const action = isLogin ? "LOGIN" : "SIGNUP";
-      const recaptchaOk = await runRecaptcha(action);
+      const recaptchaOk = await verifyRecaptchaToken(recaptchaToken);
       if (!recaptchaOk) {
         toast({
           title: "Verification failed",
           description: "We couldn't verify this request. Please try again.",
           variant: "destructive",
         });
+        setRecaptchaToken(null);
+        setRecaptchaNonce((n) => n + 1);
         return;
       }
 
@@ -224,6 +225,8 @@ const TenantLanding = () => {
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+      setRecaptchaToken(null);
+      setRecaptchaNonce((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -417,6 +420,11 @@ const TenantLanding = () => {
                   </div>
                 )}
 
+                <RecaptchaV2
+                  key={`${isLogin ? "login" : "signup"}-${recaptchaNonce}`}
+                  onToken={setRecaptchaToken}
+                  className="pt-1"
+                />
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isLogin ? "Sign in" : "Sign Up as User"}
@@ -427,7 +435,11 @@ const TenantLanding = () => {
                 {isLogin ? "Don't have an account yet?" : "Already have an account?"}{" "}
                 <button
                   type="button"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setRecaptchaToken(null);
+                    setRecaptchaNonce((n) => n + 1);
+                  }}
                   className="font-medium text-primary hover:underline"
                 >
                   {isLogin ? "Sign up" : "Sign in"}
