@@ -286,11 +286,11 @@ const TenantLanding = () => {
                   <img
                     src={tenantLogoUrl}
                     alt={tenantName}
-                    className="h-[4.55rem] w-auto max-w-[286px] object-contain"
+                    className="h-[6.825rem] w-auto max-w-[429px] object-contain"
                   />
                 ) : (
-                  <div className="h-[4.55rem] w-[4.55rem] rounded-xl bg-primary flex items-center justify-center shadow-sm">
-                    <span className="text-xl font-bold text-primary-foreground">{tenantInitial}</span>
+                  <div className="h-[6.825rem] w-[6.825rem] rounded-xl bg-primary flex items-center justify-center shadow-sm">
+                    <span className="text-3xl font-bold text-primary-foreground">{tenantInitial}</span>
                   </div>
                 )}
               </div>
