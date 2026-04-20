@@ -16,9 +16,23 @@ declare global {
   }
 }
 
+/** Inject the grecaptcha enterprise script if not already present. */
+const ensureScriptInjected = () => {
+  if (typeof document === "undefined") return;
+  const existing = document.querySelector<HTMLScriptElement>('script[data-recaptcha="enterprise"]');
+  if (existing) return;
+  const s = document.createElement("script");
+  s.src = `https://www.google.com/recaptcha/enterprise.js?render=${RECAPTCHA_SITE_KEY}`;
+  s.async = true;
+  s.defer = true;
+  s.dataset.recaptcha = "enterprise";
+  document.head.appendChild(s);
+};
+
 /** Wait for the grecaptcha enterprise script to finish loading. */
-const waitForGrecaptcha = (timeoutMs = 5000): Promise<void> =>
+const waitForGrecaptcha = (timeoutMs = 15000): Promise<void> =>
   new Promise((resolve, reject) => {
+    ensureScriptInjected();
     const start = Date.now();
     const tick = () => {
       if (window.grecaptcha?.enterprise?.execute) return resolve();
