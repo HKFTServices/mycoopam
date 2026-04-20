@@ -228,7 +228,6 @@ const TenantLanding = () => {
       setLoading(false);
     }
   };
-  };
 
   const tenantName = tenant?.legal_name || tenant?.name || "Co-operative";
   const tenantInitial = (tenant?.name ?? "C").charAt(0).toUpperCase();
