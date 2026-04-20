@@ -3,7 +3,11 @@
 // request looks human (score >= server threshold), false otherwise.
 import { supabase } from "@/integrations/supabase/client";
 
-export const RECAPTCHA_SITE_KEY = "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ";
+const DEFAULT_SITE_KEY = "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ";
+export const RECAPTCHA_SITE_KEY = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || DEFAULT_SITE_KEY).trim();
+
+const FAIL_OPEN =
+  import.meta.env.DEV || String(import.meta.env.VITE_RECAPTCHA_FAIL_OPEN || "").toLowerCase() === "true";
 
 declare global {
   interface Window {
@@ -20,7 +24,8 @@ declare global {
 const ensureScriptInjected = () => {
   if (typeof document === "undefined") return;
   const existing = document.querySelector<HTMLScriptElement>('script[data-recaptcha="enterprise"]');
-  if (existing) return;
+  const anyEnterpriseScript = document.querySelector<HTMLScriptElement>('script[src*="recaptcha/enterprise.js"]');
+  if (existing || anyEnterpriseScript) return;
   const s = document.createElement("script");
   s.src = `https://www.google.com/recaptcha/enterprise.js?render=${RECAPTCHA_SITE_KEY}`;
   s.async = true;
@@ -44,12 +49,19 @@ const waitForGrecaptcha = (timeoutMs = 15000): Promise<void> =>
 
 /**
  * Run reCAPTCHA Enterprise for an action.
- * NON-BLOCKING: Always returns true so users are never locked out by
- * captcha failures (network issues, domain misconfig, GCP outage, etc.).
- * Failures are logged for observability but do not block the action.
+ * Returns `true` when the server-side assessment succeeds (score >= threshold),
+ * otherwise returns `false`.
+ *
+ * For local dev and explicit overrides, set `VITE_RECAPTCHA_FAIL_OPEN="true"`
+ * to avoid blocking flows when reCAPTCHA isn't configured.
  */
 export const runRecaptcha = async (action: string): Promise<boolean> => {
   try {
+    if (!RECAPTCHA_SITE_KEY) {
+      console.warn("[recaptcha] missing site key");
+      return FAIL_OPEN;
+    }
+
     await waitForGrecaptcha();
     const token = await new Promise<string>((resolve, reject) => {
       window.grecaptcha!.enterprise.ready(() => {
@@ -64,16 +76,16 @@ export const runRecaptcha = async (action: string): Promise<boolean> => {
       body: { token, action },
     });
     if (error) {
-      console.warn("[recaptcha] verify error (allowing through):", error.message);
-      return true;
+      console.warn("[recaptcha] verify error:", error.message);
+      return FAIL_OPEN;
     }
     if (!data?.success) {
-      console.warn("[recaptcha] low score / failed (allowing through):", data);
-      return true;
+      console.warn("[recaptcha] low score / failed:", data);
+      return false;
     }
     return true;
   } catch (err: any) {
-    console.warn("[recaptcha] exception (allowing through):", err?.message ?? err);
-    return true;
+    console.warn("[recaptcha] exception:", err?.message ?? err);
+    return FAIL_OPEN;
   }
 };

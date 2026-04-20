@@ -128,3 +128,21 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Docker / Cloud Run builds (important)
+
+This project is a Vite SPA. Vite embeds `VITE_*` environment variables at **build time**.
+
+The Docker build intentionally ignores `.env` / `.env.*` (see `.dockerignore`), so if you build the container without supplying `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` at build time, auth/sign-in will fail at runtime.
+
+Example:
+
+```sh
+docker build \
+  --build-arg VITE_SUPABASE_URL="https://<project-ref>.supabase.co" \
+  --build-arg VITE_SUPABASE_PUBLISHABLE_KEY="<anon-key>" \
+  --build-arg VITE_PROD_DOMAIN="myco-op.co.za" \
+  --build-arg VITE_TENANT_DOMAIN="myco-op.co.za" \
+  --build-arg VITE_TENANT_ROUTING="subdomain" \
+  -t mycoopam .
+```

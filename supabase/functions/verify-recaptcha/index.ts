@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const RECAPTCHA_API_KEY = Deno.env.get("RECAPTCHA_API_KEY") ?? "";
 const RECAPTCHA_PROJECT_ID = Deno.env.get("RECAPTCHA_PROJECT_ID") ?? "";
-const SITE_KEY = "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ";
+const SITE_KEY = (Deno.env.get("RECAPTCHA_SITE_KEY") ?? "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ").trim();
 // Block requests scoring below this threshold (0.0 = bot, 1.0 = human).
 const MIN_SCORE = 0.5;
 
