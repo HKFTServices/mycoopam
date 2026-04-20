@@ -4,15 +4,10 @@
 // and Open Graph / Twitter card tags so that link previews on WhatsApp, Slack,
 // LinkedIn, Facebook, X, iMessage, etc. show the correct tenant logo + name.
 //
-// Usage:
-//   GET /functions/v1/tenant-og?slug=aem
-//   GET /functions/v1/tenant-og?slug=aem&redirect=https://aem.myco-op.co.za
-//
-// When `redirect` is provided, real browsers (non-bots) get an immediate
-// client-side redirect to that URL while crawlers see only the meta tags.
-//
-// Designed to be called either directly (share-friendly URL) or from a
-// Cloudflare Worker that proxies social-bot requests on the tenant subdomain.
+// SEO source priority:
+//   1. tenant_seo row (saved or AI-generated)
+//   2. Auto-generated from tenant name + logo  → also persisted on first request
+//   3. Global MyCoop fallback
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -24,6 +19,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PROD_DOMAIN = "myco-op.co.za";
 const FALLBACK_LOGO =
   "https://yhzajyegudbecyjpznjr.supabase.co/storage/v1/object/public/tenant-logos/mycoop-og.png";
@@ -36,26 +32,24 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-function escapeAttr(value: string): string {
-  return escapeHtml(value);
-}
+const escapeAttr = escapeHtml;
 
 function renderHtml(opts: {
   title: string;
   description: string;
   imageUrl: string;
   canonicalUrl: string;
+  keywords?: string;
   redirectUrl?: string;
 }): string {
-  const { title, description, imageUrl, canonicalUrl, redirectUrl } = opts;
+  const { title, description, imageUrl, canonicalUrl, keywords, redirectUrl } = opts;
   const safeTitle = escapeHtml(title);
   const safeDesc = escapeHtml(description);
   const safeImage = escapeAttr(imageUrl);
   const safeCanonical = escapeAttr(canonicalUrl);
+  const safeKeywords = keywords ? escapeAttr(keywords) : "";
 
-  // Square logo previews look better with summary card; large hero image sites
-  // can swap to summary_large_image. We use summary so the logo isn't cropped.
+  // OG image is hero-sized (1200x630) so use summary_large_image.
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -63,6 +57,7 @@ function renderHtml(opts: {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDesc}" />
+    ${safeKeywords ? `<meta name="keywords" content="${safeKeywords}" />` : ""}
     <link rel="canonical" href="${safeCanonical}" />
 
     <meta property="og:type" content="website" />
@@ -73,7 +68,7 @@ function renderHtml(opts: {
     <meta property="og:image" content="${safeImage}" />
     <meta property="og:image:alt" content="${safeTitle} logo" />
 
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDesc}" />
     <meta name="twitter:image" content="${safeImage}" />
@@ -81,7 +76,7 @@ function renderHtml(opts: {
     ${redirectUrl ? `<meta http-equiv="refresh" content="0; url=${escapeAttr(redirectUrl)}" />` : ""}
   </head>
   <body style="font-family: system-ui, sans-serif; padding: 24px; text-align: center;">
-    <img src="${safeImage}" alt="${safeTitle}" style="max-width: 200px; height: auto;" />
+    <img src="${safeImage}" alt="${safeTitle}" style="max-width: 320px; height: auto;" />
     <h1>${safeTitle}</h1>
     <p>${safeDesc}</p>
     ${redirectUrl ? `<p><a href="${escapeAttr(redirectUrl)}">Continue to site</a></p>` : ""}
@@ -99,7 +94,6 @@ Deno.serve(async (req) => {
     let slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
     const redirectParam = url.searchParams.get("redirect");
 
-    // Allow detection from Host header too: aem.myco-op.co.za -> "aem"
     if (!slug) {
       const host = req.headers.get("host") || "";
       if (host.endsWith(`.${PROD_DOMAIN}`)) {
@@ -126,11 +120,38 @@ Deno.serve(async (req) => {
     }
 
     const row = Array.isArray(data) && data.length > 0 ? (data[0] as any) : null;
+    const tenantId: string | null = row?.tenant_id ?? null;
     const tenantName: string =
       row?.legal_name || row?.tenant_name || "MyCoop Cooperative";
     const logoUrl: string = row?.logo_url || FALLBACK_LOGO;
 
-    const description = `Sign in or apply for membership at ${tenantName}. Pooled investments, member accounts, and financial administration.`;
+    // Resolve SEO using priority: saved → auto-generated (and persist)
+    let title: string = row?.seo_title || tenantName;
+    let description: string =
+      row?.seo_description ||
+      `Sign in or apply for membership at ${tenantName}. Pooled investments, member accounts, and financial administration.`;
+    const ogImage: string = row?.seo_og_image_url || logoUrl;
+    const keywords: string | undefined = row?.seo_keywords || undefined;
+
+    // If tenant exists but has no SEO row, persist the auto-generated defaults so
+    // admins can edit them later.
+    if (tenantId && !row?.seo_title && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        await admin.from("tenant_seo").upsert(
+          {
+            tenant_id: tenantId,
+            title,
+            description,
+            og_image_url: ogImage,
+            generated_by_ai: false,
+          },
+          { onConflict: "tenant_id" },
+        );
+      } catch (persistErr) {
+        console.error("[tenant-og] Failed to persist defaults:", persistErr);
+      }
+    }
 
     const canonicalUrl = `https://${slug}.${PROD_DOMAIN}/`;
     const safeRedirect =
@@ -139,10 +160,11 @@ Deno.serve(async (req) => {
         : undefined;
 
     const html = renderHtml({
-      title: tenantName,
+      title,
       description,
-      imageUrl: logoUrl,
+      imageUrl: ogImage,
       canonicalUrl,
+      keywords,
       redirectUrl: safeRedirect,
     });
 
@@ -151,8 +173,6 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/html; charset=utf-8",
-        // Cache at the edge for 10 min so repeat scrapes are cheap;
-        // tenant logo changes will propagate within the TTL.
         "Cache-Control": "public, max-age=600, s-maxage=600",
       },
     });

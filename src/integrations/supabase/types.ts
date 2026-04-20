@@ -6058,6 +6058,53 @@ export type Database = {
           },
         ]
       }
+      tenant_seo: {
+        Row: {
+          created_at: string
+          description: string | null
+          generated_at: string | null
+          generated_by_ai: boolean
+          id: string
+          keywords: string | null
+          og_image_url: string | null
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          generated_at?: string | null
+          generated_by_ai?: boolean
+          id?: string
+          keywords?: string | null
+          og_image_url?: string | null
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          generated_at?: string | null
+          generated_by_ai?: boolean
+          id?: string
+          keywords?: string | null
+          og_image_url?: string | null
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_seo_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_sla: {
         Row: {
           created_at: string
@@ -6928,6 +6975,10 @@ export type Database = {
         Returns: {
           legal_name: string
           logo_url: string
+          seo_description: string
+          seo_keywords: string
+          seo_og_image_url: string
+          seo_title: string
           tenant_id: string
           tenant_name: string
         }[]

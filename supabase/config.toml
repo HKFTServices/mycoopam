@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.tenant-og]
 verify_jwt = false
+
+[functions.generate-tenant-seo]
+verify_jwt = true
