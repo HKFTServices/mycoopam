@@ -159,17 +159,19 @@ const LoanDetailsStep = ({
             value={form.amount_requested || ""}
             placeholder="0"
             onChange={(e) => update({ amount_requested: parseFloat(e.target.value) || 0 })}
-            className={exceedsLimit ? "border-destructive bg-accent/40" : "bg-accent/40 border-accent"}
+            className={exceedsLimit ? "border-amber-500 bg-accent/40" : "bg-accent/40 border-accent"}
           />
           {exceedsLimit && (
-            <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              Exceeds available limit ({formatCurrency(availableForNewLoan)})
-              {existingOutstanding > 0 && (
-                <span className="block ml-5">
-                  (Max {formatCurrency(maxAllowedLoan)} minus existing {formatCurrency(existingOutstanding)})
-                </span>
-              )}
+            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>
+                Exceeds available limit ({formatCurrency(availableForNewLoan)}). You may still submit — the administrator will make the final decision.
+                {existingOutstanding > 0 && (
+                  <span className="block">
+                    (Max {formatCurrency(maxAllowedLoan)} minus existing {formatCurrency(existingOutstanding)})
+                  </span>
+                )}
+              </span>
             </p>
           )}
         </div>
