@@ -30,9 +30,15 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenant: Tenant | null;
+  allowAiGeneration?: boolean;
 }
 
-export default function TenantSeoDialog({ open, onOpenChange, tenant }: Props) {
+export default function TenantSeoDialog({
+  open,
+  onOpenChange,
+  tenant,
+  allowAiGeneration = true,
+}: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<Partial<SeoRow>>({});
 
@@ -120,7 +126,7 @@ export default function TenantSeoDialog({ open, onOpenChange, tenant }: Props) {
         <DialogHeader>
           <DialogTitle>SEO &amp; Link Preview — {tenant?.name}</DialogTitle>
           <DialogDescription>
-            Controls what appears when {tenant?.slug}.myco-op.co.za is shared on WhatsApp, Slack, LinkedIn, etc.
+            Controls what appears when {tenant?.slug}.myco-op.co.za is shared on WhatsApp, Slack, LinkedIn, Facebook, and other platforms.
           </DialogDescription>
         </DialogHeader>
 
@@ -130,28 +136,33 @@ export default function TenantSeoDialog({ open, onOpenChange, tenant }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {seo?.generated_by_ai && <Badge variant="secondary">AI generated</Badge>}
                 {seo?.generated_at && (
                   <span className="text-xs text-muted-foreground">
                     {new Date(seo.generated_at).toLocaleString()}
                   </span>
                 )}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => generate.mutate()}
-                disabled={generate.isPending}
-              >
-                {generate.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
+                {!allowAiGeneration && (
+                  <Badge variant="outline">Manual SEO only</Badge>
                 )}
-                Generate with AI
-              </Button>
+              </div>
+              {allowAiGeneration && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => generate.mutate()}
+                  disabled={generate.isPending}
+                >
+                  {generate.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Generate with AI
+                </Button>
+              )}
             </div>
 
             <Separator />

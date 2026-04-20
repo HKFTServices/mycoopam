@@ -22,6 +22,7 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import ClearTestDataCard from "@/components/setup/ClearTestDataCard";
 import ReferralProgramCard from "@/components/setup/ReferralProgramCard";
 import PaymentGatewayCard from "@/components/setup/PaymentGatewayCard";
+import TenantSeoDialog from "@/components/headoffice/TenantSeoDialog";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -524,6 +525,7 @@ const TenantConfiguration = () => {
   const [testEmailOpen, setTestEmailOpen] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["tenant_configuration", currentTenant?.id],
@@ -752,6 +754,7 @@ const TenantConfiguration = () => {
           <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 h-auto flex-wrap sm:flex-nowrap">
             <TabsTrigger value="general" className="gap-1.5 text-xs sm:text-sm"><Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">General</span><span className="sm:hidden">General</span></TabsTrigger>
             <TabsTrigger value="logo" className="gap-1.5 text-xs sm:text-sm"><Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Logo</TabsTrigger>
+            <TabsTrigger value="seo" className="gap-1.5 text-xs sm:text-sm"><Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />SEO</TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5 text-xs sm:text-sm"><Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Security</TabsTrigger>
             <TabsTrigger value="smtp" className="gap-1.5 text-xs sm:text-sm"><Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Email SMTP</span><span className="sm:hidden">SMTP</span></TabsTrigger>
             {!isMobile && <TabsTrigger value="memberships" className="gap-1.5 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Membership &amp; Shares</span><span className="sm:hidden">Members</span></TabsTrigger>}
@@ -867,6 +870,46 @@ const TenantConfiguration = () => {
                 <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploading} />
                 {uploading && <p className="text-sm text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Uploading…</p>}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── SEO ── */}
+        <TabsContent value="seo">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">SEO &amp; Link Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Manage the title, description, keywords, and shared preview image for {currentTenant?.slug}.myco-op.co.za.
+              </p>
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Shared link preview</p>
+                  <p className="text-xs text-muted-foreground">
+                    WhatsApp, Facebook, LinkedIn, Slack, and other social platforms use this metadata when your tenant URL is shared.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button type="button" onClick={() => setSeoDialogOpen(true)}>
+                    <Sparkles className="h-4 w-4 mr-1.5" />
+                    Open SEO setup
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.open(`https://${currentTenant?.slug}.myco-op.co.za/`, "_blank")}
+                    disabled={!currentTenant?.slug}
+                  >
+                    <Eye className="h-4 w-4 mr-1.5" />
+                    Open tenant site
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                AI generation remains available from Head Office. Tenant admins can fully manage manual SEO here.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1183,6 +1226,13 @@ const TenantConfiguration = () => {
           <PaymentGatewayCard />
         </TabsContent>
       </Tabs>
+
+      <TenantSeoDialog
+        open={seoDialogOpen}
+        onOpenChange={setSeoDialogOpen}
+        tenant={currentTenant ? { id: currentTenant.id, name: currentTenant.name, slug: currentTenant.slug } : null}
+        allowAiGeneration={false}
+      />
 
       <div className="flex justify-end">
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
