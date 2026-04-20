@@ -20,6 +20,7 @@ import {
   markRememberMeIssuedAt,
   setAuthStorageMode,
 } from "@/lib/supabaseAuthStorage";
+import { runRecaptcha } from "@/lib/recaptcha";
 
 const HCAPTCHA_SITE_KEY = "344a0cf0-5280-4e30-911e-c2c8ad2e4b48";
 
@@ -149,6 +150,17 @@ const TenantLanding = () => {
   const submitAuth = async (token: string) => {
     setLoading(true);
     try {
+      // reCAPTCHA Enterprise risk check (in addition to hCaptcha used by Supabase Auth)
+      const action = isLogin ? "LOGIN" : "SIGNUP";
+      const recaptchaOk = await runRecaptcha(action);
+      if (!recaptchaOk) {
+        toast({
+          title: "Verification failed",
+          description: "We couldn't verify this request. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (isLogin) {
         const args: any = { email, password };
         if (token) args.options = { captchaToken: token };

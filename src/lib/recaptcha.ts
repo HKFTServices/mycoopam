@@ -1,0 +1,60 @@
+// reCAPTCHA Enterprise helper: executes the client-side challenge and
+// verifies the resulting token via our edge function. Returns true if the
+// request looks human (score >= server threshold), false otherwise.
+import { supabase } from "@/integrations/supabase/client";
+
+export const RECAPTCHA_SITE_KEY = "6LffpcAsAAAAAMKSu5wnJsJ4gvNO1YlKUkZAgYmQ";
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      enterprise: {
+        ready: (cb: () => void) => void;
+        execute: (siteKey: string, opts: { action: string }) => Promise<string>;
+      };
+    };
+  }
+}
+
+/** Wait for the grecaptcha enterprise script to finish loading. */
+const waitForGrecaptcha = (timeoutMs = 5000): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const start = Date.now();
+    const tick = () => {
+      if (window.grecaptcha?.enterprise?.execute) return resolve();
+      if (Date.now() - start > timeoutMs) return reject(new Error("reCAPTCHA failed to load"));
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
+
+/** Run reCAPTCHA Enterprise for an action. Returns true if score is acceptable. */
+export const runRecaptcha = async (action: string): Promise<boolean> => {
+  try {
+    await waitForGrecaptcha();
+    const token = await new Promise<string>((resolve, reject) => {
+      window.grecaptcha!.enterprise.ready(() => {
+        window.grecaptcha!.enterprise
+          .execute(RECAPTCHA_SITE_KEY, { action })
+          .then(resolve)
+          .catch(reject);
+      });
+    });
+
+    const { data, error } = await supabase.functions.invoke("verify-recaptcha", {
+      body: { token, action },
+    });
+    if (error) {
+      console.warn("[recaptcha] verify error:", error.message);
+      return false;
+    }
+    if (!data?.success) {
+      console.warn("[recaptcha] failed:", data);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.warn("[recaptcha] exception:", err?.message ?? err);
+    return false;
+  }
+};

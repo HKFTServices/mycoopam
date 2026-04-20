@@ -19,6 +19,7 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import myCoopLogo from "@/assets/mycoop-logo-transparent.png";
 import { getTenantUrl } from "@/lib/getSiteUrl";
 import { validateRsaId } from "@/lib/rsaIdValidation";
+import { runRecaptcha } from "@/lib/recaptcha";
 
 const ADMIN_POOL_NAME = "Admin";
 
@@ -557,6 +558,17 @@ const RegisterTenant = () => {
     if (!validateStep(step)) return;
     setLoading(true);
     try {
+      // reCAPTCHA Enterprise risk check
+      const recaptchaOk = await runRecaptcha("REGISTER_TENANT");
+      if (!recaptchaOk) {
+        toast({
+          title: "Verification failed",
+          description: "We couldn't verify this request. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       // 1. Check slug uniqueness
       const { data: existing } = await supabase.from("tenants").select("id").eq("slug", slug).maybeSingle();
       if (existing) {
