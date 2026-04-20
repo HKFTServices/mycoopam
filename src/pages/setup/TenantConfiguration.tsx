@@ -1227,6 +1227,13 @@ const TenantConfiguration = () => {
         </TabsContent>
       </Tabs>
 
+      <TenantSeoDialog
+        open={seoDialogOpen}
+        onOpenChange={setSeoDialogOpen}
+        tenant={currentTenant ? { id: currentTenant.id, name: currentTenant.name, slug: currentTenant.slug } : null}
+        allowAiGeneration={false}
+      />
+
       <div className="flex justify-end">
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
           {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
