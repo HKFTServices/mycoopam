@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import HCaptcha from "@hcaptcha/react-hcaptcha";
+
 import { getSiteUrl, navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
 import { runRecaptcha } from "@/lib/recaptcha";
 
@@ -23,10 +23,6 @@ const Auth = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [captchaOpen, setCaptchaOpen] = useState(false);
-  const [captchaKey, setCaptchaKey] = useState(0);
-  const [captchaSubmitting, setCaptchaSubmitting] = useState(false);
   const [branding, setBranding] = useState<{ tenant_name: string; logo_url: string | null } | null>(null);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -142,15 +138,16 @@ const Auth = () => {
     fetchBranding();
   }, []);
 
-  const resetCaptcha = () => {
-    setCaptchaToken(null);
-    setCaptchaKey((k) => k + 1);
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLogin && password !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
 
-  const submitAuth = async (token: string) => {
     setLoading(true);
     try {
-      // reCAPTCHA Enterprise risk check (in addition to hCaptcha used by Supabase Auth)
+      // reCAPTCHA Enterprise risk check
       const action = isLogin ? "LOGIN" : "SIGNUP";
       const recaptchaOk = await runRecaptcha(action);
       if (!recaptchaOk) {
@@ -161,12 +158,9 @@ const Auth = () => {
         });
         return;
       }
+
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-          options: { captchaToken: token },
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate("/dashboard");
       } else {
@@ -177,7 +171,6 @@ const Auth = () => {
           options: {
             emailRedirectTo: getSiteUrl(),
             data: { first_name: firstName, last_name: lastName, ...(refCodeToStore ? { referral_code: refCodeToStore } : {}) },
-            captchaToken: token,
           },
         });
         if (error) throw error;
@@ -192,28 +185,10 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
-      resetCaptcha();
     }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLogin && password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" });
-      return;
-    }
-    if (!captchaToken) {
-      setCaptchaOpen(true);
-      return;
-    }
-    void submitAuth(captchaToken);
   };
 
   const tenantName = branding?.tenant_name ?? "CoopAdmin";
@@ -535,60 +510,6 @@ const Auth = () => {
                     </Button>
                   </div>
                 </form>
-              </DialogContent>
-            </Dialog>
-            <Dialog
-              open={captchaOpen}
-              onOpenChange={(open) => {
-                setCaptchaOpen(open);
-                if (!open) resetCaptcha();
-              }}
-            >
-              <DialogContent className="max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>Verify you&apos;re human</DialogTitle>
-                  <DialogDescription>
-                    Please complete the captcha to continue.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex justify-center">
-                  <HCaptcha
-                    key={captchaKey}
-                    sitekey="344a0cf0-5280-4e30-911e-c2c8ad2e4b48"
-                    onVerify={(token) => setCaptchaToken(token)}
-                    onExpire={() => setCaptchaToken(null)}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCaptchaOpen(false)}
-                    disabled={captchaSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={async () => {
-                      if (!captchaToken) {
-                        toast({ title: "Please complete the captcha", variant: "destructive" });
-                        return;
-                      }
-                      setCaptchaSubmitting(true);
-                      try {
-                        await submitAuth(captchaToken);
-                        setCaptchaOpen(false);
-                      } finally {
-                        setCaptchaSubmitting(false);
-                      }
-                    }}
-                    disabled={!captchaToken || captchaSubmitting || loading}
-                  >
-                    {(captchaSubmitting || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Continue
-                  </Button>
-                </div>
               </DialogContent>
             </Dialog>
             <div className="mt-4 text-center text-sm text-muted-foreground">
