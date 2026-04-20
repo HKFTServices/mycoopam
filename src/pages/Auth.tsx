@@ -11,6 +11,7 @@ import { Loader2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { getSiteUrl, navigateToTenant, isOnProductionDomain } from "@/lib/getSiteUrl";
+import { runRecaptcha } from "@/lib/recaptcha";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -149,6 +150,17 @@ const Auth = () => {
   const submitAuth = async (token: string) => {
     setLoading(true);
     try {
+      // reCAPTCHA Enterprise risk check (in addition to hCaptcha used by Supabase Auth)
+      const action = isLogin ? "LOGIN" : "SIGNUP";
+      const recaptchaOk = await runRecaptcha(action);
+      if (!recaptchaOk) {
+        toast({
+          title: "Verification failed",
+          description: "We couldn't verify this request. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
