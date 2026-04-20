@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2, Mail } from "lucide-react";
+import { Loader2, Save, Building2, Search, Users, Wallet, DollarSign, CalendarDays, Settings2, Trash2, Mail, Sparkles } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -20,6 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/formatCurrency";
 import TenantFeaturesDialog from "@/components/headoffice/TenantFeaturesDialog";
+import TenantSeoDialog from "@/components/headoffice/TenantSeoDialog";
 
 const TenantManagement = () => {
   const queryClient = useQueryClient();
@@ -28,6 +29,7 @@ const TenantManagement = () => {
   const [feeForm, setFeeForm] = useState<Record<string, string>>({});
   const [eomTenant, setEomTenant] = useState<{ id: string; name: string } | null>(null);
   const [featuresTenant, setFeaturesTenant] = useState<{ id: string; name: string } | null>(null);
+  const [seoTenant, setSeoTenant] = useState<{ id: string; name: string; slug: string } | null>(null);
   const [deleteTenant, setDeleteTenant] = useState<{ id: string; name: string } | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
@@ -340,6 +342,14 @@ const TenantManagement = () => {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => setSeoTenant({ id: tenant.id, name: tenant.name, slug: tenant.slug })}
+                        >
+                          <Sparkles className="h-3.5 w-3.5 mr-1" />
+                          SEO
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="destructive"
                           onClick={() => setDeleteTenant({ id: tenant.id, name: tenant.name })}
                         >
@@ -447,6 +457,13 @@ const TenantManagement = () => {
         open={!!featuresTenant}
         onOpenChange={(open) => !open && setFeaturesTenant(null)}
         tenant={featuresTenant}
+      />
+
+      {/* Tenant SEO Dialog */}
+      <TenantSeoDialog
+        open={!!seoTenant}
+        onOpenChange={(open) => !open && setSeoTenant(null)}
+        tenant={seoTenant}
       />
 
       {/* Delete Tenant Confirmation */}
