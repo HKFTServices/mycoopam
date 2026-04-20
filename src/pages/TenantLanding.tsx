@@ -49,10 +49,6 @@ const TenantLanding = () => {
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(getAuthStorageMode() === "local");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [captchaOpen, setCaptchaOpen] = useState(false);
-  const [captchaKey, setCaptchaKey] = useState(0);
-  const [captchaSubmitting, setCaptchaSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -119,10 +115,6 @@ const TenantLanding = () => {
     };
   }, [slug]);
 
-  const resetCaptcha = () => {
-    setCaptchaToken(null);
-    setCaptchaKey((k) => k + 1);
-  };
 
   const ensureTenantMembership = async (userId: string, tenantId: string) => {
     // Check if user already has a tenant_membership for this co-op
@@ -147,10 +139,22 @@ const TenantLanding = () => {
     return false; // already a member
   };
 
-  const submitAuth = async (token: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Remember-me determines whether the Supabase session is persisted across browser restarts.
+    if (isLogin) {
+      setAuthStorageMode(rememberMe ? "local" : "session");
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
     try {
-      // reCAPTCHA Enterprise risk check (in addition to hCaptcha used by Supabase Auth)
+      // reCAPTCHA Enterprise risk check
       const action = isLogin ? "LOGIN" : "SIGNUP";
       const recaptchaOk = await runRecaptcha(action);
       if (!recaptchaOk) {
@@ -161,15 +165,12 @@ const TenantLanding = () => {
         });
         return;
       }
+
       if (isLogin) {
-        const args: any = { email, password };
-        if (token) args.options = { captchaToken: token };
-        const { data: signInData, error } = await supabase.auth.signInWithPassword(args);
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         if (rememberMe) markRememberMeIssuedAt();
         else clearRememberMeIssuedAt();
-        // If they passed captcha, allow skipping for the next 5 hours (per tenant + email).
-        if (token) setCaptchaBypass(slug || "tenant", email, 5);
 
         // Ensure tenant membership exists for this co-op
         if (signInData.user && tenant) {
@@ -177,7 +178,6 @@ const TenantLanding = () => {
           if (tenantId) {
             const isNew = await ensureTenantMembership(signInData.user.id, tenantId);
             if (isNew) {
-              // Store the tenant ID so TenantContext picks it up
               localStorage.setItem("currentTenantId", tenantId);
               toast({
                 title: "Welcome!",
@@ -195,13 +195,11 @@ const TenantLanding = () => {
           options: {
             emailRedirectTo: getSiteUrl(slug),
             data: { first_name: firstName, last_name: lastName },
-            captchaToken: token,
           },
         });
         if (error) throw error;
 
         if (data.user && data.user.identities && data.user.identities.length === 0) {
-          // User already exists — guide them to sign in instead
           toast({
             title: "Account exists",
             description: "An account with this email already exists. Please sign in to join this co-operative.",
@@ -210,12 +208,10 @@ const TenantLanding = () => {
           return;
         }
 
-        // Ensure tenant membership exists right after signup so TenantContext resolves correctly
         if (data.user && tenant?.tenant_id) {
           await ensureTenantMembership(data.user.id, tenant.tenant_id);
           localStorage.setItem("currentTenantId", tenant.tenant_id);
 
-          // Send branded activation email via tenant SMTP (fire-and-forget)
           supabase.functions.invoke("send-registration-email", {
             body: { tenant_id: tenant.tenant_id, self_register_email: email },
           }).catch((err: any) => console.warn("[TenantLanding] Registration email failed:", err.message));
@@ -230,39 +226,8 @@ const TenantLanding = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
-      resetCaptcha();
     }
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Remember-me determines whether the Supabase session is persisted across browser restarts.
-    if (isLogin) {
-      setAuthStorageMode(rememberMe ? "local" : "session");
-    }
-
-    if (!isLogin && password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" });
-      return;
-    }
-
-    // Captcha policy:
-    // - Register: always require captcha.
-    // - Login: require captcha at most once every 5 hours (per tenant + email).
-    if (isLogin) {
-      const bypassUntil = getCaptchaBypassUntil(slug || "tenant", email);
-      if (bypassUntil && Date.now() < bypassUntil) {
-        void submitAuth("");
-        return;
-      }
-    }
-
-    if (!captchaToken) {
-      setCaptchaOpen(true);
-      return;
-    }
-    void submitAuth(captchaToken);
   };
 
   const tenantName = tenant?.legal_name || tenant?.name || "Co-operative";
@@ -545,58 +510,6 @@ const TenantLanding = () => {
                   </Button>
                 </div>
               </form>
-            </DialogContent>
-          </Dialog>
-          <Dialog
-            open={captchaOpen}
-            onOpenChange={(open) => {
-              setCaptchaOpen(open);
-              if (!open) resetCaptcha();
-            }}
-          >
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Verify you&apos;re human</DialogTitle>
-                <DialogDescription>Please complete the captcha to continue.</DialogDescription>
-              </DialogHeader>
-              <div className="flex justify-center">
-                <HCaptcha
-                  key={captchaKey}
-                  sitekey={HCAPTCHA_SITE_KEY}
-                  onVerify={(token) => setCaptchaToken(token)}
-                  onExpire={() => setCaptchaToken(null)}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCaptchaOpen(false)}
-                  disabled={captchaSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    if (!captchaToken) {
-                      toast({ title: "Please complete the captcha", variant: "destructive" });
-                      return;
-                    }
-                    setCaptchaSubmitting(true);
-                    try {
-                      await submitAuth(captchaToken);
-                      setCaptchaOpen(false);
-                    } finally {
-                      setCaptchaSubmitting(false);
-                    }
-                  }}
-                  disabled={!captchaToken || captchaSubmitting || loading}
-                >
-                  {(captchaSubmitting || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Continue
-                </Button>
-              </div>
             </DialogContent>
           </Dialog>
         </div>
