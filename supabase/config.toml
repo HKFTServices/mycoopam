@@ -9,3 +9,6 @@ otp_expiry = 86400
 
 [functions.google-places]
 verify_jwt = false
+
+[functions.tenant-og]
+verify_jwt = false
