@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import HCaptcha from "@hcaptcha/react-hcaptcha";
+
 import { getPublicSiteUrl, getSiteUrl } from "@/lib/getSiteUrl";
 import { MarketingPanel } from "@/components/auth/MarketingPanel";
 import { getCaptchaBypassUntil, setCaptchaBypass } from "@/lib/captchaBypass";
@@ -22,7 +22,7 @@ import {
 } from "@/lib/supabaseAuthStorage";
 import { runRecaptcha } from "@/lib/recaptcha";
 
-const HCAPTCHA_SITE_KEY = "344a0cf0-5280-4e30-911e-c2c8ad2e4b48";
+
 
 const TenantLanding = () => {
   const { slug: pathSlug } = useParams<{ slug: string }>();
