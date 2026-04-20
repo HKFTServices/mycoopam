@@ -118,7 +118,7 @@ function TenantLogoOverlay() {
         <img
           src={company.logoUrl || placeholderLogo}
           alt={company.name || "Tenant logo"}
-          className="max-h-[50px] w-auto object-contain"
+          className="max-h-[150px] w-auto object-contain"
           loading="lazy"
           draggable={false}
         />
