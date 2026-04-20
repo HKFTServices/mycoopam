@@ -1,6 +1,9 @@
 // Verifies a reCAPTCHA Enterprise token against Google's Assessment API.
 // Returns { success, score, action, reasons } or { success: false, error }.
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const RECAPTCHA_API_KEY = Deno.env.get("RECAPTCHA_API_KEY") ?? "";
 const RECAPTCHA_PROJECT_ID = Deno.env.get("RECAPTCHA_PROJECT_ID") ?? "";
