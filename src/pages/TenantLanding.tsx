@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { getPublicSiteUrl, getSiteUrl } from "@/lib/getSiteUrl";
 import { MarketingPanel } from "@/components/auth/MarketingPanel";
-import { getCaptchaBypassUntil, setCaptchaBypass } from "@/lib/captchaBypass";
+
 import {
   clearRememberMeIssuedAt,
   getAuthStorageMode,
