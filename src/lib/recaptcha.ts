@@ -42,7 +42,12 @@ const waitForGrecaptcha = (timeoutMs = 15000): Promise<void> =>
     tick();
   });
 
-/** Run reCAPTCHA Enterprise for an action. Returns true if score is acceptable. */
+/**
+ * Run reCAPTCHA Enterprise for an action.
+ * NON-BLOCKING: Always returns true so users are never locked out by
+ * captcha failures (network issues, domain misconfig, GCP outage, etc.).
+ * Failures are logged for observability but do not block the action.
+ */
 export const runRecaptcha = async (action: string): Promise<boolean> => {
   try {
     await waitForGrecaptcha();
@@ -59,16 +64,16 @@ export const runRecaptcha = async (action: string): Promise<boolean> => {
       body: { token, action },
     });
     if (error) {
-      console.warn("[recaptcha] verify error:", error.message);
-      return false;
+      console.warn("[recaptcha] verify error (allowing through):", error.message);
+      return true;
     }
     if (!data?.success) {
-      console.warn("[recaptcha] failed:", data);
-      return false;
+      console.warn("[recaptcha] low score / failed (allowing through):", data);
+      return true;
     }
     return true;
   } catch (err: any) {
-    console.warn("[recaptcha] exception:", err?.message ?? err);
-    return false;
+    console.warn("[recaptcha] exception (allowing through):", err?.message ?? err);
+    return true;
   }
 };
