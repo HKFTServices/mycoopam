@@ -128,28 +128,61 @@ function TenantLogoOverlay() {
 }
 
 function MarketingText() {
+  const { company, currentTenant } = useTenant();
+  const hasTenant = Boolean(currentTenant);
+  const tenantName = (hasTenant ? company?.name : null) || "MyCo-op";
+
   return (
     <div className="absolute bottom-8 left-8 right-8 text-white">
       <div className="max-w-xl space-y-3">
-        <p className="text-2xl font-semibold leading-snug tracking-tight">
-          MyCo-op is a digital platform designed to empower cooperatives, communities, and member-based organisations.
-        </p>
+        {hasTenant ? (
+          <>
+            <p className="text-2xl font-semibold leading-snug tracking-tight">
+              {tenantName} offers you a digital platform designed to empower our members, community, and
+              cooperative operations.
+            </p>
 
-        <p className="text-sm text-white/85 leading-relaxed">
-          Built around the core principles of cooperative management, MyCo-op enables organisations to streamline
-          operations, improve member engagement, and unlock new revenue opportunities through modern technology.
-        </p>
+            <p className="text-sm text-white/85 leading-relaxed">
+              Built around the core principles of cooperative management, {tenantName} streamlines our
+              operations, improves member engagement, and unlocks new opportunities through modern technology.
+            </p>
 
-        <div className="text-sm text-white/85">
-          <p className="font-medium text-white/95">The platform focuses on:</p>
-          <ul className="mt-2 list-disc pl-5 space-y-1">
-            <li>Centralised management of members, services, and operations</li>
-            <li>Improved decision-making through structured workflows and data visibility</li>
-            <li>Enhanced service delivery across supply, distribution, and marketing activities</li>
-            <li>Stronger member engagement via digital tools and communication channels</li>
-            <li>Scalable systems that support both small cooperatives and large organisations</li>
-          </ul>
-        </div>
+            <div className="text-sm text-white/85">
+              <p className="font-medium text-white/95">What {tenantName} offers you:</p>
+              <ul className="mt-2 list-disc pl-5 space-y-1">
+                <li>Centralised management of your membership, services, and account activity</li>
+                <li>Better decision-making through structured workflows and clear data visibility</li>
+                <li>Enhanced service delivery across supply, distribution, and marketing activities</li>
+                <li>Stronger engagement with {tenantName} via digital tools and communication channels</li>
+                <li>A scalable, secure platform that grows with our cooperative</li>
+              </ul>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-2xl font-semibold leading-snug tracking-tight">
+              MyCo-op is a digital platform designed to empower cooperatives, communities, and member-based
+              organisations.
+            </p>
+
+            <p className="text-sm text-white/85 leading-relaxed">
+              Built around the core principles of cooperative management, MyCo-op enables organisations to
+              streamline operations, improve member engagement, and unlock new revenue opportunities through
+              modern technology.
+            </p>
+
+            <div className="text-sm text-white/85">
+              <p className="font-medium text-white/95">The platform focuses on:</p>
+              <ul className="mt-2 list-disc pl-5 space-y-1">
+                <li>Centralised management of members, services, and operations</li>
+                <li>Improved decision-making through structured workflows and data visibility</li>
+                <li>Enhanced service delivery across supply, distribution, and marketing activities</li>
+                <li>Stronger member engagement via digital tools and communication channels</li>
+                <li>Scalable systems that support both small cooperatives and large organisations</li>
+              </ul>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
