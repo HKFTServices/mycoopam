@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Bot, User, Loader2, LifeBuoy } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
@@ -10,12 +10,17 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant
 
 export default function AiAssistantBubble() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Hide on registration/onboarding flows where bubble would obscure form controls (esp. mobile Next button)
+  const hiddenRoutes = ["/onboarding", "/membership-application", "/apply-membership", "/register-tenant", "/auth", "/reset-password"];
+  const isHidden = hiddenRoutes.some((r) => location.pathname.startsWith(r));
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -98,6 +103,8 @@ export default function AiAssistantBubble() {
     }
     setIsLoading(false);
   }, [input, isLoading, messages]);
+
+  if (isHidden) return null;
 
   return (
     <>
