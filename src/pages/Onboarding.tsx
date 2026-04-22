@@ -1187,12 +1187,12 @@ const Onboarding = () => {
               Back
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button onClick={handleNext} disabled={!canProceed || stepSaving}>
+              <Button onClick={handleNext} disabled={!canProceed || stepSaving || !currentTenant}>
                 {stepSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Next
               </Button>
             ) : (
-              <Button onClick={saveAll} disabled={!canProceed || saving}>
+              <Button onClick={saveAll} disabled={!canProceed || saving || !currentTenant}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Complete User Registration
               </Button>
