@@ -649,6 +649,19 @@ const Onboarding = () => {
             <h1 className="text-2xl font-bold">User Registration</h1>
             <p className="text-muted-foreground">Complete the steps below to complete User registration</p>
           </div>
+          {!currentTenant && (
+            <div className="text-sm text-destructive flex items-start gap-2 bg-destructive/10 p-4 rounded-lg border border-destructive/30">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">No co-operative selected</p>
+                <p>
+                  We can't complete your registration because no co-operative is associated with this session.
+                  Please open the registration link from your co-operative's website
+                  (for example <code className="bg-destructive/10 px-1 rounded">acb.myco-op.co.za</code>) and sign in there.
+                </p>
+              </div>
+            </div>
+          )}
           {/* Step indicator */}
           <div className="flex items-center justify-between">
             {STEPS.map((s, i) => (
