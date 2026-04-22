@@ -531,7 +531,11 @@ const Onboarding = () => {
   };
 
   const saveAll = async () => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
+    if (!currentTenant) {
+      toast.error("No co-operative selected. Please open the registration link from your co-operative's website (e.g. acb.myco-op.co.za) and try again.");
+      return;
+    }
     if (!entityId) {
       toast.error("Your personal details were not saved correctly. Please go back to Step 1 and save again.");
       setStep(0);
