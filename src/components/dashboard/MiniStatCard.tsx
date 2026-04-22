@@ -6,10 +6,17 @@ interface MiniStatCardProps {
   icon: React.ElementType;
   description: string;
   highlight?: boolean;
+  onClick?: () => void;
 }
 
-const MiniStatCard = ({ label, value, icon: Icon, description, highlight }: MiniStatCardProps) => (
-  <Card className={`hover:bg-muted/30 transition-colors ${highlight ? "border-primary/30 bg-primary/5" : ""}`}>
+const MiniStatCard = ({ label, value, icon: Icon, description, highlight, onClick }: MiniStatCardProps) => (
+  <Card
+    onClick={onClick}
+    role={onClick ? "button" : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    className={`hover:bg-muted/30 transition-colors ${highlight ? "border-primary/30 bg-primary/5" : ""} ${onClick ? "cursor-pointer hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring" : ""}`}
+  >
     <CardContent className="p-3 sm:p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
