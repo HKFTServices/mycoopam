@@ -138,12 +138,12 @@ function MarketingText() {
         {hasTenant ? (
           <>
             <p className="text-2xl font-semibold leading-snug tracking-tight">
-              {tenantName} offers you a modern digital platform built to serve our members
+              {tenantName} offers members a modern digital platform built to serve our members
               professionally and effectively.
             </p>
 
             <p className="text-sm text-white/85 leading-relaxed">
-              From your account and contributions to statements, loans, and communications, {tenantName}
+              From your account and contributions to statements, loans, and communications, {tenantName}{" "}
               brings everything you need into one secure place — designed around the way our cooperative
               works for you.
             </p>
