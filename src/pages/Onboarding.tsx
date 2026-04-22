@@ -1129,11 +1129,15 @@ const Onboarding = () => {
                 <CardDescription>Please read and accept the terms below to complete your registration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {termsForRegistration.length === 0 ? (
+                {!currentTenant ? (
+                  <p className="text-destructive text-sm text-center py-4">
+                    Terms & Conditions cannot be loaded because no co-operative is selected. Please open the registration link from your co-operative's website.
+                  </p>
+                ) : termsForRegistration.length === 0 ? (
                   <p className="text-muted-foreground text-sm text-center py-4">
                     No terms and conditions have been configured yet. You can proceed with registration.
                   </p>
-                ) : termsForRegistration.map((term) => (
+                ) : (
                   <div key={term.id} className="space-y-3">
                     <h3 className="text-sm font-semibold capitalize">{term.condition_type} Terms</h3>
                     <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-4 bg-muted/30">
