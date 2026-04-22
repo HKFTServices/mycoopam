@@ -138,23 +138,24 @@ function MarketingText() {
         {hasTenant ? (
           <>
             <p className="text-2xl font-semibold leading-snug tracking-tight">
-              {tenantName} offers you a digital platform designed to empower our members, community, and
-              cooperative operations.
+              {tenantName} offers you a modern digital platform built to serve our members
+              professionally and effectively.
             </p>
 
             <p className="text-sm text-white/85 leading-relaxed">
-              Built around the core principles of cooperative management, {tenantName} streamlines our
-              operations, improves member engagement, and unlocks new opportunities through modern technology.
+              From your account and contributions to statements, loans, and communications, {tenantName}
+              brings everything you need into one secure place — designed around the way our cooperative
+              works for you.
             </p>
 
             <div className="text-sm text-white/85">
-              <p className="font-medium text-white/95">What {tenantName} offers you:</p>
+              <p className="font-medium text-white/95">As a member of {tenantName}, you can:</p>
               <ul className="mt-2 list-disc pl-5 space-y-1">
-                <li>Centralised management of your membership, services, and account activity</li>
-                <li>Better decision-making through structured workflows and clear data visibility</li>
-                <li>Enhanced service delivery across supply, distribution, and marketing activities</li>
-                <li>Stronger engagement with {tenantName} via digital tools and communication channels</li>
-                <li>A scalable, secure platform that grows with our cooperative</li>
+                <li>Manage your membership, profile, and account details in one place</li>
+                <li>Make deposits, withdrawals, and transfers with full transparency</li>
+                <li>Track your balances, statements, and transaction history in real time</li>
+                <li>Apply for loans and services and follow their progress online</li>
+                <li>Stay informed through direct, secure communication from {tenantName}</li>
               </ul>
             </div>
           </>
