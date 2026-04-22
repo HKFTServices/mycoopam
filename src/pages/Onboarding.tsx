@@ -367,7 +367,11 @@ const Onboarding = () => {
   const [stepSaving, setStepSaving] = useState(false);
 
   const saveStep = async (currentStep: number) => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
+    if (!currentTenant) {
+      toast.error("No co-operative selected. Please open the registration link from your co-operative's website (e.g. acb.myco-op.co.za) and try again.");
+      return;
+    }
     setStepSaving(true);
     try {
       if (currentStep === 0) {
