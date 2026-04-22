@@ -104,6 +104,8 @@ export default function AiAssistantBubble() {
     setIsLoading(false);
   }, [input, isLoading, messages]);
 
+  if (isHidden) return null;
+
   return (
     <>
       {/* Chat panel */}
