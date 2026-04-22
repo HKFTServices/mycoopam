@@ -367,7 +367,11 @@ const Onboarding = () => {
   const [stepSaving, setStepSaving] = useState(false);
 
   const saveStep = async (currentStep: number) => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
+    if (!currentTenant) {
+      toast.error("No co-operative selected. Please open the registration link from your co-operative's website (e.g. acb.myco-op.co.za) and try again.");
+      return;
+    }
     setStepSaving(true);
     try {
       if (currentStep === 0) {
@@ -531,7 +535,11 @@ const Onboarding = () => {
   };
 
   const saveAll = async () => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
+    if (!currentTenant) {
+      toast.error("No co-operative selected. Please open the registration link from your co-operative's website (e.g. acb.myco-op.co.za) and try again.");
+      return;
+    }
     if (!entityId) {
       toast.error("Your personal details were not saved correctly. Please go back to Step 1 and save again.");
       setStep(0);
@@ -641,6 +649,19 @@ const Onboarding = () => {
             <h1 className="text-2xl font-bold">User Registration</h1>
             <p className="text-muted-foreground">Complete the steps below to complete User registration</p>
           </div>
+          {!currentTenant && (
+            <div className="text-sm text-destructive flex items-start gap-2 bg-destructive/10 p-4 rounded-lg border border-destructive/30">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">No co-operative selected</p>
+                <p>
+                  We can't complete your registration because no co-operative is associated with this session.
+                  Please open the registration link from your co-operative's website
+                  (for example <code className="bg-destructive/10 px-1 rounded">acb.myco-op.co.za</code>) and sign in there.
+                </p>
+              </div>
+            </div>
+          )}
           {/* Step indicator */}
           <div className="flex items-center justify-between">
             {STEPS.map((s, i) => (
@@ -1108,28 +1129,34 @@ const Onboarding = () => {
                 <CardDescription>Please read and accept the terms below to complete your registration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {termsForRegistration.length === 0 ? (
+                {!currentTenant ? (
+                  <p className="text-destructive text-sm text-center py-4">
+                    Terms & Conditions cannot be loaded because no co-operative is selected. Please open the registration link from your co-operative's website.
+                  </p>
+                ) : termsForRegistration.length === 0 ? (
                   <p className="text-muted-foreground text-sm text-center py-4">
                     No terms and conditions have been configured yet. You can proceed with registration.
                   </p>
-                ) : termsForRegistration.map((term) => (
-                  <div key={term.id} className="space-y-3">
-                    <h3 className="text-sm font-semibold capitalize">{term.condition_type} Terms</h3>
-                    <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-4 bg-muted/30">
-                      <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: term.content }} />
+                ) : (
+                  termsForRegistration.map((term) => (
+                    <div key={term.id} className="space-y-3">
+                      <h3 className="text-sm font-semibold capitalize">{term.condition_type} Terms</h3>
+                      <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-4 bg-muted/30">
+                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: term.content }} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`accept-${term.id}`}
+                          checked={!!acceptedTerms[term.id]}
+                          onCheckedChange={(checked) => setAcceptedTerms((prev) => ({ ...prev, [term.id]: !!checked }))}
+                        />
+                        <Label htmlFor={`accept-${term.id}`} className="text-sm">
+                          I have read and accept the {term.condition_type} terms and conditions
+                        </Label>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={`accept-${term.id}`}
-                        checked={!!acceptedTerms[term.id]}
-                        onCheckedChange={(checked) => setAcceptedTerms((prev) => ({ ...prev, [term.id]: !!checked }))}
-                      />
-                      <Label htmlFor={`accept-${term.id}`} className="text-sm">
-                        I have read and accept the {term.condition_type} terms and conditions
-                      </Label>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               
               </CardContent>
             </Card>
@@ -1160,12 +1187,12 @@ const Onboarding = () => {
               Back
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button onClick={handleNext} disabled={!canProceed || stepSaving}>
+              <Button onClick={handleNext} disabled={!canProceed || stepSaving || !currentTenant}>
                 {stepSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Next
               </Button>
             ) : (
-              <Button onClick={saveAll} disabled={!canProceed || saving}>
+              <Button onClick={saveAll} disabled={!canProceed || saving || !currentTenant}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Complete User Registration
               </Button>
