@@ -698,10 +698,10 @@ const AdminDashboard = ({ tenantId, isSuperAdmin, isTenantAdmin }: AdminDashboar
       {/* Stat cards */}
       {adminStats && isWidgetVisible("stat-cards") && (
         <div className="grid gap-1.5 sm:gap-2 grid-cols-2 lg:grid-cols-4">
-          <MiniStatCard label="Entities" value={adminStats.totalEntities} icon={Users} description="Registered" />
-          <MiniStatCard label="Active Accounts" value={adminStats.totalAccounts} icon={CreditCard} description="Approved & active" />
-          <MiniStatCard label="Active Pools" value={adminStats.activePools} icon={Wallet} description="Investment pools" />
-          <MiniStatCard label="Approvals" value={adminStats.pendingAccounts} icon={TrendingUp} description="Pending items" highlight />
+          <MiniStatCard label="Entities" value={adminStats.totalEntities} icon={Users} description="Registered" onClick={() => navigate("/dashboard/entities")} />
+          <MiniStatCard label="Active Accounts" value={adminStats.totalAccounts} icon={CreditCard} description="Approved & active" onClick={() => navigate("/dashboard/entity-accounts")} />
+          <MiniStatCard label="Active Pools" value={adminStats.activePools} icon={Wallet} description="Investment pools" onClick={() => navigate("/dashboard/pools")} />
+          <MiniStatCard label="Approvals" value={adminStats.pendingAccounts} icon={TrendingUp} description="Pending items" highlight onClick={() => navigate("/dashboard/account-approvals")} />
         </div>
       )}
 
