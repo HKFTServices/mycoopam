@@ -566,7 +566,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">Required Documents</p>
-                  <p className="text-sm text-muted-foreground mt-1">Some required documents are still outstanding. Use &apos;Generate&apos; to create a pre-filled document with your details.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Some required documents are still outstanding. Please upload them to complete your profile.</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {missingCriticalDocs.slice(0, 4).map((d) => <Badge key={d.id} variant="outline" className="text-[11px]">{d.name}</Badge>)}
                     {missingCriticalDocs.length > 4 ? <Badge variant="outline" className="text-[11px]">+{missingCriticalDocs.length - 4} more</Badge> : null}
@@ -574,8 +574,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 </div>
               </div>
               <div className="flex items-center gap-2 md:pt-1">
-                <Button onClick={() => setDocsDialogOpen(true)} className="gap-2"><FileDown className="h-4 w-4" />Generate</Button>
-                <Button variant="outline" onClick={() => setDocsDialogOpen(true)}>Upload</Button>
+                <Button onClick={() => setDocsDialogOpen(true)} className="gap-2">Upload</Button>
               </div>
             </div>
           </CardContent>
