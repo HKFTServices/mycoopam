@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,6 +14,7 @@ const AddressStep = ({ data, update }: StepProps) => {
   const [addressSearch, setAddressSearch] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [lookupError, setLookupError] = useState("");
 
   const { data: countries = [] } = useQuery({
     queryKey: ["countries"],
@@ -23,20 +25,34 @@ const AddressStep = ({ data, update }: StepProps) => {
   });
 
   const searchAddress = async (input: string) => {
-    if (input.length < 3) { setSuggestions([]); return; }
+    if (input.length < 3) {
+      setSuggestions([]);
+      setLookupError("");
+      return;
+    }
     try {
       const res = await supabase.functions.invoke("google-places", { body: { input, type: "autocomplete" } });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error_message) throw new Error(res.data.error_message);
       if (res.data?.predictions) {
+        setLookupError("");
         setSuggestions(res.data.predictions.map((p: any) => ({ description: p.description, place_id: p.place_id })));
       }
-    } catch { setSuggestions([]); }
+    } catch (error) {
+      setSuggestions([]);
+      const message = error instanceof Error ? error.message : "Address lookup is currently unavailable.";
+      setLookupError(message);
+    }
   };
 
   const selectAddress = async (suggestion: Suggestion) => {
     setSuggestions([]);
+    setLookupError("");
     setAddressSearch(suggestion.description);
     try {
       const res = await supabase.functions.invoke("google-places", { body: { input: suggestion.place_id, type: "details" } });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error_message) throw new Error(res.data.error_message);
       if (res.data?.result) {
         const components = res.data.result.address_components ?? [];
         const get = (type: string) => components.find((c: any) => c.types.includes(type))?.long_name ?? "";
@@ -49,11 +65,15 @@ const AddressStep = ({ data, update }: StepProps) => {
           country: get("country") || "South Africa",
         });
       }
-    } catch { /* keep manual entry */ }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Address lookup is currently unavailable.";
+      setLookupError(message);
+    }
   };
 
   const handleSearchChange = (value: string) => {
     setAddressSearch(value);
+    setLookupError("");
     if (searchTimeout) clearTimeout(searchTimeout);
     setSearchTimeout(setTimeout(() => searchAddress(value), 400));
   };
@@ -68,6 +88,11 @@ const AddressStep = ({ data, update }: StepProps) => {
         <div className="space-y-2 relative">
           <Label>Search Address</Label>
           <Input value={addressSearch} onChange={(e) => handleSearchChange(e.target.value)} placeholder="Start typing the address..." />
+          {lookupError && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertDescription>{lookupError}</AlertDescription>
+            </Alert>
+          )}
           {suggestions.length > 0 && (
             <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
               {suggestions.map((s) => (
