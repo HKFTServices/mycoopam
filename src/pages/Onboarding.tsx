@@ -1138,23 +1138,25 @@ const Onboarding = () => {
                     No terms and conditions have been configured yet. You can proceed with registration.
                   </p>
                 ) : (
-                  <div key={term.id} className="space-y-3">
-                    <h3 className="text-sm font-semibold capitalize">{term.condition_type} Terms</h3>
-                    <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-4 bg-muted/30">
-                      <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: term.content }} />
+                  termsForRegistration.map((term) => (
+                    <div key={term.id} className="space-y-3">
+                      <h3 className="text-sm font-semibold capitalize">{term.condition_type} Terms</h3>
+                      <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-4 bg-muted/30">
+                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: term.content }} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`accept-${term.id}`}
+                          checked={!!acceptedTerms[term.id]}
+                          onCheckedChange={(checked) => setAcceptedTerms((prev) => ({ ...prev, [term.id]: !!checked }))}
+                        />
+                        <Label htmlFor={`accept-${term.id}`} className="text-sm">
+                          I have read and accept the {term.condition_type} terms and conditions
+                        </Label>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={`accept-${term.id}`}
-                        checked={!!acceptedTerms[term.id]}
-                        onCheckedChange={(checked) => setAcceptedTerms((prev) => ({ ...prev, [term.id]: !!checked }))}
-                      />
-                      <Label htmlFor={`accept-${term.id}`} className="text-sm">
-                        I have read and accept the {term.condition_type} terms and conditions
-                      </Label>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               
               </CardContent>
             </Card>
