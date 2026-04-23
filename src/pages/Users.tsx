@@ -5,12 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, useSort, compareValues } from "@/components/ui/sortable-table-head";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Loader2, LogIn, ShieldCheck, MoreHorizontal, Mail } from "lucide-react";
 import ManageRolesDialog from "@/components/users/ManageRolesDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -186,11 +187,29 @@ const Users = () => {
     },
   });
 
+  type SortKey = "name" | "email" | "phone" | "active" | "status" | "roles";
+  const { sort, toggle } = useSort<SortKey>({ key: "name", direction: "asc" });
+
   const filtered = users.filter((u) => {
     const term = search.toLowerCase();
     const name = [u.first_name, u.last_name].filter(Boolean).join(" ").toLowerCase();
     return name.includes(term) || (u.email ?? "").toLowerCase().includes(term);
   });
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const get = (u: any): unknown => {
+      switch (sort.key) {
+        case "name": return [u.first_name, u.last_name].filter(Boolean).join(" ");
+        case "email": return u.email;
+        case "phone": return u.phone;
+        case "active": return u.is_active ? 1 : 0;
+        case "status": return u.registration_status;
+        case "roles": return (u.roles ?? []).join(",");
+      }
+    };
+    return [...filtered].sort((a, b) => compareValues(get(a), get(b), sort.direction));
+  }, [filtered, sort]);
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -234,11 +253,11 @@ const Users = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No users found.</div>
       ) : isMobile ? (
         <div className="space-y-3">
-          {filtered.map((u) => {
+          {sorted.map((u) => {
             const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
             return (
               <Card key={u.user_id}>
@@ -312,17 +331,17 @@ const Users = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Roles</TableHead>
+                  <SortableTableHead sortKey="name" sort={sort} onSort={toggle}>Name</SortableTableHead>
+                  <SortableTableHead sortKey="email" sort={sort} onSort={toggle}>Email</SortableTableHead>
+                  <SortableTableHead sortKey="phone" sort={sort} onSort={toggle}>Phone</SortableTableHead>
+                  <SortableTableHead sortKey="active" sort={sort} onSort={toggle}>Active</SortableTableHead>
+                  <SortableTableHead sortKey="status" sort={sort} onSort={toggle}>Status</SortableTableHead>
+                  <SortableTableHead sortKey="roles" sort={sort} onSort={toggle}>Roles</SortableTableHead>
                   {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((u) => (
+                {sorted.map((u) => (
                   <TableRow key={u.user_id}>
                     <TableCell className="font-medium">
                       {[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}

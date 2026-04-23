@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, useSort, compareValues } from "@/components/ui/sortable-table-head";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search, Building2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CreateEntityDialog from "@/components/entities/CreateEntityDialog";
 
@@ -39,6 +40,9 @@ const Entities = () => {
     enabled: !!currentTenant,
   });
 
+  type SortKey = "name" | "category" | "id" | "contact" | "email" | "active";
+  const { sort, toggle } = useSort<SortKey>({ key: "name", direction: "asc" });
+
   const filtered = entities.filter((e: any) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -52,6 +56,21 @@ const Entities = () => {
       (e.entity_categories?.name ?? "").toLowerCase().includes(q)
     );
   });
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const get = (e: any): unknown => {
+      switch (sort.key) {
+        case "name": return [e.name, e.last_name].filter(Boolean).join(" ");
+        case "category": return e.entity_categories?.name;
+        case "id": return e.identity_number || e.registration_number || e.passport_number;
+        case "contact": return e.contact_number;
+        case "email": return e.email_address;
+        case "active": return e.is_active ? 1 : 0;
+      }
+    };
+    return [...filtered].sort((a, b) => compareValues(get(a), get(b), sort.direction));
+  }, [filtered, sort]);
 
   const renderMobileCard = (e: any) => {
     const fullName = [e.name, e.last_name].filter(Boolean).join(" ");
@@ -127,14 +146,14 @@ const Entities = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Building2 className="h-8 w-8 mx-auto mb-2 opacity-40" />
           {search ? "No matching entities found." : "No entities yet."}
         </div>
       ) : isMobile ? (
         <div className="space-y-3">
-          {filtered.map(renderMobileCard)}
+          {sorted.map(renderMobileCard)}
         </div>
       ) : (
         <Card>
@@ -142,16 +161,16 @@ const Entities = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>ID / Reg. Number</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Active</TableHead>
+                  <SortableTableHead sortKey="name" sort={sort} onSort={toggle}>Name</SortableTableHead>
+                  <SortableTableHead sortKey="category" sort={sort} onSort={toggle}>Category</SortableTableHead>
+                  <SortableTableHead sortKey="id" sort={sort} onSort={toggle}>ID / Reg. Number</SortableTableHead>
+                  <SortableTableHead sortKey="contact" sort={sort} onSort={toggle}>Contact</SortableTableHead>
+                  <SortableTableHead sortKey="email" sort={sort} onSort={toggle}>Email</SortableTableHead>
+                  <SortableTableHead sortKey="active" sort={sort} onSort={toggle}>Active</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((e: any) => {
+                {sorted.map((e: any) => {
                   const fullName = [e.name, e.last_name].filter(Boolean).join(" ");
                   const category = e.entity_categories;
                   const idNum = e.identity_number || e.registration_number || e.passport_number;

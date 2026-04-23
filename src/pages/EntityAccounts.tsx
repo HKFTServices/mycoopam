@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, useSort, compareValues } from "@/components/ui/sortable-table-head";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -18,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Briefcase, Plus, UserPlus, Pencil } from "lucide-react";
 import { MobileTableHint } from "@/components/ui/mobile-table-hint";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import CreateEntityAccountDialog from "@/components/entity-accounts/CreateEntityAccountDialog";
 
@@ -215,6 +216,9 @@ const EntityAccounts = () => {
     }];
   }).flat();
 
+  type SortKey = "entity" | "relationship" | "category" | "accountType" | "accountNumber" | "approved" | "active" | "status";
+  const { sort, toggle } = useSort<SortKey>({ key: "entity", direction: "asc" });
+
   const filtered = rows.filter((r) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -228,6 +232,23 @@ const EntityAccounts = () => {
       (r.status ?? "").toLowerCase().includes(q)
     );
   });
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const get = (r: AccountRow): unknown => {
+      switch (sort.key) {
+        case "entity": return r.entityName;
+        case "relationship": return r.relationshipName;
+        case "category": return r.categoryName;
+        case "accountType": return r.accountTypeName;
+        case "accountNumber": return r.accountNumber;
+        case "approved": return r.isApproved ? 1 : 0;
+        case "active": return r.isActive ? 1 : 0;
+        case "status": return r.status;
+      }
+    };
+    return [...filtered].sort((a, b) => compareValues(get(a), get(b), sort.direction));
+  }, [filtered, sort]);
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -255,14 +276,14 @@ const EntityAccounts = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Entity Name</TableHead>
-                <TableHead>Relationship</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Account Type</TableHead>
-                <TableHead>Account Number</TableHead>
-                <TableHead>Approved</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableTableHead sortKey="entity" sort={sort} onSort={toggle}>Entity Name</SortableTableHead>
+                <SortableTableHead sortKey="relationship" sort={sort} onSort={toggle}>Relationship</SortableTableHead>
+                <SortableTableHead sortKey="category" sort={sort} onSort={toggle}>Category</SortableTableHead>
+                <SortableTableHead sortKey="accountType" sort={sort} onSort={toggle}>Account Type</SortableTableHead>
+                <SortableTableHead sortKey="accountNumber" sort={sort} onSort={toggle}>Account Number</SortableTableHead>
+                <SortableTableHead sortKey="approved" sort={sort} onSort={toggle}>Approved</SortableTableHead>
+                <SortableTableHead sortKey="active" sort={sort} onSort={toggle}>Active</SortableTableHead>
+                <SortableTableHead sortKey="status" sort={sort} onSort={toggle}>Status</SortableTableHead>
                 <TableHead className="text-right">Combined Unit Value</TableHead>
                 <TableHead className="w-16" />
               </TableRow>
@@ -274,7 +295,7 @@ const EntityAccounts = () => {
                     <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
-              ) : filtered.length === 0 ? (
+              ) : sorted.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                     <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" />
@@ -282,7 +303,7 @@ const EntityAccounts = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((r) => (
+                sorted.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
                       <div>
