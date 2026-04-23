@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TableHead } from "@/components/ui/table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ export function SortableTableHead<K extends string>({
 }
 
 export function useSort<K extends string>(initial: SortState<K> | null = null) {
-  const [sort, setSort] = (require("react") as typeof import("react")).useState<SortState<K> | null>(initial);
+  const [sort, setSort] = useState<SortState<K> | null>(initial);
   const toggle = (key: K) => {
     setSort((curr) => {
       if (!curr || curr.key !== key) return { key, direction: "asc" };
