@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
@@ -11,14 +11,22 @@ import type { StepProps } from "./types";
 const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
   const [autoApplied, setAutoApplied] = useState(false);
 
-  const commissionOptions = useMemo(() => {
-    const opts = [];
-    for (let i = 0; i <= 20; i++) {
-      const val = (i * 0.25).toFixed(2);
-      opts.push({ value: val, label: `${(i * 0.25).toFixed(2)}%` });
-    }
-    return opts;
-  }, []);
+  // Fetch the tenant's single active referral plan (commission % source of truth)
+  const { data: activePlan } = useQuery({
+    queryKey: ["active_referral_plan", tenantId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("referral_plans")
+        .select("id, commission_percentage")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .maybeSingle();
+      return data as { id: string; commission_percentage: number } | null;
+    },
+    enabled: !!tenantId,
+  });
+
+  const activePct = activePlan ? Number(activePlan.commission_percentage) : null;
 
   // Fetch registered referrers with their referral house info
   const { data: referrers = [], isLoading } = useQuery({
@@ -26,7 +34,7 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
     queryFn: async () => {
       const { data: refs } = await (supabase as any)
         .from("referrers")
-        .select("id, referrer_number, entity_id, referral_house_entity_id, is_active, referral_code, referral_plan_id")
+        .select("id, referrer_number, entity_id, referral_house_entity_id, is_active, referral_code")
         .eq("tenant_id", tenantId)
         .eq("is_active", true);
 
@@ -45,17 +53,6 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
         (entities ?? []).forEach((e) => entityMap.set(e.id, e));
       }
 
-      // Fetch referral plans to get commission %
-      const planIds = [...new Set(refs.map((r: any) => r.referral_plan_id).filter(Boolean))];
-      let planMap = new Map<string, number>();
-      if (planIds.length > 0) {
-        const { data: plans } = await (supabase as any)
-          .from("referral_plans")
-          .select("id, commission_percentage")
-          .in("id", planIds);
-        (plans ?? []).forEach((p: any) => planMap.set(p.id, Number(p.commission_percentage)));
-      }
-
       return refs.map((r: any) => {
         const referrerEntity = entityMap.get(r.entity_id);
         const houseEntity = entityMap.get(r.referral_house_entity_id);
@@ -68,14 +65,22 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
         const label = houseName
           ? `${referrerName} (${r.referrer_number}) — ${houseName}`
           : `${referrerName} (${r.referrer_number})`;
-        const planCommission = r.referral_plan_id ? planMap.get(r.referral_plan_id) : undefined;
-        return { id: r.id as string, label, referralCode: r.referral_code, planCommission };
+        return { id: r.id as string, label, referralCode: r.referral_code };
       });
     },
     enabled: !!tenantId,
   });
 
-  // Auto-apply referrer from referral link (stored in localStorage or user metadata)
+  // Always sync commission % to the active plan whenever a referrer is selected
+  useEffect(() => {
+    if (!data.hasReferrer || activePct === null) return;
+    const target = activePct.toFixed(2);
+    if (data.commissionPercentage !== target) {
+      update({ commissionPercentage: target });
+    }
+  }, [data.hasReferrer, data.referrerId, activePct, data.commissionPercentage, update]);
+
+  // Auto-apply referrer from referral link (stored in localStorage)
   useEffect(() => {
     if (autoApplied || isLoading || referrers.length === 0) return;
     const storedCode = localStorage.getItem("referralCode");
@@ -83,13 +88,11 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
 
     const matchingReferrer = referrers.find((r) => r.referralCode === storedCode);
     if (matchingReferrer) {
-      const commPct = matchingReferrer.planCommission !== undefined
-        ? matchingReferrer.planCommission.toFixed(2)
-        : data.commissionPercentage || "2.50";
+      const commPct = activePct !== null ? activePct.toFixed(2) : (data.commissionPercentage || "0");
       update({ hasReferrer: true, referrerId: matchingReferrer.id, commissionPercentage: commPct });
       setAutoApplied(true);
     }
-  }, [referrers, isLoading, autoApplied, data.commissionPercentage, update]);
+  }, [referrers, isLoading, autoApplied, activePct, data.commissionPercentage, update]);
 
   return (
     <Card>
@@ -98,7 +101,7 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
         <CardDescription>Were you referred by an existing member?</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Switch checked={data.hasReferrer} onCheckedChange={(v) => update({ hasReferrer: v, referrerId: "" })} />
           <Label>I was referred by an existing member</Label>
           {autoApplied && <Badge variant="secondary" className="text-xs">Auto-applied from referral link</Badge>}
@@ -123,16 +126,16 @@ const ReferrerStep = ({ data, update, tenantId }: StepProps) => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 max-w-xs">
-              <Label>Agreed Commission Percentage *</Label>
-              <Select value={data.commissionPercentage} onValueChange={(v) => update({ commissionPercentage: v })}>
-                <SelectTrigger><SelectValue placeholder="Select %" /></SelectTrigger>
-                <SelectContent>
-                  {commissionOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="rounded-md bg-muted/50 p-3 text-sm">
+              <span className="text-muted-foreground">Commission rate (set by cooperative): </span>
+              <span className="font-semibold">
+                {activePct !== null ? `${activePct.toFixed(2)}%` : "Not configured"}
+              </span>
+              {activePct === null && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  No active referral plan. The cooperative admin needs to activate one.
+                </p>
+              )}
             </div>
           </div>
         )}
