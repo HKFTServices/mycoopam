@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Plus, MessageSquare, Send, CheckCircle, Clock, AlertCircle, Lightbulb, HelpCircle, Loader2 } from "lucide-react";
+import { Plus, MessageSquare, Send, CheckCircle, Clock, AlertCircle, Lightbulb, HelpCircle, Loader2, Paperclip, X, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 
@@ -40,7 +40,21 @@ export default function SupportTickets() {
   const [newSubject, setNewSubject] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newCategory, setNewCategory] = useState("issue");
+  const [newAttachment, setNewAttachment] = useState<File | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [replyAttachment, setReplyAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadAttachment = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "bin";
+    const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from("support-attachments").upload(path, file, { upsert: false, contentType: file.type });
+    if (error) throw error;
+    const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   // Check if user is admin
   const { data: userRoles = [] } = useQuery({
@@ -141,12 +155,18 @@ export default function SupportTickets() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      let attachment_url: string | null = null;
+      if (newAttachment) {
+        setUploading(true);
+        try { attachment_url = await uploadAttachment(newAttachment); } finally { setUploading(false); }
+      }
       const { error } = await (supabase as any).from("support_tickets").insert({
         tenant_id: tenantId,
         created_by: user!.id,
         subject: newSubject.trim(),
         description: newDescription.trim() || null,
         category: newCategory,
+        attachment_url,
       });
       if (error) throw error;
     },
@@ -156,26 +176,34 @@ export default function SupportTickets() {
       setNewSubject("");
       setNewDescription("");
       setNewCategory("issue");
+      setNewAttachment(null);
       queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
     },
-    onError: () => toast.error("Failed to submit ticket"),
+    onError: (e: any) => toast.error(e?.message || "Failed to submit ticket"),
   });
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      let attachment_url: string | null = null;
+      if (replyAttachment) {
+        setUploading(true);
+        try { attachment_url = await uploadAttachment(replyAttachment); } finally { setUploading(false); }
+      }
       const { error } = await (supabase as any).from("support_ticket_messages").insert({
         ticket_id: selectedTicket.id,
         sender_id: user!.id,
-        message: replyText.trim(),
+        message: replyText.trim() || (attachment_url ? "(image attached)" : ""),
         is_admin_reply: isAdmin,
+        attachment_url,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setReplyText("");
+      setReplyAttachment(null);
       refetchMessages();
     },
-    onError: () => toast.error("Failed to send message"),
+    onError: (e: any) => toast.error(e?.message || "Failed to send message"),
   });
 
   const statusMutation = useMutation({
@@ -211,9 +239,11 @@ export default function SupportTickets() {
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl sm:text-2xl font-bold">Support Tickets</h1>
-        <Button onClick={() => setShowNew(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> New Ticket
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowNew(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> New Ticket
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -222,7 +252,11 @@ export default function SupportTickets() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <MessageSquare className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
-            <p className="text-muted-foreground text-sm">No support tickets yet. Click "New Ticket" to lodge an issue or suggestion.</p>
+            <p className="text-muted-foreground text-sm">
+              {isAdmin
+                ? 'No support tickets yet. Click "New Ticket" to lodge an issue or suggestion.'
+                : "No support tickets yet."}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -259,7 +293,7 @@ export default function SupportTickets() {
       )}
 
       {/* New ticket dialog */}
-      <Dialog open={showNew} onOpenChange={setShowNew}>
+      <Dialog open={showNew} onOpenChange={(o) => { setShowNew(o); if (!o) setNewAttachment(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Lodge a Ticket</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -273,8 +307,34 @@ export default function SupportTickets() {
             </Select>
             <Input placeholder="Subject" value={newSubject} onChange={(e) => setNewSubject(e.target.value)} maxLength={200} />
             <Textarea placeholder="Describe your issue or suggestion..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={4} maxLength={2000} />
-            <Button className="w-full" disabled={!newSubject.trim() || createMutation.isPending} onClick={() => createMutation.mutate()}>
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+
+            <input
+              ref={newFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f && f.size > 5 * 1024 * 1024) { toast.error("Image must be under 5 MB"); return; }
+                setNewAttachment(f ?? null);
+              }}
+            />
+            {newAttachment ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 text-xs">
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="flex-1 truncate">{newAttachment.name}</span>
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setNewAttachment(null)}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => newFileInputRef.current?.click()}>
+                <Paperclip className="h-3.5 w-3.5 mr-1.5" /> Attach screenshot
+              </Button>
+            )}
+
+            <Button className="w-full" disabled={!newSubject.trim() || createMutation.isPending || uploading} onClick={() => createMutation.mutate()}>
+              {(createMutation.isPending || uploading) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Submit Ticket
             </Button>
           </div>
@@ -309,6 +369,15 @@ export default function SupportTickets() {
                 {selectedTicket.description && (
                   <p className="text-sm text-muted-foreground">{selectedTicket.description}</p>
                 )}
+                {selectedTicket.attachment_url && (
+                  <a href={selectedTicket.attachment_url} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={selectedTicket.attachment_url}
+                      alt="Ticket attachment"
+                      className="rounded-md border max-h-48 object-contain bg-muted/30"
+                    />
+                  </a>
+                )}
               </div>
 
               {/* Messages */}
@@ -327,7 +396,16 @@ export default function SupportTickets() {
                             {m.is_admin_reply ? "Admin" : getName(senderProfile)}
                           </p>
                         )}
-                        <p className="whitespace-pre-wrap">{m.message}</p>
+                        {m.message && <p className="whitespace-pre-wrap">{m.message}</p>}
+                        {m.attachment_url && (
+                          <a href={m.attachment_url} target="_blank" rel="noreferrer" className="block mt-1">
+                            <img
+                              src={m.attachment_url}
+                              alt="Attachment"
+                              className="rounded-md max-h-40 object-contain bg-background/40"
+                            />
+                          </a>
+                        )}
                         <p className={cn("text-[10px] mt-1 opacity-60", isMe ? "text-right" : "")}>
                           {format(new Date(m.created_at), "dd MMM HH:mm")}
                         </p>
@@ -339,19 +417,65 @@ export default function SupportTickets() {
 
               {/* Reply input */}
               {(selectedTicket.status !== "closed") && (
-                <div className="border-t p-2">
-                  <form onSubmit={(e) => { e.preventDefault(); if (replyText.trim()) replyMutation.mutate(); }} className="flex gap-2">
+                <div className="border-t p-2 space-y-2">
+                  {replyAttachment && (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-1.5 text-xs">
+                      <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="flex-1 truncate">{replyAttachment.name}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={() => setReplyAttachment(null)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <input
+                    ref={replyFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && f.size > 5 * 1024 * 1024) { toast.error("Image must be under 5 MB"); return; }
+                      setReplyAttachment(f ?? null);
+                    }}
+                  />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (replyText.trim() || replyAttachment) replyMutation.mutate();
+                    }}
+                    className="flex gap-2"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      title="Attach image"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
                     <Textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (replyText.trim()) replyMutation.mutate(); } }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (replyText.trim() || replyAttachment) replyMutation.mutate();
+                        }
+                      }}
                       placeholder={isAdmin ? "Reply to user..." : "Add a message..."}
                       rows={1}
                       className="flex-1 resize-none min-h-[36px]"
                       maxLength={2000}
                     />
-                    <Button type="submit" size="icon" disabled={!replyText.trim() || replyMutation.isPending} className="h-9 w-9 shrink-0">
-                      <Send className="h-4 w-4" />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={(!replyText.trim() && !replyAttachment) || replyMutation.isPending || uploading}
+                      className="h-9 w-9 shrink-0"
+                    >
+                      {(replyMutation.isPending || uploading) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </Button>
                   </form>
                 </div>

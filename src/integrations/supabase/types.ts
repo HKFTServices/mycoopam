@@ -5211,6 +5211,7 @@ export type Database = {
       }
       support_ticket_messages: {
         Row: {
+          attachment_url: string | null
           created_at: string
           id: string
           is_admin_reply: boolean
@@ -5219,6 +5220,7 @@ export type Database = {
           ticket_id: string
         }
         Insert: {
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_admin_reply?: boolean
@@ -5227,6 +5229,7 @@ export type Database = {
           ticket_id: string
         }
         Update: {
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_admin_reply?: boolean
@@ -5246,6 +5249,7 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          attachment_url: string | null
           category: string
           created_at: string
           created_by: string
@@ -5260,6 +5264,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attachment_url?: string | null
           category?: string
           created_at?: string
           created_by: string
@@ -5274,6 +5279,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attachment_url?: string | null
           category?: string
           created_at?: string
           created_by?: string
