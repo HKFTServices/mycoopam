@@ -30,6 +30,7 @@ import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import { memberDashboardTourSteps } from "@/components/onboarding/tourSteps";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
+import { useLoansEnabled } from "@/hooks/useFeatureEnabled";
 
 interface MemberDashboardProps {
   tenantId: string;
@@ -40,6 +41,7 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const { isDebitOrderEnabled } = useDebitOrderEnabled();
+  const { isLoansEnabled } = useLoansEnabled();
   const [txnDialogOpen, setTxnDialogOpen] = useState(false);
   const [selectedPoolId, setSelectedPoolId] = useState<string | undefined>();
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
@@ -467,20 +469,24 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   <Plus className="mr-2 h-4 w-4" />
                   New Transaction
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate("/dashboard/loan-applications")}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Loan Transactions
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                  onSelect={() => {
-                    if (!memberPrimaryAccount || memberPrimaryAccountLoading) return;
-                    setLoanApplyOpen(true);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Loan Application
-                </DropdownMenuItem>
+                {isLoansEnabled && (
+                  <DropdownMenuItem onSelect={() => navigate("/dashboard/loan-applications")}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Loan Transactions
+                  </DropdownMenuItem>
+                )}
+                {isLoansEnabled && (
+                  <DropdownMenuItem
+                    disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                    onSelect={() => {
+                      if (!memberPrimaryAccount || memberPrimaryAccountLoading) return;
+                      setLoanApplyOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Loan Application
+                  </DropdownMenuItem>
+                )}
                 {isDebitOrderEnabled && (
                   <>
                     <DropdownMenuSeparator />
@@ -511,19 +517,21 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                 New Transaction
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="bg-background shadow-sm hover:bg-muted/40"
-              >
-                <Link to="/dashboard/loan-applications">
-                  <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/10 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-400">
-                    <Eye className="h-3.5 w-3.5" />
-                  </span>
-                  View Loan Transactions
-                </Link>
-              </Button>
+              {isLoansEnabled && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="bg-background shadow-sm hover:bg-muted/40"
+                >
+                  <Link to="/dashboard/loan-applications">
+                    <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/10 ring-1 ring-sky-500/30 text-sky-700 dark:text-sky-400">
+                      <Eye className="h-3.5 w-3.5" />
+                    </span>
+                    View Loan Transactions
+                  </Link>
+                </Button>
+              )}
               {isDebitOrderEnabled && (
                 <Button
                   variant="outline"
@@ -538,18 +546,20 @@ const MemberDashboard = ({ tenantId }: MemberDashboardProps) => {
                   Debit Orders
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
-                className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
-                onClick={() => setLoanApplyOpen(true)}
-              >
-                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/10 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-400">
-                  <Plus className="h-3.5 w-3.5" />
-                </span>
-                New Loan Application
-              </Button>
+              {isLoansEnabled && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!memberPrimaryAccount || memberPrimaryAccountLoading}
+                  className="bg-background shadow-sm hover:bg-muted/40 disabled:bg-muted disabled:text-muted-foreground disabled:border-border"
+                  onClick={() => setLoanApplyOpen(true)}
+                >
+                  <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/10 ring-1 ring-amber-500/30 text-amber-700 dark:text-amber-400">
+                    <Plus className="h-3.5 w-3.5" />
+                  </span>
+                  New Loan Application
+                </Button>
+              )}
             </>
           )}
         </div>
