@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Plus, MessageSquare, Send, CheckCircle, Clock, AlertCircle, Lightbulb, HelpCircle, Loader2 } from "lucide-react";
+import { Plus, MessageSquare, Send, CheckCircle, Clock, AlertCircle, Lightbulb, HelpCircle, Loader2, Paperclip, X, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 
@@ -40,7 +40,21 @@ export default function SupportTickets() {
   const [newSubject, setNewSubject] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newCategory, setNewCategory] = useState("issue");
+  const [newAttachment, setNewAttachment] = useState<File | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [replyAttachment, setReplyAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadAttachment = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "bin";
+    const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from("support-attachments").upload(path, file, { upsert: false, contentType: file.type });
+    if (error) throw error;
+    const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   // Check if user is admin
   const { data: userRoles = [] } = useQuery({
@@ -141,12 +155,18 @@ export default function SupportTickets() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      let attachment_url: string | null = null;
+      if (newAttachment) {
+        setUploading(true);
+        try { attachment_url = await uploadAttachment(newAttachment); } finally { setUploading(false); }
+      }
       const { error } = await (supabase as any).from("support_tickets").insert({
         tenant_id: tenantId,
         created_by: user!.id,
         subject: newSubject.trim(),
         description: newDescription.trim() || null,
         category: newCategory,
+        attachment_url,
       });
       if (error) throw error;
     },
@@ -156,26 +176,34 @@ export default function SupportTickets() {
       setNewSubject("");
       setNewDescription("");
       setNewCategory("issue");
+      setNewAttachment(null);
       queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
     },
-    onError: () => toast.error("Failed to submit ticket"),
+    onError: (e: any) => toast.error(e?.message || "Failed to submit ticket"),
   });
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      let attachment_url: string | null = null;
+      if (replyAttachment) {
+        setUploading(true);
+        try { attachment_url = await uploadAttachment(replyAttachment); } finally { setUploading(false); }
+      }
       const { error } = await (supabase as any).from("support_ticket_messages").insert({
         ticket_id: selectedTicket.id,
         sender_id: user!.id,
-        message: replyText.trim(),
+        message: replyText.trim() || (attachment_url ? "(image attached)" : ""),
         is_admin_reply: isAdmin,
+        attachment_url,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setReplyText("");
+      setReplyAttachment(null);
       refetchMessages();
     },
-    onError: () => toast.error("Failed to send message"),
+    onError: (e: any) => toast.error(e?.message || "Failed to send message"),
   });
 
   const statusMutation = useMutation({
