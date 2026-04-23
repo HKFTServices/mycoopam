@@ -1003,7 +1003,10 @@ const Memberships = () => {
           );
         };
 
-        const renderAccountBadge = (a: AccountRow) => {
+        const renderAccountBadge = (
+          a: AccountRow,
+          entityRefRecord?: { referrerNumber: string; referralCode: string | null; referrerId: string },
+        ) => {
           const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
           const isPending = a.status === "pending_activation" || a.status === "pending";
           const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
@@ -1012,12 +1015,12 @@ const Memberships = () => {
               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" /> : <X className="h-3 w-3 text-destructive shrink-0" />}
               <span className={`text-xs ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
               {a.accountNumber && <code className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</code>}
-              {a.id === "referrer-virtual" && isActive && (
+              {a.id === "referrer-virtual" && isActive && entityRefRecord && (
                 <span className="flex gap-0.5 ml-1">
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleCopyReferralLink(entityRefRecord)} title="Copy referral link">
                     <Copy className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleShareReferralLink(entityRefRecord)} title="Share referral link">
                     <Share2 className="h-3 w-3" />
                   </Button>
                 </span>
