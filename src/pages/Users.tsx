@@ -187,11 +187,29 @@ const Users = () => {
     },
   });
 
+  type SortKey = "name" | "email" | "phone" | "active" | "status" | "roles";
+  const { sort, toggle } = useSort<SortKey>({ key: "name", direction: "asc" });
+
   const filtered = users.filter((u) => {
     const term = search.toLowerCase();
     const name = [u.first_name, u.last_name].filter(Boolean).join(" ").toLowerCase();
     return name.includes(term) || (u.email ?? "").toLowerCase().includes(term);
   });
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const get = (u: any): unknown => {
+      switch (sort.key) {
+        case "name": return [u.first_name, u.last_name].filter(Boolean).join(" ");
+        case "email": return u.email;
+        case "phone": return u.phone;
+        case "active": return u.is_active ? 1 : 0;
+        case "status": return u.registration_status;
+        case "roles": return (u.roles ?? []).join(",");
+      }
+    };
+    return [...filtered].sort((a, b) => compareValues(get(a), get(b), sort.direction));
+  }, [filtered, sort]);
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
