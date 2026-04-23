@@ -23,10 +23,10 @@ import { toast } from "sonner";
 import { resolveTermsMergeFields } from "@/lib/resolveTermsMergeFields";
 
 const CONDITION_TYPES = [
-  { value: "registration", label: "Registration" },
-  { value: "membership", label: "Membership" },
-  { value: "pool", label: "Pool" },
-  { value: "tax", label: "Tax" },
+  { value: "registration", label: "User Registration" },
+  { value: "membership", label: "Membership Ts & Cs" },
+  { value: "pool", label: "Statement description below pool summary" },
+  { value: "tax", label: "Capital Gains Tax Certificate" },
 ] as const;
 
 const LANGUAGES = [
