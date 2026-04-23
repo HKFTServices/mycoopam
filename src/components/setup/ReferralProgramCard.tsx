@@ -123,11 +123,22 @@ const ReferralProgramCard = () => {
   };
 
   const toggleActive = async (plan: ReferralPlan) => {
+    const newActive = !plan.is_active;
+    // Enforce single active plan per tenant: deactivate all others when activating this one
+    if (newActive && tenantId) {
+      const { error: deactErr } = await (supabase as any)
+        .from("referral_plans")
+        .update({ is_active: false })
+        .eq("tenant_id", tenantId)
+        .neq("id", plan.id);
+      if (deactErr) { toast.error(deactErr.message); return; }
+    }
     const { error } = await (supabase as any)
       .from("referral_plans")
-      .update({ is_active: !plan.is_active })
+      .update({ is_active: newActive })
       .eq("id", plan.id);
     if (error) { toast.error(error.message); return; }
+    if (newActive) toast.success("Plan activated. Other plans were deactivated.");
     queryClient.invalidateQueries({ queryKey: ["referral_plans"] });
   };
 
