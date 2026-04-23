@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, useSort, compareValues } from "@/components/ui/sortable-table-head";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -18,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Briefcase, Plus, UserPlus, Pencil } from "lucide-react";
 import { MobileTableHint } from "@/components/ui/mobile-table-hint";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import CreateEntityAccountDialog from "@/components/entity-accounts/CreateEntityAccountDialog";
 
@@ -215,6 +216,9 @@ const EntityAccounts = () => {
     }];
   }).flat();
 
+  type SortKey = "entity" | "relationship" | "category" | "accountType" | "accountNumber" | "approved" | "active" | "status";
+  const { sort, toggle } = useSort<SortKey>({ key: "entity", direction: "asc" });
+
   const filtered = rows.filter((r) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -228,6 +232,23 @@ const EntityAccounts = () => {
       (r.status ?? "").toLowerCase().includes(q)
     );
   });
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const get = (r: AccountRow): unknown => {
+      switch (sort.key) {
+        case "entity": return r.entityName;
+        case "relationship": return r.relationshipName;
+        case "category": return r.categoryName;
+        case "accountType": return r.accountTypeName;
+        case "accountNumber": return r.accountNumber;
+        case "approved": return r.isApproved ? 1 : 0;
+        case "active": return r.isActive ? 1 : 0;
+        case "status": return r.status;
+      }
+    };
+    return [...filtered].sort((a, b) => compareValues(get(a), get(b), sort.direction));
+  }, [filtered, sort]);
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
