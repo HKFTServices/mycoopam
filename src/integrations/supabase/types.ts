@@ -6878,6 +6878,7 @@ export type Database = {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: undefined
       }
+      escalate_stale_support_tickets: { Args: never; Returns: undefined }
       get_account_pool_units: {
         Args: { p_tenant_id: string; p_up_to_date?: string }
         Returns: {

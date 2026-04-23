@@ -239,12 +239,13 @@ export default function SupportTickets() {
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl sm:text-2xl font-bold">Support Tickets</h1>
-        {isAdmin && (
-          <Button onClick={() => setShowNew(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> New Ticket
-          </Button>
-        )}
+        <Button onClick={() => setShowNew(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1" /> New Ticket
+        </Button>
       </div>
+      <p className="text-xs text-muted-foreground -mt-2">
+        Tickets are sent to your cooperative's admin first. If unresolved after 3 days, they're escalated to platform support.
+      </p>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -252,11 +253,7 @@ export default function SupportTickets() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <MessageSquare className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
-            <p className="text-muted-foreground text-sm">
-              {isAdmin
-                ? 'No support tickets yet. Click "New Ticket" to lodge an issue or suggestion.'
-                : "No support tickets yet."}
-            </p>
+            <p className="text-muted-foreground text-sm">No support tickets yet. Click "New Ticket" to lodge an issue or suggestion.</p>
           </CardContent>
         </Card>
       ) : (
