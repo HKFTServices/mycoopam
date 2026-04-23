@@ -369,6 +369,15 @@ export default function SupportTickets() {
                 {selectedTicket.description && (
                   <p className="text-sm text-muted-foreground">{selectedTicket.description}</p>
                 )}
+                {selectedTicket.attachment_url && (
+                  <a href={selectedTicket.attachment_url} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={selectedTicket.attachment_url}
+                      alt="Ticket attachment"
+                      className="rounded-md border max-h-48 object-contain bg-muted/30"
+                    />
+                  </a>
+                )}
               </div>
 
               {/* Messages */}
@@ -387,7 +396,16 @@ export default function SupportTickets() {
                             {m.is_admin_reply ? "Admin" : getName(senderProfile)}
                           </p>
                         )}
-                        <p className="whitespace-pre-wrap">{m.message}</p>
+                        {m.message && <p className="whitespace-pre-wrap">{m.message}</p>}
+                        {m.attachment_url && (
+                          <a href={m.attachment_url} target="_blank" rel="noreferrer" className="block mt-1">
+                            <img
+                              src={m.attachment_url}
+                              alt="Attachment"
+                              className="rounded-md max-h-40 object-contain bg-background/40"
+                            />
+                          </a>
+                        )}
                         <p className={cn("text-[10px] mt-1 opacity-60", isMe ? "text-right" : "")}>
                           {format(new Date(m.created_at), "dd MMM HH:mm")}
                         </p>
