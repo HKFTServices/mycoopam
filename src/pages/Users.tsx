@@ -5,12 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, useSort, compareValues } from "@/components/ui/sortable-table-head";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Loader2, LogIn, ShieldCheck, MoreHorizontal, Mail } from "lucide-react";
 import ManageRolesDialog from "@/components/users/ManageRolesDialog";
 import { useToast } from "@/hooks/use-toast";
