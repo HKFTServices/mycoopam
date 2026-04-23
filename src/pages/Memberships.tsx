@@ -1094,7 +1094,7 @@ const Memberships = () => {
               {g.accounts.length > 0 && (
                 <div className="border-t border-border pt-2 space-y-1.5 px-1">
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Accounts</p>
-                  {g.accounts.map(renderAccountBadge)}
+                  {g.accounts.map((a) => renderAccountBadge(a, entityReferrerRecords[g.entityId]))}
                 </div>
               )}
             </CardContent>
@@ -1219,12 +1219,12 @@ const Memberships = () => {
                               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" /> : <X className="h-3 w-3 text-destructive" />}
                               <code className="font-mono text-xs">{a.accountNumber}</code>
                               <span className="text-muted-foreground">)</span>
-                              {a.id === "referrer-virtual" && isActive && (
+                              {a.id === "referrer-virtual" && isActive && entityReferrerRecords[g.entityId] && (
                                 <span className="flex gap-0.5 ml-1">
-                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleCopyReferralLink(entityReferrerRecords[g.entityId])} title="Copy referral link">
                                     <Copy className="h-3 w-3" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleShareReferralLink(entityReferrerRecords[g.entityId])} title="Share referral link">
                                     <Share2 className="h-3 w-3" />
                                   </Button>
                                 </span>
