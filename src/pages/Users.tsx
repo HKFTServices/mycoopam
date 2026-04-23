@@ -253,11 +253,11 @@ const Users = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No users found.</div>
       ) : isMobile ? (
         <div className="space-y-3">
-          {filtered.map((u) => {
+          {sorted.map((u) => {
             const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
             return (
               <Card key={u.user_id}>
@@ -331,17 +331,17 @@ const Users = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Roles</TableHead>
+                  <SortableTableHead sortKey="name" sort={sort} onSort={toggle}>Name</SortableTableHead>
+                  <SortableTableHead sortKey="email" sort={sort} onSort={toggle}>Email</SortableTableHead>
+                  <SortableTableHead sortKey="phone" sort={sort} onSort={toggle}>Phone</SortableTableHead>
+                  <SortableTableHead sortKey="active" sort={sort} onSort={toggle}>Active</SortableTableHead>
+                  <SortableTableHead sortKey="status" sort={sort} onSort={toggle}>Status</SortableTableHead>
+                  <SortableTableHead sortKey="roles" sort={sort} onSort={toggle}>Roles</SortableTableHead>
                   {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((u) => (
+                {sorted.map((u) => (
                   <TableRow key={u.user_id}>
                     <TableCell className="font-medium">
                       {[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}
