@@ -417,19 +417,65 @@ export default function SupportTickets() {
 
               {/* Reply input */}
               {(selectedTicket.status !== "closed") && (
-                <div className="border-t p-2">
-                  <form onSubmit={(e) => { e.preventDefault(); if (replyText.trim()) replyMutation.mutate(); }} className="flex gap-2">
+                <div className="border-t p-2 space-y-2">
+                  {replyAttachment && (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-1.5 text-xs">
+                      <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="flex-1 truncate">{replyAttachment.name}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={() => setReplyAttachment(null)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <input
+                    ref={replyFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && f.size > 5 * 1024 * 1024) { toast.error("Image must be under 5 MB"); return; }
+                      setReplyAttachment(f ?? null);
+                    }}
+                  />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (replyText.trim() || replyAttachment) replyMutation.mutate();
+                    }}
+                    className="flex gap-2"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      title="Attach image"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
                     <Textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (replyText.trim()) replyMutation.mutate(); } }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (replyText.trim() || replyAttachment) replyMutation.mutate();
+                        }
+                      }}
                       placeholder={isAdmin ? "Reply to user..." : "Add a message..."}
                       rows={1}
                       className="flex-1 resize-none min-h-[36px]"
                       maxLength={2000}
                     />
-                    <Button type="submit" size="icon" disabled={!replyText.trim() || replyMutation.isPending} className="h-9 w-9 shrink-0">
-                      <Send className="h-4 w-4" />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={(!replyText.trim() && !replyAttachment) || replyMutation.isPending || uploading}
+                      className="h-9 w-9 shrink-0"
+                    >
+                      {(replyMutation.isPending || uploading) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </Button>
                   </form>
                 </div>
