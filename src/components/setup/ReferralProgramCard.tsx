@@ -158,6 +158,7 @@ const ReferralProgramCard = () => {
           <CardDescription>
             Configure referral commission plans. When a referrer shares their unique link and a new member signs up,
             commissions are automatically calculated on qualifying deposits.
+            <span className="block mt-1 text-xs">Only one plan can be active at a time. Activating a plan automatically deactivates the others. Its commission % is applied to all referrals.</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
