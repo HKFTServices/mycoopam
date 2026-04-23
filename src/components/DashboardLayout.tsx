@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { useDebitOrderEnabled } from "@/hooks/useDebitOrderEnabled";
+import { useLoansEnabled } from "@/hooks/useFeatureEnabled";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -492,15 +493,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const filteredMain = useMemo(() => filterItems(mainNavItems, normalizedQuery), [normalizedQuery]);
   const filteredTransactions = useMemo(() => {
-    const items = isDebitOrderEnabled ? transactionsNavItems : transactionsNavItems.filter(i => i.path !== "/dashboard/debit-orders");
+    let items = transactionsNavItems;
+    if (!isDebitOrderEnabled) items = items.filter(i => i.path !== "/dashboard/debit-orders");
+    if (!isLoansEnabled) items = items.filter(i => i.path !== "/dashboard/loan-applications");
     return filterItems(items, normalizedQuery);
-  }, [normalizedQuery, isDebitOrderEnabled]);
+  }, [normalizedQuery, isDebitOrderEnabled, isLoansEnabled]);
   const filteredEntities = useMemo(() => filterItems(entitiesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredDailyPrices = useMemo(() => filterItems(dailyPricesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredMessages = useMemo(() => filterItems(messagesNavItems, normalizedQuery), [normalizedQuery]);
   const filteredAdminOnly = useMemo(() => filterItems(adminOnlyNavItems, normalizedQuery), [normalizedQuery]);
   const filteredOtherTransactions = useMemo(() => filterItems(otherTransactionsNavItems, normalizedQuery), [normalizedQuery]);
-  const filteredTenantSetup = useMemo(() => filterItems(tenantSetupNavItems, normalizedQuery), [normalizedQuery]);
+  const filteredTenantSetup = useMemo(() => {
+    const items = isLoansEnabled
+      ? tenantSetupNavItems
+      : tenantSetupNavItems.filter(i =>
+          i.path !== "/dashboard/setup/loan-settings" &&
+          i.path !== "/dashboard/setup/budget-categories"
+        );
+    return filterItems(items, normalizedQuery);
+  }, [normalizedQuery, isLoansEnabled]);
   const filteredHeadOfficeAll = useMemo(() => filterItems(headOfficeNavItems, normalizedQuery), [normalizedQuery]);
   const filteredGlobalSetup = useMemo(() => filterItems(globalSetupNavItems, normalizedQuery), [normalizedQuery]);
   
