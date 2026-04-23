@@ -68,7 +68,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/" replace />;
   }
 
-  const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname === "/membership-application";
+  const isOnboardingRoute =
+    location.pathname === "/onboarding" ||
+    location.pathname === "/membership-application" ||
+    location.pathname === "/apply-membership";
 
   // Per-tenant onboarding check — only for non-admin regular users
   if (
