@@ -276,14 +276,14 @@ const EntityAccounts = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Entity Name</TableHead>
-                <TableHead>Relationship</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Account Type</TableHead>
-                <TableHead>Account Number</TableHead>
-                <TableHead>Approved</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableTableHead sortKey="entity" sort={sort} onSort={toggle}>Entity Name</SortableTableHead>
+                <SortableTableHead sortKey="relationship" sort={sort} onSort={toggle}>Relationship</SortableTableHead>
+                <SortableTableHead sortKey="category" sort={sort} onSort={toggle}>Category</SortableTableHead>
+                <SortableTableHead sortKey="accountType" sort={sort} onSort={toggle}>Account Type</SortableTableHead>
+                <SortableTableHead sortKey="accountNumber" sort={sort} onSort={toggle}>Account Number</SortableTableHead>
+                <SortableTableHead sortKey="approved" sort={sort} onSort={toggle}>Approved</SortableTableHead>
+                <SortableTableHead sortKey="active" sort={sort} onSort={toggle}>Active</SortableTableHead>
+                <SortableTableHead sortKey="status" sort={sort} onSort={toggle}>Status</SortableTableHead>
                 <TableHead className="text-right">Combined Unit Value</TableHead>
                 <TableHead className="w-16" />
               </TableRow>
@@ -295,7 +295,7 @@ const EntityAccounts = () => {
                     <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
-              ) : filtered.length === 0 ? (
+              ) : sorted.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                     <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" />
@@ -303,7 +303,7 @@ const EntityAccounts = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((r) => (
+                sorted.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
                       <div>
