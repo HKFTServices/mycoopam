@@ -795,23 +795,6 @@ const Memberships = () => {
 
   
 
-  const generateReferralCode = async () => {
-    if (!referrerInfo?.referrerId || !currentTenant) return null;
-    // If code already exists, just return the link
-    if (referrerInfo.referralCode) {
-      return buildReferralLink(referrerInfo.referralCode);
-    }
-    // Generate a short unique code
-    const code = `${referrerInfo.referrerNumber}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
-    const { error } = await (supabase as any)
-      .from("referrers")
-      .update({ referral_code: code })
-      .eq("id", referrerInfo.referrerId);
-    if (error) { toast.error("Failed to generate referral code"); return null; }
-    queryClient.invalidateQueries({ queryKey: ["referrer_info"] });
-    return buildReferralLink(code);
-  };
-
   const buildReferralLink = (code: string) => {
     if (!currentTenant) return "";
     // Always use production URL for referral links (they are shared externally)
@@ -820,8 +803,43 @@ const Memberships = () => {
     return `${base}/auth?ref=${encodeURIComponent(code)}`;
   };
 
-  const handleCopyReferralLink = async () => {
-    const link = await generateReferralCode();
+  const generateReferralCodeFor = async (
+    record?: { referrerId: string; referrerNumber: string; referralCode: string | null } | null,
+  ) => {
+    // Prefer the per-entity referrer record; fall back to the logged-in user's referrer record.
+    const target = record
+      ?? (referrerInfo?.referrerId
+        ? {
+            referrerId: referrerInfo.referrerId,
+            referrerNumber: referrerInfo.referrerNumber ?? "",
+            referralCode: referrerInfo.referralCode ?? null,
+          }
+        : null);
+    if (!target || !currentTenant) {
+      toast.error("Referrer record not found");
+      return null;
+    }
+    if (target.referralCode) {
+      return buildReferralLink(target.referralCode);
+    }
+    const code = `${target.referrerNumber || "REF"}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
+    const { error } = await (supabase as any)
+      .from("referrers")
+      .update({ referral_code: code })
+      .eq("id", target.referrerId);
+    if (error) {
+      toast.error("Failed to generate referral code");
+      return null;
+    }
+    queryClient.invalidateQueries({ queryKey: ["referrer_info"] });
+    queryClient.invalidateQueries({ queryKey: ["entity_referrer_records"] });
+    return buildReferralLink(code);
+  };
+
+  const handleCopyReferralLink = async (
+    record?: { referrerId: string; referrerNumber: string; referralCode: string | null } | null,
+  ) => {
+    const link = await generateReferralCodeFor(record);
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
@@ -831,15 +849,17 @@ const Memberships = () => {
     }
   };
 
-  const handleShareReferralLink = async () => {
-    const link = await generateReferralCode();
+  const handleShareReferralLink = async (
+    record?: { referrerId: string; referrerNumber: string; referralCode: string | null } | null,
+  ) => {
+    const link = await generateReferralCodeFor(record);
     if (!link) return;
     if (navigator.share) {
       try {
         await navigator.share({ title: `Join ${currentTenant?.name}`, text: "Sign up using my referral link!", url: link });
       } catch { /* user cancelled */ }
     } else {
-      handleCopyReferralLink();
+      handleCopyReferralLink(record);
     }
   };
 
@@ -983,7 +1003,10 @@ const Memberships = () => {
           );
         };
 
-        const renderAccountBadge = (a: AccountRow) => {
+        const renderAccountBadge = (
+          a: AccountRow,
+          entityRefRecord?: { referrerNumber: string; referralCode: string | null; referrerId: string },
+        ) => {
           const isActive = (a.status === "active" || a.status === "approved") && a.isActive !== false;
           const isPending = a.status === "pending_activation" || a.status === "pending";
           const isDeactivated = a.isActive === false && (a.status === "active" || a.status === "approved");
@@ -992,12 +1015,12 @@ const Memberships = () => {
               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" /> : <X className="h-3 w-3 text-destructive shrink-0" />}
               <span className={`text-xs ${!isActive && !isPending ? 'text-muted-foreground line-through' : ''}`}>{a.accountTypeName}</span>
               {a.accountNumber && <code className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</code>}
-              {a.id === "referrer-virtual" && isActive && (
+              {a.id === "referrer-virtual" && isActive && entityRefRecord && (
                 <span className="flex gap-0.5 ml-1">
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleCopyReferralLink(entityRefRecord)} title="Copy referral link">
                     <Copy className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleShareReferralLink(entityRefRecord)} title="Share referral link">
                     <Share2 className="h-3 w-3" />
                   </Button>
                 </span>
@@ -1071,7 +1094,7 @@ const Memberships = () => {
               {g.accounts.length > 0 && (
                 <div className="border-t border-border pt-2 space-y-1.5 px-1">
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Accounts</p>
-                  {g.accounts.map(renderAccountBadge)}
+                  {g.accounts.map((a) => renderAccountBadge(a, entityReferrerRecords[g.entityId]))}
                 </div>
               )}
             </CardContent>
@@ -1196,12 +1219,12 @@ const Memberships = () => {
                               {isActive ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : isPending ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground inline" /> : <X className="h-3 w-3 text-destructive" />}
                               <code className="font-mono text-xs">{a.accountNumber}</code>
                               <span className="text-muted-foreground">)</span>
-                              {a.id === "referrer-virtual" && isActive && (
+                              {a.id === "referrer-virtual" && isActive && entityReferrerRecords[g.entityId] && (
                                 <span className="flex gap-0.5 ml-1">
-                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyReferralLink} title="Copy referral link">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleCopyReferralLink(entityReferrerRecords[g.entityId])} title="Copy referral link">
                                     <Copy className="h-3 w-3" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleShareReferralLink} title="Share referral link">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleShareReferralLink(entityReferrerRecords[g.entityId])} title="Share referral link">
                                     <Share2 className="h-3 w-3" />
                                   </Button>
                                 </span>
