@@ -123,11 +123,22 @@ const ReferralProgramCard = () => {
   };
 
   const toggleActive = async (plan: ReferralPlan) => {
+    const newActive = !plan.is_active;
+    // Enforce single active plan per tenant: deactivate all others when activating this one
+    if (newActive && tenantId) {
+      const { error: deactErr } = await (supabase as any)
+        .from("referral_plans")
+        .update({ is_active: false })
+        .eq("tenant_id", tenantId)
+        .neq("id", plan.id);
+      if (deactErr) { toast.error(deactErr.message); return; }
+    }
     const { error } = await (supabase as any)
       .from("referral_plans")
-      .update({ is_active: !plan.is_active })
+      .update({ is_active: newActive })
       .eq("id", plan.id);
     if (error) { toast.error(error.message); return; }
+    if (newActive) toast.success("Plan activated. Other plans were deactivated.");
     queryClient.invalidateQueries({ queryKey: ["referral_plans"] });
   };
 
@@ -147,6 +158,7 @@ const ReferralProgramCard = () => {
           <CardDescription>
             Configure referral commission plans. When a referrer shares their unique link and a new member signs up,
             commissions are automatically calculated on qualifying deposits.
+            <span className="block mt-1 text-xs">Only one plan can be active at a time. Activating a plan automatically deactivates the others. Its commission % is applied to all referrals.</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
