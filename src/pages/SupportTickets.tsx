@@ -239,9 +239,11 @@ export default function SupportTickets() {
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl sm:text-2xl font-bold">Support Tickets</h1>
-        <Button onClick={() => setShowNew(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> New Ticket
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowNew(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> New Ticket
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -250,7 +252,11 @@ export default function SupportTickets() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <MessageSquare className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
-            <p className="text-muted-foreground text-sm">No support tickets yet. Click "New Ticket" to lodge an issue or suggestion.</p>
+            <p className="text-muted-foreground text-sm">
+              {isAdmin
+                ? 'No support tickets yet. Click "New Ticket" to lodge an issue or suggestion.'
+                : "No support tickets yet."}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -287,7 +293,7 @@ export default function SupportTickets() {
       )}
 
       {/* New ticket dialog */}
-      <Dialog open={showNew} onOpenChange={setShowNew}>
+      <Dialog open={showNew} onOpenChange={(o) => { setShowNew(o); if (!o) setNewAttachment(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Lodge a Ticket</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -301,8 +307,34 @@ export default function SupportTickets() {
             </Select>
             <Input placeholder="Subject" value={newSubject} onChange={(e) => setNewSubject(e.target.value)} maxLength={200} />
             <Textarea placeholder="Describe your issue or suggestion..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={4} maxLength={2000} />
-            <Button className="w-full" disabled={!newSubject.trim() || createMutation.isPending} onClick={() => createMutation.mutate()}>
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+
+            <input
+              ref={newFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f && f.size > 5 * 1024 * 1024) { toast.error("Image must be under 5 MB"); return; }
+                setNewAttachment(f ?? null);
+              }}
+            />
+            {newAttachment ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 text-xs">
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="flex-1 truncate">{newAttachment.name}</span>
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setNewAttachment(null)}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => newFileInputRef.current?.click()}>
+                <Paperclip className="h-3.5 w-3.5 mr-1.5" /> Attach screenshot
+              </Button>
+            )}
+
+            <Button className="w-full" disabled={!newSubject.trim() || createMutation.isPending || uploading} onClick={() => createMutation.mutate()}>
+              {(createMutation.isPending || uploading) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Submit Ticket
             </Button>
           </div>
