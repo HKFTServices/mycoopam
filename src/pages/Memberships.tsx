@@ -795,23 +795,6 @@ const Memberships = () => {
 
   
 
-  const generateReferralCode = async () => {
-    if (!referrerInfo?.referrerId || !currentTenant) return null;
-    // If code already exists, just return the link
-    if (referrerInfo.referralCode) {
-      return buildReferralLink(referrerInfo.referralCode);
-    }
-    // Generate a short unique code
-    const code = `${referrerInfo.referrerNumber}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
-    const { error } = await (supabase as any)
-      .from("referrers")
-      .update({ referral_code: code })
-      .eq("id", referrerInfo.referrerId);
-    if (error) { toast.error("Failed to generate referral code"); return null; }
-    queryClient.invalidateQueries({ queryKey: ["referrer_info"] });
-    return buildReferralLink(code);
-  };
-
   const buildReferralLink = (code: string) => {
     if (!currentTenant) return "";
     // Always use production URL for referral links (they are shared externally)
@@ -820,8 +803,43 @@ const Memberships = () => {
     return `${base}/auth?ref=${encodeURIComponent(code)}`;
   };
 
-  const handleCopyReferralLink = async () => {
-    const link = await generateReferralCode();
+  const generateReferralCodeFor = async (
+    record?: { referrerId: string; referrerNumber: string; referralCode: string | null } | null,
+  ) => {
+    // Prefer the per-entity referrer record; fall back to the logged-in user's referrer record.
+    const target = record
+      ?? (referrerInfo?.referrerId
+        ? {
+            referrerId: referrerInfo.referrerId,
+            referrerNumber: referrerInfo.referrerNumber ?? "",
+            referralCode: referrerInfo.referralCode ?? null,
+          }
+        : null);
+    if (!target || !currentTenant) {
+      toast.error("Referrer record not found");
+      return null;
+    }
+    if (target.referralCode) {
+      return buildReferralLink(target.referralCode);
+    }
+    const code = `${target.referrerNumber || "REF"}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
+    const { error } = await (supabase as any)
+      .from("referrers")
+      .update({ referral_code: code })
+      .eq("id", target.referrerId);
+    if (error) {
+      toast.error("Failed to generate referral code");
+      return null;
+    }
+    queryClient.invalidateQueries({ queryKey: ["referrer_info"] });
+    queryClient.invalidateQueries({ queryKey: ["entity_referrer_records"] });
+    return buildReferralLink(code);
+  };
+
+  const handleCopyReferralLink = async (
+    record?: { referrerId: string; referrerNumber: string; referralCode: string | null } | null,
+  ) => {
+    const link = await generateReferralCodeFor(record);
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
@@ -831,15 +849,17 @@ const Memberships = () => {
     }
   };
 
-  const handleShareReferralLink = async () => {
-    const link = await generateReferralCode();
+  const handleShareReferralLink = async (
+    record?: { referrerId: string; referrerNumber: string; referralCode: string | null } | null,
+  ) => {
+    const link = await generateReferralCodeFor(record);
     if (!link) return;
     if (navigator.share) {
       try {
         await navigator.share({ title: `Join ${currentTenant?.name}`, text: "Sign up using my referral link!", url: link });
       } catch { /* user cancelled */ }
     } else {
-      handleCopyReferralLink();
+      handleCopyReferralLink(record);
     }
   };
 
