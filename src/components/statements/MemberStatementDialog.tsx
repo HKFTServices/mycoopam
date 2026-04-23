@@ -170,11 +170,19 @@ export default function MemberStatementDialog({
         return map;
       };
 
-      // Build list of exposed pool IDs from closing prices
+      // Build list of pool IDs the member actually has exposure to
+      // (units in opening OR closing balance) AND not marked "do_not_display"
       const dedupEnd = dedup(poolPricesEndRes.data);
+      const memberPoolIds = new Set<string>();
+      for (const row of openingUnits) {
+        if (Math.abs(Number(row.total_units || 0)) > 0.0001) memberPoolIds.add(row.pool_id);
+      }
+      for (const row of closingUnits) {
+        if (Math.abs(Number(row.total_units || 0)) > 0.0001) memberPoolIds.add(row.pool_id);
+      }
       const exposedPoolIds = Object.keys(dedupEnd).filter(pid => {
         const dt = dedupEnd[pid]?.pools?.pool_statement_display_type;
-        return dt !== "do_not_display";
+        return dt !== "do_not_display" && memberPoolIds.has(pid);
       });
 
       // Fetch unit prices, stock item prices, and T&C in parallel
