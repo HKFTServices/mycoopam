@@ -203,6 +203,24 @@ const LoanApplications = () => {
 
   const isMobile = useIsMobile();
 
+  if (!loansFlagLoading && !isLoansEnabled) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-10 sm:py-16 text-center px-4">
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-accent flex items-center justify-center mb-3 sm:mb-4">
+              <BanknoteIcon className="h-6 w-6 sm:h-7 sm:w-7 text-accent-foreground" />
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Loans not enabled</h3>
+            <p className="text-muted-foreground text-xs sm:text-sm max-w-md">
+              The Loans module is not enabled for {currentTenant?.name ?? "this cooperative"}. Please contact your administrator if you believe this is an error.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
