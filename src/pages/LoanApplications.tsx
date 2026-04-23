@@ -22,6 +22,8 @@ import LoanApplicationDialog from "@/components/loans/LoanApplicationDialog";
 import AccountSelectionStep from "@/components/transactions/steps/AccountSelectionStep";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSearchParams } from "react-router-dom";
+import { useLoansEnabled } from "@/hooks/useFeatureEnabled";
+import { Banknote as BanknoteIcon } from "lucide-react";
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (s) {
@@ -40,6 +42,7 @@ const statusLabel = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, c => c.
 const LoanApplications = () => {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
+  const { isLoansEnabled, isLoading: loansFlagLoading } = useLoansEnabled();
   const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState("all");
   const [reviewApp, setReviewApp] = useState<any>(null);
